@@ -1,22 +1,13 @@
-
-
-from networkx.algorithms import isomorphism as iso
-
 import joblib
-
 import utils.myeden as myutils
-
 import extract
-
-
 import networkx as nx
 import itertools
 import random
 import math
-from multiprocessing import Pool
-from multiprocessing import Manager
+from multiprocessing import Pool,Manager
 from eden.graph import Vectorizer
-
+from networkx.algorithms import isomorphism as iso
 
 
 """
@@ -37,8 +28,7 @@ from eden.graph import Vectorizer
         probably not so interesting
     
     and we have a feasibility checker to see if generated graphs
-    are valid
-        may be interesting to the user
+    are valid == may be interesting to the user
     
 """
 
@@ -61,23 +51,24 @@ class adaptiveMHgraphsampler:
         self.__dict__ = joblib.load(filename)
 
     def induce_grammar(self, G_iterator, radius_list, thickness_list, n_jobs=4):
+        '''
+        you might want to overwrite this to customize how the grammar is induced
+        extract_cores_and_interfaces_multi
+        '''
         self.substitute_grammar = {}
-
         self.grammar_functions = local_substitutable_graph_grammar(self.substitute_grammar,
-                                                                   radius_list, thickness_list)
-
+                                                                radius_list, thickness_list)
         self.grammar_functions.readgraphs(G_iterator, n_jobs)
         self.grammar_functions.clean()
 
 
     def train_estimator(self, iterable_pos_train, n_jobs=-1, cv=10):
         # i think this works on normal graphs..
-
         X_pos_train = self.vectorizer_normal.transform(iterable_pos_train, n_jobs=n_jobs)
         X_neg_train = X_pos_train.multiply(-1)
         # optimize hyperparameters classifier
         self.estimator = myutils.my_fit_estimator(positive_data_matrix=X_pos_train, negative_data_matrix=X_neg_train,
-                                                  cv=cv, n_jobs=n_jobs)
+                                                      cv=cv, n_jobs=n_jobs)
         l = [self.estimator.decision_function(g) for g in X_pos_train]
         l.sort()
         element = int(len(l) * .1)
@@ -111,116 +102,72 @@ class adaptiveMHgraphsampler:
         return GM.mapping
 
 
-    def core_substitution(self, graph, subgraph, nkgraph):
+    def core_substitution(self, graph, subgraph, newcip_graph):
         """
         graph is the whole graph..
         subgraph is the interfaceregrion in that we will transplant
-        nkgraph which is the interface and the new core
+        newcip_graph which is the interface and the new core
         """
-        nocore = [n for n, d in nkgraph.nodes(data=True) if d.has_key('core') == False]
-        nksub = nx.subgraph(nkgraph, nocore)
-
+        # select only the interfaces of the cips
+        nocore = [n for n, d in newcip_graph.nodes(data=True) if d.has_key('core') == False]
+        newgraph_interface = nx.subgraph(newcip_graph, nocore)
         nocore = [n for n, d in subgraph.nodes(data=True) if d.has_key('core') == False]
-        subgraph_nocore = nx.subgraph(subgraph, nocore)
-
-        iso = self.find_isomorphism(subgraph_nocore, nksub)
-        # i think this happens if no iso was found, untestet
-        if len(iso) != len(subgraph_nocore):
+        subgraph_interface = nx.subgraph(subgraph, nocore)
+        # get isomorphism between interfaces, if none is found we return an empty graph
+        iso = self.find_isomorphism(subgraph_interface, newgraph_interface)
+        if len(iso) != len(subgraph_interface):
             return nx.Graph()
-
-        G = nx.union(graph, nkgraph, rename=('', '-'))
-        # removing old core  .,., moved this here replaced graph.remove_node(n) with G....
+        # ok we got an isomorphism so lets do the merging
+        G = nx.union(graph, newcip_graph, rename=('', '-'))
+        # removing old core
         nocore = [n for n, d in subgraph.nodes(data=True) if d.has_key('core')]
         for n in nocore:
             G.remove_node(str(n))
-
+        # merge interfaces
         for k, v in iso.iteritems():
             self.merge(G, str(k), '-' + str(v))
-
-        # renaming the core nodes .. neccessary?
-        # for n,d in G.nodes(data=True):
-        #    d['label']=n
-        G = nx.convert_node_labels_to_integers(G)
-
-        return G
+        # unionizing killed my labels so we need to relabel
+        return nx.convert_node_labels_to_integers(G)
 
 
     ############ imporoving stuff ##################
 
-    def get_random_candidate(self, graph):
-        """
-        graph is now expanded
-        """
-        lsgg = self.grammar_functions
-        # old_expanded=myutils.expand_edges([graph]).next()
 
-        for tries in range(20):
-            candidate, radius, thickness = self.choose_random_cores_and_interfaces(graph, lsgg.radius_list,
-                                                                                   lsgg.thickness_list)
-            if len(candidate) < 1:
-                continue
-            candidate = candidate[0]
-            #cid = core interface data class :) 
-            core_cid_dict = self.substitute_grammar.get(candidate.interface_hash, {})
-
-            if len(core_cid_dict) == 0:
-                continue
-
-            else:
-                hashes = core_cid_dict.keys()
-                random.shuffle(hashes)
-                for core_hash in hashes:
-
-                    cid=core_cid_dict[core_hash]
-                    if 'sameradius' in self.improvement_rules:
-                        if cid.radius != radius:
-                            continue
-
-                    substitution_hash = candidate.core_hash ^ core_hash ^ candidate.interface_hash
-                    if substitution_hash in graph.tried_and_failed_substitutions:
-                        continue
-
-
-                    ng = self.core_substitution(graph, candidate.graph, cid.graph)
-                    graph.tried_and_failed_substitutions.append(substitution_hash)
-                    if len(ng) > 1:
-                        return ng
-
-        return nx.Graph()
-
-    def choose_random_cores_and_interfaces(self, graph, radius_list, thickness_list):
-        node = random.choice(graph.nodes())
-        if 'edge' in graph.node[node]:
-            node = random.choice(graph.neighbors(node))
-
-        # random radius and thickness
-        radius = random.choice(radius_list)
-        thickness = random.choice(thickness_list)
-
-        core_interface_data_list = extract.extract_core_and_interface(node, graph, [radius], [thickness])
-        if len(core_interface_data_list) > 0:
-            return core_interface_data_list, radius, thickness
-        return [], 0, 0
 
 
     def mass_improve_random(self, graph_iter, improvement_rules=
-            {'sameradius': 1,'similarity':0.0,'snap_interval':20,'batch_size':10,'n_jobs':0,'improvement_steps':20}):
+            {'sameradius': 1,
+             'similarity':0.0,
+             'snap_interval':20,
+             'batch_size':10,
+             'n_jobs':0,
+             'improvement_steps':20,
+             'get_candidate_maxtries':20,
+             'postprocessing':(lambda grap:grap)
+             }):
         """
-        improve every graph in the graph iter times times!
-        """
-        self.improvement_rules = improvement_rules
+            create an iterator over lists.
+            each list is the changing history of a start graph.
+            the last graph is the final result. there is also a graph.scorehistory
 
-        # setting some defaults
+            for options here you can look at the improvement_rules and you may want to ovewrite these:
+                def filter_available_cips
+                def choose_cip
+        """
+        # setting some defaults for the improvement...
+        self.improvement_rules = improvement_rules
         if 'snap_interval' not in self.improvement_rules:
             self.improvement_rules['snap_interval']=9999999
         if 'batch_size' not in self.improvement_rules:
             self.improvement_rules['batch_size']=10
+        if 'get_candidate_maxtries' not in self.improvement_rules:
+            self.improvement_rules['get_candidate_maxtries'] = 20
+        if 'improvement_steps' not in self.improvement_rules:
+            self.improvement_rules['improvement_steps']=20
         n_jobs=self.improvement_rules.get('n_jobs',0)
-        times= self.improvement_rules.get( 'improvement_steps',20)
 
 
-
-
+        # move the grammar into a manager object...
         manager = Manager()
         shelve = manager.dict()
         for k, v in self.substitute_grammar.iteritems():
@@ -228,57 +175,54 @@ class adaptiveMHgraphsampler:
             for k2,v2 in v.iteritems():
                 md[k2]=v2
             shelve[k] = md
-
         self.substitute_grammar = shelve
 
+        # do the improvement
         if n_jobs == 0:
             for graph in graph_iter:
-                yield self.improve_loop(graph, times)
+                yield self.improve_loop(graph)
         else:
             problems = itertools.izip(
-                graph_iter, itertools.repeat(times), itertools.repeat(self))
+                graph_iter, itertools.repeat(self))
             pool = Pool(processes=n_jobs)
-
             batch_size=self.improvement_rules['batch_size']
             it = pool.imap_unordered(improve_loop_multi, problems, batch_size)
             for liste in it:
                 yield liste
 
 
-    def improve_loop(self, graph, times):
+    def improve_loop(self, graph):
+        # prepare variables and graph
         scores = []
         graph = myutils.expand_edges(graph)
         self.vectorizer_expanded._label_preprocessing(graph)
         score = -3
-
         retlist=[graph]
         sim = -1
-
-
-        snap_interval = self.improvement_rules['snap_interval']
-
-
         if 'similarity' in self.improvement_rules:
             sim = self.improvement_rules['similarity']
             self.vectorizer_expanded._reference_vec = self.vectorizer_expanded._convert_dict_to_sparse_matrix( self.vectorizer_expanded._transform(0,nx.Graph(graph)) )
 
-        for x in xrange(times):
+
+        # ok lets go round and round
+        for x in xrange(self.improvement_rules['improvement_steps']):
+            # do we need to stop early??
             if sim != -1:
                 if self.vectorizer_expanded._similarity(graph) < sim:
-                    scores += [score] * (times - x)
+                    scores += [score] * (self.improvement_rules['improvement_steps'] - x)
                     break
-
-
+            # do an  improvement step
             graph, score = self.improve_random(graph, score)
+            # save score and if needed a snapshot of the current graph
             scores.append(score)
             graph.scorehistory = scores
-            if x % snap_interval == 0:
+            if x % self.improvement_rules['snap_interval'] == 0:
                 retlist.append(graph)
-
+        # return a list of graphs, the last of wich is our final result
         retlist.append(self.vectorizer_expanded._revert_edge_to_vertex_transform(graph))
         return retlist
 
-    def improve_random(self, graph, oldscore, debug=0, powerbonus=0.0, cooling=0.0, ):
+    def improve_random(self, graph, oldscore, debug=1 ):
         """
         graph is now expanded
         debug will remove core/interface attributes of nodes
@@ -286,42 +230,104 @@ class adaptiveMHgraphsampler:
             prettier to print
         """
 
-        graph.tried_and_failed_substitutions = []
-
+        # do we need to remove signs of usage from the graph?
         if debug > 0:
             for n, d in graph.nodes(data=True):
                 d.pop('core', None)
                 d.pop('interface', None)
 
-        candidate = self.get_random_candidate(graph)
+
+        # perform checks to see if candidate is something legit
+        # postprocess
+        # feasibility check
+        # vectorize
+        candidate = self.propose_candidate(graph)
         if len(candidate) == 0:
             if debug > 1:
                 print "no candidate"
             return graph, oldscore
 
-
-        graph2 = candidate
-        # mydraw.display(graph2,contract=False)
+        if 'postprocessig' in self.improvement_rules:
+            candidate = self.improvement_rules['postprocessig'](candidate)
+        if not self.feasibility_checker.check(candidate):
+            return graph, oldscore
         try:
-            transformed_graph = self.vectorizer_expanded.transform2(graph2)
+            transformed_graph = self.vectorizer_expanded.transform2(candidate)
         except:
             if debug > 1:
                 print "transformation failed"
             return graph, oldscore
+
+
+
+        # decide if we keep the candidate...
         value = self.estimator.decision_function(transformed_graph)[0]
-
-        # self.feasibility_checker.check(graph2,value,graph,oldscore)
-
         kfactor = 15
         v1 = 1.0 / (1 + math.exp(-oldscore * kfactor))
         v2 = 1.0 / (1 + math.exp(-value * kfactor))
         randf = random.random()
-
-        # print v2/v1,v1,v2,randf,value,oldscore
-
         if v2 / v1 > randf:
-            return graph2, value
+            return candidate, value
         return graph, oldscore
+
+
+    def propose_candidate(self, graph):
+        """
+        graph is now expanded
+        """
+        for tries in xrange(self.improvement_rules['get_candidate_maxtries']):
+            # finding a legit candidate... and check if we can substitute anything...
+            candidate = self.choose_cip(graph)
+            if not candidate:
+                continue
+            candidate = candidate[0]
+            if candidate.interface_hash not in self.substitute_grammar:
+                continue
+
+            # for each possible new core:
+            for cip in self.filter_available_cips(candidate.interface_hash):
+                # does the new core need to be the same size as the old one??
+                if 'sameradius' in self.improvement_rules:
+                    if cip.radius != candidate.radius:
+                        continue
+
+                # did we do exactly this replacement before?
+                # if so it had been rejected.. dont do it again!
+                substitution_hash = candidate.core_hash ^ cip.core_hash ^ candidate.interface_hash
+                if 'tried_and_failed_substitutions' not in graph.__dict__:
+                    graph.tried_and_failed_substitutions=[]
+                elif substitution_hash in graph.tried_and_failed_substitutions:
+                    continue
+                graph.tried_and_failed_substitutions.append(substitution_hash)
+
+                # return if substitution is success!
+                ng = self.core_substitution(graph, candidate.graph, cip.graph)
+                if len(ng) > 1:
+                    return ng
+        return nx.Graph()
+
+    def filter_available_cips(self,new_interface_hash):
+            core_cip_dict = self.substitute_grammar.get[new_interface_hash]
+            hashes = core_cip_dict .keys()
+            random.shuffle(hashes)
+            for core_hash in hashes:
+                yield core_cip_dict[core_hash]
+
+    def choose_cip(self, graph):
+        """
+            selects a chip randomly from the graph.
+            root is a node_node and not an edge_node
+            radius and thickness are chosen to fit the grammars radius and thickness
+        """
+        node = random.choice(graph.nodes())
+        if 'edge' in graph.node[node]:
+            node = random.choice(graph.neighbors(node))
+
+        # random radius and thickness
+        radius = random.choice(  self.grammar_functions.radius_list  )
+        thickness = random.choice(self.grammar_functions.thickness_list)
+        return  extract.extract_core_and_interface(node, graph, [radius], [thickness])
+
 
 
 # ok moving this here instead of leaving it where it belongs prevents pickling errar ..
@@ -335,9 +341,6 @@ def improve_loop_multi(x):
 class subgraphdatac:
     def __init__(self):
         self.count = 0
-
-
-
 
 
 class local_substitutable_graph_grammar:
