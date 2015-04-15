@@ -6,7 +6,7 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.grid_search import RandomizedSearchCV
 from scipy.stats import randint
 from scipy.stats import uniform
-
+import random
 '''
     wrapped or altered eden functions:
         -my_vectorizer, a eden vectorizer that doesnt try to expand graphs
@@ -21,17 +21,20 @@ class my_vectorizer(Vectorizer):
     doing some overwriting so we dont expand and contract edges all the time..
     this hack is a little bit dependant on the state of eden.. so be carefull here 
     '''
-    def _edge_to_vertex_transform(self,graph):
+
+    def _edge_to_vertex_transform(self, graph):
         return nx.Graph(graph)
 
-    def transform2(self,graph): 
+    def transform2(self, graph):
         return self._convert_dict_to_sparse_matrix(self._transform(0, graph))
+
+
 
 def my_fit_estimator(positive_data_matrix=None, negative_data_matrix=None, target=None, cv=10, n_jobs=-1):
     '''
      we dont need the validation at all... so i just copied from eden/utils/__init__.py
     '''
-    assert(
+    assert (
         positive_data_matrix is not None), 'ERROR: expecting non null positive_data_matrix'
     if target is None and negative_data_matrix is not None:
         yp = [1] * positive_data_matrix.shape[0]
@@ -66,14 +69,11 @@ def expand_edges(graph):
     '''
     convenience wrapper
     '''
-    vectorizer= Vectorizer(r=2,d=2) 
+    vectorizer = Vectorizer(complexity= 3)
     return vectorizer._edge_to_vertex_transform(graph)
-            
-            
 
 
-
-def contract_edges( original_graph):
+def contract_edges(original_graph):
     """
         stealing from eden...
         because i draw cores and interfaces there may be edge-nodes 
@@ -87,8 +87,8 @@ def contract_edges( original_graph):
         if d.get('edge', False) == True:
             # extract the endpoints
             endpoints = [u for u in original_graph.neighbors(n)]
-            #assert (len(endpoints) == 2), 'ERROR: more than 2 endpoints'
-            if len(endpoints)!=2:
+            # assert (len(endpoints) == 2), 'ERROR: more than 2 endpoints'
+            if len(endpoints) != 2:
                 continue
             u = endpoints[0]
             v = endpoints[1]
@@ -100,4 +100,21 @@ def contract_edges( original_graph):
             # remove stale information
             G.node[n].pop('remote_neighbours', None)
     return G
+
+
+
+def select_random(graph_iter, len,samplesize):
+    x=range(len)
+    random.shuffle(x)
+    x=x[:samplesize]
+    x.sort(reverse=True)
+    next=x.pop()
+    for i,g in enumerate(graph_iter):
+        if i==next:
+            yield g
+            if not x:
+                break
+            next=x.pop()
+
+
 

@@ -1,4 +1,5 @@
 import networkx as nx
+from eden import fast_hash
 '''
 the interesting things here are:
 
@@ -14,38 +15,19 @@ answer
 
 
 class core_interface_data:
-    def __init__(self,ihash,chash,graph,radius,thickness):
+    def __init__(self, ihash, chash, graph, radius, thickness):
         self.interface_hash = ihash
         self.core_hash = chash
-        self.graph=graph
-        self.radius=radius
-        self.thickness=thickness
+        self.graph = graph
+        self.radius = radius
+        self.thickness = thickness
 
 
-bitmask=2**20-1
-def calc_running_hash( running_hash, list_item, counter ):
-    return ((~(((running_hash << 11) + list_item) ^ (running_hash >> 5))),((running_hash << 7) ^ list_item * (running_hash >> 3)))[bool((counter & 1) == 0)]
+bitmask = 2 ** 20 - 1
 
 
-def fast_hash(vec, bitmask=bitmask ):
-    running_hash = 0xAAAAAAAA
-    for i, list_item in enumerate(vec):
-        running_hash  ^= calc_running_hash( running_hash, list_item, i )
-    return int(running_hash & bitmask) + 1
-    
 
-def fasthash(vec, oldhash=0,strings=1):
-    if strings==1:
-        vec=[ sum(map(ord,e))   for e in vec ]
-        vec+=[oldhash] 
-    return fast_hash(vec,bitmask)
-        
-def get_labels_and_hash(v,graph):
-    for i,e in enumerate(v):
-            v[i]=str(graph.node[e]['label'])
-    v.sort()
-    return fasthash(v)
-        
+
 def inversedict(d):
     d2 = {}
     for k, v in d.iteritems():
@@ -54,94 +36,90 @@ def inversedict(d):
     return d2
 
 
-
 def calc_interface_hash(interfacegraph):
+    l = []
+    node_name_cache = {}
+    for (a, b) in interfacegraph.edges():
 
-    l=[]
-    node_name_cache={}
-    for (a,b) in interfacegraph.edges(): 
-        
-        ha = node_name_cache.get(a,-1)
+        ha = node_name_cache.get(a, -1)
         if ha == -1:
-            ha=calc_node_name(interfacegraph,a)
-            node_name_cache[a]=ha
-        hb = node_name_cache.get(b,-1)
+            ha = calc_node_name(interfacegraph, a)
+            node_name_cache[a] = ha
+        hb = node_name_cache.get(b, -1)
         if hb == -1:
-            hb=calc_node_name(interfacegraph,b)
-            node_name_cache[b]=hb
-        l.append((ha^hb)+(ha+hb))
+            hb = calc_node_name(interfacegraph, b)
+            node_name_cache[b] = hb
+        l.append((ha ^ hb) + (ha + hb))
     l.sort()
-    l = fast_hash(l)
+    l = fast_hash(l,bitmask)
     return l
-    
 
-def calc_node_name(interfacegraph,node, func=fast_hash ):
-    d=nx.single_source_shortest_path_length(interfacegraph,node,20)
-    #d is now node:dist
+
+def calc_node_name(interfacegraph, node):
+    d = nx.single_source_shortest_path_length(interfacegraph, node, 20)
+    # d is now node:dist
     # l is a list of  hash(label,distance)
     #l=[   func([interfacegraph.node[nid]['intlabel'],dis])  for nid,dis in d.items()]
-    l=[  interfacegraph.node[nid]['intlabel']+dis  for nid,dis in d.items()]
-    l.sort() 
-    l=fast_hash(l)
+    l = [interfacegraph.node[nid]['hlabel'][0] + dis for nid, dis in d.items()]
+    l.sort()
+    l = fast_hash(l,bitmask)
     return l
-    
-    
-    
-def extract_core_and_interface(node,graph,radius,thickness):
-        #  which nodes are in the relevant radius
-        dist=nx.single_source_shortest_path_length(graph,node,max(radius)+max(thickness))
-        # we want the relevant subgraph and we want to work on a copy
-        retgraph=nx.Graph(graph.subgraph(dist))
-        
-        # we want to inverse the dictionary.
-        # so now we see {distance:[list of nodes at that distance]}
-        nodedict=inversedict(dist)
-        
-        #sanity check.. if this doesnt exist we couldnt create anything new.. so we just default
-        if max(radius)+max(thickness) not in nodedict:
-            return []
 
-        
-        retlist=[]
-        for thickness_ in thickness:
-            for radius_ in radius:
-                
-                #calculate hashes
-                #d={1:[1,2,3],2:[3,4,5]}
-                #print [ i for x in [1,2] for i in d[x] ]
-                interface_graph_nodes =  [   item  for x in range(radius_+1,radius_+thickness_+1) for item in nodedict.get(x,[]) ]
-                interfacehash =  calc_interface_hash( retgraph.subgraph( interface_graph_nodes ))
-                
-                core_graph_nodes= [item for x in range(radius_+1) for item in nodedict.get(x,[])]
-                corehash = calc_interface_hash( retgraph.subgraph( core_graph_nodes ))
-                
-                #get relevant subgraph
-                nodes= [node for i in range(radius_+thickness_+1) for node in nodedict[i]]
-                thisgraph=nx.Graph(retgraph.subgraph(nodes))
-                
-                #marking cores and interfaces in subgraphs
-                for i in range(radius_+1):
+
+def extract_core_and_interface(node, graph, radius, thickness):
+    # which nodes are in the relevant radius
+    dist = nx.single_source_shortest_path_length(graph, node, max(radius) + max(thickness))
+    # we want the relevant subgraph and we want to work on a copy
+    retgraph = nx.Graph(graph.subgraph(dist))
+
+    # we want to inverse the dictionary.
+    # so now we see {distance:[list of nodes at that distance]}
+    nodedict = inversedict(dist)
+
+    #sanity check.. if this doesnt exist we couldnt create anything new.. so we just default
+    if max(radius) + max(thickness) not in nodedict:
+        return []
+
+    retlist = []
+    for thickness_ in thickness:
+        for radius_ in radius:
+
+            #calculate hashes
+            #d={1:[1,2,3],2:[3,4,5]}
+            #print [ i for x in [1,2] for i in d[x] ]
+            interface_graph_nodes = [item for x in range(radius_ + 1, radius_ + thickness_ + 1) for item in
+                                     nodedict.get(x, [])]
+            interfacehash = calc_interface_hash(retgraph.subgraph(interface_graph_nodes))
+
+            core_graph_nodes = [item for x in range(radius_ + 1) for item in nodedict.get(x, [])]
+            corehash = calc_interface_hash(retgraph.subgraph(core_graph_nodes))
+
+            #get relevant subgraph
+            nodes = [node for i in range(radius_ + thickness_ + 1) for node in nodedict[i]]
+            thisgraph = nx.Graph(retgraph.subgraph(nodes))
+
+            #marking cores and interfaces in subgraphs
+            for i in range(radius_ + 1):
+                for no in nodedict[i]:
+                    thisgraph.node[no]['core'] = True
+                    if 'interface' in thisgraph.node[no]:
+                        thisgraph.node[no].pop('interface')
+            for i in range(radius_ + 1, radius_ + thickness_ + 1):
+                if i in nodedict:
                     for no in nodedict[i]:
-                        thisgraph.node[no]['core']=True
-                        if 'interface' in thisgraph.node[no]:
-                            thisgraph.node[no].pop('interface')
-                for i in range(radius_+1,radius_+thickness_+1):
-                    if i in nodedict:
-                        for no in nodedict[i]:
-                            thisgraph.node[no]['interface']=True
-                            if 'core' in thisgraph.node[no]:
-                                thisgraph.node[no].pop('core')
-                                
-                retlist.append(  core_interface_data(interfacehash,corehash,thisgraph,radius_,thickness_) )
-        return retlist           
+                        thisgraph.node[no]['interface'] = True
+                        if 'core' in thisgraph.node[no]:
+                            thisgraph.node[no].pop('core')
+
+            retlist.append(core_interface_data(interfacehash, corehash, thisgraph, radius_, thickness_))
+    return retlist
 
 
-def preprocess(graph):
-    '''
-        labels are strings by default. this is annoying since we fasthash these all the time.
-    '''
-    for n,d in graph.nodes_iter(data=True):
-        d['intlabel']=sum(map(ord,d['label']))
-    return graph
+
+
+
+
+
+
     
 
