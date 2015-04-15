@@ -220,6 +220,7 @@ class adaptiveMHgraphsampler:
                 retlist.append(graph)
         # return a list of graphs, the last of wich is our final result
         retlist.append(self.vectorizer_expanded._revert_edge_to_vertex_transform(graph))
+        retlist[-1].scorehistory=scores
         return retlist
 
     def improve_random(self, graph, oldscore, debug=1 ):
@@ -307,11 +308,12 @@ class adaptiveMHgraphsampler:
         return nx.Graph()
 
     def filter_available_cips(self,new_interface_hash):
-            core_cip_dict = self.substitute_grammar.get[new_interface_hash]
-            hashes = core_cip_dict .keys()
-            random.shuffle(hashes)
-            for core_hash in hashes:
-                yield core_cip_dict[core_hash]
+            core_cip_dict = self.substitute_grammar.get(new_interface_hash,{})
+            if core_cip_dict:
+                hashes = core_cip_dict .keys()
+                random.shuffle(hashes)
+                for core_hash in hashes:
+                    yield core_cip_dict[core_hash]
 
     def choose_cip(self, graph):
         """
@@ -333,7 +335,7 @@ class adaptiveMHgraphsampler:
 # ok moving this here instead of leaving it where it belongs prevents pickling errar ..
 #dont quite get it ...        
 def improve_loop_multi(x):
-    return x[2].improve_loop(x[0], x[1])
+    return x[1].improve_loop(x[0])
 
 
 ################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
@@ -379,6 +381,8 @@ class local_substitutable_graph_grammar:
             subgraphdata.graph = cid.graph
             subgraphdata.radius = cid.radius
             subgraphdata.thickness = cid.thickness
+            subgraphdata.interface_hash = cid.interface_hash
+            subgraphdata.core_hash = cid.core_hash
 
     def readgraphs_single(self, graphs):
         for gr in graphs:
@@ -448,7 +452,7 @@ class feasibility_checker():
 
 
 def defaultcheck(ng):
-    for node_id in ng.node_iter():
+    for node_id in ng.nodes_iter():
         if 'edge' in ng.node[node_id]:
             if len(ng.neighbors(node_id)) != 2:
                 return False
