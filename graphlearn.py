@@ -82,7 +82,7 @@ class adaptiveMHgraphsampler:
 
     def train_estimator(self, iterable_pos_train, n_jobs=-1, cv=10):
         # i think this works on normal graphs..
-        X_pos_train = self.vectorizer_normal.transform(iterable_pos_train, n_jobs=n_jobs)
+        X_pos_train = self.vectorizer_normal.transform(iterable_pos_train)
         X_neg_train = X_pos_train.multiply(-1)
         # optimize hyperparameters classifier
         self.estimator = myutils.my_fit_estimator(positive_data_matrix=X_pos_train, negative_data_matrix=X_neg_train,
@@ -190,6 +190,7 @@ class adaptiveMHgraphsampler:
             for k2,v2 in v.iteritems():
                 md[k2]=v2
             shelve[k] = md
+        self.grammar_functions.__dict__.pop('data')
         self.substitute_grammar = shelve
 
         # do the improvement
