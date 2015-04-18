@@ -4,11 +4,10 @@ import matplotlib
 matplotlib.use('Agg')
 
 from eden.converter.graph.gspan import gspan_to_eden
-from adaptiveMHgraphsampler import adaptiveMHgraphsampler
+from graphlearn import adaptiveMHgraphsampler
 from eden.graph import Vectorizer
 import matplotlib.pyplot as plt
 import itertools
-
 from utils import myeden
 
 
@@ -34,13 +33,12 @@ def make_estimator():
     sampler2.save('../data/estimator')
 
     
-estimator=make_estimator()
-
-
+estimator=load_estimator()
+print 'estimator ok'
 
 def unpack(graphs):
     for graphlist in graphs:
-        yield graphlist[-1]
+        yield graphlist[0]
 
 def doit():
 
@@ -55,7 +53,7 @@ def doit():
     percentages=[.01, .05, .12, .25, .5 ,1 ]
     percentages=[.1]
     for perc in percentages:
-        count = lenpo*perc
+        count = int(lenpo*perc)
 
 
         graphs_pos, graphs_pos_ = itertools.tee(graphs_pos)
@@ -65,7 +63,7 @@ def doit():
         
         sampler.train_estimator_and_extract_grammar(graphs_pos__,radius,thickness,n_jobs=4)
         imprules= {'n_jobs':4 , 'batch_size':(count/4)+1,'improvement_steps':50}
-        improved_graphs = sampler.mass_improve_random(graphs_pos_,improvement_rules=imprules)
+        improved_graphs = sampler.sample_set(graphs_pos_,improvement_rules=imprules)
         avg_imp=sum( [estimator.decision_function(e) for e in vectorizer.transform(unpack(improved_graphs),n_jobs=4) ] )/count
         avg_ori=sum( [estimator.decision_function(e) for e in vectorizer.transform(graphs_pos___,n_jobs=4)] )/count
         

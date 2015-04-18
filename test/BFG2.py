@@ -4,7 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 from eden.converter.graph.gspan import gspan_to_eden
-from adaptiveMHgraphsampler import adaptiveMHgraphsampler
+from graphlearn import adaptiveMHgraphsampler
 import itertools
 from eden.graph import Vectorizer
 import matplotlib.pyplot as plt
@@ -68,7 +68,7 @@ def train_estimator_and_evaluate_testsets(pos_real,neg_real,pos_augmented,neg_au
 
 def unpack(graphs):
     for graphlist in graphs:
-        yield graphlist[-1]
+        yield graphlist[0]
 
 #generate datapoints: 
 lenpo=int(NUMPOS*.7)
@@ -81,8 +81,8 @@ percentages=[.2,.4,.6,.8,1]
 percentages=[.2]
 for perc in percentages:
 
-    count_pos = lenpo*perc
-    count_neg = lenne*perc
+    count_pos = int(lenpo*perc)
+    count_neg = int(lenne*perc)
 
     graphs_pos, graphs_pos_ = itertools.tee(graphs_pos)
     graphs_neg, graphs_neg_ = itertools.tee(graphs_neg)
@@ -99,12 +99,12 @@ for perc in percentages:
 
     imprules= {'n_jobs':4 , 'batch_size':(count_neg/4)+1,'improvement_steps':50}
     sampler.train_estimator_and_extract_grammar(neg__,radius,thickness) 
-    improved_neg = unpack (sampler.mass_improve_random(neg___,improvement_rules=imprules)  )
+    improved_neg = unpack (sampler.sample_set(neg___,improvement_rules=imprules)  )
 
     print 'positive sampler,',
     imprules= {'n_jobs':4 , 'batch_size':(count_pos/4)+1,'improvement_steps':50}
     sampler.train_estimator_and_extract_grammar(pos__,radius,thickness) 
-    improved_pos = unpack(  sampler.mass_improve_random(pos___,improvement_rules=imprules) )
+    improved_pos = unpack(  sampler.sample_set(pos___,improvement_rules=imprules) )
 
     #testneg,testneg_=itertools.tee(testneg)
     #testpos,testpos_=itertools.tee(testpos)

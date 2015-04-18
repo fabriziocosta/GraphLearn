@@ -51,6 +51,7 @@ def my_fit_estimator(positive_data_matrix=None, negative_data_matrix=None, targe
                   "power_t": uniform(0.1),
                   "alpha": uniform(1e-08, 1e-03),
                   "eta0": uniform(1e-03, 10),
+                  "loss":[ 'log'],
                   "penalty": ["l1", "l2", "elasticnet"],
                   "learning_rate": ["invscaling", "constant", "optimal"]}
     scoring = 'roc_auc'

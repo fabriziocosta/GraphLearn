@@ -33,6 +33,10 @@ def display(G, size=15, font_size=15, node_size=200, node_border=False, delabele
         for a, b, c in G2.edges_iter(data=True):
             c['label'] = ''
 
+    if vertex_label=='id':
+        for n,d in G2.nodes_iter(data=True):
+            d['id']=str(n)
+
     draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size, vertex_color='color',
                vertex_label=vertex_label)
 
