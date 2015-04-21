@@ -51,16 +51,22 @@ logger.addHandler(file)
 """
 
 
-class adaptiveMHgraphsampler:
+class GraphLearnSampler:
     """
          wirte something
     """
 
-    def __init__(self):
+    def __init__(self,radius_list=[],thickness_list=[],estimator=None,grammar=None):
         self.bitmask = pow(2, 20) - 1
-        self.feasibility_checker = feasibility_checker()
-        self.vectorizer_expanded = myutils.my_vectorizer(complexity=3)
+        self.feasibility_checker = FeasibilityChecker()
+        self.vectorizer_expanded = myutils.MyVectorizer(complexity=3)
         self.vectorizer_normal = Vectorizer(complexity = 3)
+        self.radius_list=radius_list
+        self.thickness_list=thickness_list
+        self.estimator=estimator
+        self.substitute_grammar=grammar
+
+
 
     def save(self, filename):
         joblib.dump(self.__dict__, filename, compress=1)
@@ -68,14 +74,17 @@ class adaptiveMHgraphsampler:
     def load(self, filename):
         self.__dict__ = joblib.load(filename)
 
-    def induce_grammar(self, G_iterator, radius_list, thickness_list, n_jobs=4):
+    def induce_grammar(self, G_iterator, n_jobs=4):
         '''
         you might want to overwrite this to customize how the grammar is induced
         extract_cores_and_interfaces_multi
         '''
+        if not self.radius_list:
+            print "ERROR: tell me how to induce a grammar"
+            return
         self.substitute_grammar = {}
-        self.grammar_functions = local_substitutable_graph_grammar(self.substitute_grammar,
-                                                                radius_list, thickness_list)
+        self.grammar_functions = LocalSubstitutableGraphGrammar(self.substitute_grammar,
+                                                                self.radius_list, self.thickness_list)
         self.grammar_functions.readgraphs(G_iterator, n_jobs)
         self.grammar_functions.clean()
 
@@ -94,9 +103,9 @@ class adaptiveMHgraphsampler:
         return self.estimator
 
 
-    def train_estimator_and_extract_grammar(self, G_pos, radius_list, thickness_list, n_jobs=-1):
+    def fit(self, G_pos, n_jobs=-1):
         G_iterator, G_pos = itertools.tee(G_pos)
-        self.induce_grammar(G_iterator, radius_list, thickness_list, n_jobs)
+        self.induce_grammar(G_iterator, n_jobs)
         self.train_estimator(G_pos, n_jobs)
 
 
@@ -151,38 +160,11 @@ class adaptiveMHgraphsampler:
     ############ imporoving stuff ##################
 
 
-
-
-    def sample_set(self, graph_iter, improvement_rules=
-            {'sameradius': 1,
-             'similarity':0.0,
-             'snap_interval':20,
-             'batch_size':10,
-             'n_jobs':0,
-             'improvement_steps':20,
-             'postprocessing':(lambda grap:grap)
-             }):
-        """
-            create an iterator over lists.
-            each list is the changing history of a start graph.
-            the last graph is the final result. there is also a graph.scorehistory
-
-            for options here you can look at the improvement_rules and you may want to ovewrite these:
-                def filter_available_cips
-                def choose_cip
-        """
-        # setting some defaults for the improvement...
-        self.improvement_rules = improvement_rules
-        if 'snap_interval' not in self.improvement_rules:
-            self.improvement_rules['snap_interval']=9999999
-        if 'batch_size' not in self.improvement_rules:
-            self.improvement_rules['batch_size']=10
-        if 'improvement_steps' not in self.improvement_rules:
-            self.improvement_rules['improvement_steps']=20
-        n_jobs=self.improvement_rules.get('n_jobs',0)
-
-
-        # move the grammar into a manager object...
+    def sample_grammar_to_managed_dictionary(self):
+        '''
+        this turns the grammar into a managed dictionary which we need for multiprocessing
+        '''
+         # move the grammar into a manager object...
         manager = Manager()
         shelve = manager.dict()
         for k, v in self.substitute_grammar.iteritems():
@@ -193,42 +175,98 @@ class adaptiveMHgraphsampler:
         self.grammar_functions.__dict__.pop('data')
         self.substitute_grammar = shelve
 
+
+
+
+    def sample(self, graph_iter,same_radius=True,similarity=-1,snapshot_interval=9999,batch_size=10,n_jobs=0,n_steps=50,postprocessing=None):
+
+        """
+            create an iterator over lists.
+            each list is the changing history of a start graph.
+            the last graph is the final result. there is also a graph.scorehistory
+
+            for options here you can look at the improvement_rules and you may want to ovewrite these:
+                def filter_available_cips
+                def choose_cip
+        """
+        improvement_rules={'same_radius': same_radius,
+             'similarity':similarity,
+             'snapshot_interval':snapshot_interval,
+             'n_steps':n_steps,
+             'postprocessing':postprocessing
+             }
+        # setting some defaults for the improvement...
+        self.improvement_rules = improvement_rules
+
+        self.sample_grammar_to_managed_dictionary()
         # do the improvement
         if n_jobs == 0:
             for graph in graph_iter:
-                yield self.sample(graph)
+                yield self._sample(graph)
         else:
             problems = itertools.izip(
                 graph_iter, itertools.repeat(self))
             pool = Pool(processes=n_jobs)
-            batch_size=self.improvement_rules['batch_size']
+            batch_size=batch_size
             it = pool.imap_unordered(improve_loop_multi, problems, batch_size)
             for liste in it:
                 yield liste
+            pool.close()
 
 
-    def sample(self, graph):
-        # prepare variables and graph
 
+
+    def similarity_checker(self,graph,set=False):
+        '''
+        always check if similarity is relevant.. if so then:
+
+        if set is True:
+            remember the vectorized object
+        else:
+            similarity between start graph and current graph is expected to decrease.
+            if similarity meassure smaller than the limit, we stop
+            because we dont want to drift further
+        '''
+        if self.improvement_rules['similarity']>0:
+            if set:
+                self.vectorizer_expanded._reference_vec = \
+                    self.vectorizer_expanded._convert_dict_to_sparse_matrix(
+                    self.vectorizer_expanded._transform(0,nx.Graph(graph)) )
+            else:
+                similarity = self.vectorizer_expanded._similarity(graph,[1])
+                return similarity < self.improvement_rules['similarity']
+        return False
+
+
+
+
+    def sample_init(self,graph):
+        '''
+        we prepare a single graph to be sampled
+        '''
         graph = myutils.expand_edges(graph)
         self.score(graph)
-        scores = [graph.score]
-        self.vectorizer_expanded._label_preprocessing(graph)
-        retlist=[graph]
-        sim = -1
-        if 'similarity' in self.improvement_rules:
-            sim = self.improvement_rules['similarity']
-            self.vectorizer_expanded._reference_vec = \
-                self.vectorizer_expanded._convert_dict_to_sparse_matrix(
-                self.vectorizer_expanded._transform(0,nx.Graph(graph)) )
+        self.similarity_checker(graph,set=True)
+        return graph
 
-        # ok lets go round and round
-        for x in xrange(self.improvement_rules['improvement_steps']):
+
+    def _sample(self, graph):
+        '''
+            we sample a single graph.
+        '''
+
+        # prepare variables and graph
+        graph=self.sample_init(graph)
+        scores = [graph.score]
+        retlist=[graph]
+        rjct_cnt=0
+        special_notes='None'
+        for x in xrange(self.improvement_rules['n_steps']):
 
             # do we need to stop early??
-            if sim != -1:
-                if self.vectorizer_expanded._similarity(graph) < sim:
-                    break
+            if self.similarity_checker(graph):
+                special_notes='abborted; reason:similarity; at_step: '+str(x)
+                break
 
             # do an  improvement step
             candidate_graph = self.propose(graph)
@@ -236,45 +274,55 @@ class adaptiveMHgraphsampler:
                 logger.info( "sample failed; no propose after %d successful improvement_steps" % x)
                 # this will show you the failing graph:
                 # draw.display(graph)
+                special_notes='abborted; reason:no candidate found; see logfile for details; at_step: '+str(x)
+
                 break
-            graph = self.decide(graph,candidate_graph)
+
+            graph, which = self.decide(graph,candidate_graph)
+            rjct_cnt+=which
 
             # save score and if needed a snapshot of the current graph
             scores.append(graph.score)
-            if x % self.improvement_rules['snap_interval'] == 0:
-                graph.score_history = scores
+            if x % self.improvement_rules['snapshot_interval'] == 0:
                 retlist.append(graph)
 
         # return a list of graphs, the last of wich is our final result
+        retlist.append(graph)
         res=self.vectorizer_expanded._revert_edge_to_vertex_transform(graph)
+        scores += [scores[-1]] * (self.improvement_rules['n_steps']+1 - len(scores))
 
-        scores += [scores[-1]] * (self.improvement_rules['improvement_steps'] - len(scores))
 
-        res.score_history=scores
-        return (res,retlist)
+        graph_info={}
+        graph_info['graphs']=retlist
+        graph_info['score_history']=scores
+        graph_info['rejection_count']=rjct_cnt
+        graph_info['notes']=special_notes
+        return (res,graph_info)
 
 
 
 
     def score(self,graph):
         if 'score' in graph.__dict__:
-            return
+            return graph.score
         transformed_graph = self.vectorizer_expanded.transform2(graph)
         graph.score = self.estimator.decision_function(transformed_graph)[0]
+        return graph.score
 
     def decide(self,graph_old,graph_new):
-        if 'postprocessig' in self.improvement_rules:
+        if self.improvement_rules['postprocessing']!=None:
             graph_new = self.improvement_rules['postprocessig'](graph_new)
+
         self.score(graph_old)
         self.score(graph_new)
 
         if graph_old.score==0:
-            return graph_new
+            return graph_new,True
         score_ratio = graph_new.score/graph_old.score
 
         if score_ratio > random.random():
-            return graph_new
-        return graph_old
+            return graph_new,True
+        return graph_old,False
 
 
 
@@ -318,7 +366,8 @@ class adaptiveMHgraphsampler:
             random.shuffle(hashes)
             for core_hash in hashes:
                 # does the new core need to be the same size as the old one??
-                if 'sameradius' in self.improvement_rules:
+                if self.improvement_rules['same_radius']:
+
                     if core_cip_dict[core_hash].radius != cip.radius:
                         continue
                 yield core_cip_dict[core_hash]
@@ -344,7 +393,8 @@ class adaptiveMHgraphsampler:
             # graph.tried_and_failed= graph.__dict__.get('tried_and_failed',[]) # i know..
             # if go in graph.tried_and_failed:
                 # continue
-            cip=extract_core_and_interface(node, graph, [radius], [thickness],mode='make ihash -1')[0]
+            cip= extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer_normal,
+                                            mode='make ihash -1')[0]
             if cip.interface_hash==-1:
                 failcount+=1
             if cip.interface_hash in self.substitute_grammar:
@@ -358,7 +408,7 @@ class adaptiveMHgraphsampler:
 # ok moving this here instead of leaving it where it belongs prevents pickling errar ..
 #dont quite get it ...        
 def improve_loop_multi(x):
-    return x[1].sample(x[0])
+    return x[1]._sample(x[0])
 
 
 ################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
@@ -377,7 +427,7 @@ class core_interface_data:
 
 
 
-class local_substitutable_graph_grammar:
+class LocalSubstitutableGraphGrammar:
     """
     i had this class inherit from default dict, but that breaks joblib oOo
     and i cant load anymore.
@@ -390,7 +440,7 @@ class local_substitutable_graph_grammar:
         self.radius_list = radius_list
         self.thickness_list = thickness_list
         self.core_interface_pair_remove_threshold = core_interface_pair_remove_threshold
-        self.vectorizer = myutils.my_vectorizer()
+        self.vectorizer = myutils.MyVectorizer()
 
 
     def readgraphs(self, graphs, n_jobs=4):
@@ -430,6 +480,7 @@ class local_substitutable_graph_grammar:
                 for cid in core_interface_data_list:
                     self.grammar_add_core_interface_data(cid)
                     # rename to trim // pass trimvalue
+        pool.close()
 
     def clean(self):
         for interface in self.data.keys():
@@ -443,11 +494,11 @@ class local_substitutable_graph_grammar:
 def extract_cores_and_interfaces(graph, radius_list, thickness_list,vectorizer):
     # expand the graph
     graph = myutils.expand_edges(graph)
-    vectorizer._label_preprocessing(graph)
     for node in graph.nodes_iter():
         if 'edge' in graph.node[node]:
             continue
-        core_interface_list = extract_core_and_interface(node, graph, radius_list, thickness_list)
+        core_interface_list = extract_core_and_interface(node, graph, radius_list, thickness_list,
+                                                         vectorizer=vectorizer)
         if len(core_interface_list) > 0:
             yield core_interface_list
 
@@ -456,12 +507,12 @@ def extract_cores_and_interfaces_multi(x):
     # expand the graph
     graph, radius_list, thickness_list, vectorizer = x
     graph = myutils.expand_edges(graph)
-    vectorizer._label_preprocessing(graph)
     ret = []
     for node in graph.nodes_iter():
         if 'edge' in graph.node[node]:
             continue
-        core_interface_list = extract_core_and_interface(node, graph, radius_list, thickness_list)
+        core_interface_list = extract_core_and_interface(node, graph, radius_list, thickness_list,
+                                                         vectorizer=vectorizer)
         if len(core_interface_list) > 0:
             ret.append(core_interface_list)
     return ret
@@ -470,7 +521,7 @@ def extract_cores_and_interfaces_multi(x):
 # ############################### FEASIBILITY CHECKER ###################
 
 
-class feasibility_checker():
+class FeasibilityChecker():
     def __init__(self):
         self.checklist = []
         self.checklist.append(defaultcheck)
@@ -554,9 +605,14 @@ def calc_node_name(interfacegraph, node):
     return l
 
 
-def extract_core_and_interface(node, graph, radius, thickness,mode='grammar_creation'):
+def extract_core_and_interface(node, graph, radius_list=None, thickness_list=None, vectorizer=None,
+                               mode='grammar_creation'):
+
+    if 'hlabel' not in graph.node[0]:
+        vectorizer._label_preprocessing(graph)
+
     # which nodes are in the relevant radius
-    dist = nx.single_source_shortest_path_length(graph, node, max(radius) + max(thickness))
+    dist = nx.single_source_shortest_path_length(graph, node, max(radius_list) + max(thickness_list))
     # we want the relevant subgraph and we want to work on a copy
     retgraph = nx.Graph(graph.subgraph(dist))
 
@@ -565,15 +621,15 @@ def extract_core_and_interface(node, graph, radius, thickness,mode='grammar_crea
     nodedict = inversedict(dist)
 
     #sanity check
-    if max(radius) + max(thickness) not in nodedict:
+    if max(radius_list) + max(thickness_list) not in nodedict:
         if mode=='make ihash -1':
             r=core_interface_data(ihash=-1)
             return [r]
         return []
 
     retlist = []
-    for thickness_ in thickness:
-        for radius_ in radius:
+    for thickness_ in thickness_list:
+        for radius_ in radius_list:
 
             #calculate hashes
             #d={1:[1,2,3],2:[3,4,5]}

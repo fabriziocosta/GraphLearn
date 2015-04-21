@@ -41,8 +41,8 @@ def display(G, size=15, font_size=15, node_size=200, node_border=False, delabele
                vertex_label=vertex_label)
 
 
-def draw_grammar(sampler, interfacecount):
-    grammar = sampler.substitute_grammar
+def draw_grammar(grammar, interfacecount):
+
     # how many rows to draw...
     if len(grammar) < interfacecount:
         interfacecount = len(grammar)

@@ -3,7 +3,7 @@ import sys
 sys.path.append("..")
 
 
-from graphlearn import adaptiveMHgraphsampler
+from graphlearn import GraphLearnSampler
 import itertools
 
 from eden.converter.graph.gspan import gspan_to_eden
@@ -19,7 +19,7 @@ graphcount=20
 
 imprules= {'n_jobs':nj , 'batch_size':batch,'improvement_steps':steps}
 print imprules,graphcount
-sampler=adaptiveMHgraphsampler()
+sampler=GraphLearnSampler()
 
 
 sampler.load('../data/demo.ge')
@@ -29,7 +29,7 @@ sampler.load('../data/demo.ge')
 
 
 graphs= itertools.islice(graphs,graphcount)
-graphs = sampler.sample_set(graphs,improvement_rules=imprules)
+graphs = sampler.sample(graphs,improvement_rules=imprules)
 history=[]
 for graphs_ in graphs:
     history.append(graphs_[0].score_history)

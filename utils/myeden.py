@@ -16,7 +16,7 @@ import random
 '''
 
 
-class my_vectorizer(Vectorizer):
+class MyVectorizer(Vectorizer):
     '''
     doing some overwriting so we dont expand and contract edges all the time..
     this hack is a little bit dependant on the state of eden.. so be carefull here 
