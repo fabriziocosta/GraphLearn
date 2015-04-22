@@ -9,7 +9,10 @@ from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
 import utils.draw as draw
 import logging
+import numpy
 
+from sklearn.calibration import CalibratedClassifierCV
+from scipy.sparse import vstack
 
 logger = logging.getLogger('log')
 logger.setLevel(logging.DEBUG)
@@ -97,15 +100,25 @@ class GraphLearnSampler:
         X_pos_train = self.vectorizer_normal.transform(iterable_pos_train)
         X_neg_train = X_pos_train.multiply(-1)
         # optimize hyperparameters classifier
-        self.estimator = myutils.my_fit_estimator(positive_data_matrix=X_pos_train,
+        estimator = myutils.my_fit_estimator(positive_data_matrix=X_pos_train,
                                                   negative_data_matrix=X_neg_train,
                                                   cv=cv,
                                                   n_jobs=n_jobs)
+
+        CUTOF=.1
         # l = [self.estimator.decision_function(g) for g in X_pos_train]
-        l = [self.estimator.predict_proba(g)[0][1] for g in X_pos_train]
-        l.sort()
-        element = int(len(l) * .1)
-        self.estimator.intercept_ -= l[element]
+        l = [(estimator.predict_proba(g)[0][1],g)   for g in X_pos_train]
+        l.sort(key= lambda x:x[0])
+        element = int(len(l) * CUTOF)
+        estimator.intercept_ -= l[element][0]
+
+
+        # calibrate
+        data_matrix=vstack( [ a[1] for a in l  ] )
+        data_y=numpy.asarray([0]*element +[1]*(len(l)-element))
+        self.estimator = CalibratedClassifierCV(estimator, cv=2, method='sigmoid')
+        self.estimator.fit(data_matrix,data_y  )
+
         return self.estimator
 
 

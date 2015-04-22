@@ -33,7 +33,7 @@ class MyVectorizer(Vectorizer):
         return self._convert_dict_to_sparse_matrix(self._transform(0, graph))
 
 
-
+''' MAYBE we use this in the future
 def my_fit_estimator_model(positive_data_matrix=None, negative_data_matrix=None, target=None, cv=10, n_jobs=-1):
 
 
@@ -76,7 +76,7 @@ def my_fit_estimator_model(positive_data_matrix=None, negative_data_matrix=None,
                    vectorizer_parameters=vectorizer_parameters,
                    estimator_parameters=estimator_parameters)
     return model.get_estimator()
-
+'''
 
 
 def my_fit_estimator(positive_data_matrix=None, negative_data_matrix=None, target=None, cv=10, n_jobs=-1):
