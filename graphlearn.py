@@ -74,7 +74,8 @@ class GraphLearnSampler:
     def load(self, filename):
         self.__dict__ = joblib.load(filename)
 
-    def induce_grammar(self, G_iterator, n_jobs=4):
+    def induce_grammar(self, G_iterator,core_interface_pair_remove_threshold=3,
+                 interface_remove_threshold=2, n_jobs=4):
         '''
         you might want to overwrite this to customize how the grammar is induced
         extract_cores_and_interfaces_multi
@@ -84,7 +85,9 @@ class GraphLearnSampler:
             return
         self.substitute_grammar = {}
         self.grammar_functions = LocalSubstitutableGraphGrammar(self.substitute_grammar,
-                                                                self.radius_list, self.thickness_list)
+                                                                self.radius_list, self.thickness_list,
+                                                                core_interface_pair_remove_threshold,
+                                                                interface_remove_threshold)
         self.grammar_functions.readgraphs(G_iterator, n_jobs)
         self.grammar_functions.clean()
 
@@ -94,18 +97,30 @@ class GraphLearnSampler:
         X_pos_train = self.vectorizer_normal.transform(iterable_pos_train)
         X_neg_train = X_pos_train.multiply(-1)
         # optimize hyperparameters classifier
-        self.estimator = myutils.my_fit_estimator(positive_data_matrix=X_pos_train, negative_data_matrix=X_neg_train,
-                                                      cv=cv, n_jobs=n_jobs)
-        l = [self.estimator.decision_function(g) for g in X_pos_train]
+        self.estimator = myutils.my_fit_estimator(positive_data_matrix=X_pos_train,
+                                                  negative_data_matrix=X_neg_train,
+                                                  cv=cv,
+                                                  n_jobs=n_jobs)
+        # l = [self.estimator.decision_function(g) for g in X_pos_train]
+        l = [self.estimator.predict_proba(g)[0][1] for g in X_pos_train]
         l.sort()
         element = int(len(l) * .1)
         self.estimator.intercept_ -= l[element]
         return self.estimator
 
 
-    def fit(self, G_pos, n_jobs=-1):
+    def fit(self, G_pos,
+            core_interface_pair_remove_threshold=3,
+            interface_remove_threshold=2,
+            n_jobs=-1):
+
         G_iterator, G_pos = itertools.tee(G_pos)
-        self.induce_grammar(G_iterator, n_jobs)
+
+        self.induce_grammar(G_iterator,
+                            core_interface_pair_remove_threshold,
+                            interface_remove_threshold,
+                            n_jobs)
+
         self.train_estimator(G_pos, n_jobs)
 
 
@@ -278,7 +293,7 @@ class GraphLearnSampler:
 
                 break
 
-            graph, which = self.decide(graph,candidate_graph)
+            graph, which = self.accept(graph,candidate_graph)
             rjct_cnt+=which
 
             # save score and if needed a snapshot of the current graph
@@ -306,10 +321,16 @@ class GraphLearnSampler:
         if 'score' in graph.__dict__:
             return graph.score
         transformed_graph = self.vectorizer_expanded.transform2(graph)
-        graph.score = self.estimator.decision_function(transformed_graph)[0]
+        #graph.score = self.estimator.decision_function(transformed_graph)[0]
+        graph.score = self.estimator.predict_proba(transformed_graph)[0][1]
+        # print graph.score
         return graph.score
 
-    def decide(self,graph_old,graph_new):
+    def accept(self,graph_old,graph_new):
+        '''
+        returns the graph that was decided to be better, and an indicator if the better one is the new one
+        '''
+
         if self.improvement_rules['postprocessing']!=None:
             graph_new = self.improvement_rules['postprocessig'](graph_new)
 
@@ -416,12 +437,13 @@ def improve_loop_multi(x):
 
 
 class core_interface_data:
-    def __init__(self, ihash=0, chash=0, graph=0, radius=0, thickness=0):
+    def __init__(self, ihash=0, chash=0, graph=0, radius=0, thickness=0,core_nodes_count=0):
         self.interface_hash = ihash
         self.core_hash = chash
         self.graph = graph
         self.radius = radius
         self.thickness = thickness
+        self.core_nodes_count=core_nodes_count
 
 
 
@@ -442,6 +464,59 @@ class LocalSubstitutableGraphGrammar:
         self.core_interface_pair_remove_threshold = core_interface_pair_remove_threshold
         self.vectorizer = myutils.MyVectorizer()
 
+
+    def difference(self,other_grammar,substract_cip_count=False):
+
+        # i assume set() my even be faster than sort...
+        # should be even faster to just test -_-
+        my=self.ddict
+        #mykeys=set(my.keys())
+        #otherkeys=set(other_grammar.keys())
+        for ihash in my.keys():
+            if ihash in other_grammar:
+                # so if my ihash is in both i can compare the corehashes
+                for chash in my[ihash].keys():
+                    if chash in other_grammar[ihash]:
+                        if substract_cip_count:
+                            my[ihash][chash].count-=my[ihash][chash].count
+                        else:
+                            my[ihash].pop(chash)
+        if substract_cip_count:
+            self.clean()
+
+
+
+
+    def union(self,other,add_cip_count=False):
+        '''
+        we build the union of grammars..
+        '''
+        my=self.ddict
+        for ihash in other.keys():
+            if ihash in my:
+                # ok so we are in the intersection...
+                for chash in other[ihash]:
+                    if chash in my[ihash] and add_cip_count:
+                        my[ihash][chash].counter+=other[ihash][chash].counter
+                    else:
+                        my[ihash][chash]=other[ihash][chash]
+            else:
+                my[ihash]=other[ihash]
+
+    def intersect(self,other):
+        # counts will be added...
+        my=self.ddict
+
+        for ihash in my.keys():
+            if ihash in other_grammar:
+                # so if my ihash is in both i can compare the corehashes
+                for chash in my[ihash].keys():
+                    if chash in other_grammar[ihash]:
+                        my[ihash][chash].counter+=other[ihash][chash].counter
+                    else:
+                        my[ihash].pop(chash)
+            else:
+                my.pop(ihash)
 
     def readgraphs(self, graphs, n_jobs=4):
         if n_jobs == 1:
@@ -658,7 +733,8 @@ def extract_core_and_interface(node, graph, radius_list=None, thickness_list=Non
                         if 'core' in thisgraph.node[no]:
                             thisgraph.node[no].pop('core')
 
-            retlist.append(core_interface_data(interfacehash, corehash, thisgraph, radius_, thickness_))
+            core_nodes_count=sum([len(nodedict[x]) for x in range(radius_)])
+            retlist.append(core_interface_data(interfacehash, corehash, thisgraph, radius_, thickness_,core_nodes_count))
     return retlist
 
 

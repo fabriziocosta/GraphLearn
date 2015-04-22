@@ -7,6 +7,10 @@ from sklearn.grid_search import RandomizedSearchCV
 from scipy.stats import randint
 from scipy.stats import uniform
 import random
+from eden.model import ActiveLearningBinaryClassificationModel
+from numpy.random import randint as p_randint
+from numpy.random import uniform as p_uniform
+import sklearn.metrics as metrics
 '''
     wrapped or altered eden functions:
         -my_vectorizer, a eden vectorizer that doesnt try to expand graphs
@@ -27,6 +31,51 @@ class MyVectorizer(Vectorizer):
 
     def transform2(self, graph):
         return self._convert_dict_to_sparse_matrix(self._transform(0, graph))
+
+
+
+def my_fit_estimator_model(positive_data_matrix=None, negative_data_matrix=None, target=None, cv=10, n_jobs=-1):
+
+
+    vectorizer=MyVectorizer()
+
+    estimator = SGDClassifier(average=True, class_weight='auto', shuffle=True)
+    pre_processor= lambda x:x
+    model = ActiveLearningBinaryClassificationModel(pre_processor=pre_processor,
+                                                    estimator=estimator,
+                                                    vectorizer=vectorizer,
+                                                    n_jobs=n_jobs,
+
+                                                    n_blocks=5)
+
+    #optimize hyperparameters and fit model
+
+    pre_processor_parameters={}
+                            #'max_num':[1,3],
+                            #  'shape_type':[5],
+                            #  'energy_range':[5,10,20,30]}
+
+    vectorizer_parameters={'complexity':[2,3,4]}
+    n_iter=20
+    estimator_parameters={'n_iter':p_randint(5, 200, size=n_iter),
+                          'penalty':['l1','l2','elasticnet'],
+                          'l1_ratio':p_uniform(0.1,0.9, size=n_iter),
+                          'loss':['log'],
+                          'power_t':p_uniform(0.1, size=n_iter),
+                          'alpha': [10**x for x in range(-8,0)],
+                          'eta0': [10**x for x in range(-4,-1)],
+                          'learning_rate': ["invscaling", "constant", "optimal"],
+                          'n_jobs':[n_jobs]}
+
+    model.optimize(list(iterable_pos_train), list(iterable_neg_train),
+                   max_total_time=60*10,
+                   score_func=lambda avg_score,std_score : avg_score - std_score * 2,
+                   scoring='roc_auc',
+                   n_iter=n_iter,
+                   pre_processor_parameters=pre_processor_parameters,
+                   vectorizer_parameters=vectorizer_parameters,
+                   estimator_parameters=estimator_parameters)
+    return model.get_estimator()
 
 
 
@@ -54,7 +103,18 @@ def my_fit_estimator(positive_data_matrix=None, negative_data_matrix=None, targe
                   "loss":[ 'log'],
                   "penalty": ["l1", "l2", "elasticnet"],
                   "learning_rate": ["invscaling", "constant", "optimal"]}
+    '''
+    param_dist = {"n_iter": randint(5, 25),
+              "power_t": uniform(0.1),
+              "alpha": uniform(1e-05, 1e-01),
+              "eta0": uniform(1e-04, 1e-01),
+              "loss":[ 'log'],
+              "penalty": ["l1", "l2", "elasticnet"],
+              "learning_rate": ["invscaling", "constant", "optimal"]}
+    '''
+
     scoring = 'roc_auc'
+    # scoring = metrics.brier_score_loss dowsnt work..
     n_iter_search = 20
     random_search = RandomizedSearchCV(
         predictor, param_distributions=param_dist, n_iter=n_iter_search, cv=cv, scoring=scoring, n_jobs=n_jobs)
@@ -64,6 +124,12 @@ def my_fit_estimator(positive_data_matrix=None, negative_data_matrix=None, targe
     # fit the predictor on all available data
     optpredictor.fit(X, y)
     return optpredictor
+
+
+
+
+
+
 
 
 def expand_edges(graph):
