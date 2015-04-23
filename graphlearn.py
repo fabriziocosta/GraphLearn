@@ -10,7 +10,7 @@ from eden import fast_hash
 import utils.draw as draw
 import logging
 import numpy
-
+import dill
 from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
 
@@ -189,21 +189,16 @@ class GraphLearnSampler:
     ############ imporoving stuff ##################
 
 
-    def sample_grammar_to_managed_dictionary(self):
-        '''
-        this turns the grammar into a managed dictionary which we need for multiprocessing
-        '''
-         # move the grammar into a manager object...
-        manager = Manager()
-        shelve = manager.dict()
-        for k, v in self.local_substitutable_graph_grammar.grammar.iteritems():
-            md=manager.dict()
-            for k2,v2 in v.iteritems():
-                md[k2]=v2
-            shelve[k] = md
 
-        self.local_substitutable_graph_grammar.grammar = shelve
 
+    def grammar_preprocessing(self):
+        '''
+            we change the grammar according to the sampling task
+        '''
+        if self.n_jobs > 0:
+            self.local_substitutable_graph_grammar.turn_into_managed_dict()
+        if self.same_radius:
+            self.local_substitutable_graph_grammar.mark_radius()
 
 
 
@@ -226,23 +221,27 @@ class GraphLearnSampler:
         self.similarity=similarity
         self.sampling_interval=sampling_interval
         self.n_steps=n_steps
-        self.postprocessing=postprocessing
+        self.n_jobs=n_jobs
 
+        # multiprocessing work-around oOoOoo sadly necessary
+        self.postprocessing=dill.dumps(postprocessing)
 
+        # adapt grammar to task:
+        self.grammar_preprocessing()
 
-        self.sample_grammar_to_managed_dictionary()
         # do the improvement
         if n_jobs == 0:
             for graph in graph_iter:
                 yield self._sample(graph)
         else:
+            # make it so that we dont need to copy the whole grammar a few times  for multiprocessing
             problems = itertools.izip(
                 graph_iter, itertools.repeat(self))
             pool = Pool(processes=n_jobs)
             batch_size=batch_size
             it = pool.imap_unordered(improve_loop_multi, problems, batch_size)
-            for liste in it:
-                yield liste
+            for pair in it:
+                yield pair
             pool.close()
 
 
@@ -272,7 +271,7 @@ class GraphLearnSampler:
 
 
 
-    def sample_init(self,graph):
+    def _sample_init(self,graph):
         '''
         we prepare a single graph to be sampled
 
@@ -283,6 +282,9 @@ class GraphLearnSampler:
         graph = graphlearn_utils.expand_edges(graph)
         self.score(graph)
         self.similarity_checker(graph, set_reference=True)
+
+        if type(self.postprocessing)==str:
+            self.postprocessing = dill.loads(self.postprocessing)
         return graph
 
 
@@ -292,7 +294,7 @@ class GraphLearnSampler:
         '''
 
         # prepare variables and graph
-        graph=self.sample_init(graph)
+        graph=self._sample_init(graph)
         scores = [graph.score]
         sample_path=[graph]
         accept_counter=0
@@ -300,7 +302,6 @@ class GraphLearnSampler:
         # note to attach to the result in the end.
         # currently it contains information on why we stopped the sampling before n_steps
         special_notes='None'
-
         for x in xrange(self.n_steps):
 
             # do we need to stop early??
@@ -326,22 +327,19 @@ class GraphLearnSampler:
             if x % self.sampling_interval == 0:
                 sample_path.append(graph)
 
+
         # return a list of graphs, the last of wich is our final result
         sample_path.append(graph)
         res=self.vectorizer_expanded._revert_edge_to_vertex_transform(graph)
-
         # filling the score_history so we have as n_steps many entries ,,
         # i just repeat the last entry until len(scores) is n_steps
         scores += [scores[-1]] * (self.n_steps+1 - len(scores))
-
-
         graph_info={}
         graph_info['graphs']=sample_path
         graph_info['score_history']=scores
         graph_info['accept_count']=accept_counter
         graph_info['notes']=special_notes
         return (res,graph_info)
-
 
 
 
@@ -358,7 +356,7 @@ class GraphLearnSampler:
         returns the graph that was decided to be better, and an indicator if the better one is the new one
         '''
 
-        graph_new = self.postprocessig(graph_new)
+        graph_new = self.postprocessing(graph_new)
 
         self.score(graph_old)
         self.score(graph_new)
@@ -409,7 +407,10 @@ class GraphLearnSampler:
     def select_cips_from_grammar(self,cip):
         core_cip_dict = self.local_substitutable_graph_grammar.grammar[cip.interface_hash]
         if core_cip_dict:
-            hashes = core_cip_dict.keys()
+            if self.same_radius:
+                hashes=self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]
+            else:
+                hashes = core_cip_dict.keys()
             random.shuffle(hashes)
             for core_hash in hashes:
                 # does the new core need to be the same size as the old one??
@@ -441,10 +442,21 @@ class GraphLearnSampler:
             # in addition the selection might fail because it is not possible to extract at the desired radius/thicknes
             #
             cip= extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer_normal,
-                                            mode='make ihash -1',hash_bitmask=self.hash_bitmask)[0]
-            if cip.interface_hash==-1:
+                                            hash_bitmask=self.hash_bitmask)
+
+            # if radius and thickness are not possible to extract cip is [] which is false
+            if not cip:
                 failcount+=1
+                continue
+            cip=cip[0]
+            # if we have a hit in the grammar
             if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
+                #  if we have the same_radius rule implemented:
+                if self.same_radius:
+                    # we jump if that hit has not the right radius
+                    if cip.radius not in self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash]:
+                        continue
+
                 return cip
 
         logger.debug ('choose_cip failed because no suiting interface was found, extract failed %d times ' % (failcount))
@@ -462,7 +474,7 @@ def improve_loop_multi(x):
 
 
 
-class core_interface_data:
+class core_interface_pair:
     def __init__(self, ihash=0, chash=0, graph=0, radius=0, thickness=0,core_nodes_count=0):
         self.interface_hash = ihash
         self.core_hash = chash
@@ -491,6 +503,24 @@ class LocalSubstitutableGraphGrammar:
         self.vectorizer = graphlearn_utils.GraphLearnVectorizer()
         self.hash_bitmask=hash_bitmask
 
+
+
+    def turn_into_managed_dict(self):
+        '''
+        this turns the grammar into a managed dictionary which we need for multiprocessing
+
+        note that we dont do this per default because then we cant save the grammar anymore
+        while keeping the manager outside the object
+        '''
+         # move the grammar into a manager object...
+        manager = Manager()
+        shelve = manager.dict()
+        for k, v in self.grammar.iteritems():
+            md=manager.dict()
+            for k2,v2 in v.iteritems():
+                md[k2]=v2
+            shelve[k] = md
+        self.grammar = shelve
 
     def difference(self,other_grammar,substract_cip_count=False):
 
@@ -544,6 +574,42 @@ class LocalSubstitutableGraphGrammar:
             else:
                 self.grammar.pop(ihash)
 
+
+    def clean(self):
+        """
+            after adding many cips to the grammar it is possible
+            that some thresholds are not reached, and we dont want unnecessary ballast in
+            our grammar.
+            so we clean up.
+        """
+        for interface in self.grammar.keys():
+
+            for core in self.grammar[interface].keys():
+                if self.grammar[interface][core].count < self.core_interface_pair_remove_threshold:
+                    self.grammar[interface].pop(core)
+
+            if len(self.grammar[interface]) < self.interface_remove_threshold:
+                self.grammar.pop(interface)
+
+    def mark_radius(self):
+        '''
+            there is now self.radiuslookup{ interfacehash: {radius:[list of corehashes with that ihash and radius]} }
+        '''
+        self.radiuslookup={}
+        for interface in self.grammar.keys():
+            radiuslookup={}
+            for core in self.grammar[interface].keys():
+                radius=self.grammar[interface][core].radius
+                if radius in radiuslookup:
+                    radiuslookup[radius].append(core)
+                else:
+                    radiuslookup[radius]=[core]
+            self.radiuslookup[interface]=radiuslookup
+
+
+
+
+
     def read(self, graphs, n_jobs=4):
         '''
         we extract all chips from graphs of a graph iterator
@@ -573,7 +639,7 @@ class LocalSubstitutableGraphGrammar:
         if cid.core_hash in self.grammar[cid.interface_hash]:
             subgraph_data = self.grammar[cid.interface_hash][cid.core_hash]
         else:
-            subgraph_data = core_interface_data()
+            subgraph_data = core_interface_pair()
             self.grammar[cid.interface_hash][cid.core_hash] = subgraph_data
             subgraph_data.count=0
 
@@ -591,10 +657,8 @@ class LocalSubstitutableGraphGrammar:
                     put cips into grammar
         """
         for gr in graphs:
-            for core_interface_data_list in extract_cores_and_interfaces(gr, self.radius_list,
-                                                                         self.thickness_list,
-                                                                         self.vectorizer,
-                                                                         hash_bitmask=self.hash_bitmask):
+            problem = (gr, self.radius_list,self.thickness_list, self.vectorizer,self.hash_bitmask)
+            for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cid in core_interface_data_list:
                     self.grammar_add_core_interface_data(cid)
 
@@ -613,54 +677,29 @@ class LocalSubstitutableGraphGrammar:
         # creating pool of workers
         pool = Pool(processes=n_jobs)
         # distributing jobs to workers
-        it = pool.imap_unordered(extract_cores_and_interfaces_multi, problems, 10)
+        result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
         # the resulting chips can now be put intro the grammar
-        for core_interface_data_listlist in it:
+        for core_interface_data_listlist in result:
             for core_interface_data_list in core_interface_data_listlist:
                 for cid in core_interface_data_list:
                     self.grammar_add_core_interface_data(cid)
 
         pool.close()
 
-    def clean(self):
-        """
-            after adding many cips to the grammar it is possible
-            that some thresholds are not reached, and we dont want unnecessary ballast in
-            our grammar.
-            so we clean up.
-        """
-        for interface in self.grammar.keys():
-            for core in self.grammar[interface].keys():
-                if self.grammar[interface][core].count < self.core_interface_pair_remove_threshold:
-                    self.grammar[interface].pop(core)
-            if len(self.grammar[interface]) < self.interface_remove_threshold:
-                self.grammar.pop(interface)
 
 
-def extract_cores_and_interfaces(graph, radius_list, thickness_list,vectorizer,hash_bitmask):
-    # expand the graph
-    graph = graphlearn_utils.expand_edges(graph)
-    for node in graph.nodes_iter():
-        if 'edge' in graph.node[node]:
-            continue
-        core_interface_list = extract_core_and_interface(node, graph, radius_list, thickness_list,
-                                                         vectorizer=vectorizer,hash_bitmask=hash_bitmask)
-        if len(core_interface_list) > 0:
-            yield core_interface_list
 
-
-def extract_cores_and_interfaces_multi(x):
+def extract_cores_and_interfaces(x):
     # unpack arguments, expand the graph
     graph, radius_list, thickness_list, vectorizer,hash_bitmask = x
     graph = graphlearn_utils.expand_edges(graph)
-
     ret = []
     for node in graph.nodes_iter():
         if 'edge' in graph.node[node]:
             continue
         core_interface_list = extract_core_and_interface(node, graph, radius_list, thickness_list,
-                                                         vectorizer=vectorizer,hash_bitmask=hash_bitmask)
-        if len(core_interface_list) > 0:
+                                                    vectorizer=vectorizer,hash_bitmask=hash_bitmask)
+        if core_interface_list:
             ret.append(core_interface_list)
     return ret
 
@@ -758,8 +797,8 @@ def calc_node_name(interfacegraph, node,hash_bitmask):
     return l
 
 
-def extract_core_and_interface(node, graph, radius_list=None, thickness_list=None, vectorizer=None,hash_bitmask=2*20-1,
-                               mode='grammar_creation'):
+def extract_core_and_interface(node, graph, radius_list=None, thickness_list=None, vectorizer=None,
+                               hash_bitmask=2*20-1):
 
     if 'hlabel' not in graph.node[0]:
         vectorizer._label_preprocessing(graph)
@@ -773,16 +812,15 @@ def extract_core_and_interface(node, graph, radius_list=None, thickness_list=Non
     # so now we see {distance:[list of nodes at that distance]}
     nodedict = inversedict(dist)
 
-    #sanity check
-    if max(radius_list) + max(thickness_list) not in nodedict:
-        if mode=='make ihash -1':
-            r=core_interface_data(ihash=-1)
-            return [r]
-        return []
 
-    retlist = []
+    cip_list = []
     for thickness_ in thickness_list:
         for radius_ in radius_list:
+
+
+            # see if it is feasable to extract
+            if radius_ + thickness_ not in nodedict:
+                continue
 
             #calculate hashes
             #d={1:[1,2,3],2:[3,4,5]}
@@ -812,7 +850,7 @@ def extract_core_and_interface(node, graph, radius_list=None, thickness_list=Non
                             cip_graph.node[no].pop('core')
 
             core_nodes_count=sum([len(nodedict[x]) for x in range(radius_)])
-            retlist.append(core_interface_data(interfacehash, corehash, cip_graph, radius_, thickness_,core_nodes_count))
-    return retlist
+            cip_list.append(core_interface_pair(interfacehash, corehash, cip_graph, radius_, thickness_,core_nodes_count))
+    return cip_list
 
 

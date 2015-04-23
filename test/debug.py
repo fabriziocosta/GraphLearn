@@ -10,30 +10,28 @@ from eden.converter.graph.gspan import gspan_to_eden
 
 
 
-
 def test_sampler():
-    nj=0
-    batch=160
     steps=20
-    graphcount=20
+    sampler=gl.GraphLearnSampler()
+    sampler.load('../data/demo.ge')
+    graphs = gspan_to_eden( '../data/bursi.pos.gspan' )
+    graphs = itertools.islice(graphs,30)
 
-    graphs = gspan_to_eden( '../grammar/bursi.pos.gspan' )
+
+    # we test multicore and single:
+    graphs = sampler.sample(graphs,same_radius=True,sampling_interval=9999,batch_size=1,n_steps=steps,n_jobs=0)
+    #graphs = sampler.sample(graphs,same_radius=True,sampling_interval=9999,batch_size=2,n_steps=steps,n_jobs=4)
 
 
-    imprules= {'n_jobs':nj , 'batch_size':batch,'improvement_steps':steps}
-    print imprules,graphcount
-    sampler=GraphLearnSampler()
-    sampler.load('../grammar/demo.ge')
-    #sampler.train_estimator_and_extract_grammar(graphs,[2,4],[2],n_jobs=4)
-    #sampler.save('../grammar/demo.ge')
-
-    graphs= itertools.islice(graphs,graphcount)
-    graphs = sampler.sample(graphs,improvement_rules=imprules)
     history=[]
-    for graphs_ in graphs:
-        history.append(graphs_[0].score_history)
-    for l in history:
-        print l
+
+    for e in graphs:
+        print e
+
+    #for (result,info) in graphs:
+    #    history.append(info['score_history'])
+    #print  history
+
 
 
 
@@ -42,17 +40,16 @@ import graphlearn as gl
 import itertools
 
 def test_fit():
-    gr = gspan_to_eden( '../grammar/bursi.pos.gspan' )
+    gr = gspan_to_eden( '../data/bursi.pos.gspan' )
     radius_list=[2,4]
     thickness_list=[2]
-
     gr=itertools.islice(gr,100)
     sampler=gl.GraphLearnSampler(radius_list,thickness_list)
     sampler.fit(gr,n_jobs=4)
-
-
-    sampler.save('../grammar/demo.ge')
+    sampler.save('../data/demo.ge')
     #graphlearn_utils.draw_grammar(sampler.local_substitutable_graph_grammar,5)
 
 
-test_fit()
+# test_fit()
+test_sampler()
+
