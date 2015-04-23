@@ -358,12 +358,13 @@ class GraphLearnSampler:
 
         graph_new = self.postprocessing(graph_new)
 
-        self.score(graph_old)
-        self.score(graph_new)
+        score_graph_old = self.score(graph_old)
+        score_graph_new = self.score(graph_new)
 
-        if graph_old.score==0:
+        if score_graph_old==0:
             return graph_new,True
-        score_ratio = graph_new.score/graph_old.score
+
+        score_ratio = score_graph_new/score_graph_old
 
         if score_ratio > random.random():
             return graph_new,True
