@@ -17,15 +17,15 @@ def test_sampler():
     steps=20
     graphcount=20
 
-    graphs = gspan_to_eden( '../data/bursi.pos.gspan' )
+    graphs = gspan_to_eden( '../grammar/bursi.pos.gspan' )
 
 
     imprules= {'n_jobs':nj , 'batch_size':batch,'improvement_steps':steps}
     print imprules,graphcount
     sampler=GraphLearnSampler()
-    sampler.load('../data/demo.ge')
+    sampler.load('../grammar/demo.ge')
     #sampler.train_estimator_and_extract_grammar(graphs,[2,4],[2],n_jobs=4)
-    #sampler.save('../data/demo.ge')
+    #sampler.save('../grammar/demo.ge')
 
     graphs= itertools.islice(graphs,graphcount)
     graphs = sampler.sample(graphs,improvement_rules=imprules)
@@ -42,7 +42,7 @@ import graphlearn as gl
 import itertools
 
 def test_fit():
-    gr = gspan_to_eden( '../data/bursi.pos.gspan' )
+    gr = gspan_to_eden( '../grammar/bursi.pos.gspan' )
     radius_list=[2,4]
     thickness_list=[2]
 
@@ -51,8 +51,8 @@ def test_fit():
     sampler.fit(gr,n_jobs=4)
 
 
-    sampler.save('../data/demo.ge')
-    #myutils.draw_grammar(sampler.substitute_grammar,5)
+    sampler.save('../grammar/demo.ge')
+    #graphlearn_utils.draw_grammar(sampler.local_substitutable_graph_grammar,5)
 
 
 test_fit()

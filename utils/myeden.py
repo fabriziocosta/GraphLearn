@@ -20,7 +20,7 @@ import sklearn.metrics as metrics
 '''
 
 
-class MyVectorizer(Vectorizer):
+class GraphLearnVectorizer(Vectorizer):
     '''
     doing some overwriting so we dont expand and contract edges all the time..
     this hack is a little bit dependant on the state of eden.. so be carefull here 
@@ -79,7 +79,7 @@ def my_fit_estimator_model(positive_data_matrix=None, negative_data_matrix=None,
 '''
 
 
-def my_fit_estimator(positive_data_matrix=None, negative_data_matrix=None, target=None, cv=10, n_jobs=-1):
+def graphlearn_fit_estimator(positive_data_matrix=None, negative_data_matrix=None, target=None, cv=10, n_jobs=-1):
     '''
      we dont need the validation at all... so i just copied from eden/utils/__init__.py
     '''
@@ -121,7 +121,7 @@ def my_fit_estimator(positive_data_matrix=None, negative_data_matrix=None, targe
     random_search.fit(X, y)
     optpredictor = SGDClassifier(
         class_weight='auto', shuffle=True, n_jobs=n_jobs, **random_search.best_params_)
-    # fit the predictor on all available data
+    # fit the predictor on all available grammar
     optpredictor.fit(X, y)
     return optpredictor
 

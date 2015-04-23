@@ -19,18 +19,18 @@ vectorizer=Vectorizer( complexity=3 )
 
 
 def load_estimator(): 
-    sampler2.load('../data/estimator')
+    sampler2.load('../grammar/estimator')
     return sampler2.estimator
 
 
 def make_estimator():
 
-    neg = gspan_to_eden('../data/bursi.neg.gspan')
-    pos= gspan_to_eden('../data/bursi.pos.gspan')
+    neg = gspan_to_eden('../grammar/bursi.neg.gspan')
+    pos= gspan_to_eden('../grammar/bursi.pos.gspan')
     pos = vectorizer.transform( pos )
     neg = vectorizer.transform( neg )
-    sampler2.estimator= myeden.my_fit_estimator(positive_data_matrix=pos, negative_data_matrix=neg)
-    sampler2.save('../data/estimator')
+    sampler2.estimator= myeden.graphlearn_fit_estimator(positive_data_matrix=pos, negative_data_matrix=neg)
+    sampler2.save('../grammar/estimator')
 
     
 estimator=load_estimator()
@@ -44,7 +44,7 @@ def doit():
     radius=[2,4]
     thickness=[2,4]
     sampler = GraphLearnSampler(radius_list=radius,thickness_list=thickness)
-    graphs_pos= gspan_to_eden('../data/bursi.pos.gspan')
+    graphs_pos= gspan_to_eden('../grammar/bursi.pos.gspan')
     #generate datapoints:
     lenpo=int(2401*.3)
     originals=[]

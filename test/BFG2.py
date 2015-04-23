@@ -16,10 +16,10 @@ radius=[2,4]
 thickness=[2,4]
 sampler =GraphLearnSampler(radius_list=radius,thickness_list=thickness)
 
-graphs_pos= gspan_to_eden('../data/bursi.pos.gspan')
-graphs_neg= gspan_to_eden('../data/bursi.neg.gspan')
-testpos= gspan_to_eden('../data/bursi.pos.gspan')
-testneg= gspan_to_eden('../data/bursi.neg.gspan')
+graphs_pos= gspan_to_eden('../grammar/bursi.pos.gspan')
+graphs_neg= gspan_to_eden('../grammar/bursi.neg.gspan')
+testpos= gspan_to_eden('../grammar/bursi.pos.gspan')
+testneg= gspan_to_eden('../grammar/bursi.neg.gspan')
 
 vect=Vectorizer(complexity = 3)
 
@@ -46,8 +46,8 @@ def train_estimator_and_evaluate_testsets(pos_real,neg_real,pos_augmented,neg_au
 
     pa=vectorizer.transform(pos_augmented)
     na=vectorizer.transform(neg_augmented)
-    real_esti= me.my_fit_estimator( pr,nr )
-    aug_esti= me.my_fit_estimator( pa,na )
+    real_esti= me.graphlearn_fit_estimator( pr,nr )
+    aug_esti= me.graphlearn_fit_estimator( pa,na )
     
     ori=0
     
