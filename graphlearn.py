@@ -293,16 +293,16 @@ class GraphLearnSampler:
 
             # do we need to stop early??
             if self.similarity_checker(graph):
-                special_notes='abborted; reason:similarity; at_step: '+str(x)
+                special_notes='sample stopped; reason:similarity; at_step: '+str(x)
                 break
 
             # do an  improvement step
             candidate_graph = self.propose(graph)
             if candidate_graph == None:
-                logger.info( "sample failed; no propose after %d successful improvement_steps" % x)
+                logger.info( "sample stopped; no propose after %d successful improvement_steps" % x)
                 # this will show you the failing graph:
                 # draw.display(graph)
-                special_notes='abborted; reason:no candidate found; see logfile for details; at_step: '+str(x)
+                special_notes='sample stopped; reason:no candidate found; see logfile for details; at_step: '+str(x)
 
                 break
 
