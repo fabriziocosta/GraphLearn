@@ -1,5 +1,6 @@
 import joblib
 import utils.myeden as graphlearn_utils
+from eden.util import fit_estimator as eden_fit_estimator
 import networkx as nx
 import itertools
 import random
@@ -11,8 +12,10 @@ import utils.draw as draw
 import logging
 import numpy
 import dill
+import eden
 from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
+from sklearn.linear_model import SGDClassifier
 
 logger = logging.getLogger('log')
 logger.setLevel(logging.DEBUG)
@@ -59,7 +62,7 @@ class GraphLearnSampler:
          wirte something
     """
 
-    def __init__(self,radius_list=[],thickness_list=[],estimator=None,grammar=None,hash_bits=20):
+    def __init__(self,radius_list=[3,5],thickness_list=[2,4],estimator=None,grammar=None,nbit=20):
 
         self.feasibility_checker = FeasibilityChecker()
         self.vectorizer_expanded = graphlearn_utils.GraphLearnVectorizer(complexity=3)
@@ -68,11 +71,19 @@ class GraphLearnSampler:
         self.thickness_list=thickness_list
         self.estimator=estimator
         self.local_substitutable_graph_grammar=grammar
-        self.hash_bitmask=pow(2, hash_bits) - 1
+        self.hash_bitmask=pow(2, nbit) - 1
+        self.nbit=nbit
 
-
-
+        self.same_radius= None
+        self.similarity=None
+        self.sampling_interval=None
+        self.n_steps=None
+        self.n_jobs=None
+        self._sample_notes=None
+        self.same_core_size = None
     def save(self, filename):
+
+        self.local_substitutable_graph_grammar.revert_turn_into_managed_dict()
         joblib.dump(self.__dict__, filename, compress=1)
 
     def load(self, filename):
@@ -91,34 +102,37 @@ class GraphLearnSampler:
         self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list, self.thickness_list,
                                                                 core_interface_pair_remove_threshold,
                                                                 interface_remove_threshold,
-                                                                hash_bitmask=self.hash_bitmask)
+                                                                nbit=self.nbit)
         self.local_substitutable_graph_grammar.read(G_iterator, n_jobs)
         self.local_substitutable_graph_grammar.clean()
 
 
-    def fit_estimator(self, iterable_pos_train, n_jobs=-1, cv=10):
-        # i think this works on normal graphs..
-        X_pos_train = self.vectorizer_normal.transform(iterable_pos_train)
+    def fit_estimator(self, X_pos_train, n_jobs=-1, cv=10):
+        # get negative set:
         X_neg_train = X_pos_train.multiply(-1)
-        # optimize hyperparameters classifier
-        estimator = graphlearn_utils.graphlearn_fit_estimator(positive_data_matrix=X_pos_train,
+        # i hope loss is log.. not 100% sure..
+        # probably calibration will fix this#
+        self.estimator = eden_fit_estimator(SGDClassifier(),positive_data_matrix=X_pos_train,
                                                   negative_data_matrix=X_neg_train,
                                                   cv=cv,
-                                                  n_jobs=n_jobs)
+                                                  n_jobs=n_jobs,
+                                                  verbose=0,
+                                                  n_iter_search=20)
 
-        CUTOF=.1
-        # l = [self.estimator.decision_function(g) for g in X_pos_train]
-        l = [(estimator.predict_proba(g)[0][1],g)   for g in X_pos_train]
+    def calibrate_estimator(self,X_pos_train,nu=.5):
+        #  move bias
+        l = [(self.estimator.decision_function(g)[0],g)   for g in X_pos_train]
         l.sort(key= lambda x:x[0])
-        element = int(len(l) * CUTOF)
-        estimator.intercept_ -= l[element][0]
+        element = int(len(l) * nu)
+        self.estimator.intercept_ -= l[element][0]
 
 
         # calibrate
         data_matrix=vstack( [ a[1] for a in l  ] )
         data_y=numpy.asarray([0]*element +[1]*(len(l)-element))
-        self.estimator = CalibratedClassifierCV(estimator, cv=2, method='sigmoid')
+        self.estimator = CalibratedClassifierCV(self.estimator, cv=3, method='sigmoid')
         self.estimator.fit(data_matrix,data_y  )
+
 
 
 
@@ -126,7 +140,7 @@ class GraphLearnSampler:
     def fit(self, G_pos,
             core_interface_pair_remove_threshold=3,
             interface_remove_threshold=2,
-            n_jobs=-1):
+            n_jobs=-1,nu=.5):
 
         G_iterator, G_iterator_ = itertools.tee(G_pos)
 
@@ -135,8 +149,9 @@ class GraphLearnSampler:
                             interface_remove_threshold,
                             n_jobs)
 
-        self.fit_estimator(G_iterator_, n_jobs)
-
+        features=self.vectorizer_normal.transform(G_iterator_)
+        self.fit_estimator(features, n_jobs)
+        self.calibrate_estimator(features,nu)
 
     ###########################  core substitution things ####################
 
@@ -198,11 +213,13 @@ class GraphLearnSampler:
         if self.n_jobs > 0:
             self.local_substitutable_graph_grammar.turn_into_managed_dict()
         if self.same_radius:
-            self.local_substitutable_graph_grammar.mark_radius()
+            self.local_substitutable_graph_grammar.add_same_radius_quicklookup()
+        if self.same_core_size:
+            self.local_substitutable_graph_grammar.add_core_size_quicklookup()
 
 
 
-    def sample(self, graph_iter,same_radius=True,similarity=-1,sampling_interval=9999,
+    def sample(self, graph_iter,same_radius=False,same_core_size=True,similarity=-1,sampling_interval=9999,
                batch_size=10,
                n_jobs=0,
                n_steps=50,
@@ -222,6 +239,7 @@ class GraphLearnSampler:
         self.sampling_interval=sampling_interval
         self.n_steps=n_steps
         self.n_jobs=n_jobs
+        self.same_core_size=same_core_size
 
         # multiprocessing work-around oOoOoo sadly necessary
         self.postprocessing=dill.dumps(postprocessing)
@@ -230,21 +248,69 @@ class GraphLearnSampler:
         self.grammar_preprocessing()
 
         # do the improvement
-        if n_jobs == 0:
+        if n_jobs in [0,1]:
             for graph in graph_iter:
                 yield self._sample(graph)
         else:
             # make it so that we dont need to copy the whole grammar a few times  for multiprocessing
             problems = itertools.izip(
                 graph_iter, itertools.repeat(self))
-            pool = Pool(processes=n_jobs)
+            if n_jobs > 1:
+                pool = Pool(processes=n_jobs)
+            else:
+                pool=Pool()
             batch_size=batch_size
-            it = pool.imap_unordered(improve_loop_multi, problems, batch_size)
+            #it = pool.imap_unordered(improve_loop_multi, problems, batch_size)
+            #_sample_multi=lambda x: x[1]._sample(x[0])
+
+            it = pool.imap_unordered(_sample_multi, problems, batch_size)
             for pair in it:
                 yield pair
             pool.close()
 
 
+
+
+
+
+    def _sample(self, graph):
+        '''
+            we sample a single graph.
+        '''
+
+        # prepare variables and graph
+        graph=self._sample_init(graph)
+        scores_log = [graph.score]
+        scores = [graph.score_nonlog]
+        sample_path=[graph]
+        accept_counter=0
+
+
+        for step in xrange(self.n_steps):
+            # do an  improvement step
+            candidate_graph = self.propose(graph)
+            # can we stop now?
+            if self._sampling_stop_condition(graph,candidate_graph,scores,scores_log,step):
+                break
+
+            # is the new graph better than the old?
+            candidate_graph = self.postprocessing(candidate_graph)
+            if self.accept(graph,candidate_graph):
+                accept_counter += 1
+                graph=candidate_graph
+            # save score
+            # take snapshot
+            scores.append(graph.score_nonlog)
+            scores_log.append(graph.score)
+            if step % self.sampling_interval == 0:
+                sample_path.append(graph)
+
+
+        # we put the result in the sample_path
+        # and we return a nice graph as well as a dictionary of additional information
+        sample_path.append(graph)
+        res=self.vectorizer_expanded._revert_edge_to_vertex_transform(graph)
+        return (res,{'graphs':sample_path,'score_history':scores,"log_score_history":scores_log,"accept_count":accept_counter,'notes':self._sample_notes})
 
 
     def similarity_checker(self,graph,set_reference=False):
@@ -269,8 +335,6 @@ class GraphLearnSampler:
         return False
 
 
-
-
     def _sample_init(self,graph):
         '''
         we prepare a single graph to be sampled
@@ -282,71 +346,39 @@ class GraphLearnSampler:
         graph = graphlearn_utils.expand_edges(graph)
         self.score(graph)
         self.similarity_checker(graph, set_reference=True)
+        self._sample_notes=''
 
         if type(self.postprocessing)==str:
             self.postprocessing = dill.loads(self.postprocessing)
         return graph
 
+    def _sampling_stop_condition(self,graph,candidate_graph,scores,scores_log,step):
+        stop=False
+        # do we need to stop early??
+        if self.similarity_checker(graph):
+            self._sample_notes='sample stopped; reason:similarity; at_step: '+str(step)
+            stop=True
 
-    def _sample(self, graph):
-        '''
-            we sample a single graph.
-        '''
+        if candidate_graph == None:
+            logger.info( "sample stopped; no propose after %d successful improvement_steps" % step)
+            # this will show you the failing graph:
+            # draw.display(graph)
+            self._sample_notes='sample stopped; reason:no candidate found; see logfile for details; at_step: '+str(step)
+            stop=True
 
-        # prepare variables and graph
-        graph=self._sample_init(graph)
-        scores = [graph.score]
-        sample_path=[graph]
-        accept_counter=0
+        if stop: # make sure score list is as long as n_steps
+            scores += [scores[-1]] * (self.n_steps+1 - len(scores))
+            scores_log += [scores_log[-1]] * (self.n_steps+1 - len(scores_log))
 
-        # note to attach to the result in the end.
-        # currently it contains information on why we stopped the sampling before n_steps
-        special_notes='None'
-        for x in xrange(self.n_steps):
+        return stop
 
-            # do we need to stop early??
-            if self.similarity_checker(graph):
-                special_notes='sample stopped; reason:similarity; at_step: '+str(x)
-                break
-
-            # do an  improvement step
-            candidate_graph = self.propose(graph)
-            if candidate_graph == None:
-                logger.info( "sample stopped; no propose after %d successful improvement_steps" % x)
-                # this will show you the failing graph:
-                # draw.display(graph)
-                special_notes='sample stopped; reason:no candidate found; see logfile for details; at_step: '+str(x)
-
-                break
-
-            graph, is_accepted = self.accept(graph,candidate_graph)
-            accept_counter += is_accepted
-
-            # save score and if needed a snapshot of the current graph
-            scores.append(graph.score)
-            if x % self.sampling_interval == 0:
-                sample_path.append(graph)
-
-
-        # return a list of graphs, the last of wich is our final result
-        sample_path.append(graph)
-        res=self.vectorizer_expanded._revert_edge_to_vertex_transform(graph)
-        # filling the score_history so we have as n_steps many entries ,,
-        # i just repeat the last entry until len(scores) is n_steps
-        scores += [scores[-1]] * (self.n_steps+1 - len(scores))
-        graph_info={}
-        graph_info['graphs']=sample_path
-        graph_info['score_history']=scores
-        graph_info['accept_count']=accept_counter
-        graph_info['notes']=special_notes
-        return (res,graph_info)
 
 
 
     def score(self,graph):
         if not 'score' in graph.__dict__:
             transformed_graph = self.vectorizer_expanded.transform2(graph)
-            #graph.score = self.estimator.decision_function(transformed_graph)[0]
+            graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph.score = self.estimator.predict_proba(transformed_graph)[0][1]
             # print graph.score
         return graph.score
@@ -356,19 +388,17 @@ class GraphLearnSampler:
         returns the graph that was decided to be better, and an indicator if the better one is the new one
         '''
 
-        graph_new = self.postprocessing(graph_new)
-
         score_graph_old = self.score(graph_old)
         score_graph_new = self.score(graph_new)
 
         if score_graph_old==0:
-            return graph_new,True
+            return True
 
         score_ratio = score_graph_new/score_graph_old
 
         if score_ratio > random.random():
-            return graph_new,True
-        return graph_old,False
+            return True
+        return False
 
 
 
@@ -379,7 +409,7 @@ class GraphLearnSampler:
         # finding a legit candidate..
         selected_cip = self.select_cip_for_substitution(graph)
         if selected_cip == None:
-            logger.debug( "propose failed; because choose_cip failed" )
+            logger.debug( "propose failed; because select_cip_for_substitution failed" )
             return
 
 
@@ -410,15 +440,12 @@ class GraphLearnSampler:
         if core_cip_dict:
             if self.same_radius:
                 hashes=self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]
+            elif self.same_core_size:
+                hashes= self.local_substitutable_graph_grammar.core_size[cip.interface_hash][cip.core_nodes_count]
             else:
                 hashes = core_cip_dict.keys()
             random.shuffle(hashes)
             for core_hash in hashes:
-                # does the new core need to be the same size as the old one??
-                if self.same_radius:
-
-                    if core_cip_dict[core_hash].radius != cip.radius:
-                        continue
                 yield core_cip_dict[core_hash]
         logger.debug('select_cips_from_grammar didn\'t find any acceptable cip; entries_found %d' % len(core_cip_dict ))
 
@@ -455,19 +482,22 @@ class GraphLearnSampler:
                 #  if we have the same_radius rule implemented:
                 if self.same_radius:
                     # we jump if that hit has not the right radius
-                    if cip.radius not in self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash]:
+                    if not  self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]:
+                        continue
+                elif self.same_core_size:
+                    if cip.core_nodes_count not in self.local_substitutable_graph_grammar.core_size[cip.interface_hash]:
                         continue
 
                 return cip
 
-        logger.debug ('choose_cip failed because no suiting interface was found, extract failed %d times ' % (failcount))
+        logger.debug ('select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (failcount))
 
 
 
 
 # ok moving this here instead of leaving it where it belongs prevents pickling errar ..
 #dont quite get it ...        
-def improve_loop_multi(x):
+def _sample_multi(x):
     return x[1]._sample(x[0])
 
 
@@ -476,13 +506,14 @@ def improve_loop_multi(x):
 
 
 class core_interface_pair:
-    def __init__(self, ihash=0, chash=0, graph=0, radius=0, thickness=0,core_nodes_count=0):
+    def __init__(self, ihash=0, chash=0, graph=0, radius=0, thickness=0,core_nodes_count=0,distance_dict={}):
         self.interface_hash = ihash
         self.core_hash = chash
         self.graph = graph
         self.radius = radius
         self.thickness = thickness
         self.core_nodes_count=core_nodes_count
+        self.distance_dict=distance_dict
 
 
 
@@ -495,14 +526,15 @@ class LocalSubstitutableGraphGrammar:
     """
     # move all the things here that are needed to extract grammar
     def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3,
-                 interface_remove_threshold=2,hash_bitmask=2**20-1):
+                 interface_remove_threshold=2,nbit=20):
         self.grammar = {}
         self.interface_remove_threshold = interface_remove_threshold
         self.radius_list = radius_list
         self.thickness_list = thickness_list
         self.core_interface_pair_remove_threshold = core_interface_pair_remove_threshold
         self.vectorizer = graphlearn_utils.GraphLearnVectorizer()
-        self.hash_bitmask=hash_bitmask
+        self.hash_bitmask=2**nbit-1
+        self.nbit=nbit
 
 
 
@@ -522,6 +554,19 @@ class LocalSubstitutableGraphGrammar:
                 md[k2]=v2
             shelve[k] = md
         self.grammar = shelve
+
+    def revert_turn_into_managed_dict(self):
+        # only if we are managed we need to do this
+        if type(self.grammar) != dict:
+            shelve = {}
+            for k, v in self.grammar.iteritems():
+                md={}
+                for k2,v2 in v.iteritems():
+                    md[k2]=v2
+                shelve[k] = md
+            self.grammar = shelve
+
+
 
     def difference(self,other_grammar,substract_cip_count=False):
 
@@ -545,7 +590,7 @@ class LocalSubstitutableGraphGrammar:
 
 
 
-    def union(self, other_grammar, add_cip_count=False):
+    def union(self, other_grammar, cip_count_function=sum):
         '''
         we build the union of grammars..
         '''
@@ -554,8 +599,9 @@ class LocalSubstitutableGraphGrammar:
             if ihash in self.grammar:
                 # ok so we are in the intersection...
                 for chash in other_grammar[ihash]:
-                    if chash in self.grammar[ihash] and add_cip_count:
-                        self.grammar[ihash][chash].counter+=other_grammar[ihash][chash].counter
+                    if chash in self.grammar[ihash]:
+
+                        self.grammar[ihash][chash].counter= cip_count_function(self.grammar[ihash][chash].counter,other_grammar[ihash][chash].counter)
                     else:
                         self.grammar[ihash][chash]=other_grammar[ihash][chash]
             else:
@@ -569,7 +615,7 @@ class LocalSubstitutableGraphGrammar:
                 # so if self.grammar ihash is in both i can compare the corehashes
                 for chash in self.grammar[ihash].keys():
                     if chash in other_grammar[ihash]:
-                        self.grammar[ihash][chash].counter+= other_grammar[ihash][chash].counter
+                        self.grammar[ihash][chash].counter= min(self.grammar[ihash][chash].counter, other_grammar[ihash][chash].counter)
                     else:
                         self.grammar[ihash].pop(chash)
             else:
@@ -592,26 +638,40 @@ class LocalSubstitutableGraphGrammar:
             if len(self.grammar[interface]) < self.interface_remove_threshold:
                 self.grammar.pop(interface)
 
-    def mark_radius(self):
+    def add_same_radius_quicklookup(self):
         '''
             there is now self.radiuslookup{ interfacehash: {radius:[list of corehashes with that ihash and radius]} }
         '''
         self.radiuslookup={}
         for interface in self.grammar.keys():
-            radiuslookup={}
+            radius_lookup=[[]] * ( max(self.radius_list)+1 )
+
             for core in self.grammar[interface].keys():
                 radius=self.grammar[interface][core].radius
-                if radius in radiuslookup:
-                    radiuslookup[radius].append(core)
+                if radius in radius_lookup:
+                    radius_lookup[radius].append(core)
                 else:
-                    radiuslookup[radius]=[core]
-            self.radiuslookup[interface]=radiuslookup
+                    radius_lookup[radius]=[core]
+            self.radiuslookup[interface]=radius_lookup
+
+    def add_core_size_quicklookup(self):
+        '''
+            there is now self.radiuslookup{ interfacehash: {radius:[list of corehashes with that ihash and radius]} }
+        '''
+        self.core_size={}
+        for interface in self.grammar.keys():
+            core_size={}
+            for core in self.grammar[interface].keys():
+                nodes_count=self.grammar[interface][core].core_nodes_count
+                if nodes_count in core_size:
+                    core_size[nodes_count].append(core)
+                else:
+                    core_size[nodes_count]=[core]
+            self.core_size[interface]=core_size
 
 
 
-
-
-    def read(self, graphs, n_jobs=4):
+    def read(self, graphs, n_jobs=-1):
         '''
         we extract all chips from graphs of a graph iterator
         we use n_jobs processes to do so.
@@ -676,7 +736,10 @@ class LocalSubstitutableGraphGrammar:
                                   itertools.repeat(self.hash_bitmask))
 
         # creating pool of workers
-        pool = Pool(processes=n_jobs)
+        if n_jobs==-1:
+            pool = Pool()
+        else:
+            pool= Pool(processes=n_jobs)
         # distributing jobs to workers
         result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
         # the resulting chips can now be put intro the grammar
@@ -728,6 +791,7 @@ def defaultcheck(ng):
     for node_id in ng.nodes_iter():
         if 'edge' in ng.node[node_id]:
             if len(ng.neighbors(node_id)) != 2:
+                logger.debug('feasibility- edge check failed, (interface twist phenomenon probably)')
                 return False
     return True
 
@@ -851,7 +915,7 @@ def extract_core_and_interface(node, graph, radius_list=None, thickness_list=Non
                             cip_graph.node[no].pop('core')
 
             core_nodes_count=sum([len(nodedict[x]) for x in range(radius_)])
-            cip_list.append(core_interface_pair(interfacehash, corehash, cip_graph, radius_, thickness_,core_nodes_count))
+            cip_list.append(core_interface_pair(interfacehash, corehash, cip_graph, radius_, thickness_,core_nodes_count,distance_dict=nodedict))
     return cip_list
 
 

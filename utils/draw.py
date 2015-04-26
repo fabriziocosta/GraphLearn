@@ -16,6 +16,36 @@ from myeden import *
 '''
 
 
+
+def draw_grammar_stats(grammar):
+    c,i,cc,ii=calc_stats_from_grammar(grammar)
+    print "how often do we see interfacehashes"
+    a=[ (i[k],ii[k]) for k in i.keys()]
+    a.sort()
+    a0= [e[0] for e in a]
+    a1= [e[1] for e in a]
+    print 'sum interfaces: %d' % sum(a0)
+    print 'distinct interfaces: %d' % len(i)
+    plt.subplot(1,1,1)
+    plt.plot(a0, color='blue', lw=2)
+    plt.plot(a1, color='blue', lw=2)
+    plt.yscale('log')
+    plt.show()
+
+    print 'how often was this corehash seen?'
+    a=[ (c[k],cc[k]) for k in c.keys()]
+    a.sort()
+    a0= [e[0] for e in a]
+    a1= [e[1] for e in a]
+    print 'sum cores : %d' % sum(a0)
+    print 'distinct cores: %d' % len(c)
+    plt.subplot(1,1,1)
+    plt.plot(a0, color='blue', lw=2)
+    plt.plot(a1, color='blue', lw=2)
+    plt.yscale('log')
+    plt.show()
+
+
 def display(G, size=15, font_size=15, node_size=200, node_border=False, delabeledges=True, contract=False,
             vertex_label='label'):
     if contract:
@@ -53,45 +83,86 @@ def draw_grammar(grammar, interfacecount):
         core_cid_dict = grammar[interface]
 
         graphs = [core_cid_dict[chash].graph for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
+        dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
 
         print 'interface: ' + str(interface)
-        drawgraphs(graphs, len(core_cid_dict))
+        drawgraphs(graphs, len(core_cid_dict) , distdicts=dists)
 
 
-def drawgraphs(graphs, contract=True, deleteedges=True, size=4):
+def set_colors(g,dd):
+    # so dd is someting like distance: nodelist
+
+    # using color map.. isnt good
+    #for k in dd.keys():
+    #    for node_id in dd[k]:
+    #        if node_id in g.node:
+    #            g.node[node_id]['color']=-k
+
+
+
+    for n, d in g.nodes(data=True):
+            if 'interface' in d:
+                d['color'] = 'white'
+            if 'core' in d:
+                d['color']='yellow'
+    g.node[dd[0][0]]['color']= 'green'
+
+
+
+
+
+def draw_many_graphs(graphs):
+
+    while graphs:
+        drawgraphs(graphs[:5])
+        graphs=graphs[5:]
+
+
+def drawgraphs(graphs, contract=True, deleteedges=True, size=4,distdicts=[]):
+
     count = len(graphs)
     size_y = size
     size_x = size_y * count
     plt.figure(figsize=( size_x, size_y ))
     plt.xlim(xmax=3)
-
     for x in range(count):
-        plt.subplot(1, count, x + 1)
+        plt.subplot( 1, 5 , x + 1)
+        if distdicts:
+            set_colors(graphs[x],distdicts[x])
+
+        graphs[x].graph['info']=str(len(graphs[x]))
         row_drawgraph_wrapper(graphs[x], contract=contract, deleteedges=deleteedges)
 
     plt.show()
 
 
-def row_drawgraph_wrapper(G, size=15, font_size=15, node_size=200, node_border=False, contract=True, deleteedges=True):
+
+
+
+def row_drawgraph_wrapper(G, size=15, font_size=15, node_size=200, node_border=False, contract=True, deleteedges=True,setcolor=False):
     if contract:
         G = contract_edges(G)
 
     if deleteedges:
         for a, b, c in G.edges_iter(data=True):
             c['label'] = ''
-
-    for a, b, c in G.edges_iter(data=True):
-        if 'label' not in c:
-            c['label'] = ''
+    else:
+        for a, b, c in G.edges_iter(data=True):
+            if 'label' not in c:
+                c['label'] = ''
 
     G2 = G.copy()
-    for n, d in G2.nodes(data=True):
-        if 'core' in d:
-            d['color'] = 'blue'
-        elif 'interface' in d:
-            d['color'] = 'pink'
-        else:
-            d['color'] = 'yellow'
+
+    if setcolor:
+        for n, d in G2.nodes(data=True):
+            if 'core' in d:
+                d['color'] = 'yellow'
+            elif 'interface' in d:
+                d['color'] = 'green'
+            else:
+                d['color'] = 0
+
+
 
     row_draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size,
                    vertex_color='color')
@@ -120,10 +191,6 @@ def row_draw_graph(graph,
         so i can draw many graphs in a row
     '''
 
-    size_x = size
-    size_y = int(float(size) / size_x_to_y_ratio)
-
-    # plt.figure( figsize = ( size_x,size_y ) )
     plt.grid(False)
     plt.axis('off')
 
