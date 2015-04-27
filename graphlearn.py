@@ -32,35 +32,7 @@ logger.addHandler(file)
 
 
 
-
-"""
-    the adaptiveMHgraphsamper has 3 parts:
-        -init()  will be followed by
-            -load() 
-            -train_estimator_and_extract_grammar()
-        
-        -core substitution 
-            in this section you can find substitution related function
-            these are of no interest to you
-        
-        -sample_set(self,graph_iter,LOTS OF OPTIONS)
-            will improve a set of graphs 'times' times each and 
-            yield when done        
-    
-    then there is the grammar functions class to induce grammars
-        probably not so interesting
-    
-    and we have a feasibility checker to see if generated graphs
-    are valid == may be interesting to the user
-
-    there is also the extractor for cores and interfaces
-"""
-
-
 class GraphLearnSampler:
-    """
-         wirte something
-    """
 
     def __init__(self,radius_list=[3,5],thickness_list=[2,4],estimator=None,grammar=None,nbit=20):
 
@@ -89,11 +61,18 @@ class GraphLearnSampler:
     def load(self, filename):
         self.__dict__ = joblib.load(filename)
 
+
+
+
+
+
+
     def induce_grammar(self, G_iterator,core_interface_pair_remove_threshold=3,
                  interface_remove_threshold=2, n_jobs=4,):
         '''
-        you might want to overwrite this to customize how the grammar is induced
-        extract_cores_and_interfaces_multi
+            create grammar instance
+            feed the graph_iterator to it
+            and call its clean function
         '''
         if not self.radius_list:
             raise Exception ( "ERROR: tell me how to induce a grammar" )
@@ -108,6 +87,12 @@ class GraphLearnSampler:
 
 
     def fit_estimator(self, X_pos_train, n_jobs=-1, cv=10):
+        '''
+        create self.estimator...
+        by inversing the X_pos_train set to get a negative set
+        and then using edens fit_estimator
+        '''
+
         # get negative set:
         X_neg_train = X_pos_train.multiply(-1)
         # i hope loss is log.. not 100% sure..
@@ -120,6 +105,11 @@ class GraphLearnSampler:
                                                   n_iter_search=20)
 
     def calibrate_estimator(self,X_pos_train,nu=.5):
+        '''
+            move bias until nu percent of X_pos_train are in the negative class
+
+            then use scikits calibrate to calibrate self.estimator arround the input
+        '''
         #  move bias
         l = [(self.estimator.decision_function(g)[0],g)   for g in X_pos_train]
         l.sort(key= lambda x:x[0])
@@ -141,7 +131,9 @@ class GraphLearnSampler:
             core_interface_pair_remove_threshold=3,
             interface_remove_threshold=2,
             n_jobs=-1,nu=.5):
-
+        """
+          use input to learn grammar and build estimator
+        """
         G_iterator, G_iterator_ = itertools.tee(G_pos)
 
         self.induce_grammar(G_iterator,
@@ -157,7 +149,9 @@ class GraphLearnSampler:
 
     def merge(self, G, node, node2):
         '''
-        all nodes are strings, node is the king
+        merge node2 into the node.
+        input nodes are strings,
+        node is the king
         '''
         for n in G.neighbors(node2):
             G.add_edge(node, n)
@@ -201,7 +195,7 @@ class GraphLearnSampler:
         return nx.convert_node_labels_to_integers(G)
 
 
-    ############ imporoving stuff ##################
+    ###############################SAMPLE ########### ##################
 
 
 
@@ -226,13 +220,8 @@ class GraphLearnSampler:
                postprocessing = (lambda x:x)):
 
         """
-            create an iterator over lists.
-            each list is the changing history of a start graph.
-            the last graph is the final result. there is also a graph.scorehistory
-
-            for options here you can look at the improvement_rules and you may want to ovewrite these:
-                def filter_available_cips
-                def choose_cip
+            input: graph iterator
+            output: yield (sampled_graph,{dictionary of info about sampling process}
         """
         self.same_radius= same_radius
         self.similarity=similarity
@@ -276,6 +265,9 @@ class GraphLearnSampler:
     def _sample(self, graph):
         '''
             we sample a single graph.
+
+            input: a graph
+            output: (sampled_graph,{info dictionary})
         '''
 
         # prepare variables and graph
@@ -313,6 +305,27 @@ class GraphLearnSampler:
         return (res,{'graphs':sample_path,'score_history':scores,"log_score_history":scores_log,"accept_count":accept_counter,'notes':self._sample_notes})
 
 
+    def _sample_init(self,graph):
+        '''
+        we prepare the sampling process
+
+        - first we expand its edges to nodes, so eden will be able wo work its magic on it
+        - then we calculate a score for the graph, to see how much we like it
+        - we setup the similarity checker stop condition
+        - possibly we are in a multiprocessing process, and this class instance hasnt been used before,
+          in this case we need to rebuild the postprocessing function .
+        '''
+        graph = graphlearn_utils.expand_edges(graph)
+        self.score(graph)
+        self.similarity_checker(graph, set_reference=True)
+        self._sample_notes=''
+
+        if type(self.postprocessing)==str:
+            self.postprocessing = dill.loads(self.postprocessing)
+        return graph
+
+
+
     def similarity_checker(self,graph,set_reference=False):
         '''
         always check if similarity is relevant.. if so then:
@@ -335,24 +348,17 @@ class GraphLearnSampler:
         return False
 
 
-    def _sample_init(self,graph):
-        '''
-        we prepare a single graph to be sampled
-
-        - first we expand its edges to nodes, so eden will be able wo work its magic on it
-        - then we calculate a score for the graph, to see how much we like it
-        - in the end we set up one of the stop conditions for the sample loop
-        '''
-        graph = graphlearn_utils.expand_edges(graph)
-        self.score(graph)
-        self.similarity_checker(graph, set_reference=True)
-        self._sample_notes=''
-
-        if type(self.postprocessing)==str:
-            self.postprocessing = dill.loads(self.postprocessing)
-        return graph
 
     def _sampling_stop_condition(self,graph,candidate_graph,scores,scores_log,step):
+        '''
+            we look at the status of sampling
+            and decide if stop conditions are met.
+
+            in case they are:
+                we also make sure the score_histories match with the number of sample steps
+        '''
+
+
         stop=False
         # do we need to stop early??
         if self.similarity_checker(graph):
@@ -376,6 +382,14 @@ class GraphLearnSampler:
 
 
     def score(self,graph):
+        """
+
+        :param graph: a graph
+        :return: score of graph
+
+        we also set graph.score_nonlog and graph.score
+
+        """
         if not 'score' in graph.__dict__:
             transformed_graph = self.vectorizer_expanded.transform2(graph)
             graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
@@ -385,7 +399,7 @@ class GraphLearnSampler:
 
     def accept(self,graph_old,graph_new):
         '''
-        returns the graph that was decided to be better, and an indicator if the better one is the new one
+            return true if graph_new scores higher
         '''
 
         score_graph_old = self.score(graph_old)
@@ -405,6 +419,8 @@ class GraphLearnSampler:
     def propose(self, graph):
         """
         starting from 'graph' we construct a novel candidate instance
+        return None and a debug log if we fail to do so.
+
         """
         # finding a legit candidate..
         selected_cip = self.select_cip_for_substitution(graph)
@@ -422,20 +438,36 @@ class GraphLearnSampler:
 
             graph_new=self.core_substitution(graph, selected_cip.graph, candidate_cip.graph)
             self.graph_clean(graph_new)
+
+
             if self.feasibility_checker.check(graph_new):
                 return graph_new
-            # else:
+            # ill leave this here.. use it in case things go wrong oo
             #    draw.drawgraphs([graph, selected_cip.graph, candidate_cip.graph], contract=False)
 
         logger.debug( "propose failed;received %d cips, all of which failed either at substitution or feasibility  " % cipcount)
 
     def graph_clean(self,graph):
+
+        '''
+        in the precess of creating a new graph,
+        we marked the nodes that were used as interface and core.
+        here we remove the marks.
+        :param graph:
+        :return:
+        '''
         for n, d in graph.nodes(data=True):
             d.pop('core', None)
             d.pop('interface', None)
 
 
     def select_cips_from_grammar(self,cip):
+        """
+        :param cip: the cip we selected from the graph
+        :yields: cips found in the grammar that can replace the input cip
+
+        log to debug on fail
+        """
         core_cip_dict = self.local_substitutable_graph_grammar.grammar[cip.interface_hash]
         if core_cip_dict:
             if self.same_radius:
@@ -506,6 +538,10 @@ def _sample_multi(x):
 
 
 class core_interface_pair:
+    """
+    this is refered to throughout the code as cip
+    it contains the cip-graph and several pieces of information about it.
+    """
     def __init__(self, ihash=0, chash=0, graph=0, radius=0, thickness=0,core_nodes_count=0,distance_dict={}):
         self.interface_hash = ihash
         self.core_hash = chash
@@ -521,8 +557,10 @@ class core_interface_pair:
 
 class LocalSubstitutableGraphGrammar:
     """
-    i had this class inherit from default dict, but that breaks joblib oOo
-    and i cant load anymore.
+    the grammar.
+        can learn from graphs
+        will save all the cips in neat dictionaries
+        contains also convenience functions to make it nicely usable
     """
     # move all the things here that are needed to extract grammar
     def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3,
@@ -809,6 +847,10 @@ def defaultcheck(ng):
 
 
 def inversedict(d):
+    """
+    so input is usualy a distance dictionaty so
+    {nodenumber: distance, nodenumber:distance} we turn this into {distance: [nodenumber, nodenumber]}
+    """
     d2 = {}
     for k, v in d.iteritems():
         l=[]
@@ -818,6 +860,10 @@ def inversedict(d):
 
 
 def calc_interface_hash(interface_graph, hash_bitmask):
+
+    """
+        so we calculate a hash of a graph
+    """
     l = []
     node_name_cache = {}
 
@@ -852,6 +898,9 @@ def calc_core_hash(core_graph,hash_bitmask):
 
 
 def calc_node_name(interfacegraph, node,hash_bitmask):
+    '''
+     part of generating the hash for a graph is calculating the hash of a node in the graph
+    '''
     d = nx.single_source_shortest_path_length(interfacegraph, node, 20)
     # d is now node:dist
     # l is a list of  hash(label,distance)
@@ -864,6 +913,20 @@ def calc_node_name(interfacegraph, node,hash_bitmask):
 
 def extract_core_and_interface(node, graph, radius_list=None, thickness_list=None, vectorizer=None,
                                hash_bitmask=2*20-1):
+
+    """
+
+:param node: root node
+:param graph: graph
+:param radius_list:
+:param thickness_list:
+:param vectorizer: a vectorizer
+:param hash_bitmask:
+
+
+:return: radius_list*thicknes_list long list of cips
+"""
+
 
     if 'hlabel' not in graph.node[0]:
         vectorizer._label_preprocessing(graph)
@@ -914,7 +977,8 @@ def extract_core_and_interface(node, graph, radius_list=None, thickness_list=Non
                         if 'core' in cip_graph.node[no]:
                             cip_graph.node[no].pop('core')
 
-            core_nodes_count=sum([len(nodedict[x]) for x in range(radius_)])
+            core_nodes_count=sum([    len(nodedict[x]) for x in range(radius_+1 )  ])
+
             cip_list.append(core_interface_pair(interfacehash, corehash, cip_graph, radius_, thickness_,core_nodes_count,distance_dict=nodedict))
     return cip_list
 

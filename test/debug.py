@@ -52,7 +52,7 @@ def test_fit():
     #graphlearn_utils.draw_grammar(sampler.local_substitutable_graph_grammar,5)
 
 
-#test_fit()
+test_fit()
 
-test_sampler()
+#test_sampler()
 
