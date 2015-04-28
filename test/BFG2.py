@@ -4,7 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 from eden.converter.graph.gspan import gspan_to_eden
-from graphlearn import adaptiveMHgraphsampler
+from graphlearn import GraphLearnSampler
 import itertools
 from eden.graph import Vectorizer
 import matplotlib.pyplot as plt
@@ -12,12 +12,14 @@ import matplotlib.pyplot as plt
 import utils.myeden as me
 
 #2401 positives and 1936 negatives
-sampler =adaptiveMHgraphsampler()
+radius=[2,4]
+thickness=[2,4]
+sampler =GraphLearnSampler(radius_list=radius,thickness_list=thickness)
 
-graphs_pos= gspan_to_eden('../data/bursi.pos.gspan')
-graphs_neg= gspan_to_eden('../data/bursi.neg.gspan')
-testpos= gspan_to_eden('../data/bursi.pos.gspan')
-testneg= gspan_to_eden('../data/bursi.neg.gspan')
+graphs_pos= gspan_to_eden('../grammar/bursi.pos.gspan')
+graphs_neg= gspan_to_eden('../grammar/bursi.neg.gspan')
+testpos= gspan_to_eden('../grammar/bursi.pos.gspan')
+testneg= gspan_to_eden('../grammar/bursi.neg.gspan')
 
 vect=Vectorizer(complexity = 3)
 
@@ -44,8 +46,8 @@ def train_estimator_and_evaluate_testsets(pos_real,neg_real,pos_augmented,neg_au
 
     pa=vectorizer.transform(pos_augmented)
     na=vectorizer.transform(neg_augmented)
-    real_esti= me.my_fit_estimator( pr,nr )
-    aug_esti= me.my_fit_estimator( pa,na )
+    real_esti= me.graphlearn_fit_estimator( pr,nr )
+    aug_esti= me.graphlearn_fit_estimator( pa,na )
     
     ori=0
     
@@ -75,8 +77,6 @@ lenpo=int(NUMPOS*.7)
 lenne=int(NUMNEG*.7)
 originals=[]
 improved=[]
-radius=[2,4]
-thickness=[2,4]
 percentages=[.2,.4,.6,.8,1]
 percentages=[.2]
 for perc in percentages:
@@ -98,13 +98,13 @@ for perc in percentages:
     print 'negative sampler,',
 
     imprules= {'n_jobs':4 , 'batch_size':(count_neg/4)+1,'improvement_steps':50}
-    sampler.train_estimator_and_extract_grammar(neg__,radius,thickness) 
-    improved_neg = unpack (sampler.sample_set(neg___,improvement_rules=imprules)  )
+    sampler.fit(neg__)
+    improved_neg = unpack (sampler.sample(neg___,improvement_rules=imprules)  )
 
     print 'positive sampler,',
     imprules= {'n_jobs':4 , 'batch_size':(count_pos/4)+1,'improvement_steps':50}
-    sampler.train_estimator_and_extract_grammar(pos__,radius,thickness) 
-    improved_pos = unpack(  sampler.sample_set(pos___,improvement_rules=imprules) )
+    sampler.fit(pos__)
+    improved_pos = unpack(  sampler.sample(pos___,improvement_rules=imprules) )
 
     #testneg,testneg_=itertools.tee(testneg)
     #testpos,testpos_=itertools.tee(testpos)

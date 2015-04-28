@@ -15,20 +15,59 @@ from myeden import *
             drawing a list of graphs
 '''
 
+def graph_clean(graph):
 
-def display(G, size=15, font_size=15, node_size=200, node_border=False, delabeledges=True, contract=False,
+    '''
+    in the precess of creating a new graph,
+    we marked the nodes that were used as interface and core.
+    here we remove the marks.
+    :param graph:
+    :return:
+    '''
+    for n, d in graph.nodes(data=True):
+        d.pop('root', None)
+        d.pop('core', None)
+        d.pop('interface', None)
+
+def draw_grammar_stats(grammar):
+    c,i,cc,ii=calc_stats_from_grammar(grammar)
+    print "how often do we see interfacehashes"
+    a=[ (i[k],ii[k]) for k in i.keys()]
+    a.sort()
+    a0= [e[0] for e in a]
+    a1= [e[1] for e in a]
+    print 'sum interfaces: %d' % sum(a0)
+    print 'distinct interfaces: %d' % len(i)
+    plt.subplot(1,1,1)
+    plt.plot(a0, color='blue', lw=2)
+    plt.plot(a1, color='blue', lw=2)
+    plt.yscale('log')
+    plt.show()
+
+    print 'how often was this corehash seen?'
+    a=[ (c[k],cc[k]) for k in c.keys()]
+    a.sort()
+    a0= [e[0] for e in a]
+    a1= [e[1] for e in a]
+    print 'sum cores : %d' % sum(a0)
+    print 'distinct cores: %d' % len(c)
+    plt.subplot(1,1,1)
+    plt.plot(a0, color='blue', lw=2)
+    plt.plot(a1, color='blue', lw=2)
+    plt.yscale('log')
+    plt.show()
+
+
+def display(G, size=6, font_size=15, node_size=200, node_border=False, delabeledges=True, contract=False,
             vertex_label='label'):
     if contract:
         G = contract_edges(G)
 
     G2 = G.copy()
-    for n, d in G2.nodes(data=True):
-        if 'core' in d:
-            d['color'] = 'red'
-        elif 'interface' in d:
-            d['color'] = 'yellow'
-        else:
-            d['color'] = 'green'
+
+
+    set_colors(G2)
+
     if delabeledges:
         for a, b, c in G2.edges_iter(data=True):
             c['label'] = ''
@@ -41,8 +80,26 @@ def display(G, size=15, font_size=15, node_size=200, node_border=False, delabele
                vertex_label=vertex_label)
 
 
-def draw_grammar(sampler, interfacecount):
-    grammar = sampler.substitute_grammar
+
+def set_colors(g):
+    for n, d in g.nodes(data=True):
+
+        if 'root' in d:
+            d['color']='pink'
+        elif 'core' in d:
+            d['color'] = 'yellow'
+
+        elif 'interface' in d:
+            d['color'] = 'green'
+        else:
+            d['color'] = 'white'
+
+def remove_colors(g):
+    for n, d in g.nodes(data=True):
+        d['color']='white'
+
+def draw_grammar(grammar, interfacecount):
+
     # how many rows to draw...
     if len(grammar) < interfacecount:
         interfacecount = len(grammar)
@@ -53,23 +110,71 @@ def draw_grammar(sampler, interfacecount):
         core_cid_dict = grammar[interface]
 
         graphs = [core_cid_dict[chash].graph for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
+        dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
 
         print 'interface: ' + str(interface)
-        drawgraphs(graphs, len(core_cid_dict))
+        drawgraphs(graphs, len(core_cid_dict) , distdicts=dists)
+
+
+def cip_to_graph(cips=[],graphs=[]):
+
+    regraphs=[]
+    if not graphs:
+        for cip in cips:
+            graph=cip.graph
+            graph.node[cip.distance_dict[0][0]] ['root']=True
+            graph.node[cip.distance_dict[0][0]].pop('core')
+            regraphs.append(graph)
+    else:
+
+        for c,g in zip(cips,graphs):
+
+            remove_colors(g)
+            graph_clean(g)
+            g2=g.copy()
+            d={0:'root'}
+            index=1
+            for r in range(c.radius-1):
+                d[index]='core'
+                index+=1
+            for t in range(c.thickness):
+                d[index]='interface'
+                index+=1
+
+            for dist,what in d.items():
+                for node_id in c.distance_dict[dist]:
+                    g2.node[node_id][what]=True
+            regraphs.append(g2)
+    return regraphs
+
+
+
+
+
+
+def draw_many_graphs(graphs):
+    while graphs:
+        drawgraphs(graphs[:5])
+        graphs=graphs[5:]
 
 
 def drawgraphs(graphs, contract=True, deleteedges=True, size=4):
+
     count = len(graphs)
     size_y = size
-    size_x = size_y * count
+    size_x = size * 5
     plt.figure(figsize=( size_x, size_y ))
     plt.xlim(xmax=3)
 
-    for x in range(count):
-        plt.subplot(1, count, x + 1)
-        row_drawgraph_wrapper(graphs[x], contract=contract, deleteedges=deleteedges)
 
+    for x in range(count):
+        plt.subplot( 1, 5 , x + 1)
+        graphs[x].graph['info']="size:"+str(len(graphs[x]))
+        row_drawgraph_wrapper(graphs[x], contract=contract, deleteedges=deleteedges)
     plt.show()
+
+
+
 
 
 def row_drawgraph_wrapper(G, size=15, font_size=15, node_size=200, node_border=False, contract=True, deleteedges=True):
@@ -79,20 +184,13 @@ def row_drawgraph_wrapper(G, size=15, font_size=15, node_size=200, node_border=F
     if deleteedges:
         for a, b, c in G.edges_iter(data=True):
             c['label'] = ''
-
-    for a, b, c in G.edges_iter(data=True):
-        if 'label' not in c:
-            c['label'] = ''
+    else:
+        for a, b, c in G.edges_iter(data=True):
+            if 'label' not in c:
+                c['label'] = ''
 
     G2 = G.copy()
-    for n, d in G2.nodes(data=True):
-        if 'core' in d:
-            d['color'] = 'blue'
-        elif 'interface' in d:
-            d['color'] = 'pink'
-        else:
-            d['color'] = 'yellow'
-
+    set_colors(G2)
     row_draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size,
                    vertex_color='color')
 
@@ -120,10 +218,6 @@ def row_draw_graph(graph,
         so i can draw many graphs in a row
     '''
 
-    size_x = size
-    size_y = int(float(size) / size_x_to_y_ratio)
-
-    # plt.figure( figsize = ( size_x,size_y ) )
     plt.grid(False)
     plt.axis('off')
 
@@ -177,7 +271,8 @@ def row_draw_graph(graph,
                            alpha=vertex_alpha,
                            node_size=node_size,
                            linewidths=linewidths,
-                           cmap=plt.get_cmap(colormap))
+                           cmap=plt.get_cmap(colormap)
+                           )
     nx.draw_networkx_labels(graph, pos, vertex_labels, font_size=font_size, font_color='black')
     nx.draw_networkx_edges(graph, pos,
                            edgelist=edges_normal,
