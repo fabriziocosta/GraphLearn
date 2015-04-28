@@ -7,6 +7,10 @@ from sklearn.grid_search import RandomizedSearchCV
 from scipy.stats import randint
 from scipy.stats import uniform
 import random
+#from eden.model import ActiveLearningBinaryClassificationModel
+from numpy.random import randint as p_randint
+from numpy.random import uniform as p_uniform
+import sklearn.metrics as metrics
 '''
     wrapped or altered eden functions:
         -my_vectorizer, a eden vectorizer that doesnt try to expand graphs
@@ -16,7 +20,7 @@ import random
 '''
 
 
-class my_vectorizer(Vectorizer):
+class GraphLearnVectorizer(Vectorizer):
     '''
     doing some overwriting so we dont expand and contract edges all the time..
     this hack is a little bit dependant on the state of eden.. so be carefull here 
@@ -29,41 +33,6 @@ class my_vectorizer(Vectorizer):
         return self._convert_dict_to_sparse_matrix(self._transform(0, graph))
 
 
-
-def my_fit_estimator(positive_data_matrix=None, negative_data_matrix=None, target=None, cv=10, n_jobs=-1):
-    '''
-     we dont need the validation at all... so i just copied from eden/utils/__init__.py
-    '''
-    assert (
-        positive_data_matrix is not None), 'ERROR: expecting non null positive_data_matrix'
-    if target is None and negative_data_matrix is not None:
-        yp = [1] * positive_data_matrix.shape[0]
-        yn = [-1] * negative_data_matrix.shape[0]
-        y = np.array(yp + yn)
-        X = vstack([positive_data_matrix, negative_data_matrix], format="csr")
-    if target is not None:
-        X = positive_data_matrix
-        y = target
-
-    predictor = SGDClassifier(class_weight='auto', shuffle=True, n_jobs=n_jobs)
-    # hyperparameter optimization
-    param_dist = {"n_iter": randint(5, 100),
-                  "power_t": uniform(0.1),
-                  "alpha": uniform(1e-08, 1e-03),
-                  "eta0": uniform(1e-03, 10),
-                  "loss":[ 'log'],
-                  "penalty": ["l1", "l2", "elasticnet"],
-                  "learning_rate": ["invscaling", "constant", "optimal"]}
-    scoring = 'roc_auc'
-    n_iter_search = 20
-    random_search = RandomizedSearchCV(
-        predictor, param_distributions=param_dist, n_iter=n_iter_search, cv=cv, scoring=scoring, n_jobs=n_jobs)
-    random_search.fit(X, y)
-    optpredictor = SGDClassifier(
-        class_weight='auto', shuffle=True, n_jobs=n_jobs, **random_search.best_params_)
-    # fit the predictor on all available data
-    optpredictor.fit(X, y)
-    return optpredictor
 
 
 def expand_edges(graph):
@@ -116,6 +85,26 @@ def select_random(graph_iter, len,samplesize):
             if not x:
                 break
             next=x.pop()
+
+from collections import defaultdict
+
+def calc_stats_from_grammar(grammar):
+    count_corehashes = defaultdict(int)
+    count_interfacehashes = defaultdict(int)
+    corecounter = defaultdict(int)
+    intercounter = defaultdict(int)
+    for ih in grammar.keys():
+        for ch in grammar[ih].keys():
+            # go over all the combos
+            count_corehashes[ch]+=1
+            count_interfacehashes[ih]+=1
+            count= grammar[ih][ch].count
+            corecounter[ch]+=count
+            intercounter[ih]+=count
+    return count_corehashes,count_interfacehashes,corecounter,intercounter
+
+
+
 
 
 
