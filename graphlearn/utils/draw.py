@@ -113,7 +113,7 @@ def draw_grammar(grammar, interfacecount):
         dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
 
         print 'interface: ' + str(interface)
-        drawgraphs(graphs, len(core_cid_dict) , distdicts=dists)
+        drawgraphs(graphs, len(core_cid_dict) )
 
 
 def cip_to_graph(cips=[],graphs=[]):
