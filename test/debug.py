@@ -1,13 +1,11 @@
 
 import sys
 sys.path.append("..")
-
-
-from graphlearn import GraphLearnSampler
 import itertools
-
 from eden.converter.graph.gspan import gspan_to_eden
 
+import graphlearn as gl
+import itertools
 
 
 def test_sampler():
@@ -38,8 +36,6 @@ def test_sampler():
 
 
 
-import graphlearn as gl
-import itertools
 
 def test_fit():
     gr = gspan_to_eden( '../data/bursi.pos.gspan' )

@@ -1,21 +1,7 @@
-import joblib
 import utils.myeden as graphlearn_utils
-from eden.util import fit_estimator as eden_fit_estimator
-import networkx as nx
 import itertools
-import random
 from multiprocessing import Pool, Manager
-from eden.graph import Vectorizer
-from networkx.algorithms import isomorphism as iso
-from eden import fast_hash
-import utils.draw as draw
-import logging
-import numpy
-import dill
-import eden
-from sklearn.calibration import CalibratedClassifierCV
-from scipy.sparse import vstack
-from sklearn.linear_model import SGDClassifier
+import graphtools
 
 
 ################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
@@ -270,7 +256,7 @@ def extract_cores_and_interfaces(parameters):
     for node in graph.nodes_iter():
         if 'edge' in graph.node[node]:
             continue
-        core_interface_list = extract_core_and_interface(node, graph, radius_list, thickness_list,
+        core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
                                                          vectorizer=vectorizer, hash_bitmask=hash_bitmask)
         if core_interface_list:
             cips.append(core_interface_list)
