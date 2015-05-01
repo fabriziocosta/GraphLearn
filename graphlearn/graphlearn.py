@@ -4,7 +4,7 @@ from eden.util import fit_estimator as eden_fit_estimator
 import networkx as nx
 import itertools
 import random
-from multiprocessing import Pool, Manager
+from multiprocessing import Pool
 from eden.graph import Vectorizer
 import utils.draw as draw
 import logging
@@ -13,6 +13,7 @@ import dill
 from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier
+import postprocessing
 
 
 from graphtools import extract_core_and_interface, core_substitution
@@ -34,24 +35,45 @@ logger.addHandler(file)
 
 class GraphLearnSampler:
 
-    def __init__(self, radius_list=[3, 5], thickness_list=[2, 4], estimator=None, grammar=None, nbit=20):
+    def __init__(self, radius_list=[3, 5], thickness_list=[2, 4], estimator=None, grammar=None, nbit=20,
+                 vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3),
+
+                 ):
+
+
 
         self.feasibility_checker = FeasibilityChecker()
-        self.vectorizer_expanded = graphlearn_utils.GraphLearnVectorizer(complexity=3)
-        self.vectorizer_normal = Vectorizer(complexity=3)
+        self,postprocessor = postprocessing.postprocessor()
+
+        # see utils.myeden.GraphLeanVectorizer,
+        # edens vectorizer assumes that graphs are not expanded.
+        # this is fixed with just a few lines of code.
+        self.vectorizer = vectorizer
+
+
+        # lists of int
         self.radius_list = radius_list
         self.thickness_list = thickness_list
+        # scikit  classifier
         self.estimator = estimator
+        # grammar object
         self.local_substitutable_graph_grammar = grammar
+        # cips hashes will be masked with this
         self.hash_bitmask = pow(2, nbit) - 1
         self.nbit = nbit
-
+        # boolean values to set restrictions on replacement
         self.same_radius = None
         self.same_core_size = None
+        # a similaritythreshold at which to stop sampling.  a value <= 0 will render this useless
         self.similarity = None
+        # we will save current graph at every intervalth step of sampling and attach to graphinfos[graphs]
         self.sampling_interval = None
+        # how many sampling steps are done
         self.n_steps = None
+        # number of jobs created by multiprocessing  -1 to let python guess how many cores you have
         self.n_jobs = None
+        # currently stores information on why the sampling was stopped before n_steps ; will be attached to the graphinfo
+        # returned by _sample()
         self._sample_notes = None
 
     def save(self, file_name):
@@ -61,17 +83,10 @@ class GraphLearnSampler:
     def load(self, file_name):
         self.__dict__ = joblib.load(file_name)
 
-    def induce_grammar(self, G_iterator, core_interface_pair_remove_threshold=3,
-                       interface_remove_threshold=2, n_jobs=4,):
-        '''create grammar instance, feed the graph_iterator to it and call its clean function'''
-        if not self.radius_list:
-            raise Exception("ERROR: tell me how to induce a grammar")
-        self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list, self.thickness_list,
-                                                                                core_interface_pair_remove_threshold,
-                                                                                interface_remove_threshold,
-                                                                                nbit=self.nbit)
-        self.local_substitutable_graph_grammar.read(G_iterator, n_jobs)
-        self.local_substitutable_graph_grammar.clean()
+
+
+
+
 
     def fit_estimator(self, X, n_jobs=-1, cv=10):
         '''
@@ -118,12 +133,15 @@ class GraphLearnSampler:
         """
         G_iterator, G_iterator_ = itertools.tee(G_pos)
 
-        self.induce_grammar(G_iterator,
-                            core_interface_pair_remove_threshold,
-                            interface_remove_threshold,
-                            n_jobs)
 
-        X = self.vectorizer_normal.transform(G_iterator_)
+        self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list, self.thickness_list,
+                                                                                core_interface_pair_remove_threshold,
+                                                                                interface_remove_threshold,
+                                                                                nbit=self.nbit)
+        self.local_substitutable_graph_grammar.fit(G_iterator,n_jobs)
+
+
+        X = self.vectorizer.transform(G_iterator_)
         self.fit_estimator(X, n_jobs)
         self.calibrate_estimator(X, nu)
 
@@ -145,8 +163,8 @@ class GraphLearnSampler:
     def sample(self, graph_iter, same_radius=False, same_core_size=True, similarity=-1, sampling_interval=9999,
                batch_size=10,
                n_jobs=0,
-               n_steps=50,
-               postprocessing=(lambda x: x)):
+               n_steps=50
+               ):
         """
             input: graph iterator
             output: yield (sampled_graph,{dictionary of info about sampling process}
@@ -158,8 +176,6 @@ class GraphLearnSampler:
         self.n_jobs = n_jobs
         self.same_core_size = same_core_size
 
-        # multiprocessing work-around oOoOoo sadly necessary
-        self.postprocessing = dill.dumps(postprocessing)
 
         # adapt grammar to task:
         self.grammar_preprocessing()
@@ -172,15 +188,19 @@ class GraphLearnSampler:
             # make it so that we dont need to copy the whole grammar a few times  for multiprocessing
             problems = itertools.izip(
                 graph_iter, itertools.repeat(self))
+
             if n_jobs > 1:
                 pool = Pool(processes=n_jobs)
             else:
                 pool = Pool()
-            batch_size = batch_size
+
+
             #it = pool.imap_unordered(improve_loop_multi, problems, batch_size)
             #_sample_multi=lambda x: x[1]._sample(x[0])
 
             it = pool.imap_unordered(_sample_multi, problems, batch_size)
+
+
             for pair in it:
                 yield pair
             pool.close()
@@ -208,7 +228,7 @@ class GraphLearnSampler:
                 break
 
             # is the new graph better than the old?
-            candidate_graph = self.postprocessing(candidate_graph)
+            candidate_graph = self.postprocessor.postprocess(candidate_graph)
             if self.accept(graph, candidate_graph):
                 accept_counter += 1
                 graph = candidate_graph
@@ -222,7 +242,7 @@ class GraphLearnSampler:
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         sample_path.append(graph)
-        sampled_graph = self.vectorizer_expanded._revert_edge_to_vertex_transform(graph)
+        sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
         sampled_graph_info =  {'graphs': sample_path, 'score_history': scores, "log_score_history": scores_log, "accept_count": accept_counter, 'notes': self._sample_notes}
         return (sampled_graph, sampled_graph_info)
 
@@ -236,7 +256,7 @@ class GraphLearnSampler:
         - possibly we are in a multiprocessing process, and this class instance hasnt been used before,
           in this case we need to rebuild the postprocessing function .
         '''
-        graph = graphlearn_utils.expand_edges(graph)
+        graph = self.vectorizer._edge_to_vertex_transform(graph)
         self.score(graph)
         self.similarity_checker(graph, set_reference=True)
         self._sample_notes = ''
@@ -258,11 +278,11 @@ class GraphLearnSampler:
         '''
         if self.similarity > 0:
             if set_reference:
-                self.vectorizer_expanded._reference_vec = \
-                    self.vectorizer_expanded._convert_dict_to_sparse_matrix(
-                        self.vectorizer_expanded._transform(0, nx.Graph(graph)))
+                self.vectorizer._reference_vec = \
+                    self.vectorizer._convert_dict_to_sparse_matrix(
+                        self.vectorizer._transform(0, nx.Graph(graph)))
             else:
-                similarity = self.vectorizer_expanded._similarity(graph, [1])
+                similarity = self.vectorizer._similarity(graph, [1])
                 return similarity < self.similarity
         return False
 
@@ -304,7 +324,7 @@ class GraphLearnSampler:
 
         """
         if not 'score' in graph.__dict__:
-            transformed_graph = self.vectorizer_expanded.transform2(graph)
+            transformed_graph = self.vectorizer.transform2(graph)
             graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph.score = self.estimator.predict_proba(transformed_graph)[0][1]
             # print graph.score
@@ -407,7 +427,7 @@ class GraphLearnSampler:
             # exteract_core_and_interface will return a list of results, we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible to extract at the desired radius/thicknes
             #
-            cip = extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer_normal,
+            cip = extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer,
                                              hash_bitmask=self.hash_bitmask)
 
             # if radius and thickness are not possible to extract cip is [] which is false
