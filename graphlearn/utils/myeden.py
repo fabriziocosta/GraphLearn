@@ -17,7 +17,8 @@ class GraphLearnVectorizer(Vectorizer):
     '''
 
     def transform2(self, graph):
-        return self._convert_dict_to_sparse_matrix(self._transform(0, graph))
+        G=graph.copy()
+        return self._convert_dict_to_sparse_matrix(self._transform(0, G))
 
 
     # ok so our vectorizer should be expected to work with already expanded graphs...

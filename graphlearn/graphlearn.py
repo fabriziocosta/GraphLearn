@@ -14,7 +14,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier
 import postprocessing
-
+import eden
 
 from graphtools import extract_core_and_interface, core_substitution
 from feasibility import FeasibilityChecker
@@ -36,14 +36,12 @@ logger.addHandler(file)
 class GraphLearnSampler:
 
     def __init__(self, radius_list=[3, 5], thickness_list=[2, 4], estimator=None, grammar=None, nbit=20,
-                 vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3),
-
-                 ):
+                    vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3)):
 
 
 
         self.feasibility_checker = FeasibilityChecker()
-        self,postprocessor = postprocessing.postprocessor()
+        self.postprocessor = postprocessing.postprocessor()
 
         # see utils.myeden.GraphLeanVectorizer,
         # edens vectorizer assumes that graphs are not expanded.
@@ -78,11 +76,13 @@ class GraphLearnSampler:
 
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
-        joblib.dump(self.__dict__, file_name, compress=1)
+
+        dill.dump(self.__dict__, open(file_name, "w"))
+        #joblib.dump(self.__dict__, file_name, compress=1)
 
     def load(self, file_name):
-        self.__dict__ = joblib.load(file_name)
-
+        #self.__dict__ = joblib.load(file_name)
+        self.__dict__ = dill.load(open(file_name))
 
 
 
@@ -186,8 +186,7 @@ class GraphLearnSampler:
                 yield self._sample(graph)
         else:
             # make it so that we dont need to copy the whole grammar a few times  for multiprocessing
-            problems = itertools.izip(
-                graph_iter, itertools.repeat(self))
+            #problems = itertools.izip(graph_iter, itertools.repeat(self))
 
             if n_jobs > 1:
                 pool = Pool(processes=n_jobs)
@@ -197,13 +196,31 @@ class GraphLearnSampler:
 
             #it = pool.imap_unordered(improve_loop_multi, problems, batch_size)
             #_sample_multi=lambda x: x[1]._sample(x[0])
+            #it = pool.imap_unordered(_sample_multi, problems, batch_size)
 
-            it = pool.imap_unordered(_sample_multi, problems, batch_size)
+
+            _sample_multi= lambda s,graphs: [s._sample(g) for g in graphs]
+
+            # from here: https://docs.python.org/2/library/itertools.html#recipes
 
 
-            for pair in it:
-                yield pair
+            results = [eden.apply_async(pool, _sample_multi, args=(self, batch)) for batch in self.grouper(graph_iter,batch_size)]
+            for batchresult in results:
+                for pair in batchresult.get():
+                    if pair!=None:
+                        yield pair
+
+            #output = [p.get() for p in results]
+            #for pair in output:
+            #    yield pair
             pool.close()
+            pool.join()
+
+    def grouper(self, iterable, n, fillvalue=None):
+        args = [iter(iterable)] * n
+        return itertools.izip_longest(fillvalue=fillvalue, *args)
+
+
 
     def _sample(self, graph):
         '''
@@ -212,7 +229,8 @@ class GraphLearnSampler:
             input: a graph
             output: (sampled_graph,{info dictionary})
         '''
-
+        if graph==None:
+            return None
         # prepare variables and graph
         graph = self._sample_init(graph)
         scores_log = [graph.score]
@@ -261,8 +279,6 @@ class GraphLearnSampler:
         self.similarity_checker(graph, set_reference=True)
         self._sample_notes = ''
 
-        if type(self.postprocessing) == str:
-            self.postprocessing = dill.loads(self.postprocessing)
         return graph
 
     def similarity_checker(self, graph, set_reference=False):
@@ -316,12 +332,9 @@ class GraphLearnSampler:
 
     def score(self, graph):
         """
-
         :param graph: a graph
         :return: score of graph
-
         we also set graph.score_nonlog and graph.score
-
         """
         if not 'score' in graph.__dict__:
             transformed_graph = self.vectorizer.transform2(graph)
@@ -451,7 +464,3 @@ class GraphLearnSampler:
         logger.debug('select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (failcount))
 
 
-# ok moving this here instead of leaving it where it belongs prevents pickling errar ..
-# dont quite get it ...
-def _sample_multi(x):
-    return x[1]._sample(x[0])
