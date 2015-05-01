@@ -69,11 +69,11 @@ def calc_node_name(interfacegraph, node, hash_bitmask):
     return l
 
 
-def extract_core_and_interface(node, graph, radius_list=None, thickness_list=None, vectorizer=None,
+def extract_core_and_interface(root_node, graph, radius_list=None, thickness_list=None, vectorizer=None,
                                hash_bitmask=2 * 20 - 1):
     """
 
-:param node: root node
+:param root_node: root root_node
 :param graph: graph
 :param radius_list:
 :param thickness_list:
@@ -88,9 +88,9 @@ def extract_core_and_interface(node, graph, radius_list=None, thickness_list=Non
         vectorizer._label_preprocessing(graph)
 
     # which nodes are in the relevant radius
-    dist = nx.single_source_shortest_path_length(graph, node, max(radius_list) + max(thickness_list))
+    dist = nx.single_source_shortest_path_length(graph, root_node, max(radius_list) + max(thickness_list))
     # we want the relevant subgraph and we want to work on a copy
-    retgraph = nx.Graph(graph.subgraph(dist))
+    master_cip_graph = nx.Graph(graph.subgraph(dist))
 
     # we want to inverse the dictionary.
     # so now we see {distance:[list of nodes at that distance]}
@@ -109,14 +109,14 @@ def extract_core_and_interface(node, graph, radius_list=None, thickness_list=Non
             # print [ i for x in [1,2] for i in d[x] ]
             interface_graph_nodes = [item for x in range(radius_ + 1, radius_ + thickness_ + 1) for item in
                                      nodedict.get(x, [])]
-            interfacehash = calc_interface_hash(retgraph.subgraph(interface_graph_nodes), hash_bitmask)
+            interfacehash = calc_interface_hash(master_cip_graph.subgraph(interface_graph_nodes), hash_bitmask)
 
             core_graph_nodes = [item for x in range(radius_ + 1) for item in nodedict.get(x, [])]
-            corehash = calc_core_hash(retgraph.subgraph(core_graph_nodes), hash_bitmask)
+            corehash = calc_core_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
 
             # get relevant subgraph
             nodes = [node for i in range(radius_ + thickness_ + 1) for node in nodedict[i]]
-            cip_graph = nx.Graph(retgraph.subgraph(nodes))
+            cip_graph = nx.Graph(master_cip_graph.subgraph(nodes))
 
             # marking cores and interfaces in subgraphs
             for i in range(radius_ + 1):

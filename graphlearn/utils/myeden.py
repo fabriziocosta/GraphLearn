@@ -1,6 +1,9 @@
+import itertools
 import networkx as nx
 from eden.graph import Vectorizer
 import random
+import eden
+from multiprocessing import Pool
 '''
     wrapped or altered eden functions:
         -my_vectorizer, a eden vectorizer that doesnt try to expand graphs
@@ -17,6 +20,7 @@ class GraphLearnVectorizer(Vectorizer):
     '''
 
     def transform2(self, graph):
+        # copy because transform adds weired attributes
         G=graph.copy()
         return self._convert_dict_to_sparse_matrix(self._transform(0, G))
 
@@ -45,6 +49,39 @@ class GraphLearnVectorizer(Vectorizer):
             G.add_edge(new_node_id, v, label=None)
             new_node_id += 1
         return G
+
+
+
+
+
+def multiprocess(iter,func,graphlearn_instance,n_jobs,batch_size):
+
+    if n_jobs > 1:
+        pool = Pool(processes=n_jobs)
+    else:
+        pool = Pool()
+
+    results = [eden.apply_async(pool, func, args=(graphlearn_instance, batch)) for batch in grouper(iter,batch_size)]
+    for batchresult in results:
+        for pair in batchresult.get():
+            if pair!=None:
+                yield pair
+    pool.close()
+    pool.join()
+
+
+
+# from here: https://docs.python.org/2/library/itertools.html#recipes
+def grouper( iterable, n, fillvalue=None):
+    args = [iter(iterable)] * n
+    return itertools.izip_longest(fillvalue=fillvalue, *args)
+
+
+
+
+
+
+
 
 
 
