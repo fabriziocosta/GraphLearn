@@ -1,21 +1,13 @@
-import joblib
 import utils.myeden as graphlearn_utils
-from eden.util import fit_estimator as eden_fit_estimator
 import networkx as nx
 import itertools
 import random
 from multiprocessing import Pool
-from eden.graph import Vectorizer
-import utils.draw as draw
 import logging
-import numpy
 import dill
-from sklearn.calibration import CalibratedClassifierCV
-from scipy.sparse import vstack
-from sklearn.linear_model import SGDClassifier
 import postprocessing
 import eden
-
+import estimator
 from graphtools import extract_core_and_interface, core_substitution
 from feasibility import FeasibilityChecker
 from grammar import LocalSubstitutableGraphGrammar
@@ -73,6 +65,9 @@ class GraphLearnSampler:
         # currently stores information on why the sampling was stopped before n_steps ; will be attached to the graphinfo
         # returned by _sample()
         self._sample_notes = None
+        # if we use sim annealing in the accept function..
+        self.simulated_annealing= None
+
 
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
@@ -86,44 +81,6 @@ class GraphLearnSampler:
 
 
 
-
-
-    def fit_estimator(self, X, n_jobs=-1, cv=10):
-        '''
-        create self.estimator...
-        by inversing the X set to get a negative set
-        and then using edens fit_estimator
-        '''
-
-        # get negative set:
-        X_neg = X.multiply(-1)
-        # i hope loss is log.. not 100% sure..
-        # probably calibration will fix this#
-        self.estimator = eden_fit_estimator(SGDClassifier(), positive_data_matrix=X,
-                                            negative_data_matrix=X_neg,
-                                            cv=cv,
-                                            n_jobs=n_jobs,
-                                            verbose=0,
-                                            n_iter_search=20)
-
-    def calibrate_estimator(self, X, nu=.5):
-        '''
-            move bias until nu of X are in the negative class
-
-            then use scikits calibrate to calibrate self.estimator arround the input
-        '''
-        #  move bias
-        l = [(self.estimator.decision_function(g)[0], g) for g in X]
-        l.sort(key=lambda x: x[0])
-        element = int(len(l) * nu)
-        self.estimator.intercept_ -= l[element][0]
-
-        # calibrate
-        data_matrix = vstack([a[1] for a in l])
-        data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
-        self.estimator = CalibratedClassifierCV(self.estimator, cv=3, method='sigmoid')
-        self.estimator.fit(data_matrix, data_y)
-
     def fit(self, G_pos,
             core_interface_pair_remove_threshold=3,
             interface_remove_threshold=2,
@@ -133,38 +90,29 @@ class GraphLearnSampler:
         """
         G_iterator, G_iterator_ = itertools.tee(G_pos)
 
-
+        # get grammar
         self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list, self.thickness_list,
                                                                                 core_interface_pair_remove_threshold,
                                                                                 interface_remove_threshold,
                                                                                 nbit=self.nbit)
         self.local_substitutable_graph_grammar.fit(G_iterator,n_jobs)
 
+        # get estimator
+        self.estimator = estimator.fit(G_iterator_,vectorizer=self.vectorizer,nu=nu,n_jobs=n_jobs)
 
-        X = self.vectorizer.transform(G_iterator_)
-        self.fit_estimator(X, n_jobs)
-        self.calibrate_estimator(X, nu)
+
 
 
 
     ############################### SAMPLE ###########################
 
-    def grammar_preprocessing(self):
-        '''
-            we change the grammar according to the sampling task
-        '''
-        if self.n_jobs > 0:
-            self.local_substitutable_graph_grammar.multicore_transform()
-        if self.same_radius:
-            self.local_substitutable_graph_grammar.add_same_radius_quicklookup()
-        if self.same_core_size:
-            self.local_substitutable_graph_grammar.add_core_size_quicklookup()
+
 
     def sample(self, graph_iter, same_radius=False, same_core_size=True, similarity=-1, sampling_interval=9999,
                batch_size=10,
                n_jobs=0,
-               n_steps=50
-               ):
+               n_steps=50,
+               simulated_annealing=True):
         """
             input: graph iterator
             output: yield (sampled_graph,{dictionary of info about sampling process}
@@ -175,50 +123,19 @@ class GraphLearnSampler:
         self.n_steps = n_steps
         self.n_jobs = n_jobs
         self.same_core_size = same_core_size
-
+        self.simulated_annealing = simulated_annealing
 
         # adapt grammar to task:
-        self.grammar_preprocessing()
+        self.local_substitutable_graph_grammar.grammar_preprocessing(n_jobs,same_radius,same_core_size)
 
         # do the improvement
         if n_jobs in [0, 1]:
             for graph in graph_iter:
                 yield self._sample(graph)
         else:
-            # make it so that we dont need to copy the whole grammar a few times  for multiprocessing
-            #problems = itertools.izip(graph_iter, itertools.repeat(self))
-
-            if n_jobs > 1:
-                pool = Pool(processes=n_jobs)
-            else:
-                pool = Pool()
-
-
-            #it = pool.imap_unordered(improve_loop_multi, problems, batch_size)
-            #_sample_multi=lambda x: x[1]._sample(x[0])
-            #it = pool.imap_unordered(_sample_multi, problems, batch_size)
-
-
             _sample_multi= lambda s,graphs: [s._sample(g) for g in graphs]
-
-            # from here: https://docs.python.org/2/library/itertools.html#recipes
-
-
-            results = [eden.apply_async(pool, _sample_multi, args=(self, batch)) for batch in self.grouper(graph_iter,batch_size)]
-            for batchresult in results:
-                for pair in batchresult.get():
-                    if pair!=None:
-                        yield pair
-
-            #output = [p.get() for p in results]
-            #for pair in output:
-            #    yield pair
-            pool.close()
-            pool.join()
-
-    def grouper(self, iterable, n, fillvalue=None):
-        args = [iter(iterable)] * n
-        return itertools.izip_longest(fillvalue=fillvalue, *args)
+            for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
+                yield pair
 
 
 
@@ -238,6 +155,11 @@ class GraphLearnSampler:
         sample_path = [graph]
         accept_counter = 0
 
+
+
+
+
+
         for step in xrange(self.n_steps):
             # do an  improvement step
             candidate_graph = self.propose(graph)
@@ -247,7 +169,7 @@ class GraphLearnSampler:
 
             # is the new graph better than the old?
             candidate_graph = self.postprocessor.postprocess(candidate_graph)
-            if self.accept(graph, candidate_graph):
+            if self.accept(graph, candidate_graph,step):
                 accept_counter += 1
                 graph = candidate_graph
             # save score
@@ -256,6 +178,9 @@ class GraphLearnSampler:
             scores_log.append(graph.score)
             if step % self.sampling_interval == 0:
                 sample_path.append(graph)
+
+
+
 
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
@@ -343,7 +268,7 @@ class GraphLearnSampler:
             # print graph.score
         return graph.score
 
-    def accept(self, graph_old, graph_new):
+    def accept(self, graph_old, graph_new, step):
         '''
             return true if graph_new scores higher
         '''
@@ -351,14 +276,17 @@ class GraphLearnSampler:
         score_graph_old = self.score(graph_old)
         score_graph_new = self.score(graph_new)
 
-        if score_graph_old == 0:
-            return True
 
         score_ratio = score_graph_new / score_graph_old
-
-        if score_ratio > random.random():
+        if score_ratio > 1:
             return True
-        return False
+
+        if self.simulated_annealing:
+            bonus=.5
+            score_ratio+=bonus-(step/self.n_steps/(.8*bonus))
+
+        return score_ratio > random.random()
+
 
     def propose(self, graph):
         """
@@ -374,9 +302,9 @@ class GraphLearnSampler:
 
         # see which substitution to make
         candidate_cips = self.select_cips_from_grammar(selected_cip)
-        cipcount = 0
-        for candidate_cip in candidate_cips:
-            cipcount += 1
+
+        for cipcount,candidate_cip in enumerate(candidate_cips):
+
             # substitute and return
 
             graph_new = core_substitution(graph, selected_cip.graph, candidate_cip.graph)
@@ -387,7 +315,7 @@ class GraphLearnSampler:
             # ill leave this here.. use it in case things go wrong oo
             #    draw.drawgraphs([graph, selected_cip.graph, candidate_cip.graph], contract=False)
 
-        logger.debug("propose failed;received %d cips, all of which failed either at substitution or feasibility  " % cipcount)
+        logger.debug("propose failed;received %d cips, all of which failed either at substitution or feasibility  " % cipcount +1)
 
     def graph_clean(self, graph):
         '''

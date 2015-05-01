@@ -45,7 +45,16 @@ class LocalSubstitutableGraphGrammar:
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
 
-
+    def grammar_preprocessing(self,n_jobs=0,same_radius=False,same_core_size=0):
+        '''
+            sampler will use this when preparing sampling
+        '''
+        if n_jobs > 0:
+            self.multicore_transform()
+        if same_radius:
+            self.add_same_radius_quicklookup()
+        if same_core_size:
+            self.add_core_size_quicklookup()
 
     def fit(self,G_iterator,n_jobs):
         self.read(G_iterator, n_jobs)
