@@ -346,7 +346,7 @@ class GraphLearnSampler:
             cipcount += 1
             # substitute and return
 
-            graph_new = self.core_substitution(graph, selected_cip.graph, candidate_cip.graph)
+            graph_new = core_substitution(graph, selected_cip.graph, candidate_cip.graph)
             self.graph_clean(graph_new)
 
             if self.feasibility_checker.check(graph_new):
