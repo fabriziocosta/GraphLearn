@@ -156,38 +156,50 @@ class GraphLearnSampler:
         accept_counter = 0
 
 
+        try:
+            for step in xrange(self.n_steps):
+                # get a proposal for a new graph
+                # keep it if we like it
+                candidate_graph = self.propose(graph)
+                if self.accept(graph, candidate_graph,step):
+                    accept_counter += 1
+                    graph = candidate_graph
+
+                # save score
+                # take snapshot
+                # check similarity - stop condition..
+                scores.append(graph.score_nonlog)
+                scores_log.append(graph.score)
+                if step % self.sampling_interval == 0:
+                    sample_path.append(graph)
+                self.similarity_checker(graph)
+
+        except Exception as exc:
+            logger.info(exc)
+            self.sample_notes += "\n"+exc
+            self.sample_notes += '\nstoped at step %d' % step
 
 
 
 
-        for step in xrange(self.n_steps):
-            # do an  improvement step
-            candidate_graph = self.propose(graph)
-            # can we stop now?
-            if self._sampling_stop_condition(graph, candidate_graph, scores, scores_log, step):
-                break
 
-            # is the new graph better than the old?
-            candidate_graph = self.postprocessor.postprocess(candidate_graph)
-            if self.accept(graph, candidate_graph,step):
-                accept_counter += 1
-                graph = candidate_graph
-            # save score
-            # take snapshot
-            scores.append(graph.score_nonlog)
-            scores_log.append(graph.score)
-            if step % self.sampling_interval == 0:
-                sample_path.append(graph)
-
-
-
-
+        scores += [scores[-1]] * (self.n_steps + 1 - len(scores))
+        scores_log += [scores_log[-1]] * (self.n_steps + 1 - len(scores_log))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         sample_path.append(graph)
         sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
         sampled_graph_info =  {'graphs': sample_path, 'score_history': scores, "log_score_history": scores_log, "accept_count": accept_counter, 'notes': self._sample_notes}
         return (sampled_graph, sampled_graph_info)
+
+
+
+
+
+
+
+
+
 
     def _sample_init(self, graph):
         '''
@@ -224,36 +236,12 @@ class GraphLearnSampler:
                         self.vectorizer._transform(0, nx.Graph(graph)))
             else:
                 similarity = self.vectorizer._similarity(graph, [1])
-                return similarity < self.similarity
-        return False
 
-    def _sampling_stop_condition(self, graph, candidate_graph, scores, scores_log, step):
-        '''
-            we look at the status of sampling
-            and decide if stop conditions are met.
+                if  similarity < self.similarity:
+                    raise Exception('similarity stop condition reached')
 
-            in case they are:
-                we also make sure the score_histories match with the number of sample steps
-        '''
 
-        stop = False
-        # do we need to stop early??
-        if self.similarity_checker(graph):
-            self._sample_notes = 'sample stopped; reason:similarity; at_step: ' + str(step)
-            stop = True
 
-        if candidate_graph == None:
-            logger.info("sample stopped; no propose after %d successful improvement_steps" % step)
-            # this will show you the failing graph:
-            # draw.display(graph)
-            self._sample_notes = 'sample stopped; reason:no candidate found; see logfile for details; at_step: ' + str(step)
-            stop = True
-
-        if stop:  # make sure score list is as long as n_steps
-            scores += [scores[-1]] * (self.n_steps + 1 - len(scores))
-            scores_log += [scores_log[-1]] * (self.n_steps + 1 - len(scores_log))
-
-        return stop
 
     def score(self, graph):
         """
@@ -296,9 +284,6 @@ class GraphLearnSampler:
         """
         # finding a legit candidate..
         selected_cip = self.select_cip_for_substitution(graph)
-        if selected_cip == None:
-            logger.debug("propose failed; because select_cip_for_substitution failed")
-            return
 
         # see which substitution to make
         candidate_cips = self.select_cips_from_grammar(selected_cip)
@@ -311,11 +296,11 @@ class GraphLearnSampler:
             self.graph_clean(graph_new)
 
             if self.feasibility_checker.check(graph_new):
-                return graph_new
+                return self.postprocessor.postprocess(graph_new)
             # ill leave this here.. use it in case things go wrong oo
             #    draw.drawgraphs([graph, selected_cip.graph, candidate_cip.graph], contract=False)
 
-        logger.debug("propose failed;received %d cips, all of which failed either at substitution or feasibility  " % cipcount +1)
+        raise Exception ("propose failed;received %d cips, all of which failed either at substitution or feasibility  " % cipcount +1)
 
     def graph_clean(self, graph):
         '''
@@ -347,7 +332,7 @@ class GraphLearnSampler:
             random.shuffle(hashes)
             for core_hash in hashes:
                 yield core_cip_dict[core_hash]
-        logger.debug('select_cips_from_grammar didn\'t find any acceptable cip; entries_found %d' % len(core_cip_dict))
+        raise Exception('select_cips_from_grammar didn\'t find any acceptable cip; entries_found %d' % len(core_cip_dict))
 
     def select_cip_for_substitution(self, graph):
         """
