@@ -45,6 +45,12 @@ class LocalSubstitutableGraphGrammar:
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
 
+
+
+    def fit(self,G_iterator,n_jobs):
+        self.local_substitutable_graph_grammar.read(G_iterator, n_jobs)
+        self.local_substitutable_graph_grammar.clean()
+
     def multicore_transform(self):
         '''
         this turns the grammar into a managed dictionary which we need for multiprocessing
