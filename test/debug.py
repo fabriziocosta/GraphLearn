@@ -13,7 +13,7 @@ def test_sampler():
     graphs = itertools.islice(graphs,4)
 
     # we test multicore and single:
-    graphs = sampler.sample(graphs,same_radius=False,same_core_size=True,sampling_interval=9999,batch_size=1,n_steps=steps,n_jobs=4)
+    graphs = sampler.sample(graphs,same_radius=False,same_core_size=True,sampling_interval=9999,batch_size=1,n_steps=steps,n_jobs=0)
     #graphs = sampler.sample(graphs,same_radius=True,sampling_interval=9999,batch_size=2,n_steps=steps,n_jobs=4)
     for e in graphs:
         print e
@@ -33,6 +33,10 @@ def test_fit():
     #graphlearn_utils.draw_grammar(sampler.local_substitutable_graph_grammar,5)
     print 'fitting done'
 
-test_fit()
-#test_sampler()
+
+
+
+#test_fit()
+test_sampler()
+
 
