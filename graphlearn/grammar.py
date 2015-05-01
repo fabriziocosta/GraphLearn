@@ -48,8 +48,8 @@ class LocalSubstitutableGraphGrammar:
 
 
     def fit(self,G_iterator,n_jobs):
-        self.local_substitutable_graph_grammar.read(G_iterator, n_jobs)
-        self.local_substitutable_graph_grammar.clean()
+        self.read(G_iterator, n_jobs)
+        self.clean()
 
     def multicore_transform(self):
         '''
