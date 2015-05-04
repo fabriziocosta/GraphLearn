@@ -10,29 +10,26 @@ import matplotlib.pyplot as plt
 import itertools
 from graphlearn.utils import myeden
 
+from eden.util import fit_estimator as eden_fit_estimator
 
+from sklearn.linear_model import SGDClassifier
 sampler2 = GraphLearnSampler()
 vectorizer = Vectorizer( complexity=3 )
 
 
 
-
-def load_estimator(): 
-    sampler2.load('../example/tmp/demo.ge')
-    return sampler2.estimator
-
-
 def make_estimator():
-
-    neg = gspan_to_eden('../grammar/bursi.neg.gspan')
-    pos= gspan_to_eden('../grammar/bursi.pos.gspan')
+    neg = gspan_to_eden('../example/bursi.neg.gspan')
+    pos= gspan_to_eden('../example/bursi.pos.gspan')
     pos = vectorizer.transform( pos )
     neg = vectorizer.transform( neg )
-    sampler2.estimator= myeden.graphlearn_fit_estimator(positive_data_matrix=pos, negative_data_matrix=neg)
-    sampler2.save('../example/tmp/demo.ge')
+    esti = eden_fit_estimator(SGDClassifier(), positive_data_matrix=pos,
+                                        negative_data_matrix=neg)
+    return esti
 
-    
-estimator=load_estimator()
+
+
+estimator=make_estimator()
 print 'estimator ok'
 
 def unpack(graphs):
