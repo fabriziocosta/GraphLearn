@@ -36,13 +36,13 @@ def fit_estimator( X, n_jobs=-1, cv=10):
                                         cv=cv,
                                         n_jobs=n_jobs,
                                         verbose=0,
-                                        n_iter_search=20)
+                                        n_iter_search=10)
 
 def calibrate_estimator( X,estimator, nu=.5):
     '''
         move bias until nu of X are in the negative class
 
-        then use scikits calibrate to calibrate self.estimator arround the input
+        then use scikits calibrate to calibrate self.estimator around the input
     '''
     #  move bias
     l = [(estimator.decision_function(g)[0], g) for g in X]
