@@ -2,16 +2,14 @@ import utils.myeden as graphlearn_utils
 import networkx as nx
 import itertools
 import random
-from multiprocessing import Pool
 import logging
 import dill
 import postprocessing
-import eden
 import estimator
 from graphtools import extract_core_and_interface, core_substitution
 from feasibility import FeasibilityChecker
 from grammar import LocalSubstitutableGraphGrammar
-
+import joblib
 logger = logging.getLogger('log')
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(message)s')
@@ -65,14 +63,16 @@ class GraphLearnSampler:
         # currently stores information on why the sampling was stopped before n_steps ; will be attached to the graphinfo
         # returned by _sample()
         self._sample_notes = None
-        # if we use sim annealing in the accept function..
-        self.simulated_annealing= None
+        # factor for simulated annealing, 0 means off
+        # 1 is pretty strong. 0.6 seems ok
+        self.annealing_factor = None
 
 
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
 
-        dill.dump(self.__dict__, open(file_name, "w"))
+        dill.dump(self.__dict__, open(file_name, "wb"),protocol=dill.HIGHEST_PROTOCOL)
+        #with open(file_name)
         #joblib.dump(self.__dict__, file_name, compress=1)
 
     def load(self, file_name):
@@ -112,7 +112,7 @@ class GraphLearnSampler:
                batch_size=10,
                n_jobs=0,
                n_steps=50,
-               simulated_annealing=True):
+               annealing_factor=0):
         """
             input: graph iterator
             output: yield (sampled_graph,{dictionary of info about sampling process}
@@ -123,7 +123,7 @@ class GraphLearnSampler:
         self.n_steps = n_steps
         self.n_jobs = n_jobs
         self.same_core_size = same_core_size
-        self.simulated_annealing = simulated_annealing
+        self.annealing_factor = annealing_factor
 
         # adapt grammar to task:
         self.local_substitutable_graph_grammar.grammar_preprocessing(n_jobs,same_radius,same_core_size)
@@ -146,12 +146,13 @@ class GraphLearnSampler:
             input: a graph
             output: (sampled_graph,{info dictionary})
         '''
+
         if graph==None:
             return None
         # prepare variables and graph
         graph = self._sample_init(graph)
-        scores_log = [graph.score]
-        scores = [graph.score_nonlog]
+
+        scores = [graph.score]
         sample_path = [graph]
         accept_counter = 0
 
@@ -168,28 +169,26 @@ class GraphLearnSampler:
                 # save score
                 # take snapshot
                 # check similarity - stop condition..
-                scores.append(graph.score_nonlog)
-                scores_log.append(graph.score)
+                scores.append(graph.score)
                 if step % self.sampling_interval == 0:
                     sample_path.append(graph)
                 self.similarity_checker(graph)
 
         except Exception as exc:
             logger.info(exc)
-            self.sample_notes += "\n"+exc
-            self.sample_notes += '\nstoped at step %d' % step
+            self._sample_notes += "\n"+str(exc)
+            self._sample_notes += '\nstoped at step %d' % step
 
 
 
 
 
         scores += [scores[-1]] * (self.n_steps + 1 - len(scores))
-        scores_log += [scores_log[-1]] * (self.n_steps + 1 - len(scores_log))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         sample_path.append(graph)
         sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
-        sampled_graph_info =  {'graphs': sample_path, 'score_history': scores, "log_score_history": scores_log, "accept_count": accept_counter, 'notes': self._sample_notes}
+        sampled_graph_info =  {'graphs': sample_path, 'score_history': scores, "accept_count": accept_counter, 'notes': self._sample_notes}
         return (sampled_graph, sampled_graph_info)
 
 
@@ -212,8 +211,8 @@ class GraphLearnSampler:
           in this case we need to rebuild the postprocessing function .
         '''
         graph = self.vectorizer._edge_to_vertex_transform(graph)
-        self.score(graph)
         self.similarity_checker(graph, set_reference=True)
+        self.score(graph)
         self._sample_notes = ''
 
         return graph
@@ -251,7 +250,8 @@ class GraphLearnSampler:
         """
         if not 'score' in graph.__dict__:
             transformed_graph = self.vectorizer.transform2(graph)
-            graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
+            # slow so dont do it..
+            #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph.score = self.estimator.predict_proba(transformed_graph)[0][1]
             # print graph.score
         return graph.score
@@ -263,16 +263,10 @@ class GraphLearnSampler:
 
         score_graph_old = self.score(graph_old)
         score_graph_new = self.score(graph_new)
-
-
-        score_ratio = score_graph_new / score_graph_old
-        if score_ratio > 1:
-            return True
-
-        if self.simulated_annealing:
-            bonus=.5
-            score_ratio+=bonus-(step/self.n_steps/(.8*bonus))
-
+        score_ratio =  score_graph_new / score_graph_old
+        if score_ratio > 1.0:
+           return True
+        score_ratio -= (float(step)/self.n_steps) * self.annealing_factor
         return score_ratio > random.random()
 
 
