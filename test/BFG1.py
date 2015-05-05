@@ -73,8 +73,8 @@ def doit():
 
         #calculate the score of the improved versions
         #calculate score of the originals
-        avg_imp=sum( [estimator.decision_function(e) for e in vectorizer.transform(unpack(improved_graphs),n_jobs=4) ] )/count
-        avg_ori=sum( [estimator.decision_function(e) for e in vectorizer.transform(graphs_pos___,n_jobs=4)] )/count
+        avg_imp=sum( [estimator.decision_function(e) for e in vectorizer.transform(unpack(improved_graphs)) ] )/count
+        avg_ori=sum( [estimator.decision_function(e) for e in vectorizer.transform(graphs_pos___)] )/count
         improved.append(avg_imp)
         originals.append(avg_ori)
 
@@ -82,10 +82,12 @@ def doit():
     t = range(len(percentages))
     # originals are blue
     # improved ones are green
+
+    print originals
+    print improved
     plt.plot(t,originals ,'bs')
     plt.plot(t, improved ,'g^')
     plt.savefig('zomg.png')
-    print originals
-    print improved
+
 
 doit()
