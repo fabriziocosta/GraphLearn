@@ -36,8 +36,9 @@ def draw_grammar_stats(grammar):
     a.sort()
     a0= [e[0] for e in a]
     a1= [e[1] for e in a]
-    print 'sum interfaces: %d' % sum(a0)
-    print 'distinct interfaces: %d' % len(i)
+    print 'sum cips: %d' % sum(a0)
+    print 'distinct interfaces: %d (seen on x axis)' % len(i)
+    print 'y=numberofcores(ihash), y=sumOfCoreCounts(ihash)'
     plt.subplot(1,1,1)
     plt.plot(a0, color='blue', lw=2)
     plt.plot(a1, color='blue', lw=2)
@@ -49,8 +50,9 @@ def draw_grammar_stats(grammar):
     a.sort()
     a0= [e[0] for e in a]
     a1= [e[1] for e in a]
-    print 'sum cores : %d' % sum(a0)
-    print 'distinct cores: %d' % len(c)
+    print 'sum cips: %d' % sum(a0)
+    print 'distinct cores: %d (seen on x axis)' % len(c)
+    print 'y = inYinterfaces(chash), y= sumOfCountOverAllInterfaces(chash)'
     plt.subplot(1,1,1)
     plt.plot(a0, color='blue', lw=2)
     plt.plot(a1, color='blue', lw=2)
