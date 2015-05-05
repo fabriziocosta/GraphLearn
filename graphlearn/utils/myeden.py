@@ -1,16 +1,9 @@
+import itertools
 import networkx as nx
 from eden.graph import Vectorizer
-import numpy as np
-from scipy.sparse import vstack
-from sklearn.linear_model import SGDClassifier
-from sklearn.grid_search import RandomizedSearchCV
-from scipy.stats import randint
-from scipy.stats import uniform
 import random
-#from eden.model import ActiveLearningBinaryClassificationModel
-from numpy.random import randint as p_randint
-from numpy.random import uniform as p_uniform
-import sklearn.metrics as metrics
+import eden
+from multiprocessing import Pool
 '''
     wrapped or altered eden functions:
         -my_vectorizer, a eden vectorizer that doesnt try to expand graphs
@@ -26,11 +19,68 @@ class GraphLearnVectorizer(Vectorizer):
     this hack is a little bit dependant on the state of eden.. so be carefull here 
     '''
 
-    def _edge_to_vertex_transform(self, graph):
-        return nx.Graph(graph)
-
     def transform2(self, graph):
-        return self._convert_dict_to_sparse_matrix(self._transform(0, graph))
+        # copy because transform adds weired attributes
+        G=graph.copy()
+        return self._convert_dict_to_sparse_matrix(self._transform(0, G))
+
+
+    # ok so our vectorizer should be expected to work with already expanded graphs...
+    def _edge_to_vertex_transform(self, original_graph):
+        """Converts edges to nodes so to process the graph ignoring the information on the
+        resulting edges."""
+
+        if 'expanded' in original_graph.graph:
+            return original_graph
+
+        G = nx.Graph()
+        G.graph['expanded']=True
+        # build a graph that has as vertices the original vertex set
+        for n, d in original_graph.nodes_iter(data=True):
+            d['node'] = True
+            G.add_node(n, d)
+        # and in addition a vertex for each edge
+        new_node_id = max(original_graph.nodes()) + 1
+        for u, v, d in original_graph.edges_iter(data=True):
+            d['edge'] = True
+            G.add_node(new_node_id, d)
+            # and the corresponding edges
+            G.add_edge(new_node_id, u, label=None)
+            G.add_edge(new_node_id, v, label=None)
+            new_node_id += 1
+        return G
+
+
+
+
+
+def multiprocess(iter,func,graphlearn_instance,n_jobs,batch_size):
+
+    if n_jobs > 1:
+        pool = Pool(processes=n_jobs)
+    else:
+        pool = Pool()
+
+    results = [eden.apply_async(pool, func, args=(graphlearn_instance, batch)) for batch in grouper(iter,batch_size)]
+    for batchresult in results:
+        for pair in batchresult.get():
+            if pair!=None:
+                yield pair
+    pool.close()
+    pool.join()
+
+
+
+# from here: https://docs.python.org/2/library/itertools.html#recipes
+def grouper( iterable, n, fillvalue=None):
+    args = [iter(iterable)] * n
+    return itertools.izip_longest(fillvalue=fillvalue, *args)
+
+
+
+
+
+
 
 
 

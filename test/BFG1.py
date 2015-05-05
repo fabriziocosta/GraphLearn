@@ -4,36 +4,32 @@ import matplotlib
 matplotlib.use('Agg')
 
 from eden.converter.graph.gspan import gspan_to_eden
-from graphlearn import GraphLearnSampler
+from graphlearn.graphlearn import GraphLearnSampler
 from eden.graph import Vectorizer
 import matplotlib.pyplot as plt
 import itertools
-from utils import myeden
+from graphlearn.utils import myeden
 
+from eden.util import fit_estimator as eden_fit_estimator
 
+from sklearn.linear_model import SGDClassifier
+sampler2 = GraphLearnSampler()
+vectorizer = Vectorizer( complexity=3 )
 
-sampler2 =GraphLearnSampler()
-vectorizer=Vectorizer( complexity=3 )
-
-
-
-
-def load_estimator(): 
-    sampler2.load('../grammar/estimator')
-    return sampler2.estimator
 
 
 def make_estimator():
-
-    neg = gspan_to_eden('../grammar/bursi.neg.gspan')
-    pos= gspan_to_eden('../grammar/bursi.pos.gspan')
+    neg = gspan_to_eden('../example/bursi.neg.gspan')
+    pos= gspan_to_eden('../example/bursi.pos.gspan')
     pos = vectorizer.transform( pos )
     neg = vectorizer.transform( neg )
-    sampler2.estimator= myeden.graphlearn_fit_estimator(positive_data_matrix=pos, negative_data_matrix=neg)
-    sampler2.save('../grammar/estimator')
+    esti = eden_fit_estimator(SGDClassifier(), positive_data_matrix=pos,
+                                        negative_data_matrix=neg)
+    return esti
 
-    
-estimator=load_estimator()
+
+
+estimator=make_estimator()
 print 'estimator ok'
 
 def unpack(graphs):
@@ -41,12 +37,12 @@ def unpack(graphs):
         yield graphlist[0]
 
 def doit():
-    radius=[2,4]
-    thickness=[2,4]
-    sampler = GraphLearnSampler(radius_list=radius,thickness_list=thickness)
-    graphs_pos= gspan_to_eden('../grammar/bursi.pos.gspan')
+    sampler = GraphLearnSampler()
+    graphs_pos= gspan_to_eden('../example/bursi.pos.gspan')
     #generate datapoints:
     lenpo=int(2401*.3)
+
+
     originals=[]
     improved=[]
 
@@ -55,28 +51,43 @@ def doit():
     for perc in percentages:
         count = int(lenpo*perc)
 
-
+        # make copy of graphiterator
+        # select count random elements
+        # triplicate  the count long iterator
         graphs_pos, graphs_pos_ = itertools.tee(graphs_pos)
         graphs_pos_ = myeden.select_random(graphs_pos_, lenpo,count )
-        graphs_pos_ = itertools.islice(graphs_pos_, count )
         graphs_pos_,graphs_pos__,graphs_pos___ = itertools.tee(graphs_pos_,3)
-        
+
+
+        # do sampling
         sampler.fit(graphs_pos__,n_jobs=4)
-        imprules= {'n_jobs':4 , 'batch_size':(count/4)+1,'improvement_steps':50}
-        improved_graphs = sampler.sample(graphs_pos_,improvement_rules=imprules)
-        avg_imp=sum( [estimator.decision_function(e) for e in vectorizer.transform(unpack(improved_graphs),n_jobs=4) ] )/count
-        avg_ori=sum( [estimator.decision_function(e) for e in vectorizer.transform(graphs_pos___,n_jobs=4)] )/count
-        
+
+        improved_graphs = sampler.sample( graphs_pos_,
+                            same_radius=False,
+                            same_core_size=False,
+                            sampling_interval=9999,
+                            batch_size=int(count/4)+1,
+                            n_steps=200,
+                            n_jobs=4,
+                            annealing_factor=0.9)
+
+        #calculate the score of the improved versions
+        #calculate score of the originals
+        avg_imp=sum( [estimator.decision_function(e) for e in vectorizer.transform(unpack(improved_graphs)) ] )/count
+        avg_ori=sum( [estimator.decision_function(e) for e in vectorizer.transform(graphs_pos___)] )/count
         improved.append(avg_imp)
         originals.append(avg_ori)
 
-        
 
     t = range(len(percentages))
+    # originals are blue
+    # improved ones are green
+
+    print originals
+    print improved
     plt.plot(t,originals ,'bs')
     plt.plot(t, improved ,'g^')
     plt.savefig('zomg.png')
-    print originals
-    print improved
+
 
 doit()
