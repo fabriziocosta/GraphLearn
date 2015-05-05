@@ -300,12 +300,15 @@ class GraphLearnSampler:
 
         log to debug on fail
         """
+        if not cip:
+            raise Exception('select randomized cips from grammar got bad cip')
+
         hashes=self.filter_chips_get_core_hashes(cip)
         random.shuffle(hashes)
         for core_hash in hashes:
             yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
 
-        raise Exception('select_cips_from_grammar didn\'t find any acceptable cip; entries_found %d' %
+        raise Exception('select_randomized_cips_from_grammar didn\'t find any acceptable cip; entries_found %d' %
                         len(hashes))
 
     def filter_chips_get_core_hashes(self,cip):
@@ -353,22 +356,22 @@ class GraphLearnSampler:
             else:
                 failcount+=1
 
-        logger.debug('select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (failcount))
+        raise Exception('select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (failcount))
 
 
     def accept_cip_to_substitute(self,cip):
-            # if we have a hit in the grammar
-            if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
-                #  if we have the same_radius rule implemented:
-                if self.same_radius:
-                    # we jump if that hit has not the right radius
-                    if not self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]:
-                        return False
-                elif self.same_core_size:
-                    if cip.core_nodes_count not in self.local_substitutable_graph_grammar.core_size[cip.interface_hash]:
-                        return False
-                return True
-            return False
+        # if we have a hit in the grammar
+        if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
+            #  if we have the same_radius rule implemented:
+            if self.same_radius:
+                # we jump if that hit has not the right radius
+                if not self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]:
+                    return False
+            if self.same_core_size:
+                if cip.core_nodes_count not in self.local_substitutable_graph_grammar.core_size[cip.interface_hash]:
+                    return False
+            return True
+        return False
 
 
 
