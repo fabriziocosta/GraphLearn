@@ -6,7 +6,7 @@ import logging
 import dill
 import postprocessing
 import estimator
-from graphtools import extract_core_and_interface, core_substitution
+from graphtools import extract_core_and_interface, core_substitution, graph_clean
 from feasibility import FeasibilityChecker
 from grammar import LocalSubstitutableGraphGrammar
 import joblib
@@ -67,6 +67,8 @@ class GraphLearnSampler:
         # 1 is pretty strong. 0.6 seems ok
         self.annealing_factor = None
 
+        #current step in sampling proces of a single graph
+        self.step= None
 
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
@@ -151,35 +153,36 @@ class GraphLearnSampler:
             return None
         # prepare variables and graph
         graph = self._sample_init(graph)
-
         scores = [graph.score]
         sample_path = [graph]
         accept_counter = 0
 
-
         try:
-            for step in xrange(self.n_steps):
+            for self.step in xrange( self.n_steps):
+                # check similarity - stop condition..
+                self.similarity_checker(graph)
+
+
+
                 # get a proposal for a new graph
                 # keep it if we like it
                 candidate_graph = self.propose(graph)
-                if self.accept(graph, candidate_graph,step):
+                if self.accept(graph, candidate_graph):
                     accept_counter += 1
                     graph = candidate_graph
 
+
                 # save score
                 # take snapshot
-                # check similarity - stop condition..
                 scores.append(graph.score)
-                if step % self.sampling_interval == 0:
+                if self.step % self.sampling_interval == 0:
                     sample_path.append(graph)
-                self.similarity_checker(graph)
+
 
         except Exception as exc:
             logger.info(exc)
             self._sample_notes += "\n"+str(exc)
-            self._sample_notes += '\nstoped at step %d' % step
-
-
+            self._sample_notes += '\nstoped at step %d' % self.step
 
 
 
@@ -190,11 +193,6 @@ class GraphLearnSampler:
         sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
         sampled_graph_info =  {'graphs': sample_path, 'score_history': scores, "accept_count": accept_counter, 'notes': self._sample_notes}
         return (sampled_graph, sampled_graph_info)
-
-
-
-
-
 
 
 
@@ -211,17 +209,16 @@ class GraphLearnSampler:
           in this case we need to rebuild the postprocessing function .
         '''
         graph = self.vectorizer._edge_to_vertex_transform(graph)
-        self.similarity_checker(graph, set_reference=True)
         self.score(graph)
         self._sample_notes = ''
-
         return graph
 
-    def similarity_checker(self, graph, set_reference=False):
+    def similarity_checker(self, graph):
         '''
         always check if similarity is relevant.. if so then:
 
-        if set_reference is True:
+        if current step is zero:
+
             remember the vectorized object
         else:
             similarity between start graph and current graph is expected to decrease.
@@ -229,7 +226,7 @@ class GraphLearnSampler:
             because we dont want to drift further
         '''
         if self.similarity > 0:
-            if set_reference:
+            if self.step == 0:
                 self.vectorizer._reference_vec = \
                     self.vectorizer._convert_dict_to_sparse_matrix(
                         self.vectorizer._transform(0, nx.Graph(graph)))
@@ -256,7 +253,7 @@ class GraphLearnSampler:
             # print graph.score
         return graph.score
 
-    def accept(self, graph_old, graph_new, step):
+    def accept(self, graph_old, graph_new):
         '''
             return true if graph_new scores higher
         '''
@@ -266,7 +263,7 @@ class GraphLearnSampler:
         score_ratio =  score_graph_new / score_graph_old
         if score_ratio > 1.0:
            return True
-        score_ratio -= (float(step)/self.n_steps) * self.annealing_factor
+        score_ratio -= (float(self.step)/self.n_steps) * self.annealing_factor
         return score_ratio > random.random()
 
 
@@ -280,14 +277,12 @@ class GraphLearnSampler:
         selected_cip = self.select_cip_for_substitution(graph)
 
         # see which substitution to make
-        candidate_cips = self.select_cips_from_grammar(selected_cip)
-
+        candidate_cips = self.select_randomized_cips_from_grammar(selected_cip)
         for cipcount,candidate_cip in enumerate(candidate_cips):
 
             # substitute and return
-
             graph_new = core_substitution(graph, selected_cip.graph, candidate_cip.graph)
-            self.graph_clean(graph_new)
+            graph_clean(graph_new)
 
             if self.feasibility_checker.check(graph_new):
                 return self.postprocessor.postprocess(graph_new)
@@ -296,37 +291,36 @@ class GraphLearnSampler:
 
         raise Exception ("propose failed;received %d cips, all of which failed either at substitution or feasibility  " % cipcount +1)
 
-    def graph_clean(self, graph):
-        '''
-        in the precess of creating a new graph,
-        we marked the nodes that were used as interface and core.
-        here we remove the marks.
-        :param graph:
-        :return:
-        '''
-        for n, d in graph.nodes(data=True):
-            d.pop('core', None)
-            d.pop('interface', None)
 
-    def select_cips_from_grammar(self, cip):
+
+    def select_randomized_cips_from_grammar(self, cip):
         """
         :param cip: the cip we selected from the graph
         :yields: cips found in the grammar that can replace the input cip
 
         log to debug on fail
         """
-        core_cip_dict = self.local_substitutable_graph_grammar.grammar[cip.interface_hash]
-        if core_cip_dict:
-            if self.same_radius:
-                hashes = self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]
-            elif self.same_core_size:
-                hashes = self.local_substitutable_graph_grammar.core_size[cip.interface_hash][cip.core_nodes_count]
-            else:
-                hashes = core_cip_dict.keys()
-            random.shuffle(hashes)
-            for core_hash in hashes:
-                yield core_cip_dict[core_hash]
-        raise Exception('select_cips_from_grammar didn\'t find any acceptable cip; entries_found %d' % len(core_cip_dict))
+        hashes=self.filter_chips_get_core_hashes(cip)
+        random.shuffle(hashes)
+        for core_hash in hashes:
+            yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
+
+        raise Exception('select_cips_from_grammar didn\'t find any acceptable cip; entries_found %d' %
+                        len(hashes))
+
+    def filter_chips_get_core_hashes(self,cip):
+        '''
+        :param cip: the chip to be replaced
+        :return: list of core_hashes of acceptable replacement cips
+        '''
+        if self.same_radius:
+            return self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]
+        elif self.same_core_size:
+            return self.local_substitutable_graph_grammar.core_size[cip.interface_hash][cip.core_nodes_count]
+        else:
+            return self.local_substitutable_graph_grammar.grammar[cip.interface_hash].keys()
+
+
 
     def select_cip_for_substitution(self, graph):
         """
@@ -350,24 +344,35 @@ class GraphLearnSampler:
             cip = extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer,
                                              hash_bitmask=self.hash_bitmask)
 
-            # if radius and thickness are not possible to extract cip is [] which is false
             if not cip:
-                failcount += 1
+                failcount+=1
                 continue
-            cip = cip[0]
+            cip=cip[0]
+            if self.accept_cip_to_substitute(cip):
+                return cip
+            else:
+                failcount+=1
+
+        logger.debug('select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (failcount))
+
+
+    def accept_cip_to_substitute(self,cip):
             # if we have a hit in the grammar
             if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
                 #  if we have the same_radius rule implemented:
                 if self.same_radius:
                     # we jump if that hit has not the right radius
                     if not self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]:
-                        continue
+                        return False
                 elif self.same_core_size:
                     if cip.core_nodes_count not in self.local_substitutable_graph_grammar.core_size[cip.interface_hash]:
-                        continue
+                        return False
+                return True
+            return False
 
-                return cip
 
-        logger.debug('select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (failcount))
+
+
+
 
 
