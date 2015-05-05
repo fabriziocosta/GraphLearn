@@ -36,8 +36,9 @@ def draw_grammar_stats(grammar):
     a.sort()
     a0= [e[0] for e in a]
     a1= [e[1] for e in a]
-    print 'sum interfaces: %d' % sum(a0)
-    print 'distinct interfaces: %d' % len(i)
+    print 'sum cips: %d' % sum(a0)
+    print 'distinct interfaces: %d (seen on x axis)' % len(i)
+    print 'y=numberofcores(ihash), y=sumOfCoreCounts(ihash)'
     plt.subplot(1,1,1)
     plt.plot(a0, color='blue', lw=2)
     plt.plot(a1, color='blue', lw=2)
@@ -49,8 +50,9 @@ def draw_grammar_stats(grammar):
     a.sort()
     a0= [e[0] for e in a]
     a1= [e[1] for e in a]
-    print 'sum cores : %d' % sum(a0)
-    print 'distinct cores: %d' % len(c)
+    print 'sum cips: %d' % sum(a0)
+    print 'distinct cores: %d (seen on x axis)' % len(c)
+    print 'y = inYinterfaces(chash), y= sumOfCountOverAllInterfaces(chash)'
     plt.subplot(1,1,1)
     plt.plot(a0, color='blue', lw=2)
     plt.plot(a1, color='blue', lw=2)
@@ -109,11 +111,11 @@ def draw_grammar(grammar, interfacecount):
 
         core_cid_dict = grammar[interface]
 
-        graphs = [core_cid_dict[chash].graph for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
-        dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
+        graphs = [ core_cid_dict[chash].graph for chash in core_cid_dict.keys() ]
+        #dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
 
         print 'interface: ' + str(interface)
-        drawgraphs(graphs, len(core_cid_dict) )
+        draw_many_graphs(graphs)
 
 
 def cip_to_graph(cips=[],graphs=[]):
@@ -168,7 +170,7 @@ def drawgraphs(graphs, contract=True, deleteedges=True, size=4):
 
 
     for x in range(count):
-        plt.subplot( 1, 5 , x + 1)
+        plt.subplot( 1, 5 , x +1  )
         graphs[x].graph['info']="size:"+str(len(graphs[x]))
         row_drawgraph_wrapper(graphs[x], contract=contract, deleteedges=deleteedges)
     plt.show()
