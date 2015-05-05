@@ -185,3 +185,15 @@ def core_substitution( graph, original_cip_graph, new_cip_graph):
     # unionizing killed my labels so we need to relabel
     return nx.convert_node_labels_to_integers(G)
 
+
+def graph_clean(graph):
+    '''
+    in the precess of creating a new graph,
+    we marked the nodes that were used as interface and core.
+    here we remove the marks.
+    :param graph:
+    :return:
+    '''
+    for n, d in graph.nodes(data=True):
+        d.pop('core', None)
+        d.pop('interface', None)
