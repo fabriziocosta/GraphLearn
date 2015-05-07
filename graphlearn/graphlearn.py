@@ -73,9 +73,6 @@ class GraphLearnSampler:
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
 
-
-        dill.dumps(self.__dict__)
-
         dill.dump(self.__dict__, open(file_name, "w"),protocol=dill.HIGHEST_PROTOCOL)
         #joblib.dump(self.__dict__, file_name, compress=1)
 
