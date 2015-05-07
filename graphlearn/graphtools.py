@@ -70,7 +70,7 @@ def calc_node_name(interfacegraph, node, hash_bitmask):
 
 
 def extract_core_and_interface(root_node, graph, radius_list=None, thickness_list=None, vectorizer=None,
-                               hash_bitmask=2 * 20 - 1):
+                               hash_bitmask=2 * 20 - 1, node_entity_check= lambda x,y:True):
     """
 
 :param root_node: root root_node
@@ -84,6 +84,9 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
 :return: radius_list*thicknes_list long list of cips
 """
 
+
+    if not node_entity_check(graph,root_node):
+        return []
     if 'hlabel' not in graph.node[0]:
         vectorizer._label_preprocessing(graph)
 
@@ -104,15 +107,20 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
             if radius_ + thickness_ not in nodedict:
                 continue
 
-            # calculate hashes
-            # d={1:[1,2,3],2:[3,4,5]}
-            # print [ i for x in [1,2] for i in d[x] ]
+
+            core_graph_nodes = [item for x in range(radius_ + 1) for item in nodedict.get(x, [])]
+            if not node_entity_check(master_cip_graph, core_graph_nodes):
+                continue
+
+            corehash = calc_core_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
+
+
             interface_graph_nodes = [item for x in range(radius_ + 1, radius_ + thickness_ + 1) for item in
                                      nodedict.get(x, [])]
             interfacehash = calc_interface_hash(master_cip_graph.subgraph(interface_graph_nodes), hash_bitmask)
 
-            core_graph_nodes = [item for x in range(radius_ + 1) for item in nodedict.get(x, [])]
-            corehash = calc_core_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
+
+
 
             # get relevant subgraph
             nodes = [node for i in range(radius_ + thickness_ + 1) for node in nodedict[i]]

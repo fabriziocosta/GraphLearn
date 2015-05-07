@@ -26,7 +26,7 @@ logger.addHandler(file)
 class GraphLearnSampler:
 
     def __init__(self, radius_list=[3, 5], thickness_list=[2, 4], estimator=None, grammar=None, nbit=20,
-                    vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3)):
+                    vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3), node_entity_check=lambda x,y:True):
 
 
 
@@ -66,9 +66,9 @@ class GraphLearnSampler:
         # factor for simulated annealing, 0 means off
         # 1 is pretty strong. 0.6 seems ok
         self.annealing_factor = None
-
         #current step in sampling proces of a single graph
         self.step= None
+        self.node_entity_check = node_entity_check
 
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
@@ -95,7 +95,7 @@ class GraphLearnSampler:
         self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list, self.thickness_list,
                                                                                 core_interface_pair_remove_threshold,
                                                                                 interface_remove_threshold,
-                                                                                nbit=self.nbit)
+                                                                                nbit=self.nbit, node_entity_check=self.node_entity_check)
         self.local_substitutable_graph_grammar.fit(G_iterator,n_jobs)
 
         # get estimator
@@ -344,7 +344,7 @@ class GraphLearnSampler:
             # in addition the selection might fail because it is not possible to extract at the desired radius/thicknes
             #
             cip = extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer,
-                                             hash_bitmask=self.hash_bitmask)
+                                             hash_bitmask=self.hash_bitmask, node_entity_check=self.node_entity_check)
 
             if not cip:
                 failcount+=1
