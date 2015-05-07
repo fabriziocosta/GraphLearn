@@ -35,7 +35,7 @@ class LocalSubstitutableGraphGrammar:
     # move all the things here that are needed to extract grammar
 
     def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3,
-                 interface_remove_threshold=2, nbit=20):
+                 interface_remove_threshold=2, nbit=20, node_entity_check= lambda x,y:True):
         self.grammar = {}
         self.interface_remove_threshold = interface_remove_threshold
         self.radius_list = radius_list
@@ -44,6 +44,8 @@ class LocalSubstitutableGraphGrammar:
         self.vectorizer = graphlearn_utils.GraphLearnVectorizer()
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
+        # checked when extracting grammar. see graphtools
+        self.node_entity_check= node_entity_check
 
     def preprocessing(self,n_jobs=0,same_radius=False,same_core_size=0):
         '''
@@ -234,7 +236,7 @@ class LocalSubstitutableGraphGrammar:
                     put cips into grammar
         """
         for gr in graphs:
-            problem = (gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask)
+            problem = (gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask,self.node_entity_check)
             for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cid in core_interface_data_list:
                     self.add_core_interface_data(cid)
@@ -249,35 +251,41 @@ class LocalSubstitutableGraphGrammar:
         problems = itertools.izip(graphs, itertools.repeat(self.radius_list),
                                   itertools.repeat(self.thickness_list),
                                   itertools.repeat(self.vectorizer),
-                                  itertools.repeat(self.hash_bitmask))
+                                  itertools.repeat(self.hash_bitmask),
+                                  itertools.repeat(self.node_entity_check)
+                                  )
 
-        # creating pool of workers
-        if n_jobs == -1:
-            pool = Pool()
-        else:
-            pool = Pool(processes=n_jobs)
+
         # distributing jobs to workers
-        result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
+        #result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
+
+        extract_c_and_i = lambda x: [ extract_cores_and_interfaces(y) for y in x ]
+        result = graphlearn_utils.multiprocess_classic(problems,extract_c_and_i,n_jobs=n_jobs,batch_size=10)
+
         # the resulting chips can now be put intro the grammar
-        for core_interface_data_listlist in result:
-            for core_interface_data_list in core_interface_data_listlist:
-                for cid in core_interface_data_list:
+        for cidlistlist in result:
+            for cidlist in cidlistlist:
+                for cid in cidlist:
                     self.add_core_interface_data(cid)
 
-        pool.close()
 
 
 def extract_cores_and_interfaces(parameters):
+    if parameters == None:
+        return None
+
     # unpack arguments, expand the graph
-    graph, radius_list, thickness_list, vectorizer, hash_bitmask = parameters
+    graph, radius_list, thickness_list, vectorizer, hash_bitmask ,node_entity_check= parameters
     graph = graphlearn_utils.expand_edges(graph)
     cips = []
     for node in graph.nodes_iter():
         if 'edge' in graph.node[node]:
             continue
         core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
-                                                         vectorizer=vectorizer, hash_bitmask=hash_bitmask)
+                                                         vectorizer=vectorizer, hash_bitmask=hash_bitmask,
+                                                         node_entity_check=node_entity_check)
         if core_interface_list:
             cips.append(core_interface_list)
+
     return cips
 
