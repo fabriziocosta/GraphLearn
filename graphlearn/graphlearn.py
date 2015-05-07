@@ -3,13 +3,13 @@ import networkx as nx
 import itertools
 import random
 import logging
-import dill
 import postprocessing
 import estimator
 from graphtools import extract_core_and_interface, core_substitution, graph_clean
 from feasibility import FeasibilityChecker
-from grammar import LocalSubstitutableGraphGrammar
+from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 import joblib
+import dill
 logger = logging.getLogger('log')
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(message)s')
@@ -73,8 +73,10 @@ class GraphLearnSampler:
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
 
-        dill.dump(self.__dict__, open(file_name, "wb"),protocol=dill.HIGHEST_PROTOCOL)
-        #with open(file_name)
+
+        dill.dumps(self.__dict__)
+
+        dill.dump(self.__dict__, open(file_name, "w"),protocol=dill.HIGHEST_PROTOCOL)
         #joblib.dump(self.__dict__, file_name, compress=1)
 
     def load(self, file_name):
@@ -128,7 +130,7 @@ class GraphLearnSampler:
         self.annealing_factor = annealing_factor
 
         # adapt grammar to task:
-        self.local_substitutable_graph_grammar.grammar_preprocessing(n_jobs,same_radius,same_core_size)
+        self.local_substitutable_graph_grammar.preprocessing(n_jobs,same_radius,same_core_size)
 
         # do the improvement
         if n_jobs in [0, 1]:
