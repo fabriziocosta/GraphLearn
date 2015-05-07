@@ -34,18 +34,18 @@ def test_fit():
     #radius_list=[2,4]
     #thickness_list=[2]
 
-    #gr=itertools.islice(gr,50)
+    gr=itertools.islice(gr,50)
 
     sampler=gl.GraphLearnSampler()
     sampler.fit(gr,n_jobs=-1)
-    sampler.save('../example/tmp/demo.ge')
+    sampler.save('../example/tmp/demo2.ge')
     #graphlearn_utils.draw_grammar(sampler.local_substitutable_graph_grammar,5)
     print 'fitting done'
 
 
 
 
-#test_fit()
-test_sampler()
+test_fit()
+#test_sampler()
 
 

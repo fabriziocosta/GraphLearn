@@ -7,7 +7,7 @@ import graphtools
 ################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
 
 
-class core_interface_pair:
+class coreInterfacePair:
 
     """
     this is refered to throughout the code as cip
@@ -45,7 +45,7 @@ class LocalSubstitutableGraphGrammar:
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
 
-    def grammar_preprocessing(self,n_jobs=0,same_radius=False,same_core_size=0):
+    def preprocessing(self,n_jobs=0,same_radius=False,same_core_size=0):
         '''
             sampler will use this when preparing sampling
         '''
@@ -67,6 +67,10 @@ class LocalSubstitutableGraphGrammar:
         note that we dont do this per default because then we cant save the grammar anymore
         while keeping the manager outside the object
         '''
+
+        # do nothing if transform already happened
+        if type(self.grammar) != dict:
+            return
         # move the grammar into a manager object...
         manager = Manager()
         shelve = manager.dict()
@@ -198,7 +202,7 @@ class LocalSubstitutableGraphGrammar:
         else:
             self.read_multi(graphs, n_jobs)
 
-    def grammar_add_core_interface_data(self, cid):
+    def add_core_interface_data(self, cid):
         '''
             cid is a core interface data instance.
             we will add the cid to our grammar.
@@ -212,7 +216,7 @@ class LocalSubstitutableGraphGrammar:
         if cid.core_hash in self.grammar[cid.interface_hash]:
             subgraph_data = self.grammar[cid.interface_hash][cid.core_hash]
         else:
-            subgraph_data = core_interface_pair()
+            subgraph_data = coreInterfacePair()
             self.grammar[cid.interface_hash][cid.core_hash] = subgraph_data
             subgraph_data.count = 0
 
@@ -233,7 +237,7 @@ class LocalSubstitutableGraphGrammar:
             problem = (gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask)
             for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cid in core_interface_data_list:
-                    self.grammar_add_core_interface_data(cid)
+                    self.add_core_interface_data(cid)
 
     def read_multi(self, graphs, n_jobs):
         """
@@ -258,7 +262,7 @@ class LocalSubstitutableGraphGrammar:
         for core_interface_data_listlist in result:
             for core_interface_data_list in core_interface_data_listlist:
                 for cid in core_interface_data_list:
-                    self.grammar_add_core_interface_data(cid)
+                    self.add_core_interface_data(cid)
 
         pool.close()
 

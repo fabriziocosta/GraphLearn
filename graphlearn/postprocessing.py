@@ -7,7 +7,9 @@ import logging
 class postprocessor:
 
     def __init__(self):
-        self.logger=logging.getLogger('log')
+        # careful here, i got an error in graphlearn.save when this was active:
+        #self.logger=logging.getLogger('log')
+        pass
 
     def postprocess(self, graph):
         return graph
