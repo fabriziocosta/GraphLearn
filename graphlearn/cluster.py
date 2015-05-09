@@ -57,8 +57,8 @@ class cluster(GraphLearnSampler):
             best_sim = 0.0
             NN = 0
             for i2,g2 in enumerate (gl):
-                sim = X[i].dot(X[i2].T).todense()
-                print sim # just to make sure..
+                sim = X[i].dot(X[i2].T).todense()[0][0]
+                #print sim # just to make sure..
                 if sim > best_sim and i!=i2:
                     best_sim=sim
                     NN = g2
@@ -78,7 +78,7 @@ class cluster(GraphLearnSampler):
 
     def _sample(self,g_pair):
         self.goal = g_pair[2]
-        return super._sample(g_pair[0])
+        return super(cluster,self)._sample(g_pair[0])
 
 
     def score(self,graph):
