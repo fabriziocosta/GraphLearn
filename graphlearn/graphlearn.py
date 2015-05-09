@@ -70,6 +70,9 @@ class GraphLearnSampler(object):
         self.step= None
         self.node_entity_check = node_entity_check
 
+        # how often do we try to get a cip from the current graph  in sampling
+        self.select_cip_max_tries = None
+
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
 
@@ -113,7 +116,9 @@ class GraphLearnSampler(object):
                batch_size=10,
                n_jobs=0,
                n_steps=50,
-               annealing_factor=0):
+               annealing_factor=0,
+               select_cip_max_tries=20
+               ):
         """
             input: graph iterator
             output: yield (sampled_graph,{dictionary of info about sampling process}
@@ -125,7 +130,7 @@ class GraphLearnSampler(object):
         self.n_jobs = n_jobs
         self.same_core_size = same_core_size
         self.annealing_factor = annealing_factor
-
+        self.select_cip_max_tries = select_cip_max_tries
         # adapt grammar to task:
         self.local_substitutable_graph_grammar.preprocessing(n_jobs,same_radius,same_core_size)
 
@@ -330,9 +335,9 @@ class GraphLearnSampler(object):
             root is a node_node and not an edge_node
             radius and thickness are chosen to fit the grammars radius and thickness
         """
-        tries = 20
+
         failcount = 0
-        for x in xrange(tries):
+        for x in xrange(self.select_cip_max_tries):
             node = random.choice(graph.nodes())
             if 'edge' in graph.node[node]:
                 node = random.choice(graph.neighbors(node))

@@ -71,7 +71,7 @@ def multiprocess(iter,func,graphlearn_instance,n_jobs,batch_size):
 
 
 
-def multiprocess_classic(iter,func,n_jobs,batch_size):
+def multiprocess_classic(iter,static_args,func,n_jobs,batch_size):
 
     if n_jobs > 1:
         pool = Pool(processes=n_jobs)
@@ -80,7 +80,7 @@ def multiprocess_classic(iter,func,n_jobs,batch_size):
 
     #print grouper(iter,2).next()
     #exit()
-    results = [eden.apply_async(pool, func, args= [batch] ) for batch in grouper(iter,batch_size)]
+    results = [eden.apply_async(pool, func, args= ([batch],static_args) ) for batch in grouper(iter,batch_size)]
 
 
     for batchresult in results:
