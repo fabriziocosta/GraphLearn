@@ -248,19 +248,24 @@ class LocalSubstitutableGraphGrammar:
         """
 
         # generate iterator of problem instances
+        '''
         problems = itertools.izip(graphs, itertools.repeat(self.radius_list),
                                   itertools.repeat(self.thickness_list),
                                   itertools.repeat(self.vectorizer),
                                   itertools.repeat(self.hash_bitmask),
                                   itertools.repeat(self.node_entity_check)
                                   )
-
+        '''
 
         # distributing jobs to workers
         #result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
 
-        extract_c_and_i = lambda x: [ extract_cores_and_interfaces(y) for y in x ]
-        result = graphlearn_utils.multiprocess_classic(problems,extract_c_and_i,n_jobs=n_jobs,batch_size=10)
+        extract_c_and_i = lambda x: [ extract_cores_and_interfaces( [ [y]+x[1]] ) for y in x[0] ]
+
+        result = graphlearn_utils.multiprocess_classic(graphs,
+                                                       extract_c_and_i,
+                                                       static_args=[ self.radius_list,self.thickness_list,self.vectorizer,self.hash_bitmask,self.node_entity_check],
+                                                       n_jobs=n_jobs,batch_size=10)
 
         # the resulting chips can now be put intro the grammar
         for cidlistlist in result:

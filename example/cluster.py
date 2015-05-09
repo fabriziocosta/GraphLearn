@@ -10,7 +10,7 @@ import itertools
 import matplotlib.pyplot as plt
 
 
-steps=100
+steps=500
 
 sampler=cl.cluster()
 
@@ -22,18 +22,24 @@ sampler.load('tmp/cluster.ge')
 
 
 graphs = gspan_to_eden( 'bursi.pos.gspan' )
-graphs = itertools.islice(graphs,9)
+#graphs = itertools.islice(graphs,9)
 graphs = sampler.sample(graphs,
                         sampling_interval=int(steps/3)+1,
                         batch_size=1,
                         n_steps=steps,
                         n_jobs=1,
+                        select_cip_max_tries = 200,
+                        annealing_factor= 2,
+                        doXgraphs= 9
                         )
+
 
 history=[]
 for  i, (result,info) in enumerate(graphs):
     history.append(info['score_history'])
-    myutils.draw_many_graphs(info['graphs'])
+    #myutils.draw_many_graphs(info['graphs'])
+
+
 
 t = range(steps+1) 
 for h in history[:3]:

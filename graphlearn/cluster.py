@@ -71,9 +71,19 @@ class cluster(GraphLearnSampler):
     def sample(self, graph_iter, sampling_interval=9999,
                batch_size=10,
                n_jobs=0,
-               n_steps=50):
-        yield super(cluster,self).sample( self.get_nearest_neighbor_iterable(graph_iter) ,sampling_interval=sampling_interval,
-                            batch_size=batch_size,n_jobs=n_jobs, n_steps=n_steps,same_core_size=False )
+               n_steps=50,
+               select_cip_max_tries = 20,
+               annealing_factor= 1.0,
+               doXgraphs=9999):
+
+
+        graphiter = self.get_nearest_neighbor_iterable(graph_iter)
+        graphiter = itertools.islice(graphiter,doXgraphs)
+        for e in super(cluster,self).sample( graphiter ,sampling_interval=sampling_interval,
+                            batch_size=batch_size,n_jobs=n_jobs, n_steps=n_steps,same_core_size=False,
+                            annealing_factor = annealing_factor ,
+                            select_cip_max_tries=select_cip_max_tries):
+            yield e
 
 
     def _sample(self,g_pair):
@@ -86,7 +96,7 @@ class cluster(GraphLearnSampler):
             transformed_graph = self.vectorizer.transform2(graph)
             # slow so dont do it..
             #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-            graph.score = self.goal.dot(transformed_graph.T).todense()
+            graph.score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
             # print graph.score
         return graph.score
 
