@@ -23,7 +23,7 @@ file.setFormatter(formatter)
 logger.addHandler(file)
 
 
-class GraphLearnSampler:
+class GraphLearnSampler(object):
 
     def __init__(self, radius_list=[3, 5], thickness_list=[2, 4], estimator=None, grammar=None, nbit=20,
                     vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3), node_entity_check=lambda x,y:True):

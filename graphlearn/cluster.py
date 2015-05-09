@@ -72,7 +72,7 @@ class cluster(GraphLearnSampler):
                batch_size=10,
                n_jobs=0,
                n_steps=50):
-        yield super.sample( self.get_nearest_neighbor_iterable(graph_iter) ,sampling_interval=sampling_interval,
+        yield super(cluster,self).sample( self.get_nearest_neighbor_iterable(graph_iter) ,sampling_interval=sampling_interval,
                             batch_size=batch_size,n_jobs=n_jobs, n_steps=n_steps,same_core_size=False )
 
 
