@@ -14,7 +14,7 @@ steps=500
 
 sampler=cl.cluster()
 
-sampler.fit(gspan_to_eden( 'bursi.pos.gspan' ))
+sampler.fit(gspan_to_eden( 'bursi.pos.gspan' ),  n_jobs=4)
 sampler.save('tmp/cluster.ge')
 exit()
 #sampler.load('tmp/cluster.ge')
