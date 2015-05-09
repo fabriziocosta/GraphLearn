@@ -56,7 +56,7 @@ class cluster(GraphLearnSampler):
             # compare to all other graphs and see who the NN is :)
             best_sim = 0.0
             NN = 0
-            for i2,g2 in gl:
+            for i2,g2 in enumerate (gl):
                 sim = X[i].dot(X[i2].T).todense()
                 print sim # just to make sure..
                 if sim > best_sim and i!=i2:
