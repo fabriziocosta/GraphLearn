@@ -14,10 +14,10 @@ steps=500
 
 sampler=cl.cluster()
 
-#sampler.fit(gspan_to_eden( 'bursi.pos.gspan' ))
-#sampler.save('tmp/cluster.ge')
-
-sampler.load('tmp/cluster.ge')
+sampler.fit(gspan_to_eden( 'bursi.pos.gspan' ))
+sampler.save('tmp/cluster.ge')
+exit()
+#sampler.load('tmp/cluster.ge')
 
 
 
@@ -40,7 +40,7 @@ for  i, (result,info) in enumerate(graphs):
     #myutils.draw_many_graphs(info['graphs'])
 
 
-
+'''
 t = range(steps+1) 
 for h in history[:3]:
     plt.plot(t, h)
@@ -53,4 +53,5 @@ t = range(steps+1)
 for h in history[6:]:
     plt.plot(t, h)
 plt.show()
+'''
 

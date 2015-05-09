@@ -260,11 +260,11 @@ class LocalSubstitutableGraphGrammar:
         # distributing jobs to workers
         #result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
 
-        extract_c_and_i = lambda x: [ extract_cores_and_interfaces( [ [y]+x[1]] ) for y in x[0] ]
+        extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
 
         result = graphlearn_utils.multiprocess_classic(graphs,
+                                                       [ self.radius_list,self.thickness_list,self.vectorizer,self.hash_bitmask,self.node_entity_check],
                                                        extract_c_and_i,
-                                                       static_args=[ self.radius_list,self.thickness_list,self.vectorizer,self.hash_bitmask,self.node_entity_check],
                                                        n_jobs=n_jobs,batch_size=10)
 
         # the resulting chips can now be put intro the grammar
@@ -279,21 +279,24 @@ class LocalSubstitutableGraphGrammar:
 
 
 def extract_cores_and_interfaces(parameters):
-    if parameters == None:
+    # happens if batcher fills things up with null
+    if parameters[0] == None:
         return None
-
-    # unpack arguments, expand the graph
-    graph, radius_list, thickness_list, vectorizer, hash_bitmask ,node_entity_check= parameters
-    graph = graphlearn_utils.expand_edges(graph)
-    cips = []
-    for node in graph.nodes_iter():
-        if 'edge' in graph.node[node]:
-            continue
-        core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
-                                                         vectorizer=vectorizer, hash_bitmask=hash_bitmask,
-                                                         node_entity_check=node_entity_check)
-        if core_interface_list:
-            cips.append(core_interface_list)
-
-    return cips
+    try:
+        # unpack arguments, expand the graph
+        graph, radius_list, thickness_list, vectorizer, hash_bitmask ,node_entity_check= parameters
+        graph = graphlearn_utils.expand_edges(graph)
+        cips = []
+        for node in graph.nodes_iter():
+            if 'edge' in graph.node[node]:
+                continue
+            core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
+                                                             vectorizer=vectorizer, hash_bitmask=hash_bitmask,
+                                                             node_entity_check=node_entity_check)
+            if core_interface_list:
+                cips.append(core_interface_list)
+        return cips
+    except:
+        print "extract_cores_and_interfaces_died"
+        print parameters
 
