@@ -245,6 +245,12 @@ class LocalSubstitutableGraphGrammar:
         """
         will take graphs and to multiprocessing to extract their cips
         and put these cips in the grammar
+
+
+
+
+        multiprocessing takes lots of memory, my theory is, that the myeden.multiprocess
+        materializes the iterator too fast
         """
 
         # generate iterator of problem instances
@@ -262,10 +268,11 @@ class LocalSubstitutableGraphGrammar:
 
         extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
 
+
         result = graphlearn_utils.multiprocess_classic(graphs,
                                                        [ self.radius_list,self.thickness_list,self.vectorizer,self.hash_bitmask,self.node_entity_check],
                                                        extract_c_and_i,
-                                                       n_jobs=n_jobs,batch_size=10)
+                                                       n_jobs=n_jobs,batch_size=50)
 
         # the resulting chips can now be put intro the grammar
         for cidlistlist in result:
