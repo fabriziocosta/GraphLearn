@@ -2,7 +2,6 @@ import sys
 sys.path.append('..')
 import os
 os.nice(19)
-%matplotlib inline
 
 import graphlearn.utils.draw as myutils
 import graphlearn.cluster as cl
@@ -15,8 +14,8 @@ steps=100
 
 sampler=cl.cluster()
 
-cluster.fit(gspan_to_eden( 'bursi.pos.gspan' ))
-cluster.save('tmp/cluster.ge')
+sampler.fit(gspan_to_eden( 'bursi.pos.gspan' ))
+sampler.save('tmp/cluster.ge')
 
 #sampler.load('tmp/cluster.ge')
 

@@ -264,9 +264,12 @@ class LocalSubstitutableGraphGrammar:
 
         # the resulting chips can now be put intro the grammar
         for cidlistlist in result:
-            for cidlist in cidlistlist:
-                for cid in cidlist:
-                    self.add_core_interface_data(cid)
+
+            # we need to check this because the grouper will fill with None values
+            if cidlistlist:
+                for cidlist in cidlistlist:
+                    for cid in cidlist:
+                        self.add_core_interface_data(cid)
 
 
 
