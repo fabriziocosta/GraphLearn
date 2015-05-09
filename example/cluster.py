@@ -14,10 +14,10 @@ steps=100
 
 sampler=cl.cluster()
 
-sampler.fit(gspan_to_eden( 'bursi.pos.gspan' ))
-sampler.save('tmp/cluster.ge')
+#sampler.fit(gspan_to_eden( 'bursi.pos.gspan' ))
+#sampler.save('tmp/cluster.ge')
 
-#sampler.load('tmp/cluster.ge')
+sampler.load('tmp/cluster.ge')
 
 
 
