@@ -74,6 +74,9 @@ class GraphLearnSampler(object):
         # how often do we try to get a cip from the current graph  in sampling
         self.select_cip_max_tries = None
 
+        # sample path
+        self.sample_path = None
+
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
 
@@ -159,7 +162,7 @@ class GraphLearnSampler(object):
         # prepare variables and graph
         graph = self._sample_init(graph)
         scores = [graph.score]
-        sample_path = [graph]
+        self.sample_path = [graph]
         accept_counter = 0
 
         try:
@@ -176,13 +179,11 @@ class GraphLearnSampler(object):
                     accept_counter += 1
                     graph = candidate_graph
 
-
                 # save score
                 # take snapshot
                 scores.append(graph.score)
                 if self.step % self.sampling_interval == 0:
-                    sample_path.append(graph)
-
+                    self.sample_path.append(graph)
 
         except Exception as exc:
             logger.info(exc)
@@ -191,13 +192,12 @@ class GraphLearnSampler(object):
             self._sample_notes += '\nstoped at step %d' % self.step
 
 
-
         scores += [scores[-1]] * (self.n_steps + 1 - len(scores))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
-        sample_path.append(graph)
+        self.sample_path.append(graph)
         sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
-        sampled_graph_info =  {'graphs': sample_path, 'score_history': scores, "accept_count": accept_counter, 'notes': self._sample_notes}
+        sampled_graph_info =  {'graphs': self.sample_path, 'score_history': scores, "accept_count": accept_counter, 'notes': self._sample_notes}
         return (sampled_graph, sampled_graph_info)
 
 

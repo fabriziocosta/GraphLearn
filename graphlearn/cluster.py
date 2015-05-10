@@ -66,6 +66,9 @@ class cluster(GraphLearnSampler):
 
 
     def similarity_checker(self, graph):
+
+        if len(self.sample_path)==1:
+            self.sample_path.append(self.goal_graph)
         if 'score' in graph.__dict__:
             if graph.score > 0.99999:
                 self._sample_notes+=';edge %d %d;' % (self.starthash,self.finhash)
