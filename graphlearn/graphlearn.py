@@ -26,13 +26,13 @@ logger.addHandler(file)
 
 class GraphLearnSampler(object):
 
-    def __init__(self, radius_list=[3, 5], thickness_list=[2, 4], estimator=None, grammar=None, nbit=20,
+    def __init__(self, radius_list=[3, 5], thickness_list=[2, 4], estimator=None, grammar=None, nbit=26,
                     vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3), node_entity_check=lambda x,y:True):
 
 
 
         self.feasibility_checker = FeasibilityChecker()
-        self.postprocessor = postprocessing.postprocessor()
+        self.postprocessor = postprocessing.PostProcessor()
 
         # see utils.myeden.GraphLeanVectorizer,
         # edens vectorizer assumes that graphs are not expanded.
