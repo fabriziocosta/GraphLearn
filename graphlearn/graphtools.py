@@ -46,7 +46,8 @@ def calc_interface_hash(interface_graph, hash_bitmask):
             hb = calc_node_name(interface_graph, b, hash_bitmask)
             node_name_cache[b] = hb
         #l.append((ha ^ hb) + (ha + hb))
-        l.append(fast_hash([ha,hb],hash_bitmask))
+        z=(ha ^ hb) + (ha + hb)
+        l.append( fast_hash([ha,hb],hash_bitmask) +z )
     l.sort()
 
     # nodes that dont have edges
