@@ -45,15 +45,16 @@ def calc_interface_hash(interface_graph, hash_bitmask):
         if hb == -1:
             hb = calc_node_name(interface_graph, b, hash_bitmask)
             node_name_cache[b] = hb
-        #l.append((ha ^ hb) + (ha + hb))
-        z=(ha ^ hb) + (ha + hb)
-        l.append( fast_hash([ha,hb],hash_bitmask) +z )
+        l.append((ha ^ hb) + (ha + hb))
+        #z=(ha ^ hb) + (ha + hb)
+        #l.append( fast_hash([ha,hb],hash_bitmask) +z )
     l.sort()
 
     # nodes that dont have edges
-    l += [interface_graph.node[node_id]['hlabel'][0] for node_id in all_nodes - visited]
-    l = fast_hash(l, hash_bitmask)
-    return l
+    z= [interface_graph.node[node_id]['hlabel'][0] for node_id in all_nodes - visited]
+    z.sort()
+    ihash = fast_hash(l+z, hash_bitmask)
+    return ihash
 
 
 def calc_core_hash(core_graph, hash_bitmask):
