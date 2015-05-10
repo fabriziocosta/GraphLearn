@@ -65,7 +65,11 @@ class cluster(GraphLearnSampler):
             yield (g,NN,X[i2])
 
 
-
+    def similarity_checker(self, graph):
+        if 'score' in graph.__dict__:
+            if graph.score > 0.99999:
+                self._sample_notes+=';edge %d %d;' % (self.starthash,self.finhash)
+                raise Exception('goal reached')
 
 
     def sample(self, graph_iter, sampling_interval=9999,
@@ -87,7 +91,10 @@ class cluster(GraphLearnSampler):
 
 
     def _sample(self,g_pair):
+        self.starthash = hash( g_pair[0] )
+        self.finhash = hash(g_pair[2])
         self.goal = g_pair[2]
+        self.goal_graph= g_pair[1]
         return super(cluster,self)._sample(g_pair[0])
 
 

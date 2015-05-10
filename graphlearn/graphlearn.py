@@ -10,6 +10,7 @@ from feasibility import FeasibilityChecker
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 import joblib
 import dill
+import traceback
 logger = logging.getLogger('log')
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(message)s')
@@ -185,6 +186,7 @@ class GraphLearnSampler(object):
 
         except Exception as exc:
             logger.info(exc)
+            logger.debug(traceback.format_exc(5))
             self._sample_notes += "\n"+str(exc)
             self._sample_notes += '\nstoped at step %d' % self.step
 
@@ -271,29 +273,39 @@ class GraphLearnSampler(object):
         return score_ratio > random.random()
 
 
-    def propose(self, graph):
-        """
-        starting from 'graph' we construct a novel candidate instance
-        return None and a debug log if we fail to do so.
 
+
+    def propose(self,graph):
+        '''
+         we wrap the propose single cip, so it may be overwritten some day
+        '''
+        graph =  self.propose_single_cip(graph)
+        if graph != None:
+            return graph
+
+        raise Exception ("propose failed.. reason is that propose_single_cip failed.")
+
+
+    def propose_single_cip(self, graph):
+        """
+        we choose ONE core in the graph and return a valid grpah with a changed core
+
+        note that when we chose the core, we made sure that there would be possible replacements..
         """
         # finding a legit candidate..
         selected_cip = self.select_cip_for_substitution(graph)
 
         # see which substitution to make
         candidate_cips = self.select_randomized_cips_from_grammar(selected_cip)
-        for cipcount,candidate_cip in enumerate(candidate_cips):
-
+        for candidate_cip in candidate_cips:
             # substitute and return
             graph_new = core_substitution(graph, selected_cip.graph, candidate_cip.graph)
             graph_clean(graph_new)
-
             if self.feasibility_checker.check(graph_new):
                 return self.postprocessor.postprocess(graph_new)
             # ill leave this here.. use it in case things go wrong oo
             #    draw.drawgraphs([graph, selected_cip.graph, candidate_cip.graph], contract=False)
 
-        raise Exception ("propose failed;received %d cips, all of which failed either at substitution or feasibility  " % cipcount +1)
 
 
 
