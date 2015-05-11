@@ -98,6 +98,7 @@ class cluster(GraphLearnSampler):
         self.finhash = hash(g_pair[2])
         self.goal = g_pair[2]
         self.goal_graph= g_pair[1]
+        self.goal_size = len(self.vectorizer._edge_to_vertex_transform(self.goal_graph))
         return super(cluster,self)._sample(g_pair[0])
 
 
@@ -108,5 +109,6 @@ class cluster(GraphLearnSampler):
             #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph.score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
             # print graph.score
+            graph.score -= .007*abs( self.goal_size - len(graph) )
         return graph.score
 
