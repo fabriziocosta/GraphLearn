@@ -71,6 +71,32 @@ def multiprocess(iter,func,graphlearn_instance,n_jobs,batch_size):
 
 
 
+def multiprocess_classic(iter,static_args,func,n_jobs,batch_size):
+
+    if n_jobs > 1:
+        pool = Pool(processes=n_jobs)
+    else:
+        pool = Pool()
+
+    #print grouper(iter,2).next()
+    #exit()
+
+    '''
+    for batch in grouper(iter,batch_size):
+        for e in eden.apply_async(pool,func,args=(batch, static_args)).get():
+            yield e
+    return
+    '''
+    results = [eden.apply_async(pool, func, args= (batch,static_args) ) for batch in grouper(iter,batch_size)]
+
+
+    for batchresult in results:
+        for lis in batchresult.get():
+            yield lis
+    pool.close()
+    pool.join()
+
+
 # from here: https://docs.python.org/2/library/itertools.html#recipes
 def grouper( iterable, n, fillvalue=None):
     args = [iter(iterable)] * n

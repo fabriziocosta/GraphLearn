@@ -59,6 +59,31 @@ def draw_grammar_stats(grammar):
     plt.yscale('log')
     plt.show()
 
+    print 'histogram'
+    #a=[ (c[k],cc[k]) for k in c.keys()]
+    a=[ (i[k],ii[k]) for k in i.keys()]
+    a.sort()
+    a0= [e[0] for e in a]
+    d=defaultdict(int)
+    for e in a0:
+        d[e]+=1
+    # [111223] => {1:3 , 2:2  , 3:1}
+    datapoints=[]
+    for i in range(a0[-1]):
+        if i in d:
+            datapoints.append(d[i])
+        else:
+            datapoints.append(0)
+    print 'sum cips: %d' % sum(a0)
+    print 'distinct cores: %d (seen on x axis)' % len(c)
+    print 'interfaces with x many cores were observed y many times. '
+    plt.subplot(1,1,1)
+    plt.plot(datapoints, color='blue')
+    #plt.plot(a1, color='blue', lw=2)
+    plt.yscale('log')
+    plt.show()
+
+
 
 def display(G, size=6, font_size=15, node_size=200, node_border=False, delabeledges=True, contract=False,
             vertex_label='label'):
