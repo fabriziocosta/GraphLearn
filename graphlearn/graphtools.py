@@ -76,7 +76,7 @@ def calc_node_name(interfacegraph, node, hash_bitmask):
 
 
 def extract_core_and_interface(root_node, graph, radius_list=None, thickness_list=None, vectorizer=None,
-                               hash_bitmask=2 * 20 - 1, node_entity_check= lambda x,y:True):
+                               hash_bitmask=2 ** 20 - 1, node_entity_check= lambda x,y:True):
     """
 
 :param root_node: root root_node
