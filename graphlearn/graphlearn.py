@@ -324,8 +324,6 @@ class GraphLearnSampler(object):
         for core_hash in hashes:
             yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
 
-        raise Exception('select_randomized_cips_from_grammar didn\'t find any acceptable cip; entries_found %d' %
-                        len(hashes))
 
     def filter_chips_get_core_hashes(self,cip):
         '''
