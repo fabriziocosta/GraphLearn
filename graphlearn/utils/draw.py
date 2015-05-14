@@ -62,8 +62,10 @@ def draw_grammar_stats(grammar):
     print 'histogram'
     #a=[ (c[k],cc[k]) for k in c.keys()]
     a=[ (i[k],ii[k]) for k in i.keys()]
-    a.sort()
+
     a0= [e[0] for e in a]
+    a0.sort()
+
     d=defaultdict(int)
     for e in a0:
         d[e]+=1
@@ -74,6 +76,7 @@ def draw_grammar_stats(grammar):
             datapoints.append(d[i])
         else:
             datapoints.append(0)
+    #datapoints.sort()
     print 'sum cips: %d' % sum(a0)
     print 'distinct cores: %d (seen on x axis)' % len(c)
     print 'interfaces with x many cores were observed y many times. '
