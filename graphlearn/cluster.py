@@ -50,27 +50,29 @@ class cluster(GraphLearnSampler):
         X = self.vectorizer.transform(graphlist_)
 
         graphlist,graphlist_ = itertools.tee(graphlist)
-        for i,g in enumerate(graphlist):
+        for i,graph in enumerate(graphlist):
             gl,graphlist_ = itertools.tee(graphlist_)
 
-            # compare to all other graphs and see who the NN is :)
+            # compare to all other graphs and see who the nearest_neighbor_graph is :)
             best_sim = 0.0
-            NN = 0
-            for i2,g2 in enumerate (gl):
+            nearest_neighbor_graph = None
+
+            for i2,graph2 in enumerate (gl):
                 sim = X[i].dot(X[i2].T).todense()[0][0]
                 #print sim # just to make sure..
                 if sim > best_sim and i!=i2:
                     best_sim=sim
-                    NN = g2
-            yield (g,NN,X[i2])
+                    nearest_neighbor_graph = graph2
+
+            yield (graph,nearest_neighbor_graph,X[i2])
 
 
-    def similarity_checker(self, graph):
+    def _stop_condition(self, graph):
 
         if len(self.sample_path)==1:
             self.sample_path.append(self.goal_graph)
         if 'score' in graph.__dict__:
-            if graph.score > 0.99999:
+            if graph._score > 0.99999:
                 self._sample_notes+=';edge %d %d;' % (self.starthash,self.finhash)
                 raise Exception('goal reached')
 
@@ -86,11 +88,11 @@ class cluster(GraphLearnSampler):
 
         graphiter = self.get_nearest_neighbor_iterable(graph_iter)
         graphiter = itertools.islice(graphiter,doXgraphs)
-        for e in super(cluster,self).sample( graphiter ,sampling_interval=sampling_interval,
+        for result_tuple in super(cluster,self).sample( graphiter ,sampling_interval=sampling_interval,
                             batch_size=batch_size,n_jobs=n_jobs, n_steps=n_steps,same_core_size=False,
                             annealing_factor = annealing_factor ,
                             select_cip_max_tries=select_cip_max_tries):
-            yield e
+            yield result_tuple
 
 
     def _sample(self,g_pair):
@@ -102,13 +104,13 @@ class cluster(GraphLearnSampler):
         return super(cluster,self)._sample(g_pair[0])
 
 
-    def score(self,graph):
+    def _score(self,graph):
         if not 'score' in graph.__dict__:
             transformed_graph = self.vectorizer.transform2(graph)
             # slow so dont do it..
             #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-            graph.score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
+            graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
             # print graph.score
-            graph.score -= .007*abs( self.goal_size - len(graph) )
-        return graph.score
+            graph._score -= .007*abs( self.goal_size - len(graph) )
+        return graph._score
 
