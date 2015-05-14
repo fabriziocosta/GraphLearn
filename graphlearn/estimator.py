@@ -35,7 +35,6 @@ def fit_estimator( X, n_jobs=-1, cv=10):
                                         negative_data_matrix=X_neg,
                                         cv=cv,
                                         n_jobs=n_jobs,
-                                        verbose=0,
                                         n_iter_search=10)
 
 def calibrate_estimator( X,estimator, nu=.5):
