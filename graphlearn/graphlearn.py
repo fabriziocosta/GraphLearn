@@ -79,6 +79,9 @@ class GraphLearnSampler(object):
 
         # sample this many before sampling interval starts
         self.burnout = None
+        
+        # is the core coosen by frequency?  (bool)
+        self.probabilistic_core_choice = None
 
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
@@ -122,6 +125,7 @@ class GraphLearnSampler(object):
     def sample(self, graph_iter, same_radius=False, same_core_size=True, similarity=-1, sampling_interval=9999,
                batch_size=10,
                n_jobs=0,
+               probabilistic_core_choice = True,
                n_steps=50,
                annealing_factor=0,
                select_cip_max_tries=20,
@@ -140,6 +144,7 @@ class GraphLearnSampler(object):
         self.annealing_factor = annealing_factor
         self.select_cip_max_tries = select_cip_max_tries
         self.burnout = burnout
+        self.probabilistic_core_choice = probabilisitc_core_choice
         # adapt grammar to task:
         self.local_substitutable_graph_grammar.preprocessing(n_jobs,same_radius,same_core_size)
 
@@ -328,9 +333,34 @@ class GraphLearnSampler(object):
             raise Exception('select randomized cips from grammar got bad cip')
 
         core_hashes=self._get_valid_core_hashes(cip)
-        random.shuffle(core_hashes)
-        for core_hash in core_hashes:
-            yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
+
+        if self.probabilistic_core_choice:
+            # get all the frequencies
+            freq=[]
+            for core_hash in core_hashes:
+                freq.append(self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash].count)
+            
+            # while there are cores
+            while core_hashes:
+                
+                # get a random one by frequency
+                freq_sum = float(sum(freq))
+                rand = random.random()
+                current=0.0
+                i=-1
+                while current <rand:
+                    current += (freq[i+1]/freq_sum)
+                    i+=1
+                # yield and delete
+                yield core_hashes[i]
+                del freq[i]
+                del core_hashes[i]
+                    
+
+
+        else:
+            for core_hash in core_hashes:
+                yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
 
         raise Exception('select_randomized_cips_from_grammar didn\'t find any acceptable cip; entries_found %d' %
                         len(core_hashes))
@@ -356,7 +386,9 @@ class GraphLearnSampler(object):
             result_list = list(self.local_substitutable_graph_grammar.core_size[cip.interface_hash][cip.core_nodes_count])
         else:
             result_list = list(self.local_substitutable_graph_grammar.grammar[cip.interface_hash].keys())
+        
 
+        
         random.shuffle(result_list)
         return result_list
 
