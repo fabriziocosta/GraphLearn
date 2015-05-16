@@ -9,9 +9,10 @@ from graphtools import extract_core_and_interface, core_substitution, graph_clea
 from feasibility import FeasibilityChecker
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 import joblib
+from multiprocessing import Pool
 import dill
 import traceback
-logger = logging.getLogger('log')
+logger = logging.getLogger('root')
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(message)s')
 cons = logging.StreamHandler()
@@ -144,7 +145,8 @@ class GraphLearnSampler(object):
         self.annealing_factor = annealing_factor
         self.select_cip_max_tries = select_cip_max_tries
         self.burnout = burnout
-        self.probabilistic_core_choice = probabilisitc_core_choice
+        self.batch_size= batch_size
+        self.probabilistic_core_choice = probabilistic_core_choice
         # adapt grammar to task:
         self.local_substitutable_graph_grammar.preprocessing(n_jobs,same_radius,same_core_size)
 
@@ -153,10 +155,33 @@ class GraphLearnSampler(object):
             for graph in graph_iter:
                 yield self._sample(graph)
         else:
-            _sample_multi= lambda s,graphs: [s._sample(g) for g in graphs]
-            for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
-                yield pair
 
+
+            def _sample_multi(what):
+                self = dill.loads(what[0])
+                graphlist=dill.loads(what[1])
+                return [self._sample(g) for g in graphlist]
+
+            if n_jobs > 1:
+                pool = Pool(processes=n_jobs)
+            else:
+                pool = Pool()
+
+            resultlist = pool.imap_unordered( _sample_multi, self._argbuilder(graph_iter) )
+
+            for it in resultlist:
+                for pair in it:
+                    if pair:
+                        yield pair
+
+            #for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
+            #    yield pair
+
+    def _argbuilder(self,problemiter):
+        s=dill.dumps(self)
+        for e in graphlearn_utils.grouper(problemiter, self.batch_size):
+            batch=dill.dumps(e)
+            yield (s,batch)
 
 
     def _sample(self, graph):
@@ -415,7 +440,7 @@ class GraphLearnSampler(object):
             # in addition the selection might fail because it is not possible to extract at the desired radius/thicknes
             #
             cip = extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer,
-                                             hash_bitmask=self.hash_bitmask, node_entity_check=self.node_entity_check)
+                                             hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
 
             if not cip:
                 failcount+=1

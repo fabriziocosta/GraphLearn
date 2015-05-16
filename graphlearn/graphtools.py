@@ -76,7 +76,7 @@ def calc_node_name(interfacegraph, node, hash_bitmask):
 
 
 def extract_core_and_interface(root_node, graph, radius_list=None, thickness_list=None, vectorizer=None,
-                               hash_bitmask=2 * 20 - 1, node_entity_check= lambda x,y:True):
+                               hash_bitmask=2 * 20 - 1, filter= lambda x,y:True):
     """
 
 :param root_node: root root_node
@@ -91,7 +91,7 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
 """
 
 
-    if not node_entity_check(graph,root_node):
+    if not filter(graph,root_node):
         return []
     if 'hlabel' not in graph.node[0]:
         vectorizer._label_preprocessing(graph)
@@ -115,7 +115,7 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
 
 
             core_graph_nodes = [item for x in range(radius_ + 1) for item in nodedict.get(x, [])]
-            if not node_entity_check(master_cip_graph, core_graph_nodes):
+            if not filter(master_cip_graph, core_graph_nodes):
                 continue
 
             corehash = calc_core_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
@@ -149,6 +149,21 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
 
             cip_list.append(coreInterfacePair(interfacehash, corehash, cip_graph, radius_, thickness_, core_nodes_count, distance_dict=nodedict))
     return cip_list
+
+
+
+# implementation of an example filter:
+
+def filter(graph,nodes):
+    # root node?
+    if type(nodes) != list:
+        if 'no_root' in graph.node[nodes]:
+            return False
+        else:
+            return True
+    else:
+        return True
+
 
 
 
