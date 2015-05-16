@@ -299,7 +299,7 @@ def extract_cores_and_interfaces(parameters):
                 continue
             core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
                                                              vectorizer=vectorizer, hash_bitmask=hash_bitmask,
-                                                             node_entity_check=node_entity_check)
+                                                             filter=node_entity_check)
             if core_interface_list:
                 cips.append(core_interface_list)
         return cips

@@ -3,6 +3,8 @@
 from graphlearn import GraphLearnSampler, LocalSubstitutableGraphGrammar
 import itertools
 
+
+from sklearn.neighbors import NearestNeighbors
 class cluster(GraphLearnSampler):
 
     '''
@@ -43,28 +45,27 @@ class cluster(GraphLearnSampler):
 
 
 
-    def get_nearest_neighbor_iterable(self,graphlist):
+    def get_nearest_neighbor_iterable(self,start_graphs, target_graphs, neigh_num=1 ):
 
         # vectorize all
-        graphlist, graphlist_ = itertools.tee(graphlist)
+        start_graphs, graphlist_ = itertools.tee(start_graphs)
         X = self.vectorizer.transform(graphlist_)
+        target_graphs, targetlist_ = itertools.tee(target_graphs)
+        Y = self.vectorizer.transform(targetlist_)
 
-        graphlist,graphlist_ = itertools.tee(graphlist)
-        for i,graph in enumerate(graphlist):
-            gl,graphlist_ = itertools.tee(graphlist_)
+        # get neighbor pairs in indices
+        nbrs= NearestNeighbors(n_neighbors=neigh_num+1, algorithm='ball_tree').fit(Y)
+        dist, indices= nbrs.kneighbors(X)
 
-            # compare to all other graphs and see who the nearest_neighbor_graph is :)
-            best_sim = 0.0
-            nearest_neighbor_graph = None
-
+        # indices are ordered so i can just loop
+        for i,graph in enumerate(start_graphs):
+            # and loop over the partner:
+            gl,target_graphs = itertools.tee(target_graphs)
             for i2,graph2 in enumerate (gl):
-                sim = X[i].dot(X[i2].T).todense()[0][0]
-                #print sim # just to make sure..
-                if sim > best_sim and i!=i2:
-                    best_sim=sim
-                    nearest_neighbor_graph = graph2
-
-            yield (graph,nearest_neighbor_graph,X[i2])
+                if i2 == indices[i][neigh_num]: # indices work like this in numpy?
+                    # and yield start goal and vectorized(goal)
+                    yield (graph,graph2,X[i2])
+                    break
 
 
     def _stop_condition(self, graph):
