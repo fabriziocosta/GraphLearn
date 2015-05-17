@@ -26,7 +26,7 @@ class discsampler(GraphLearnSampler):
 
     def sample(self, graph_iter,
                batch_size=2,
-               n_jobs=0,
+               n_jobs=-1,
                n_steps=100,
                select_cip_max_tries = 100,
                annealing_factor = 1.0,
@@ -48,7 +48,7 @@ class discsampler(GraphLearnSampler):
         #dist, indices= nbrs.kneighbors(X)
 
 
-        new_vectors = csr_matrix()
+        new_vectors = None
 
         # l00p1ng
         while len(new_graphs) < create_n_samples and queue:
@@ -87,7 +87,10 @@ class discsampler(GraphLearnSampler):
                         continue
                     # if we keep them, we put them in the queue
                     queue = itertools.chain(queue,graph)
-                    new_vectors = vstack([vectorized,new_vectors], format='csr')
+                    if new_vectors==None:
+                        new_vectors= vectorized
+                    else:
+                        new_vectors = vstack([vectorized,new_vectors], format='csr')
 
 
         return new_graphs
