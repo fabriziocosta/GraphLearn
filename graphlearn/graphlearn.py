@@ -148,32 +148,25 @@ class GraphLearnSampler(object):
         self.batch_size= batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
         # adapt grammar to task:
-        self.local_substitutable_graph_grammar.preprocessing(n_jobs,same_radius,same_core_size)
+        self.local_substitutable_graph_grammar.preprocessing(n_jobs,same_radius,same_core_size, probabilistic_core_choice)
 
         # do the improvement
         if n_jobs in [0, 1]:
             for graph in graph_iter:
                 yield self._sample(graph)
         else:
-
-
-            def _sample_multi(what):
-                self = dill.loads(what[0])
-                graphlist=dill.loads(what[1])
-                return [self._sample(g) for g in graphlist]
-
             if n_jobs > 1:
                 pool = Pool(processes=n_jobs)
             else:
                 pool = Pool()
-
             resultlist = pool.imap_unordered( _sample_multi, self._argbuilder(graph_iter) )
 
-            for it in resultlist:
-                for pair in it:
+            for batch in resultlist:
+                for pair in batch:
                     if pair:
                         yield pair
-
+            pool.close()
+            pool.join()
             #for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
             #    yield pair
 
@@ -363,13 +356,14 @@ class GraphLearnSampler(object):
             # get all the frequencies
             freq=[]
             for core_hash in core_hashes:
-                freq.append(self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash].count)
-            
+                freq.append(self.local_substitutable_graph_grammar.frequency[cip.interface_hash][core_hash])
+
+            freq_sum= float(sum(freq))
+
             # while there are cores
             while core_hashes:
                 
                 # get a random one by frequency
-                freq_sum = float(sum(freq))
                 rand = random.random()
                 current=0.0
                 i=-1
@@ -377,11 +371,10 @@ class GraphLearnSampler(object):
                     current += (freq[i+1]/freq_sum)
                     i+=1
                 # yield and delete
-                yield core_hashes[i]
+                yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hashes[i]]
+                freq_sum-= freq[i]
                 del freq[i]
                 del core_hashes[i]
-                    
-
 
         else:
             for core_hash in core_hashes:
@@ -472,7 +465,10 @@ class GraphLearnSampler(object):
 
 
 
-
+def _sample_multi(what):
+    self = dill.loads(what[0])
+    graphlist=dill.loads(what[1])
+    return [self._sample(g) for g in graphlist]
 
 
 
