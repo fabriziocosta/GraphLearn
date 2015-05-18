@@ -130,7 +130,8 @@ class GraphLearnSampler(object):
                n_steps=50,
                annealing_factor=0,
                select_cip_max_tries=20,
-               burnout = 0
+               burnout = 0,
+               verbose= 0
                ):
         """
             input: graph iterator
@@ -147,6 +148,7 @@ class GraphLearnSampler(object):
         self.burnout = burnout
         self.batch_size= batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
+        self.verbose = verbose
         # adapt grammar to task:
         self.local_substitutable_graph_grammar.preprocessing(n_jobs,same_radius,same_core_size, probabilistic_core_choice)
 
@@ -214,10 +216,11 @@ class GraphLearnSampler(object):
                     self.sample_path.append(graph)
 
         except Exception as exc:
-            logger.info(exc)
-            logger.debug(traceback.format_exc(5))
-            self._sample_notes += "\n"+str(exc)
-            self._sample_notes += '\nstoped at step %d' % self.step
+            if self.verbose > 1:
+                logger.info(exc)
+                logger.debug(traceback.format_exc(5))
+                self._sample_notes += "\n"+str(exc)
+                self._sample_notes += '\nstoped at step %d' % self.step
 
 
         scores += [scores[-1]] * (self.n_steps + 1 - len(scores))
