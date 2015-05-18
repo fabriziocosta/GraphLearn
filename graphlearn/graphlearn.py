@@ -26,11 +26,10 @@ logger.addHandler(file)
 
 class GraphLearnSampler(object):
 
-    def __init__(self, radius_list=[3, 5], thickness_list=[2, 4], estimator=None, grammar=None, nbit=26,
-                    vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3), node_entity_check=lambda x,y:True):
+    def __init__(self, radius_list=[3, 5], thickness_list=[2, 4], complexity=3, estimator=None, grammar=None, nbit=26,
+                 vectorizer=graphlearn_utils.GraphLearnVectorizer(complexity=3), node_entity_check=lambda x, y: True):
 
-
-
+        self.complexity=complexity
         self.feasibility_checker = FeasibilityChecker()
         self.postprocessor = postprocessing.PostProcessor()
 
@@ -38,7 +37,6 @@ class GraphLearnSampler(object):
         # edens vectorizer assumes that graphs are not expanded.
         # this is fixed with just a few lines of code.
         self.vectorizer = vectorizer
-
 
         # lists of int
         self.radius_list = radius_list
@@ -67,8 +65,8 @@ class GraphLearnSampler(object):
         # factor for simulated annealing, 0 means off
         # 1 is pretty strong. 0.6 seems ok
         self.annealing_factor = None
-        #current step in sampling proces of a single graph
-        self.step= None
+        # current step in sampling proces of a single graph
+        self.step = None
         self.node_entity_check = node_entity_check
 
         # how often do we try to get a cip from the current graph  in sampling
@@ -80,17 +78,15 @@ class GraphLearnSampler(object):
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
 
-        dill.dump(self.__dict__, open(file_name, "w"),protocol=dill.HIGHEST_PROTOCOL)
+        dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
         #joblib.dump(self.__dict__, file_name, compress=1)
 
     def load(self, file_name):
         #self.__dict__ = joblib.load(file_name)
         self.__dict__ = dill.load(open(file_name))
 
-
-
     def fit(self, G_pos,
-            core_interface_pair_remove_threshold=3,
+            core_interface_pair_remove_threshold=2,
             interface_remove_threshold=2,
             n_jobs=-1, nu=.5):
         """
@@ -100,21 +96,17 @@ class GraphLearnSampler(object):
 
         # get grammar
         self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list, self.thickness_list,
-                                                                                core_interface_pair_remove_threshold,
-                                                                                interface_remove_threshold,
-                                                                                nbit=self.nbit, node_entity_check=self.node_entity_check)
-        self.local_substitutable_graph_grammar.fit(G_iterator,n_jobs)
+                                                                                complexity=self.complexity,
+                                                                                core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
+                                                                                interface_remove_threshold=interface_remove_threshold,
+                                                                                nbit=self.nbit, 
+                                                                                node_entity_check=self.node_entity_check)
+        self.local_substitutable_graph_grammar.fit(G_iterator, n_jobs)
 
         # get estimator
-        self.estimator = estimator.fit(G_iterator_,vectorizer=self.vectorizer,nu=nu,n_jobs=n_jobs)
-
-
-
-
+        self.estimator = estimator.fit(G_iterator_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs)
 
     ############################### SAMPLE ###########################
-
-
 
     def sample(self, graph_iter, same_radius=False, same_core_size=True, similarity=-1, sampling_interval=9999,
                batch_size=10,
@@ -136,18 +128,16 @@ class GraphLearnSampler(object):
         self.annealing_factor = annealing_factor
         self.select_cip_max_tries = select_cip_max_tries
         # adapt grammar to task:
-        self.local_substitutable_graph_grammar.preprocessing(n_jobs,same_radius,same_core_size)
+        self.local_substitutable_graph_grammar.preprocessing(n_jobs, same_radius, same_core_size)
 
         # do the improvement
         if n_jobs in [0, 1]:
             for graph in graph_iter:
                 yield self._sample(graph)
         else:
-            _sample_multi= lambda s,graphs: [s._sample(g) for g in graphs]
-            for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
+            _sample_multi = lambda s, graphs: [s._sample(g) for g in graphs]
+            for pair in graphlearn_utils.multiprocess(graph_iter, _sample_multi, self, n_jobs=n_jobs, batch_size=batch_size):
                 yield pair
-
-
 
     def _sample(self, graph):
         '''
@@ -157,7 +147,7 @@ class GraphLearnSampler(object):
             output: (sampled_graph,{info dictionary})
         '''
 
-        if graph==None:
+        if graph == None:
             return None
         # prepare variables and graph
         graph = self._sample_init(graph)
@@ -166,11 +156,9 @@ class GraphLearnSampler(object):
         accept_counter = 0
 
         try:
-            for self.step in xrange( self.n_steps):
+            for self.step in xrange(self.n_steps):
                 # check similarity - stop condition..
                 self.similarity_checker(graph)
-
-
 
                 # get a proposal for a new graph
                 # keep it if we like it
@@ -188,21 +176,16 @@ class GraphLearnSampler(object):
         except Exception as exc:
             logger.info(exc)
             logger.debug(traceback.format_exc(5))
-            self._sample_notes += "\n"+str(exc)
+            self._sample_notes += "\n" + str(exc)
             self._sample_notes += '\nstoped at step %d' % self.step
-
 
         scores += [scores[-1]] * (self.n_steps + 1 - len(scores))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         self.sample_path.append(graph)
         sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
-        sampled_graph_info =  {'graphs': self.sample_path, 'score_history': scores, "accept_count": accept_counter, 'notes': self._sample_notes}
+        sampled_graph_info = {'graphs': self.sample_path, 'score_history': scores, "accept_count": accept_counter, 'notes': self._sample_notes}
         return (sampled_graph, sampled_graph_info)
-
-
-
-
 
     def _sample_init(self, graph):
         '''
@@ -239,11 +222,8 @@ class GraphLearnSampler(object):
             else:
                 similarity = self.vectorizer._similarity(graph, [1])
 
-                if  similarity < self.similarity:
+                if similarity < self.similarity:
                     raise Exception('similarity stop condition reached')
-
-
-
 
     def score(self, graph):
         """
@@ -266,25 +246,21 @@ class GraphLearnSampler(object):
 
         score_graph_old = self.score(graph_old)
         score_graph_new = self.score(graph_new)
-        score_ratio =  score_graph_new / score_graph_old
+        score_ratio = score_graph_new / score_graph_old
         if score_ratio > 1.0:
-           return True
-        score_ratio -= (float(self.step)/self.n_steps) * self.annealing_factor
+            return True
+        score_ratio -= (float(self.step) / self.n_steps) * self.annealing_factor
         return score_ratio > random.random()
 
-
-
-
-    def propose(self,graph):
+    def propose(self, graph):
         '''
          we wrap the propose single cip, so it may be overwritten some day
         '''
-        graph =  self.propose_single_cip(graph)
+        graph = self.propose_single_cip(graph)
         if graph != None:
             return graph
 
-        raise Exception ("propose failed.. reason is that propose_single_cip failed.")
-
+        raise Exception("propose failed.. reason is that propose_single_cip failed.")
 
     def propose_single_cip(self, graph):
         """
@@ -306,9 +282,6 @@ class GraphLearnSampler(object):
             # ill leave this here.. use it in case things go wrong oo
             #    draw.drawgraphs([graph, selected_cip.graph, candidate_cip.graph], contract=False)
 
-
-
-
     def select_randomized_cips_from_grammar(self, cip):
         """
         :param cip: the cip we selected from the graph
@@ -319,13 +292,12 @@ class GraphLearnSampler(object):
         if not cip:
             raise Exception('select randomized cips from grammar got bad cip')
 
-        hashes=self.filter_chips_get_core_hashes(cip)
+        hashes = self.filter_chips_get_core_hashes(cip)
         random.shuffle(hashes)
         for core_hash in hashes:
             yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
 
-
-    def filter_chips_get_core_hashes(self,cip):
+    def filter_chips_get_core_hashes(self, cip):
         '''
         :param cip: the chip to be replaced
         :return: list of core_hashes of acceptable replacement cips
@@ -336,8 +308,6 @@ class GraphLearnSampler(object):
             return self.local_substitutable_graph_grammar.core_size[cip.interface_hash][cip.core_nodes_count]
         else:
             return self.local_substitutable_graph_grammar.grammar[cip.interface_hash].keys()
-
-
 
     def select_cip_for_substitution(self, graph):
         """
@@ -362,18 +332,17 @@ class GraphLearnSampler(object):
                                              hash_bitmask=self.hash_bitmask, node_entity_check=self.node_entity_check)
 
             if not cip:
-                failcount+=1
+                failcount += 1
                 continue
-            cip=cip[0]
+            cip = cip[0]
             if self.accept_cip_to_substitute(cip):
                 return cip
             else:
-                failcount+=1
+                failcount += 1
 
         raise Exception('select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (failcount))
 
-
-    def accept_cip_to_substitute(self,cip):
+    def accept_cip_to_substitute(self, cip):
         # if we have a hit in the grammar
         if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
             #  if we have the same_radius rule implemented:
@@ -386,10 +355,3 @@ class GraphLearnSampler(object):
                     return False
             return True
         return False
-
-
-
-
-
-
-
