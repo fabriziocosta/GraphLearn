@@ -109,6 +109,6 @@ class cluster(GraphLearnSampler):
             #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph.score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
             # print graph.score
-            graph.score -= .007*abs( self.goal_size - len(graph) )
+            #graph.score -= .007*abs( self.goal_size - len(graph) )
         return graph.score
 

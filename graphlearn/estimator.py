@@ -5,40 +5,37 @@ from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier
 
 
-
-
 '''
 graphlearn will expect fit to return an estimator that is used in the graphlearn.. (if you use sampler.fit)
 '''
-def fit(Graph_iter,vectorizer,nu=.5,n_jobs=-1):
-    X = vectorizer.transform(Graph_iter)
-    esti = fit_estimator(X, n_jobs)
-    cesti = calibrate_estimator(X,esti,nu)
-    return cesti
 
 
+def fit(graphs, vectorizer=None, nu=.5, cv=2, n_jobs=-1):
+    X = vectorizer.transform(graphs)
+    estimator = fit_estimator(X, n_jobs=n_jobs, cv=cv)
+    cal_estimator = calibrate_estimator(X, estimator=estimator, nu=nu, cv=cv)
+    return cal_estimator
 
 
-
-def fit_estimator( X, n_jobs=-1, cv=10):
+def fit_estimator(X, n_jobs=-1, cv=2):
     '''
     create self.estimator...
     by inversing the X set to get a negative set
     and then using edens fit_estimator
     '''
 
-    # get negative set:
+    # create negative set:
     X_neg = X.multiply(-1)
-    # i hope loss is log.. not 100% sure..
-    # probably calibration will fix this#
-    return eden_fit_estimator(SGDClassifier(), positive_data_matrix=X,
-                                        negative_data_matrix=X_neg,
-                                        cv=cv,
-                                        n_jobs=n_jobs,
-                                        verbose=0,
-                                        n_iter_search=10)
 
-def calibrate_estimator( X,estimator, nu=.5):
+    estimator = SGDClassifier(loss='log')
+    return eden_fit_estimator(estimator, positive_data_matrix=X,
+                              negative_data_matrix=X_neg,
+                              cv=cv,
+                              n_jobs=n_jobs,
+                              n_iter_search=10)
+
+
+def calibrate_estimator(X, estimator=None, nu=.5, cv=2):
     '''
         move bias until nu of X are in the negative class
 
@@ -53,7 +50,7 @@ def calibrate_estimator( X,estimator, nu=.5):
     # calibrate
     data_matrix = vstack([a[1] for a in l])
     data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
-    estimator = CalibratedClassifierCV(estimator, cv=3, method='sigmoid')
+    estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
     estimator.fit(data_matrix, data_y)
 
     return estimator

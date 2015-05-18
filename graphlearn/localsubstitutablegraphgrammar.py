@@ -34,20 +34,20 @@ class LocalSubstitutableGraphGrammar:
     """
     # move all the things here that are needed to extract grammar
 
-    def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3,
-                 interface_remove_threshold=2, nbit=20, node_entity_check= lambda x,y:True):
+    def __init__(self, radius_list=None, thickness_list=None, core_interface_pair_remove_threshold=2,
+                 interface_remove_threshold=2, nbit=20, node_entity_check=lambda x, y: True, complexity=2):
         self.grammar = {}
         self.interface_remove_threshold = interface_remove_threshold
         self.radius_list = radius_list
         self.thickness_list = thickness_list
         self.core_interface_pair_remove_threshold = core_interface_pair_remove_threshold
-        self.vectorizer = graphlearn_utils.GraphLearnVectorizer()
+        self.vectorizer = graphlearn_utils.GraphLearnVectorizer(complexity=complexity)
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
         # checked when extracting grammar. see graphtools
-        self.node_entity_check= node_entity_check
+        self.node_entity_check = node_entity_check
 
-    def preprocessing(self,n_jobs=0,same_radius=False,same_core_size=0):
+    def preprocessing(self, n_jobs=0, same_radius=False, same_core_size=0):
         '''
             sampler will use this when preparing sampling
         '''
@@ -58,7 +58,7 @@ class LocalSubstitutableGraphGrammar:
         if same_core_size:
             self.add_core_size_quicklookup()
 
-    def fit(self,G_iterator,n_jobs):
+    def fit(self, G_iterator, n_jobs):
         self.read(G_iterator, n_jobs)
         self.clean()
 
@@ -266,13 +266,13 @@ class LocalSubstitutableGraphGrammar:
         # distributing jobs to workers
         #result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
 
-        extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
-
+        extract_c_and_i = lambda batch, args: [extract_cores_and_interfaces([y] + args) for y in batch]
 
         result = graphlearn_utils.multiprocess_classic(graphs,
-                                                       [ self.radius_list,self.thickness_list,self.vectorizer,self.hash_bitmask,self.node_entity_check],
+                                                       [self.radius_list, self.thickness_list, self.vectorizer,
+                                                           self.hash_bitmask, self.node_entity_check],
                                                        extract_c_and_i,
-                                                       n_jobs=n_jobs,batch_size=50)
+                                                       n_jobs=n_jobs, batch_size=50)
 
         # the resulting chips can now be put intro the grammar
         for cidlistlist in result:
@@ -284,26 +284,24 @@ class LocalSubstitutableGraphGrammar:
                         self.add_core_interface_data(cid)
 
 
-
 def extract_cores_and_interfaces(parameters):
     # happens if batcher fills things up with null
     if parameters[0] == None:
         return None
     try:
         # unpack arguments, expand the graph
-        graph, radius_list, thickness_list, vectorizer, hash_bitmask ,node_entity_check= parameters
+        graph, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check = parameters
         graph = graphlearn_utils.expand_edges(graph)
         cips = []
         for node in graph.nodes_iter():
             if 'edge' in graph.node[node]:
                 continue
             core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
-                                                             vectorizer=vectorizer, hash_bitmask=hash_bitmask,
-                                                             node_entity_check=node_entity_check)
+                                                                        vectorizer=vectorizer, hash_bitmask=hash_bitmask,
+                                                                        node_entity_check=node_entity_check)
             if core_interface_list:
                 cips.append(core_interface_list)
         return cips
     except:
         print "extract_cores_and_interfaces_died"
         print parameters
-
