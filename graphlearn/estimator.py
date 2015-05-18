@@ -26,6 +26,13 @@ def fit_estimator(X, n_jobs=-1, cv=2):
 
     # create negative set:
     X_neg = X.multiply(-1)
+    # i hope loss is log.. not 100% sure..
+    # probably calibration will fix this#
+    return eden_fit_estimator(SGDClassifier(), positive_data_matrix=X,
+                                        negative_data_matrix=X_neg,
+                                        cv=cv,
+                                        n_jobs=n_jobs,
+                                        n_iter_search=10)
 
     estimator = SGDClassifier(loss='log')
     return eden_fit_estimator(estimator, positive_data_matrix=X,
