@@ -36,7 +36,7 @@ class discsampler(GraphLearnSampler):
                sample_tries = 30, # 30 is default according to algo
                ):
 
-
+        self.sample_tries= sample_tries
         # initialize
         new_graphs= []
 
@@ -56,42 +56,50 @@ class discsampler(GraphLearnSampler):
 
             # take from the queue and start sampling
             graphs= itertools.islice(queue,0,queue_chunk_size)
+
+            print 'start '+str(len(new_graphs))
             for result_list in super(discsampler,self).sample( graphs ,sampling_interval=9999,
                                 batch_size=batch_size,n_jobs=n_jobs, n_steps=n_steps,
                                 same_core_size=False,
                                 same_radius=False,
                                 annealing_factor = annealing_factor ,
-                                select_cip_max_tries=select_cip_max_tries,similarity=radius
+                                select_cip_max_tries=select_cip_max_tries,similarity=(1-radius)
                                 ):
 
                 # lets see what we created:
                 # we need to test everything
                 # and see what we want to keep
-
                 for graph in result_list:
+                    if graph == None: # batching creates nones
+                        continue
                     vectorized=self.vectorizer._convert_dict_to_sparse_matrix(
                         self.vectorizer._transform(0, nx.Graph(graph)))
-
+                    
                     # check with the old ones:
                     d,i = nbrs.kneighbors(vectorized)
                     dist= i.sum()
                     if i < radius:
+                        print 'rejected, neighbor too close'
                         continue
                     # check with the new ones:
                     nogood=False
-                    for e in vectorized.dot( new_vectors.T ).todense().tolist():
-                        if e < radius:
-                            nogood=True
-                            break
+
+                    if new_vectors != None:
+                        list=vectorized.dot( new_vectors.T ).todense().tolist()
+                        for e in list[0]:
+                            if (1-e) < radius:
+                                print 'rejected, newvec too close'
+                                nogood=True
+                                break
                     if nogood:
                         continue
                     # if we keep them, we put them in the queue
                     queue = itertools.chain(queue,graph)
+                    new_graphs.append(graph)
                     if new_vectors==None:
                         new_vectors= vectorized
                     else:
                         new_vectors = vstack([vectorized,new_vectors], format='csr')
-
 
         return new_graphs
 
@@ -105,9 +113,11 @@ class discsampler(GraphLearnSampler):
                     self.vectorizer._convert_dict_to_sparse_matrix(
                         self.vectorizer._transform(0, nx.Graph(graph)))
             else:
-                similarity = self.vectorizer._similarity(graph, [1])
+                x = self.vectorizer._convert_dict_to_sparse_matrix(
+                        self.vectorizer._transform(0,nx.Graph(graph)))
+                similarity  = self.vectorizer._reference_vec.dot(x.T).todense().sum()
 
-                if  similarity < self.similarity  and similarity > self.similarity*2:
+                if  similarity < self.similarity:
                     raise Exception('similarity stop condition reached')
 
 
