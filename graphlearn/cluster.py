@@ -3,8 +3,6 @@
 from graphlearn import GraphLearnSampler, LocalSubstitutableGraphGrammar
 import itertools
 
-
-from sklearn.neighbors import NearestNeighbors
 class cluster(GraphLearnSampler):
 
     '''
@@ -45,35 +43,34 @@ class cluster(GraphLearnSampler):
 
 
 
-    def get_nearest_neighbor_iterable(self,start_graphs, target_graphs, neigh_num=1 ):
+    def get_nearest_neighbor_iterable(self,graphlist):
 
         # vectorize all
-        start_graphs, graphlist_ = itertools.tee(start_graphs)
+        graphlist, graphlist_ = itertools.tee(graphlist)
         X = self.vectorizer.transform(graphlist_)
-        target_graphs, targetlist_ = itertools.tee(target_graphs)
-        Y = self.vectorizer.transform(targetlist_)
 
-        # get neighbor pairs in indices
-        nbrs= NearestNeighbors(n_neighbors=neigh_num+1, algorithm='ball_tree').fit(Y)
-        dist, indices= nbrs.kneighbors(X)
+        graphlist,graphlist_ = itertools.tee(graphlist)
+        for i,g in enumerate(graphlist):
+            gl,graphlist_ = itertools.tee(graphlist_)
 
-        # indices are ordered so i can just loop
-        for i,graph in enumerate(start_graphs):
-            # and loop over the partner:
-            gl,target_graphs = itertools.tee(target_graphs)
-            for i2,graph2 in enumerate (gl):
-                if i2 == indices[i][neigh_num]: # indices work like this in numpy?
-                    # and yield start goal and vectorized(goal)
-                    yield (graph,graph2,X[i2])
-                    break
+            # compare to all other graphs and see who the NN is :)
+            best_sim = 0.0
+            NN = 0
+            for i2,g2 in enumerate (gl):
+                sim = X[i].dot(X[i2].T).todense()[0][0]
+                #print sim # just to make sure..
+                if sim > best_sim and i!=i2:
+                    best_sim=sim
+                    NN = g2
+            yield (g,NN,X[i2])
 
 
-    def _stop_condition(self, graph):
+    def similarity_checker(self, graph):
 
         if len(self.sample_path)==1:
             self.sample_path.append(self.goal_graph)
         if 'score' in graph.__dict__:
-            if graph._score > 0.99999:
+            if graph.score > 0.99999:
                 self._sample_notes+=';edge %d %d;' % (self.starthash,self.finhash)
                 raise Exception('goal reached')
 
@@ -89,11 +86,11 @@ class cluster(GraphLearnSampler):
 
         graphiter = self.get_nearest_neighbor_iterable(graph_iter)
         graphiter = itertools.islice(graphiter,doXgraphs)
-        for result_tuple in super(cluster,self).sample( graphiter ,sampling_interval=sampling_interval,
+        for e in super(cluster,self).sample( graphiter ,sampling_interval=sampling_interval,
                             batch_size=batch_size,n_jobs=n_jobs, n_steps=n_steps,same_core_size=False,
                             annealing_factor = annealing_factor ,
                             select_cip_max_tries=select_cip_max_tries):
-            yield result_tuple
+            yield e
 
 
     def _sample(self,g_pair):
@@ -105,13 +102,13 @@ class cluster(GraphLearnSampler):
         return super(cluster,self)._sample(g_pair[0])
 
 
-    def _score(self,graph):
+    def score(self,graph):
         if not 'score' in graph.__dict__:
             transformed_graph = self.vectorizer.transform2(graph)
             # slow so dont do it..
             #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-            graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
+            graph.score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
             # print graph.score
-            graph._score -= .007*abs( self.goal_size - len(graph) )
-        return graph._score
+            #graph.score -= .007*abs( self.goal_size - len(graph) )
+        return graph.score
 
