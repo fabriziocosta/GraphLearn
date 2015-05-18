@@ -28,7 +28,8 @@ logger.addHandler(file)
 class GraphLearnSampler(object):
 
     def __init__(self, radius_list=[1.5, 2.5], thickness_list=[1, 2], grammar=None, nbit=26,complexity=3,
-                    vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3), node_entity_check=lambda x,y:True, estimator=estimator.estimator()):
+                    vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3), node_entity_check=lambda x,y:True,
+                    estimator=estimator.estimator()):
 
 
 
@@ -113,9 +114,10 @@ class GraphLearnSampler(object):
         self.local_substitutable_graph_grammar.fit(G_iterator, n_jobs)
 
         # get estimator
-        #self.estimator = self.estimatorobject.fit(G_iterator_,vectorizer=self.vectorizer,nu=nu,n_jobs=n_jobs)
-        # aha oO
-        self.estimator = estimator.fit(G_iterator_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs)
+        self.estimator = self.estimatorobject.fit(G_iterator_,vectorizer=self.vectorizer,nu=nu,n_jobs=n_jobs)
+        # aha oO not sure were this estimator comes from.. ignore
+        # i assume this is form before we were a class
+        #self.estimator = estimator.fit(G_iterator_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs)
 
     ############################### SAMPLE ###########################
 
@@ -274,7 +276,7 @@ class GraphLearnSampler(object):
         :return: score of graph
         we also set graph.score_nonlog and graph.score
         """
-        if not 'score' in graph.__dict__:
+        if not '_score' in graph.__dict__:
             transformed_graph = self.vectorizer.transform2(graph)
             # slow so dont do it..
             #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]

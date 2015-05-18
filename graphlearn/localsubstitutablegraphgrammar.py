@@ -35,14 +35,14 @@ class LocalSubstitutableGraphGrammar:
     """
     # move all the things here that are needed to extract grammar
 
-    def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3,
+    def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3,complexity=3,
                  interface_remove_threshold=2, nbit=20, node_entity_check= lambda x,y:True):
         self.grammar = {}
         self.interface_remove_threshold = interface_remove_threshold
         self.radius_list = radius_list
         self.thickness_list = thickness_list
         self.core_interface_pair_remove_threshold = core_interface_pair_remove_threshold
-        self.vectorizer = graphlearn_utils.GraphLearnVectorizer()
+        self.vectorizer = graphlearn_utils.GraphLearnVectorizer(complexity=complexity)
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
         # checked when extracting grammar. see graphtools
