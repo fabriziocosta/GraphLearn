@@ -80,7 +80,7 @@ def sample(graphs):
                         select_cip_max_tries=100,
                         batch_size=30,
                         n_steps=100,
-                        n_jobs=1,
+                        n_jobs=-1,
                         annealing_factor=0.9
                         ))
 
@@ -90,7 +90,6 @@ graphs_neg= gspan_to_eden(path+'bursi.neg.gspan')
 originals=[]
 improved=[]
 percentages=[.2,.4,.6,.8,1]
-percentages=[.1]
 
 for perc in percentages:
 

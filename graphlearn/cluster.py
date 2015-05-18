@@ -65,7 +65,7 @@ class cluster(GraphLearnSampler):
             yield (g,NN,X[i2])
 
 
-    def similarity_checker(self, graph):
+    def _stop_condition(self, graph):
 
         if len(self.sample_path)==1:
             self.sample_path.append(self.goal_graph)
@@ -102,13 +102,13 @@ class cluster(GraphLearnSampler):
         return super(cluster,self)._sample(g_pair[0])
 
 
-    def score(self,graph):
-        if not 'score' in graph.__dict__:
+    def _score(self,graph):
+        if not '_score' in graph.__dict__:
             transformed_graph = self.vectorizer.transform2(graph)
             # slow so dont do it..
             #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-            graph.score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
+            graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
             # print graph.score
             #graph.score -= .007*abs( self.goal_size - len(graph) )
-        return graph.score
+        return graph._score
 
