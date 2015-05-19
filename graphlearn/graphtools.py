@@ -5,7 +5,7 @@ from eden import fast_hash
 from localsubstitutablegraphgrammar import coreInterfacePair
 
 
-from utils.draw import drawgraphs
+#from utils.draw import drawgraphs
 
 #####################################   extract a core/interface pair #####################
 
@@ -198,7 +198,8 @@ def core_substitution( graph, original_cip_graph, new_cip_graph):
     # get isomorphism between interfaces, if none is found we return an empty graph
     iso = find_isomorphism(original_interface_graph, new_cip_interface_graph)
     if len(iso) != len(original_interface_graph):
-        drawgraphs([graph,original_cip_graph,new_cip_graph],contract=False)
+        #REMOVE:
+        #drawgraphs([graph,original_cip_graph,new_cip_graph],contract=False)
         return nx.Graph()
     # ok we got an isomorphism so lets do the merging
     G = nx.union(graph, new_cip_graph, rename=('', '-'))
