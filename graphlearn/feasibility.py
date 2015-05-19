@@ -2,7 +2,7 @@
 
 import logging
 
-logger=logging.getLogger('log')
+logger=logging.getLogger('root')
 # ############################### FEASIBILITY CHECKER ###################
 
 

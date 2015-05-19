@@ -63,7 +63,7 @@ improved=[]
 
 
 # we want to use an increasing part of the test set..
-percentages=[.01, .05, .12, .25, .5 ,1 ]
+percentages=[.1, .2, .4, .6, .8 ,1 ]
 
 sampler = GraphLearnSampler()
 
@@ -86,12 +86,12 @@ for perc in percentages:
 
     improved_graphs = sampler.sample( graphs_pos_,
                         same_radius=False,
-                        same_core_size=False,
+                        same_core_size=True,
                         sampling_interval=9999,
                         select_cip_max_tries=100,
                         batch_size=int(count/4)+1,
                         n_steps=100,
-                        n_jobs=1,
+                        n_jobs=-1,
                         annealing_factor=0.9)
 
 
