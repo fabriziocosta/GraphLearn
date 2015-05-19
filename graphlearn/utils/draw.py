@@ -30,8 +30,8 @@ def graph_clean(graph):
         d.pop('interface', None)
 
 
-def plot_charts(data1, data2=None, xlabel=None, ylabel=None):
-    plt.figure(figsize=(10, 4))
+def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10,4)):
+    plt.figure(figsize=size)
     plt.grid()
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -46,7 +46,7 @@ def plot_charts(data1, data2=None, xlabel=None, ylabel=None):
     plt.show()
 
 
-def draw_grammar_stats(grammar):
+def draw_grammar_stats(grammar, size=(10,4)):
     c, i, cc, ii = calc_stats_from_grammar(grammar)
     print "how often do we see interfacehashes"
     a = [(i[k], ii[k]) for k in i.keys()]
@@ -57,7 +57,7 @@ def draw_grammar_stats(grammar):
 
     print 'x = # interfaces (total: %d)' % len(i)
     print 'y=numberofcores(ihash), y=sumOfCoreCounts(ihash)'
-    plot_charts(a0, a1, xlabel='# interfaces', ylabel='counts')
+    plot_charts(a0, a1, xlabel='# interfaces', ylabel='counts', size=size)
 
     print 'how often was this corehash seen?'
     a = [(c[k], cc[k]) for k in c.keys()]
@@ -66,7 +66,7 @@ def draw_grammar_stats(grammar):
     a1 = [e[1] for e in a]
     print 'x = # cores (total: %d)' % len(c)
     print 'y = inYinterfaces(chash), y= sumOfCountOverAllInterfaces(chash)'
-    plot_charts(a0, a1, xlabel='# cores', ylabel='counts')
+    plot_charts(a0, a1, xlabel='# cores', ylabel='counts', size=size)
 
     print 'histogram'
     #a=[ (c[k],cc[k]) for k in c.keys()]
@@ -89,7 +89,7 @@ def draw_grammar_stats(grammar):
     print '# productions: %d' % sum(a0)
     print 'distinct cores: %d (seen on x axis)' % len(c)
     print 'interfaces with x many cores were observed y many times. '
-    plot_charts(datapoints)
+    plot_charts(datapoints, size=size)
 
 
 def display(G, size=6, font_size=15, node_size=200, node_border=False, delabeledges=True, contract=False, vertex_label='label'):
