@@ -2,6 +2,7 @@ import utils.myeden as graphlearn_utils
 import itertools
 from multiprocessing import Pool, Manager
 import graphtools
+import dill
 
 
 ################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
@@ -34,8 +35,8 @@ class LocalSubstitutableGraphGrammar:
     """
     # move all the things here that are needed to extract grammar
 
-    def __init__(self, radius_list=None, thickness_list=None, core_interface_pair_remove_threshold=2,
-                 interface_remove_threshold=2, nbit=20, node_entity_check=lambda x, y: True, complexity=2):
+    def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3, complexity=3,
+                 interface_remove_threshold=2, nbit=20, node_entity_check=lambda x, y: True):
         self.grammar = {}
         self.interface_remove_threshold = interface_remove_threshold
         self.radius_list = radius_list
@@ -47,16 +48,18 @@ class LocalSubstitutableGraphGrammar:
         # checked when extracting grammar. see graphtools
         self.node_entity_check = node_entity_check
 
-    def preprocessing(self, n_jobs=0, same_radius=False, same_core_size=0):
+    def preprocessing(self, n_jobs=0, same_radius=False, same_core_size=0, probabilistic_core_choice=False):
         '''
             sampler will use this when preparing sampling
         '''
-        if n_jobs > 0:
-            self.multicore_transform()
         if same_radius:
             self.add_same_radius_quicklookup()
         if same_core_size:
             self.add_core_size_quicklookup()
+        if probabilistic_core_choice:
+            self.add_frequency_quicklookup()
+        if n_jobs > 1:
+            self.multicore_transform()
 
     def fit(self, G_iterator, n_jobs):
         self.read(G_iterator, n_jobs)
@@ -192,7 +195,22 @@ class LocalSubstitutableGraphGrammar:
                     core_size[nodes_count] = [core]
             self.core_size[interface] = core_size
 
-    def read(self, graphs, n_jobs=-1):
+    def add_frequency_quicklookup(self):
+        '''
+            how frequent is a core?
+        '''
+        self.frequency = {}
+        # for every interface
+        for interface in self.grammar.keys():
+            # we create a dict...
+            core_frequency = {}
+            #  fill it
+            for hash, cip in self.grammar[interface].items():
+                core_frequency[hash] = cip.count
+            # and attach it to the freq lookup
+            self.frequency[interface] = core_frequency
+
+    def read(self, graphs, n_jobs=-1, batch_size=20):
         '''
         we extract all chips from graphs of a graph iterator
         we use n_jobs processes to do so.
@@ -202,7 +220,7 @@ class LocalSubstitutableGraphGrammar:
         if n_jobs == 1:
             self.read_single(graphs)
         else:
-            self.read_multi(graphs, n_jobs)
+            self.read_multi(graphs, n_jobs, batch_size)
 
     def add_core_interface_data(self, cid):
         '''
@@ -236,12 +254,12 @@ class LocalSubstitutableGraphGrammar:
                     put cips into grammar
         """
         for gr in graphs:
-            problem = (gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask,self.node_entity_check)
+            problem = (gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check)
             for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cid in core_interface_data_list:
                     self.add_core_interface_data(cid)
 
-    def read_multi(self, graphs, n_jobs):
+    def read_multi(self, graphs, n_jobs, batch_size):
         """
         will take graphs and to multiprocessing to extract their cips
         and put these cips in the grammar
@@ -266,22 +284,35 @@ class LocalSubstitutableGraphGrammar:
         # distributing jobs to workers
         #result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
 
-        extract_c_and_i = lambda batch, args: [extract_cores_and_interfaces([y] + args) for y in batch]
+        if n_jobs > 1:
+            pool = Pool(processes=n_jobs)
+        else:
+            pool = Pool()
 
-        result = graphlearn_utils.multiprocess_classic(graphs,
-                                                       [self.radius_list, self.thickness_list, self.vectorizer,
-                                                           self.hash_bitmask, self.node_entity_check],
-                                                       extract_c_and_i,
-                                                       n_jobs=n_jobs, batch_size=50)
+        #extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
+
+        results = pool.imap_unordered(extract_cips, self.argbuilder(graphs, batch_size=batch_size))
 
         # the resulting chips can now be put intro the grammar
-        for cidlistlist in result:
+        for batch in results:
+            for exci in batch:
+                if exci:  # exci might be None because the grouper fills up with empty problems
+                    for exci_result_per_node in exci:
+                        for cid in exci_result_per_node:
+                            self.add_core_interface_data(cid)
+        pool.close()
+        pool.join()
 
-            # we need to check this because the grouper will fill with None values
-            if cidlistlist:
-                for cidlist in cidlistlist:
-                    for cid in cidlist:
-                        self.add_core_interface_data(cid)
+    def argbuilder(self, graphs, batch_size=10):
+        args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
+        function = extract_cores_and_interfaces
+        for batch in graphlearn_utils.grouper(graphs, batch_size):
+            yield dill.dumps((function, args, batch))
+
+
+def extract_cips(what):
+    f, args, graph_batch = dill.loads(what)
+    return [f([y] + args) for y in graph_batch]
 
 
 def extract_cores_and_interfaces(parameters):
@@ -298,7 +329,7 @@ def extract_cores_and_interfaces(parameters):
                 continue
             core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
                                                                         vectorizer=vectorizer, hash_bitmask=hash_bitmask,
-                                                                        node_entity_check=node_entity_check)
+                                                                        filter=node_entity_check)
             if core_interface_list:
                 cips.append(core_interface_list)
         return cips
