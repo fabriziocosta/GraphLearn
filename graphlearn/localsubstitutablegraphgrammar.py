@@ -3,7 +3,7 @@ import itertools
 from multiprocessing import Pool, Manager
 import graphtools
 import dill
-
+from eden import grouper
 
 ################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
 
@@ -308,7 +308,7 @@ class LocalSubstitutableGraphGrammar:
     def argbuilder(self,graphs,batch_size=10):
         args= [ self.radius_list,self.thickness_list,self.vectorizer,self.hash_bitmask,self.node_entity_check]
         function= extract_cores_and_interfaces
-        for batch in graphlearn_utils.grouper(graphs ,batch_size):
+        for batch in grouper(graphs ,batch_size):
             yield dill.dumps((function,args,batch))
 
 def extract_cips(what):

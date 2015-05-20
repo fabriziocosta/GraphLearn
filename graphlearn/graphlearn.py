@@ -12,6 +12,7 @@ import joblib
 from multiprocessing import Pool
 import dill
 import traceback
+from eden import grouper
 logger = logging.getLogger('root')
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(message)s')
@@ -172,7 +173,7 @@ class GraphLearnSampler(object):
 
     def _argbuilder(self,problemiter):
         s=dill.dumps(self)
-        for e in graphlearn_utils.grouper(problemiter, self.batch_size):
+        for e in grouper(problemiter, self.batch_size):
             batch=dill.dumps(e)
             yield (s,batch)
 
@@ -277,11 +278,10 @@ class GraphLearnSampler(object):
         we also set graph.score_nonlog and graph.score
         """
         if not '_score' in graph.__dict__:
-            transformed_graph = self.vectorizer.transform2(graph)
+            transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
             # slow so dont do it..
             #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph._score = self.estimator.predict_proba(transformed_graph)[0][1]
-            # print graph.score
         return graph._score
 
     def _accept(self, graph_old, graph_new):
@@ -299,18 +299,17 @@ class GraphLearnSampler(object):
 
 
 
-
     def _propose(self,graph):
         '''
          we wrap the propose single cip, so it may be overwritten some day
         '''
-        graph =  self._propose_cip(graph)
+        graph =  self._propose_graph(graph)
         if graph != None:
             return graph
 
         raise Exception("propose failed.. reason is that propose_single_cip failed.")
 
-    def _propose_cip(self, graph):
+    def _propose_graph(self, graph):
         """
         we choose ONE core in the graph and return a valid grpah with a changed core
 
@@ -324,8 +323,8 @@ class GraphLearnSampler(object):
         for candidate_cip in candidate_cips:
             # substitute and return
             graph_new = core_substitution(graph, original_cip.graph, candidate_cip.graph)
-            graph_clean(graph_new)
             if self.feasibility_checker.check(graph_new):
+                graph_clean(graph_new)
                 return self.postprocessor.postprocess(graph_new)
             # ill leave this here.. use it in case things go wrong oo
             #    draw.drawgraphs([graph, original_cip.graph, candidate_cip.graph], contract=False)
@@ -351,17 +350,17 @@ class GraphLearnSampler(object):
             for core_hash in core_hashes:
                 freq.append(self.local_substitutable_graph_grammar.frequency[cip.interface_hash][core_hash])
 
-            freq_sum= float(sum(freq))
+            freq_sum= sum(freq)
 
             # while there are cores
             while core_hashes:
                 
                 # get a random one by frequency
-                rand = random.random()
+                rand = random.randint(0,freq_sum)
                 current=0.0
                 i=-1
                 while current <rand:
-                    current += (freq[i+1]/freq_sum)
+                    current += freq[i+1]
                     i+=1
                 # yield and delete
                 yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hashes[i]]

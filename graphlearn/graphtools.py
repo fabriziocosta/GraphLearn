@@ -158,6 +158,9 @@ def filter(graph,nodes):
         else:
             return True
     else:
+        for node in nodes:
+            if 'not_in_core' in graph.node[node]:
+                return False
         return True
 
 
