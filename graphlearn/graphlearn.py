@@ -316,7 +316,7 @@ class GraphLearnSampler(object):
             # substitute and return
             if candidate_cip.core_hash == selected_cip.core_hash:
                 continue
-            graph_new = core_substitution(graph, original_cip.graph, candidate_cip.graph)
+            graph_new = core_substitution(graph, selected_cip.graph, candidate_cip.graph)
             graph_clean(graph_new)
             if self.feasibility_checker.check(graph_new):
                 return self.postprocessor.postprocess(graph_new)
