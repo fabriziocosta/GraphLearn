@@ -104,7 +104,7 @@ class cluster(GraphLearnSampler):
 
     def _score(self,graph):
         if not '_score' in graph.__dict__:
-            transformed_graph = self.vectorizer.transform2(graph)
+            transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
             # slow so dont do it..
             #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()

@@ -1,5 +1,5 @@
 
-
+import utils.draw as draw
 import logging
 
 logger=logging.getLogger('root')
@@ -27,5 +27,8 @@ def defaultcheck(ng):
         if 'edge' in ng.node[node_id]:
             if len(ng.neighbors(node_id)) != 2:
                 logger.debug('feasibility- edge check failed, (interface twist phenomenon probably)')
+
+                print "drawing problem:"
+                draw.display(ng)
                 return False
     return True
