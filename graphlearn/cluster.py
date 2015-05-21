@@ -2,7 +2,7 @@
 
 from graphlearn import GraphLearnSampler, LocalSubstitutableGraphGrammar
 import itertools
-
+import networkx as nx
 class cluster(GraphLearnSampler):
 
     '''

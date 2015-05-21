@@ -1,5 +1,5 @@
 
-from eden.util import fit_estimator as eden_fit_estimator
+from eden.util import fit_estimator
 import numpy
 from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
@@ -29,7 +29,7 @@ class estimator:
         X_neg = X.multiply(-1)
         # i hope loss is log.. not 100% sure..
         # probably calibration will fix this#
-        return eden_fit_estimator(SGDClassifier(loss='log'), positive_data_matrix=X,
+        return fit_estimator(SGDClassifier(loss='log'), positive_data_matrix=X,
                                             negative_data_matrix=X_neg,
                                             cv=cv,
                                             n_jobs=n_jobs,
