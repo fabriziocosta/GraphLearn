@@ -1,10 +1,9 @@
-import utils.myeden as graphlearn_utils
 import itertools
 from multiprocessing import Pool, Manager
 import graphtools
 import dill
 from eden import grouper
-
+from eden.graph import Vectorizer
 ################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
 
 
@@ -42,7 +41,7 @@ class LocalSubstitutableGraphGrammar:
         self.radius_list = radius_list
         self.thickness_list = thickness_list
         self.core_interface_pair_remove_threshold = core_interface_pair_remove_threshold
-        self.vectorizer = graphlearn_utils.GraphLearnVectorizer(complexity=complexity)
+        self.vectorizer = Vectorizer(complexity=complexity)
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
         # checked when extracting grammar. see graphtools
@@ -322,7 +321,7 @@ def extract_cores_and_interfaces(parameters):
     try:
         # unpack arguments, expand the graph
         graph, radius_list, thickness_list, vectorizer, hash_bitmask ,node_entity_check= parameters
-        graph = graphlearn_utils.expand_edges(graph)
+        graph = vectorizer._edge_to_vertex_transform(graph)
         cips = []
         for node in graph.nodes_iter():
             if 'edge' in graph.node[node]:

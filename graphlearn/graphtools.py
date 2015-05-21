@@ -151,6 +151,8 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
     return cip_list
 
 def filter(graph,nodes):
+
+    # we say true if the graph is ok
     # root node?
     if type(nodes) != list:
         if 'no_root' in graph.node[nodes]:

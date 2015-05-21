@@ -1,4 +1,3 @@
-import utils.myeden as graphlearn_utils
 import networkx as nx
 import itertools
 import random
@@ -13,6 +12,7 @@ from multiprocessing import Pool
 import dill
 import traceback
 from eden import grouper
+from eden.graph import Vectorizer
 logger = logging.getLogger('root')
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(message)s')
@@ -29,7 +29,7 @@ logger.addHandler(file)
 class GraphLearnSampler(object):
 
     def __init__(self, radius_list=[1.5, 2.5], thickness_list=[1, 2], grammar=None, nbit=26,complexity=3,
-                    vectorizer= graphlearn_utils.GraphLearnVectorizer(complexity=3), node_entity_check=lambda x,y:True,
+                    vectorizer= Vectorizer(complexity=3), node_entity_check=lambda x,y:True,
                     estimator=estimator.estimator()):
 
 

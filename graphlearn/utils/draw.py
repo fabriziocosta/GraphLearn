@@ -42,7 +42,11 @@ def graph_clean(graph):
         d.pop('interface', None)
 
 def draw_grammar_stats(grammar):
+
+    # GET SOME DATA:
     c,i,cc,ii=calc_stats_from_grammar(grammar)
+
+
     print "how often do we see interfacehashes"
     a=[ (i[k],ii[k]) for k in i.keys()]
     a.sort()
@@ -74,10 +78,8 @@ def draw_grammar_stats(grammar):
     print 'histogram'
     #a=[ (c[k],cc[k]) for k in c.keys()]
     a=[ (i[k],ii[k]) for k in i.keys()]
-
     a0= [e[0] for e in a]
     a0.sort()
-
     d=defaultdict(int)
     for e in a0:
         d[e]+=1
@@ -97,6 +99,32 @@ def draw_grammar_stats(grammar):
     #plt.plot(a1, color='blue', lw=2)
     plt.yscale('log')
     plt.show()
+
+    print 'other histogram'
+    print 'how many cores exist with x many interfaces'
+    nc = [ v for v in c.values()  ]
+    nc.sort()
+    d=defaultdict(int)
+    for e in nc:
+        d[e]+=1
+    dp=[]
+    for i in range(  max(nc)  ):
+        if i in d:
+            dp.append(d[i])
+        else:
+            dp.append(d[i])
+
+    plt.subplot(1,1,1)
+    plt.plot(dp,color='blue')
+    plt.show()
+
+
+
+
+
+
+
+
 
 
 from collections import defaultdict
