@@ -1,4 +1,4 @@
 # GraphLearn
 Learn how to construct graphs given representative examples
 
-[Example](http://nbviewer.ipython.org/github/smautner/graphlearn/blob/master/example/Example.ipynb)
+[Example](http://nbviewer.ipython.org/github/fabriziocosta/GraphLearn/blob/master/example/Example.ipynb)
