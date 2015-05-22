@@ -8,14 +8,18 @@ logger=logging.getLogger('root')
 
 class FeasibilityChecker():
 
-    def __init__(self):
+    def __init__(self, draw_problem=False):
+
         self.checklist = []
         self.checklist.append(defaultcheck)
+        self.draw_problem = draw_problem
 
     def check(self, ng):
         for f in self.checklist:
             if f(ng) == False:
-                return False
+                if self.draw_problem:
+                    draw.display(ng)
+            return False
         return True
 
 
@@ -27,8 +31,5 @@ def defaultcheck(ng):
         if 'edge' in ng.node[node_id]:
             if len(ng.neighbors(node_id)) != 2:
                 logger.debug('feasibility- edge check failed, (interface twist phenomenon probably)')
-
-                print "drawing problem:"
-                draw.display(ng)
                 return False
     return True

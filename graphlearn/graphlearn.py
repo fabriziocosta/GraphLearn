@@ -105,7 +105,11 @@ class GraphLearnSampler(object):
         """
         G_iterator, G_iterator_ = itertools.tee(G_pos)
 
-        # get grammar
+        self.estimator = self.estimatorobject.fit(G_iterator_,vectorizer=self.vectorizer,nu=nu,n_jobs=n_jobs)
+
+        self.fit_grammar(G_iterator,core_interface_pair_remove_threshold, interface_remove_threshold,n_jobs=n_jobs)
+
+    def fit_grammar(self,G_iterator,core_interface_pair_remove_threshold=2, interface_remove_threshold=2,n_jobs=-1):
         self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list, self.thickness_list,
                                                                                 complexity=self.complexity,
                                                                                 core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
@@ -114,11 +118,6 @@ class GraphLearnSampler(object):
                                                                                 node_entity_check=self.node_entity_check)
         self.local_substitutable_graph_grammar.fit(G_iterator, n_jobs)
 
-        # get estimator
-        self.estimator = self.estimatorobject.fit(G_iterator_,vectorizer=self.vectorizer,nu=nu,n_jobs=n_jobs)
-        # aha oO not sure were this estimator comes from.. ignore
-        # i assume this is form before we were a class
-        #self.estimator = estimator.fit(G_iterator_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs)
 
     ############################### SAMPLE ###########################
 
