@@ -6,24 +6,52 @@ import networkx as nx
 from scipy.sparse import csr_matrix ,vstack
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
-class discsampler(GraphLearnSampler):
+import heapq
+from eden.util import fit
+from eden.graph import Vectorizer
+
+
+
+class discsampler():
     '''
-    ok here is the plan:
-
-    discsample:
-        result_new = asd
-        result_vec = vectorize (all)
-        queue = all
-        while queue:
-            pop X and get 30 samples each
-            check if we keep them or not (dist to result vector)
-            queue/newresults.append(kept samples)
-
-
+    ok new plan is this:
     '''
 
+    def  __init__(self):
+        self.vectorizer= Vectorizer()
 
 
+
+    def fit(self, iter_pos, iter_neg):
+
+        # getting the sampler ready:
+        self.sampler = GraphLearnSampler()
+        iter_pos, pos, pos_ = itertools.tee(iter_pos,3)
+        self.estimator = self.sampler.estimator.fit2(iter_pos, iter_neg, self.vectorizer)
+        self.sampler.estimator= self.estimator
+        self.sampler.fitgrammar(pos )
+
+        # calculating avg distance
+        X = self.vectorizer.transform(pos_)
+        
+
+
+
+    def calculatedistancemeassure(self):
+        pass
+        #while not done
+            # PICK the 10 closest to the hyperplane and sample (score,graph)
+
+            # check those 10 and add all the valid points to some working set
+
+
+
+
+
+
+
+
+class OLD:
     def sample(self, graph_iter,
                batch_size=2,
                n_jobs=-1,
@@ -35,6 +63,9 @@ class discsampler(GraphLearnSampler):
                create_n_samples = 100,
                sample_tries = 30, # 30 is default according to algo
                ):
+
+
+
 
         self.sample_tries= sample_tries
         # initialize
@@ -102,6 +133,8 @@ class discsampler(GraphLearnSampler):
                         new_vectors = vstack([vectorized,new_vectors], format='csr')
 
         return new_graphs
+
+
 
 
     def _stop_condition(self, graph):
