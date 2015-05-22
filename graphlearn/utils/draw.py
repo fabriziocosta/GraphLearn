@@ -3,6 +3,9 @@ from eden.util.display import draw_graph
 
 from myeden import *
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 '''
         
@@ -30,7 +33,7 @@ def graph_clean(graph):
         d.pop('interface', None)
 
 
-def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10,4)):
+def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10,4), log_scale=True):
     plt.figure(figsize=size)
     plt.grid()
     plt.xlabel(xlabel)
@@ -40,7 +43,8 @@ def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10,4)):
     if data2 is not None:
         plt.plot(data2, color='red', lw=2)
         plt.plot(data2, linestyle='None', markerfacecolor='white', markeredgecolor='red', marker='o', markeredgewidth=2, markersize=8)
-    plt.yscale('log')
+    if log_scale:
+        plt.yscale('log')
     plt.xlim(-0.2, len(data1) + 0.2)
     plt.ylim(0.8)
     plt.show()

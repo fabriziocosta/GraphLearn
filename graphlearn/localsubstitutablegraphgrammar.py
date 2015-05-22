@@ -4,6 +4,10 @@ import graphtools
 import dill
 from eden import grouper
 from eden.graph import Vectorizer
+import logging
+logger = logging.getLogger(__name__)
+
+
 ################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
 
 
