@@ -95,7 +95,8 @@ class GraphLearnSampler(object):
     def fit(self, graphs,
             core_interface_pair_remove_threshold=2,
             interface_remove_threshold=2,
-            n_jobs=-1, nu=.5):
+            n_jobs=-1,
+            nu=.5):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -144,6 +145,7 @@ class GraphLearnSampler(object):
         self.burnout = burnout
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
+        
         # adapt grammar to task:
         self.local_substitutable_graph_grammar.preprocessing(n_jobs, same_radius, same_core_size, probabilistic_core_choice)
 
@@ -158,12 +160,12 @@ class GraphLearnSampler(object):
                 pool = Pool(processes=n_jobs)
             else:
                 pool = Pool()
-            resultlist = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
+            sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
 
-            for batch in resultlist:
-                for pair in batch:
-                    if pair:
-                        yield pair
+            for batch in sampled_graphs:
+                for sampled_graph in batch:
+                    if sampled_graph:
+                        yield sampled_graph
             pool.close()
             pool.join()
             # for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
@@ -222,8 +224,8 @@ class GraphLearnSampler(object):
         # and we return a nice graph as well as a dictionary of additional information
         self.sample_path.append(graph)
         sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
-        sampled_graph_info = {'graphs': self.sample_path, 'score_history': scores, "accept_count": accept_counter, 'notes': self._sample_notes}
-        return (sampled_graph, sampled_graph_info)
+        sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path, 'score_history': scores, 'accept_count': accept_counter, 'notes': self._sample_notes}
+        return sampled_graph
 
     def _sample_init(self, graph):
         '''
@@ -351,7 +353,6 @@ class GraphLearnSampler(object):
                 while current < rand:
                     current += frequencies[i + 1]
                     i += 1
-                logger.debug('Selected core with hash: %d' % core_hashes[i])
                 # yield and delete
                 yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hashes[i]]
                 frequencies_sum -= frequencies[i]
@@ -360,7 +361,6 @@ class GraphLearnSampler(object):
 
         else:
             for core_hash in core_hashes:
-                logger.debug('Selected core with hash: %d' % core_hash)
                 yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
         # raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in # entries: %d" % len(core_hashes))
 
