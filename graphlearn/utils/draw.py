@@ -173,6 +173,7 @@ def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **arg
 
 
 def draw_graph_set(graphs, n_graphs_per_line=5, size=4, **args):
+    graphs=list(graphs)
     while graphs:
         draw_graphs(graphs[:n_graphs_per_line], n_graphs_per_line=n_graphs_per_line, size=size, **args)
         graphs = graphs[n_graphs_per_line:]
@@ -255,7 +256,7 @@ def draw_graph_row(graph,
     if vertex_color == '':
         node_color = 'white'
     elif vertex_color == '_labels_':
-        node_color = [hash(d.get('label', '.')) for u, d in graph.nodes(data=True)]
+        node_color = [hash(d.get('label', '.')) & 15 for u, d in graph.nodes(data=True)]
     else:
         if invert_colormap:
             node_color = [- d.get(vertex_color, 0) for u, d in graph.nodes(data=True)]
