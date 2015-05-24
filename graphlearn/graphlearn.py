@@ -214,7 +214,7 @@ class GraphLearnSampler(object):
                     self.sample_path.append(graph)
 
         except Exception as exc:
-            logger.info(exc)
+            logger.debug(exc)
             logger.debug(traceback.format_exc(5))
             self._sample_notes += "\n" + str(exc)
             self._sample_notes += '\nstoped at step %d' % self.step
