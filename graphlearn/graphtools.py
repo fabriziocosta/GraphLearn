@@ -231,3 +231,4 @@ def graph_clean(graph):
     for n, d in graph.nodes(data=True):
         d.pop('core', None)
         d.pop('interface', None)
+        d.pop('root',None)
