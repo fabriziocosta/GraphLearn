@@ -86,6 +86,7 @@ class discsampler():
             # = the new graphs
             # put them in the heap and the forest
             for graphlist,task in zip(work,todo):
+                print 'rez:',graphlist,task
                 for graph in graphlist:
                     # check distance from created instances
                     x = self.vectorizer.transform_single(graph)
@@ -96,7 +97,8 @@ class discsampler():
                     if radius < dist <radius*2:
                         forest.partial_fit(x)
                         heapq.heappush(heap, (  self.sampler.estimator.predict_proba(x)[0][1] ,0,graph  )  )
-
+                        print 'heap'
+                    print 'cant heap'
                 # taking care of task graph
                 # put in result list if necessary
                 if task[1] < check_k < task[1]+len(graphlist):
@@ -142,8 +144,8 @@ class MySampler(GraphLearnSampler):
     # this will yield up to 30 graphs... graph
     def _sample(self,input):
         res_list= []
-        for x in xrange(self.similarity): # hijacking similarity oO
+        for x in xrange(3): # hijacking similarity oO
             inp=nx.Graph(input)
-            res_list+= super(discsampler,self)._sample(inp).graph['sampling_info']['sample_path']
+            res_list+= GraphLearnSampler._sample(self,inp).graph['sampling_info']['graphs_history'][1:-1]
         return res_list
 
