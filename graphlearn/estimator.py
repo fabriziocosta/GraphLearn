@@ -22,9 +22,9 @@ class estimator:
         X=vectorizer.transform(ipos)
         Y=vectorizer.transform(ineg)
         estimator = fit_estimator(SGDClassifier(loss='log'),positive_data_matrix=X,negative_data_matrix=Y,cv=cv,n_jobs=n_jobs,n_iter_search=10)
-        esti= CalibratedClassifierCV(estimator,cv=cv,method='sigmoid')
-        esti.fit( vstack[ X,Y], numpy.asarray([1]*X.shape[0] + [0]*Y.shape[0]))
-        return esti
+        #esti= CalibratedClassifierCV(estimator,cv=cv,method='sigmoid')
+        #esti.fit( vstack[ X,Y], numpy.asarray([1]*X.shape[0] + [0]*Y.shape[0]))
+        return estimator
 
 
 
