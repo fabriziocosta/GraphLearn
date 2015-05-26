@@ -5,16 +5,18 @@ import itertools
 import networkx as nx
 from scipy.sparse import csr_matrix ,vstack
 from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import LSHForest
 import numpy as np
 import heapq
 from eden.util import fit
 from eden.graph import Vectorizer
+import copy
+import heapq
 
 
 
 class discsampler():
     '''
-    ok new plan is this:
     '''
 
     def  __init__(self):
@@ -22,143 +24,128 @@ class discsampler():
 
 
 
-    def fit(self, iter_pos, iter_neg):
+    def get_heap_and_forest(self,iter,k):
+        '''
+        so we create the heap and the forest...
+        heap is (dist to hyperplane, count, graph)
+        and the forest ist just a nearest neighbor from sklearn
+        '''
+        iter, iter2 = itertools.tee(iter)
+        X = self.vectorizer.transform(iter)
+        forest = LSHForest()
+        forest.fit(X)
+        heap = []
+        print 'got forest'
+        for vector,graph in itertools.izip(X,iter2):
+            heapq.heappush(heap, (  self.sampler.estimator.predict_proba(vector)[0][1] ,k+1,graph ))
+        print 'got heap'
+        distances, unused = forest.kneighbors(X,n_neighbors=2)
+        distances = [ a[1] for a in distances ] # the second element should be the dist we want
+        avg_dist = sum(distances)/len(distances)
+        print 'got dist'
+        return heap,forest , avg_dist
+
+
+
+    def sample_graphs(self, graphiter,iter_neg, radius, how_many, check_k, heap_chunk_size=10):
+
+        # some initialisation,
+        # creating samper
+        # setup heap and forest
+        graphiter,iter2 = itertools.tee(graphiter)
+        self.fit_sampler(iter2,iter_neg)
+        heap, forest, avg_dist = self.get_heap_and_forest(graphiter, check_k)
+        # heap should be like   (hpdist, count, graph)
+        radius = radius * avg_dist
+
+
+        # so lets start the loop1ng
+        result= []
+        while heap and len(result) < how_many:
+
+
+            # pop all the graphs we want
+            todo=[]
+            for i in range (heap_chunk_size):
+                if heap:
+                    todo.append( heapq.heappop(heap))
+
+            # let the sampler do the sampling
+            graphz= [e[2] for e in todo]
+            work=self.sampler.sample(graphz,
+               batch_size=3,
+               n_jobs=1,
+               n_steps=10,
+               select_cip_max_tries = 100,
+               annealing_factor = .5,
+               )
+
+            # lets see, we need to take care of
+            # = the initialy poped stuff
+            # - increase and check the counter, reinsert into heap
+            # = the new graphs
+            # put them in the heap and the forest
+            for graphlist,task in zip(work,todo):
+                print 'rez:',graphlist,task
+                for graph in graphlist:
+                    # check distance from created instances
+                    x = self.vectorizer.transform_single(graph)
+                    dist, void=forest.kneighbors(x,1)
+                    dist = sum(dist)
+                    # is the distance ok?
+                    # if so, insert into forest and heap
+                    if radius < dist <radius*2:
+                        forest.partial_fit(x)
+                        heapq.heappush(heap, (  self.sampler.estimator.predict_proba(x)[0][1] ,0,graph  )  )
+                        print 'heap'
+                    print 'cant heap'
+                # taking care of task graph
+                # put in result list if necessary
+                if task[1] < check_k < task[1]+len(graphlist):
+                    result.append(task[2])
+                    print 'found sth'
+                # go back to the heap!
+                heapq.heappush(heap,(task[0], task[1]+len(graphlist), task[2]))
+
+        return result
+
+    def fit_sampler(self, iter_pos, iter_neg):
 
         # getting the sampler ready:
-        self.sampler = GraphLearnSampler()
+        self.sampler = MySampler()
         iter_pos, pos, pos_ = itertools.tee(iter_pos,3)
-        self.estimator = self.sampler.estimator.fit2(iter_pos, iter_neg, self.vectorizer)
+        self.estimator = self.sampler.estimatorobject.fit_2(iter_pos, iter_neg, self.vectorizer)
+        print 'got estimeetaaa'
         self.sampler.estimator= self.estimator
-        self.sampler.fitgrammar(pos )
-
+        self.sampler.fit_grammar(pos)
+        print 'got grammar'
         # calculating avg distance
-        X = self.vectorizer.transform(pos_)
+        #X = self.vectorizer.transform(pos_)
         
 
-
-
-    def calculatedistancemeassure(self):
-        pass
-        #while not done
-            # PICK the 10 closest to the hyperplane and sample (score,graph)
-
-            # check those 10 and add all the valid points to some working set
-
-
-
-
-
-
-
-
-class OLD:
-    def sample(self, graph_iter,
-               batch_size=2,
-               n_jobs=-1,
-               n_steps=100,
-               select_cip_max_tries = 100,
-               annealing_factor = 1.0,
-               queue_chunk_size = 10,
-               radius = 0.15,
-               create_n_samples = 100,
-               sample_tries = 30, # 30 is default according to algo
-               ):
-
-
-
-
-        self.sample_tries= sample_tries
-        # initialize
-        new_graphs= []
-
-        start_graphs, graphlist_ = itertools.tee(graph_iter)
-        vectors = self.vectorizer.transform(graphlist_)
-        queue = start_graphs
-
-        nbrs= NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(vectors)
-        #dist, indices= nbrs.kneighbors(X)
-
-
-        new_vectors = None
-
-        # l00p1ng
-        while len(new_graphs) < create_n_samples and queue:
-
-
-            # take from the queue and start sampling
-            graphs= itertools.islice(queue,0,queue_chunk_size)
-
-            print 'start '+str(len(new_graphs))
-            for result_list in super(discsampler,self).sample( graphs ,sampling_interval=9999,
-                                batch_size=batch_size,n_jobs=n_jobs, n_steps=n_steps,
-                                same_core_size=False,
-                                same_radius=False,
-                                annealing_factor = annealing_factor ,
-                                select_cip_max_tries=select_cip_max_tries,similarity=(1-radius)
-                                ):
-
-                # lets see what we created:
-                # we need to test everything
-                # and see what we want to keep
-                for graph in result_list:
-                    if graph == None: # batching creates nones
-                        continue
-                    vectorized=self.vectorizer._convert_dict_to_sparse_matrix(
-                        self.vectorizer._transform(0, nx.Graph(graph)))
-                    
-                    # check with the old ones:
-                    d,i = nbrs.kneighbors(vectorized)
-                    dist= i.sum()
-                    if i < radius:
-                        print 'rejected, neighbor too close'
-                        continue
-                    # check with the new ones:
-                    nogood=False
-
-                    if new_vectors != None:
-                        list=vectorized.dot( new_vectors.T ).todense().tolist()
-                        for e in list[0]:
-                            if (1-e) < radius:
-                                print 'rejected, newvec too close'
-                                nogood=True
-                                break
-                    if nogood:
-                        continue
-                    # if we keep them, we put them in the queue
-                    queue = itertools.chain(queue,graph)
-                    new_graphs.append(graph)
-                    if new_vectors==None:
-                        new_vectors= vectorized
-                    else:
-                        new_vectors = vstack([vectorized,new_vectors], format='csr')
-
-        return new_graphs
-
-
-
+class MySampler(GraphLearnSampler):
+    # i need a sampler that returns 6 graphs
+    # restart 3x and yield the first 2 results
 
     def _stop_condition(self, graph):
         '''
+        i accept 2 versions oOo
         '''
-        if self.similarity > 0:
-            if self.step == 0:
-                self.vectorizer._reference_vec = \
-                    self.vectorizer._convert_dict_to_sparse_matrix(
-                        self.vectorizer._transform(0, nx.Graph(graph)))
-            else:
-                x = self.vectorizer._convert_dict_to_sparse_matrix(
-                        self.vectorizer._transform(0,nx.Graph(graph)))
-                similarity  = self.vectorizer._reference_vec.dot(x.T).todense().sum()
+        is_new=True
+        for gr in self.sample_path:
+            if gr._score == graph._score:
+                is_new = False
+        if is_new:
+            self.sample_path.append(graph)
 
-                if  similarity < self.similarity:
-                    raise Exception('similarity stop condition reached')
-
+        if len(self.sample_path) >2:
+            raise('stop condition reached')
 
     # this will yield up to 30 graphs... graph
     def _sample(self,input):
         res_list= []
-        for x in xrange(self.sample_tries):
+        for x in xrange(3): # hijacking similarity oO
             inp=nx.Graph(input)
-            res_list.append( super(discsampler,self)._sample(inp)[0] )
+            res_list+= GraphLearnSampler._sample(self,inp).graph['sampling_info']['graphs_history'][1:-1]
         return res_list
 
