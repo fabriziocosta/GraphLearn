@@ -189,7 +189,7 @@ class GraphLearnSampler(object):
             return None
         # prepare variables and graph
         graph = self._sample_init(graph)
-        scores = [graph._score]
+        self._score_list = [graph._score]
         self.sample_path = [graph]
         accept_counter = 0
 
@@ -209,23 +209,27 @@ class GraphLearnSampler(object):
 
                 # save score
                 # take snapshot
-                scores.append(graph._score)
+                self._score_list_append(graph)
                 if self.step % self.sampling_interval == 0 and self.step > self.burnout:
                     self.sample_path.append(graph)
 
         except Exception as exc:
+            print exc
             logger.debug(exc)
             logger.debug(traceback.format_exc(5))
             self._sample_notes += "\n" + str(exc)
             self._sample_notes += '\nstoped at step %d' % self.step
 
-        scores += [scores[-1]] * (self.n_steps + 1 - len(scores))
+        self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         self.sample_path.append(graph)
         sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
-        sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path, 'score_history': scores, 'accept_count': accept_counter, 'notes': self._sample_notes}
+        sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path, 'score_history': self._score_list, 'accept_count': accept_counter, 'notes': self._sample_notes}
         return sampled_graph
+
+    def _score_list_append(self,graph):
+        self._score_list.append(graph._score)
 
     def _sample_init(self, graph):
         '''

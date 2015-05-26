@@ -1,7 +1,8 @@
 import pylab as plt
 from eden.util.display import draw_graph
-
-from myeden import *
+import networkx as nx
+import graphlearn.graphtools as graphtools
+from collections import defaultdict
 
 import logging
 logger = logging.getLogger(__name__)
@@ -18,19 +19,6 @@ logger = logging.getLogger(__name__)
             drawing a list of graphs
 '''
 
-
-def graph_clean(graph):
-    '''
-    in the precess of creating a new graph,
-    we marked the nodes that were used as interface and core.
-    here we remove the marks.
-    :param graph:
-    :return:
-    '''
-    for n, d in graph.nodes(data=True):
-        d.pop('root', None)
-        d.pop('core', None)
-        d.pop('interface', None)
 
 
 def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10,4), log_scale=True):
@@ -95,6 +83,24 @@ def draw_grammar_stats(grammar, size=(10,4)):
     print 'interfaces with x many cores were observed y many times. '
     plot_charts(datapoints, size=size)
 
+    print 'other histogram'
+    print 'how many cores exist with x many interfaces'
+    nc = [ v for v in c.values()  ]
+    nc.sort()
+    d=defaultdict(int)
+    for e in nc:
+        d[e]+=1
+    dp=[]
+    for i in range(  max(nc)  ):
+        if i in d:
+            dp.append(d[i])
+        else:
+            dp.append(d[i])
+
+    plot_charts(dp,size=size)
+
+
+
 
 def display(G, size=6, font_size=15, node_size=200, node_border=False, delabeledges=True, contract=False, vertex_label='label'):
     if contract:
@@ -121,7 +127,7 @@ def cip_to_graph(cips=[], graphs=[]):
     else:
         for c, g in zip(cips, graphs):
             remove_colors(g)
-            graph_clean(g)
+            graphtools.graph_clean(g)
             g2 = g.copy()
             d = {0: 'root'}
             index = 1
@@ -307,3 +313,47 @@ def draw_graph_row(graph,
         title = str(graph.graph.get('id', '')) + "\n" + str(graph.graph.get('info', ''))
         plt.title(title)
         # plt.show()
+
+
+def calc_stats_from_grammar(grammar):
+    count_corehashes = defaultdict(int)
+    count_interfacehashes = defaultdict(int)
+    corecounter = defaultdict(int)
+    intercounter = defaultdict(int)
+    for ih in grammar.keys():
+        for ch in grammar[ih].keys():
+            # go over all the combos
+            count_corehashes[ch]+=1
+            count_interfacehashes[ih]+=1
+            count= grammar[ih][ch].count
+            corecounter[ch]+=count
+            intercounter[ih]+=count
+    return count_corehashes,count_interfacehashes,corecounter,intercounter
+
+def contract_edges(original_graph):
+    """
+        stealing from eden...
+        because i draw cores and interfaces there may be edge-nodes
+        that have no partner, eden gives error in this case.
+        i still want to see them :)
+    """
+    # start from a copy of the original graph
+    G = nx.Graph(original_graph)
+    # re-wire the endpoints of edge-vertices
+    for n, d in original_graph.nodes_iter(data=True):
+        if d.get('edge', False) == True:
+            # extract the endpoints
+            endpoints = [u for u in original_graph.neighbors(n)]
+            # assert (len(endpoints) == 2), 'ERROR: more than 2 endpoints'
+            if len(endpoints) != 2:
+                continue
+            u = endpoints[0]
+            v = endpoints[1]
+            # add the corresponding edge
+            G.add_edge(u, v, d)
+            # remove the edge-vertex
+            G.remove_node(n)
+        if d.get('node', False) == True:
+            # remove stale information
+            G.node[n].pop('remote_neighbours', None)
+    return G
