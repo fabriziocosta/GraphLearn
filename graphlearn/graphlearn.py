@@ -81,6 +81,7 @@ class GraphLearnSampler(object):
         # is the core coosen by frequency?  (bool)
         self.probabilistic_core_choice = None
 
+        # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
         dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
@@ -159,8 +160,8 @@ class GraphLearnSampler(object):
             for graph in graph_iter:
                 sampled_graph=self._sample(graph)
                 #yield sampled_graph
-                for r in  self.return_formatter(sampled_graph):
-                    yield r
+                for new_graph in  self.return_formatter(sampled_graph):
+                    yield new_graph
         else:
             if n_jobs > 1:
                 pool = Pool(processes=n_jobs)
@@ -170,8 +171,8 @@ class GraphLearnSampler(object):
 
             for batch in sampled_graphs:
                 for sampled_graph in batch:
-                    for r in self.return_formatter(sampled_graph):
-                        yield r
+                    for new_graph in self.return_formatter(sampled_graph):
+                        yield new_graph
             pool.close()
             pool.join()
             # for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
@@ -183,8 +184,8 @@ class GraphLearnSampler(object):
         if sample_product!=None:
             if self.generatormode:
                 # yield all the graphs but jump first because that one is the start graph :)
-                for g in sample_product.graph['sampling_info']['graphs_history'][1:]:
-                    yield g
+                for graph in sample_product.graph['sampling_info']['graphs_history'][1:]:
+                    yield graph
             else:
                 yield sample_product
 
