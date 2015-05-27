@@ -157,7 +157,7 @@ class GraphLearnSampler(object):
         # sampling
         if n_jobs in [0, 1]:
             for graph in graph_iter:
-                yield self._sample(graph)
+                self.return_formatter(self._sample(graph))
         else:
             if n_jobs > 1:
                 pool = Pool(processes=n_jobs)
@@ -167,19 +167,25 @@ class GraphLearnSampler(object):
 
             for batch in sampled_graphs:
                 for sampled_graph in batch:
-                    if sampled_graph:
-                        if generatormode:
-                            # yield all the graphs but jump first because that one is the start graph :)
-                            for g in sampled_graph['sampling_info']['graphs_history'][1:]:
-                                yield g
-                        else:
-                            yield sampled_graph
+                    self.return_formatter(sampled_graph)
             pool.close()
             pool.join()
             # for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
             #    yield pair
 
+
+    def return_formatter(self,sample_product):
+        # after _sample we need to decide what to yield...
+        if sample_product:
+            if self.generatormode:
+                # yield all the graphs but jump first because that one is the start graph :)
+                for g in sample_product['sampling_info']['graphs_history'][1:]:
+                    yield g
+            else:
+                yield sample_product
+
     def _argbuilder(self, problem_iter):
+        # for multiprocessing  divide task into small multiprocessable bites
         s = dill.dumps(self)
         for e in grouper(problem_iter, self.batch_size):
             batch = dill.dumps(e)
