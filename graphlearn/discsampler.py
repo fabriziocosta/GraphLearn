@@ -15,7 +15,7 @@ import heapq
 
 
 
-class discsampler():
+class DiscSampler():
     '''
     '''
 

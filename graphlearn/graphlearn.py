@@ -265,7 +265,7 @@ class GraphLearnSampler(object):
                     self._sample_path_score_set.add(graph._score)
 
             # append :)
-            self.sample_path.append(graph)
+            self.sample_path.append(self.vectorizer._revert_edge_to_vertex_transform(graph))
 
     def _sample_init(self, graph):
         '''
