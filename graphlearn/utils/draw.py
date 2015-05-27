@@ -1,5 +1,5 @@
 import pylab as plt
-from eden.util.display import draw_graph
+from eden.util.display import draw_graph, draw_graph_set
 import networkx as nx
 import graphlearn.graphtools as graphtools
 from collections import defaultdict
@@ -102,18 +102,15 @@ def draw_grammar_stats(grammar, size=(10,4)):
 
 
 
-def display(G, size=6, font_size=15, node_size=200, node_border=False, delabeledges=True, contract=False, vertex_label='label'):
+def display(G, size=6, font_size=15, node_size=200, node_border=False, contract=False, vertex_label='label',**args):
     if contract:
         G = contract_edges(G)
     G2 = G.copy()
     set_colors(G2)
-    if delabeledges:
-        for a, b, c in G2.edges_iter(data=True):
-            c['label'] = ''
     if vertex_label == 'id':
         for n, d in G2.nodes_iter(data=True):
             d['id'] = str(n)
-    draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size, vertex_color='color', vertex_label=vertex_label)
+    draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size, vertex_color='color', vertex_label=vertex_label,**args)
 
 
 def cip_to_graph(cips=[], graphs=[]):
@@ -144,6 +141,29 @@ def cip_to_graph(cips=[], graphs=[]):
             regraphs.append(g2)
     return regraphs
 
+def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **args):
+    if n_productions is None:
+        n_productions = len(grammar)
+
+    if len(grammar) < n_productions:
+        n_productions = len(grammar)
+
+    for i in range(n_productions):
+        interface = grammar.keys()[i]
+        core_cid_dict = grammar[interface]
+        graphs = [core_cid_dict[chash].graph for chash in core_cid_dict.keys()]
+        #dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
+        print 'interface: ' + str(interface)
+        draw_graph_set_graphlearn(graphs, n_graphs_per_line=n_graphs_per_line, size=size, **args)
+
+
+
+
+def get_score_of_graph(graph):
+        return   "%s%s" % (' score: ' , str(graph.graph.get('score','?')) )
+
+
+
 
 def set_colors(g, key='col'):
     for n, d in g.nodes(data=True):
@@ -162,35 +182,33 @@ def remove_colors(g, key='col'):
         d[key] = 'white'
 
 
-def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **args):
-    if n_productions is None:
-        n_productions = len(grammar)
-
-    if len(grammar) < n_productions:
-        n_productions = len(grammar)
-
-    for i in range(n_productions):
-        interface = grammar.keys()[i]
-        core_cid_dict = grammar[interface]
-        graphs = [core_cid_dict[chash].graph for chash in core_cid_dict.keys()]
-        #dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
-        print 'interface: ' + str(interface)
-        draw_graph_set(graphs, n_graphs_per_line=n_graphs_per_line, size=size, **args)
 
 
-def draw_graph_set(graphs, n_graphs_per_line=5, size=4, **args):
+
+def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4,contract=True,vertex_color=None,  **args):
+    graphs=list(graphs)
+    if contract:
+        graphs= [ contract_edges(g) for g in graphs  ]
+    if vertex_color==None:
+        for g in graphs:
+            set_colors(g)
+        vertex_color= 'col'
+    draw_graph_set(graphs,n_graphs_per_line=n_graphs_per_line, size=size,vertex_color=vertex_color,**args)
+
+
+
+''' moved to eden delete soon
+
+# draw a whole set of graphs::
+def draw_graph_set(graphs, n_graphs_per_line=5, size=4, edge_label=None, **args):
     graphs=list(graphs)
     while graphs:
-        draw_graphs(graphs[:n_graphs_per_line], n_graphs_per_line=n_graphs_per_line, size=size, **args)
+        draw_graph_row(graphs[:n_graphs_per_line], n_graphs_per_line=n_graphs_per_line,edge_label=edge_label,size=size, **args)
         graphs = graphs[n_graphs_per_line:]
 
 
-
-def get_score_of_graph(graph):
-        return   "%s%f" % (' score: ' , graph.__dict__.get('_score','?') )
-
-
-def draw_graphs(graphs, contract=True, delete_edges=True, n_graphs_per_line=5, size=4, vertex_color=None, headlinehook= lambda x: ""  , **args):
+# draw a row of graphs
+def draw_graph_row(graphs, contract=True, n_graphs_per_line=5, size=4,  headlinehook= lambda x: ""  , **args):
     count = len(graphs)
     size_y = size
     size_x = size * n_graphs_per_line
@@ -200,28 +218,15 @@ def draw_graphs(graphs, contract=True, delete_edges=True, n_graphs_per_line=5, s
     for i in range(count):
         plt.subplot(1, n_graphs_per_line, i + 1)
         graphs[i].graph['info'] = "size:" + str(len(graphs[i])) + headlinehook(graphs[i])
-        draw_graph_row_wrapper(graphs[i], n_graphs_per_line=n_graphs_per_line, contract=contract, delete_edges=delete_edges, vertex_color=vertex_color, **args)
+        g=graphs[i]
+        draw_graph_nice(g, **args)
     plt.show()
 
 
-def draw_graph_row_wrapper(G, size=15, font_size=15, node_size=200, node_border=False, contract=True, delete_edges=True, vertex_color=None, **args):
-    if contract:
-        G = contract_edges(G)
-    if delete_edges:
-        for a, b, c in G.edges_iter(data=True):
-            c['label'] = ''
-    else:
-        for a, b, c in G.edges_iter(data=True):
-            if 'label' not in c:
-                c['label'] = ''
-    g = G.copy()
-    if vertex_color is None:
-        set_colors(g)
-        vertex_color='col'
-    draw_graph_row(g, size=size, node_size=node_size, node_border=node_border, font_size=font_size, vertex_color=vertex_color, **args)
 
-
-def draw_graph_row(graph,
+# this will draw a single graph,
+# but it will do so nicely -> it wont disrupt the row drawing.
+def draw_graph_nice(graph,
                    vertex_label='label',
                    secondary_vertex_label=None,
                    edge_label='label',
@@ -238,11 +243,6 @@ def draw_graph_row(graph,
                    invert_colormap=False,
                    verbose=True,
                    **args):
-    '''
-        thisis basically taken from eden,
-        but calling figure() and show() are disables
-        so i can draw many graphs in a row
-    '''
 
     plt.grid(False)
     plt.axis('off')
@@ -257,11 +257,12 @@ def draw_graph_row(graph,
     edges_normal = [(u, v) for (u, v, d) in graph.edges(data=True) if d.get('nesting', False) == False]
     edges_nesting = [(u, v) for (u, v, d) in graph.edges(data=True) if d.get('nesting', False) == True]
 
+    edge_labels={}
     if secondary_edge_label:
         edge_labels = dict(
             [((u, v, ), '%s\n%s' % (d.get(edge_label, 'N/A'), d.get(secondary_edge_label, 'N/A'))) for u, v, d in
              graph.edges(data=True)])
-    else:
+    elif edge_label:
         edge_labels = dict([((u, v, ), d.get(edge_label, 'N/A')) for u, v, d in graph.edges(data=True)])
 
     if vertex_color == '':
@@ -319,7 +320,7 @@ def draw_graph_row(graph,
         plt.title(title)
         # plt.show()
 
-
+'''
 
 
 def contract_edges(original_graph):
