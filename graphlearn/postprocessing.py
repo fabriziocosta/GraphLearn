@@ -6,11 +6,13 @@ import logging
 
 class PostProcessor:
 
+    # this class is your hook if you need to alter graphs created the graphlearn way,
+
     def __init__(self):
-        # careful here, i got an error in graphlearn.save when this was active:
-        #self.logger=logging.getLogger('root')
         pass
 
+
+    # postprocess will be called by graphlearn. so put whatever you want to do here :)
     def postprocess(self, graph):
         return graph
 
