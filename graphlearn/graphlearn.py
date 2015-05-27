@@ -81,6 +81,7 @@ class GraphLearnSampler(object):
         # is the core coosen by frequency?  (bool)
         self.probabilistic_core_choice = None
 
+        # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
     def save(self, file_name):
         self.local_substitutable_graph_grammar.revert_multicore_transform()
         dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
@@ -129,7 +130,9 @@ class GraphLearnSampler(object):
                n_steps=50,
                annealing_factor=0,
                select_cip_max_tries=20,
-               burnout=0):
+               burnout=0,
+               generatormode= False,
+               keep_duplicates=False):
         """
             input: graph iterator
             output: yield (sampled_graph,{dictionary of info about sampling process}
@@ -145,7 +148,8 @@ class GraphLearnSampler(object):
         self.burnout = burnout
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
-        
+        self.generatormode= generatormode
+        self.keep_duplicates= keep_duplicates
         # adapt grammar to task:
         self.local_substitutable_graph_grammar.preprocessing(n_jobs, same_radius, same_core_size, probabilistic_core_choice)
 
@@ -154,7 +158,10 @@ class GraphLearnSampler(object):
         # sampling
         if n_jobs in [0, 1]:
             for graph in graph_iter:
-                yield self._sample(graph)
+                sampled_graph=self._sample(graph)
+                #yield sampled_graph
+                for new_graph in  self.return_formatter(sampled_graph):
+                    yield new_graph
         else:
             if n_jobs > 1:
                 pool = Pool(processes=n_jobs)
@@ -164,14 +171,26 @@ class GraphLearnSampler(object):
 
             for batch in sampled_graphs:
                 for sampled_graph in batch:
-                    if sampled_graph:
-                        yield sampled_graph
+                    for new_graph in self.return_formatter(sampled_graph):
+                        yield new_graph
             pool.close()
             pool.join()
             # for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
             #    yield pair
 
+
+    def return_formatter(self,sample_product):
+        # after _sample we need to decide what to yield...
+        if sample_product!=None:
+            if self.generatormode:
+                # yield all the graphs but jump first because that one is the start graph :)
+                for graph in sample_product.graph['sampling_info']['graphs_history'][1:]:
+                    yield graph
+            else:
+                yield sample_product
+
     def _argbuilder(self, problem_iter):
+        # for multiprocessing  divide task into small multiprocessable bites
         s = dill.dumps(self)
         for e in grouper(problem_iter, self.batch_size):
             batch = dill.dumps(e)
@@ -210,11 +229,11 @@ class GraphLearnSampler(object):
                 # save score
                 # take snapshot
                 self._score_list_append(graph)
-                if self.step % self.sampling_interval == 0 and self.step > self.burnout:
-                    self.sample_path.append(graph)
+                self._sample_path_append(graph)
+
+
 
         except Exception as exc:
-            print exc
             logger.debug(exc)
             logger.debug(traceback.format_exc(5))
             self._sample_notes += "\n" + str(exc)
@@ -223,13 +242,30 @@ class GraphLearnSampler(object):
         self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
-        self.sample_path.append(graph)
+        self._sample_path_append(graph)
         sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
         sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path, 'score_history': self._score_list, 'accept_count': accept_counter, 'notes': self._sample_notes}
         return sampled_graph
 
     def _score_list_append(self,graph):
         self._score_list.append(graph._score)
+
+    def _sample_path_append(self,graph):
+        # conditions meet?
+        if self.step % self.sampling_interval == 0 and self.step > self.burnout:
+
+            # do we want to omit duplicates?
+            if not self.keep_duplicates:
+                #have we seen this before?
+                if graph._score in self._sample_path_score_set:
+                    # if so return
+                    return
+                # else add so seen set
+                else:
+                    self._sample_path_score_set.add(graph._score)
+
+            # append :)
+            self.sample_path.append(graph)
 
     def _sample_init(self, graph):
         '''
@@ -244,6 +280,8 @@ class GraphLearnSampler(object):
         graph = self.vectorizer._edge_to_vertex_transform(graph)
         self._score(graph)
         self._sample_notes = ''
+        self._sample_path_score_set = set()
+
         return graph
 
     def _stop_condition(self, graph):
@@ -324,8 +362,6 @@ class GraphLearnSampler(object):
                 return self.postprocessor.postprocess(graph_new)
             else:
                 logger.debug('feasibility checker failed')
-            # ill leave this here.. use it in case things go wrong oo
-            #    draw.drawgraphs([graph, original_cip.graph, candidate_cip.graph], contract=False)
 
     def _select_cips(self, cip):
         """
@@ -366,7 +402,8 @@ class GraphLearnSampler(object):
         else:
             for core_hash in core_hashes:
                 yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
-        # raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in # entries: %d" % len(core_hashes))
+
+        raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in " )
 
     def _get_valid_core_hashes(self, cip):
         '''
