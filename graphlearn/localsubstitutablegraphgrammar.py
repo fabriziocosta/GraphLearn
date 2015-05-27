@@ -55,6 +55,9 @@ class LocalSubstitutableGraphGrammar:
         '''
             sampler will use this when preparing sampling
         '''
+        if self.__dict__.get('locked',False):
+            logger.debug('jumping preprocessing of grammar, it is assumed that you have done so already')
+            return
         if same_radius:
             self.add_same_radius_quicklookup()
         if same_core_size:
@@ -64,6 +67,7 @@ class LocalSubstitutableGraphGrammar:
         if n_jobs > 1:
             self.multicore_transform()
 
+        self.locked=True
 
     def fit(self,G_iterator,n_jobs):
         self.read(G_iterator, n_jobs)
