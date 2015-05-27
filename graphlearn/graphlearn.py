@@ -129,7 +129,9 @@ class GraphLearnSampler(object):
                n_steps=50,
                annealing_factor=0,
                select_cip_max_tries=20,
-               burnout=0):
+               burnout=0,
+               generatormode= False,
+               keep_duplicates=False):
         """
             input: graph iterator
             output: yield (sampled_graph,{dictionary of info about sampling process}
@@ -145,7 +147,8 @@ class GraphLearnSampler(object):
         self.burnout = burnout
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
-        
+        self.generatormode= generatormode
+        self.keep_duplicates= keep_duplicates
         # adapt grammar to task:
         self.local_substitutable_graph_grammar.preprocessing(n_jobs, same_radius, same_core_size, probabilistic_core_choice)
 
@@ -165,7 +168,12 @@ class GraphLearnSampler(object):
             for batch in sampled_graphs:
                 for sampled_graph in batch:
                     if sampled_graph:
-                        yield sampled_graph
+                        if generatormode:
+                            # yield all the graphs but jump first because that one is the start graph :)
+                            for g in sampled_graph['sampling_info']['graphs_history'][1:]:
+                                yield g
+                        else:
+                            yield sampled_graph
             pool.close()
             pool.join()
             # for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
@@ -210,8 +218,9 @@ class GraphLearnSampler(object):
                 # save score
                 # take snapshot
                 self._score_list_append(graph)
-                if self.step % self.sampling_interval == 0 and self.step > self.burnout:
-                    self.sample_path.append(graph)
+                self._sample_path_append(graph)
+
+
 
         except Exception as exc:
             print exc
@@ -231,6 +240,23 @@ class GraphLearnSampler(object):
     def _score_list_append(self,graph):
         self._score_list.append(graph._score)
 
+    def _sample_path_append(self,graph):
+        # conditions meet?
+        if self.step % self.sampling_interval == 0 and self.step > self.burnout:
+
+            # do we want to omit duplicates?
+            if not self.keep_duplicates:
+                #have we seen this before?
+                if graph._score in self._sample_path_score_set:
+                    # if so return
+                    return
+                # else add so seen set
+                else:
+                    self._sample_path_score_set.add(graph._score)
+
+            # append :)
+            self.sample_path.append(graph)
+
     def _sample_init(self, graph):
         '''
         we prepare the sampling process
@@ -244,6 +270,8 @@ class GraphLearnSampler(object):
         graph = self.vectorizer._edge_to_vertex_transform(graph)
         self._score(graph)
         self._sample_notes = ''
+        self._sample_path_score_set = set()
+
         return graph
 
     def _stop_condition(self, graph):
@@ -324,8 +352,6 @@ class GraphLearnSampler(object):
                 return self.postprocessor.postprocess(graph_new)
             else:
                 logger.debug('feasibility checker failed')
-            # ill leave this here.. use it in case things go wrong oo
-            #    draw.drawgraphs([graph, original_cip.graph, candidate_cip.graph], contract=False)
 
     def _select_cips(self, cip):
         """
@@ -366,7 +392,8 @@ class GraphLearnSampler(object):
         else:
             for core_hash in core_hashes:
                 yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
-        # raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in # entries: %d" % len(core_hashes))
+
+        raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in " )
 
     def _get_valid_core_hashes(self, cip):
         '''
