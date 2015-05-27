@@ -209,7 +209,7 @@ class GraphLearnSampler(object):
         # prepare variables and graph
         graph = self._sample_init(graph)
         self._score_list = [graph._score]
-        self.sample_path = [graph]
+        self.sample_path = []
         accept_counter = 0
 
         try:
@@ -252,7 +252,8 @@ class GraphLearnSampler(object):
 
     def _sample_path_append(self,graph):
         # conditions meet?
-        if self.step % self.sampling_interval == 0 and self.step > self.burnout:
+        #
+        if self.step==0 or (self.step % self.sampling_interval == 0 and self.step > self.burnout):
 
             # do we want to omit duplicates?
             if not self.keep_duplicates:
@@ -264,7 +265,8 @@ class GraphLearnSampler(object):
                 else:
                     self._sample_path_score_set.add(graph._score)
 
-            # append :)
+            # append :) .. rescuing score
+            graph.graph['score']= graph._score
             self.sample_path.append(self.vectorizer._revert_edge_to_vertex_transform(graph))
 
     def _sample_init(self, graph):
@@ -277,6 +279,7 @@ class GraphLearnSampler(object):
         - possibly we are in a multiprocessing process, and this class instance hasnt been used before,
           in this case we need to rebuild the postprocessing function .
         '''
+
         graph = self.vectorizer._edge_to_vertex_transform(graph)
         self._score(graph)
         self._sample_notes = ''

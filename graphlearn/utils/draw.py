@@ -1,5 +1,5 @@
 import pylab as plt
-from eden.util.display import draw_graph
+from eden.util.display import draw_graph, draw_graph_set
 import networkx as nx
 import graphlearn.graphtools as graphtools
 from collections import defaultdict
@@ -154,13 +154,13 @@ def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **arg
         graphs = [core_cid_dict[chash].graph for chash in core_cid_dict.keys()]
         #dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
         print 'interface: ' + str(interface)
-        draw_graph_set(graphs, n_graphs_per_line=n_graphs_per_line, size=size, **args)
+        draw_graph_set_graphlearn(graphs, n_graphs_per_line=n_graphs_per_line, size=size, **args)
 
 
 
 
 def get_score_of_graph(graph):
-        return   "%s%s" % (' score: ' , str(graph.__dict__.get('_score','?')) )
+        return   "%s%s" % (' score: ' , str(graph.graph.get('score','?')) )
 
 
 
@@ -182,6 +182,23 @@ def remove_colors(g, key='col'):
         d[key] = 'white'
 
 
+
+
+
+def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4,contract=True,vertex_color=None,  **args):
+    graphs=list(graphs)
+    if contract:
+        graphs= [ contract_edges(g) for g in graphs  ]
+    if vertex_color==None:
+        for g in graphs:
+            set_colors(g)
+        vertex_color= 'col'
+    draw_graph_set(graphs,n_graphs_per_line=n_graphs_per_line, size=size,vertex_color=vertex_color,**args)
+
+
+
+''' moved to eden delete soon
+
 # draw a whole set of graphs::
 def draw_graph_set(graphs, n_graphs_per_line=5, size=4, edge_label=None, **args):
     graphs=list(graphs)
@@ -191,7 +208,7 @@ def draw_graph_set(graphs, n_graphs_per_line=5, size=4, edge_label=None, **args)
 
 
 # draw a row of graphs
-def draw_graph_row(graphs, contract=True, n_graphs_per_line=5, size=4, vertex_color=None, headlinehook= lambda x: ""  , **args):
+def draw_graph_row(graphs, contract=True, n_graphs_per_line=5, size=4,  headlinehook= lambda x: ""  , **args):
     count = len(graphs)
     size_y = size
     size_x = size * n_graphs_per_line
@@ -202,13 +219,7 @@ def draw_graph_row(graphs, contract=True, n_graphs_per_line=5, size=4, vertex_co
         plt.subplot(1, n_graphs_per_line, i + 1)
         graphs[i].graph['info'] = "size:" + str(len(graphs[i])) + headlinehook(graphs[i])
         g=graphs[i]
-        this_vertex_color= vertex_color
-        if vertex_color is None:
-            set_colors(g)
-            this_vertex_color_='col'
-        if contract:
-            g=contract_edges(g)
-        draw_graph_nice(g, vertex_color=this_vertex_color, **args)
+        draw_graph_nice(g, **args)
     plt.show()
 
 
@@ -232,11 +243,6 @@ def draw_graph_nice(graph,
                    invert_colormap=False,
                    verbose=True,
                    **args):
-    '''
-        thisis basically taken from eden,
-        but calling figure() and show() are disables
-        so i can draw many graphs in a row
-    '''
 
     plt.grid(False)
     plt.axis('off')
@@ -314,7 +320,7 @@ def draw_graph_nice(graph,
         plt.title(title)
         # plt.show()
 
-
+'''
 
 
 def contract_edges(original_graph):
