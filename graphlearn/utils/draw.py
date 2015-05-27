@@ -185,7 +185,12 @@ def draw_graph_set(graphs, n_graphs_per_line=5, size=4, **args):
         graphs = graphs[n_graphs_per_line:]
 
 
-def draw_graphs(graphs, contract=True, delete_edges=True, n_graphs_per_line=5, size=4, vertex_color=None, **args):
+
+def get_score_of_graph(graph):
+        return   "%s%f" % (' score: ' , graph.__dict__.get('_score','?') )
+
+
+def draw_graphs(graphs, contract=True, delete_edges=True, n_graphs_per_line=5, size=4, vertex_color=None, headlinehook= lambda x: ""  , **args):
     count = len(graphs)
     size_y = size
     size_x = size * n_graphs_per_line
@@ -194,7 +199,7 @@ def draw_graphs(graphs, contract=True, delete_edges=True, n_graphs_per_line=5, s
 
     for i in range(count):
         plt.subplot(1, n_graphs_per_line, i + 1)
-        graphs[i].graph['info'] = "size:" + str(len(graphs[i]))
+        graphs[i].graph['info'] = "size:" + str(len(graphs[i])) + headlinehook(graphs[i])
         draw_graph_row_wrapper(graphs[i], n_graphs_per_line=n_graphs_per_line, contract=contract, delete_edges=delete_edges, vertex_color=vertex_color, **args)
     plt.show()
 

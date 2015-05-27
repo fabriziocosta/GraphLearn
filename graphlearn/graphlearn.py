@@ -233,7 +233,6 @@ class GraphLearnSampler(object):
 
 
         except Exception as exc:
-            print exc
             logger.debug(exc)
             logger.debug(traceback.format_exc(5))
             self._sample_notes += "\n" + str(exc)
@@ -242,7 +241,7 @@ class GraphLearnSampler(object):
         self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
-        self.sample_path.append(graph)
+        self._sample_path_append(graph)
         sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
         sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path, 'score_history': self._score_list, 'accept_count': accept_counter, 'notes': self._sample_notes}
         return sampled_graph
