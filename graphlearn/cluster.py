@@ -86,8 +86,12 @@ class cluster(GraphLearnSampler):
 
         graphiter = self.get_nearest_neighbor_iterable(graph_iter)
         graphiter = itertools.islice(graphiter,doXgraphs)
-        for e in super(cluster,self).sample( graphiter ,sampling_interval=sampling_interval,
-                            batch_size=batch_size,n_jobs=n_jobs, n_steps=n_steps,same_core_size=False,
+        for e in super(cluster,self).sample( graphiter ,
+                            sampling_interval=sampling_interval,
+                            batch_size=batch_size,
+                            n_jobs=n_jobs,
+                            n_steps=n_steps,
+                            same_core_size=False,
                             annealing_factor = annealing_factor ,
                             select_cip_max_tries=select_cip_max_tries):
             yield e
