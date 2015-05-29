@@ -41,7 +41,7 @@ class DiscSampler():
         print 'got heap'
         distances, unused = forest.kneighbors(X,n_neighbors=2)
         distances = [ a[1] for a in distances ] # the second element should be the dist we want
-        avg_dist = sum(distances)/len(distances)
+        avg_dist = distances[ len(distances)/2  ]# sum(distances)/len(distances)
         print 'got dist'
         return heap,forest , avg_dist
 
@@ -78,6 +78,8 @@ class DiscSampler():
                n_steps=10,
                select_cip_max_tries = 100,
                annealing_factor = .5,
+               generatormode=False
+               
                )
 
             # lets see, we need to take care of
@@ -85,7 +87,8 @@ class DiscSampler():
             # - increase and check the counter, reinsert into heap
             # = the new graphs
             # put them in the heap and the forest
-            for graphlist,task in zip(work,todo):
+            for graph,task in zip(work,todo):
+                graphlist= graph.graph['sampling_info']['graphs_history']
                 print 'rez:',graphlist,task
                 for graph in graphlist:
                     # check distance from created instances
@@ -98,7 +101,7 @@ class DiscSampler():
                         forest.partial_fit(x)
                         heapq.heappush(heap, (  self.sampler.estimator.predict_proba(x)[0][1] ,0,graph  )  )
                         print 'heap'
-                    print 'cant heap'
+                    print 'cant heap',radius,dist
                 # taking care of task graph
                 # put in result list if necessary
                 if task[1] < check_k < task[1]+len(graphlist):
@@ -124,8 +127,6 @@ class DiscSampler():
         
 
 class MySampler(GraphLearnSampler):
-    # i need a sampler that returns 6 graphs
-    # restart 3x and yield the first 2 results
 
     def _stop_condition(self, graph):
         '''
@@ -138,14 +139,17 @@ class MySampler(GraphLearnSampler):
         if is_new:
             self.sample_path.append(graph)
 
-        if len(self.sample_path) >2:
+        if len(self.sample_path) >3:
             raise('stop condition reached')
-
+    
+    def _sample_path_append(self,graph):
+        pass
+        
     # this will yield up to 30 graphs... graph
-    def _sample(self,input):
-        res_list= []
-        for x in xrange(3): # hijacking similarity oO
-            inp=nx.Graph(input)
-            res_list+= GraphLearnSampler._sample(self,inp).graph['sampling_info']['graphs_history'][1:-1]
-        return res_list
+    #def _sample(self,input):
+    #    res_list= []
+    #    for x in xrange(3): # hijacking similarity oO
+    #        inp=nx.Graph(input)
+    #        res_list+= GraphLearnSampler._sample(self,inp).graph['sampling_info']['graphs_history'][1:-1]
+    #    return res_list
 
