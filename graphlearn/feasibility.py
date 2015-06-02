@@ -1,10 +1,10 @@
-
 import utils.draw as draw
 import logging
+
 logger = logging.getLogger(__name__)
 
-def default_check(graph):
 
+def default_check(graph):
     '''
     this is the default feasibility check...
     :param graph:
@@ -12,7 +12,6 @@ def default_check(graph):
     '''
     # check if graph exists
     if len(graph) < 1:
-
         logger.debug('ERROR: empty graph')
         return False
     # check if all the "edge nodes" have a start and end vertex..
@@ -25,9 +24,7 @@ def default_check(graph):
     return True
 
 
-
 class FeasibilityChecker():
-
     def __init__(self, draw_problem=False):
 
         self.checklist = []
