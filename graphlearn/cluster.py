@@ -1,8 +1,8 @@
 from graphlearn import GraphLearnSampler, LocalSubstitutableGraphGrammar
 import itertools
 import networkx as nx
-
-
+from sklearn.neighbors import LSHForest
+from eden.util import selection_iterator
 class cluster(GraphLearnSampler):
     '''
     ok here is the plan:
@@ -41,17 +41,40 @@ class cluster(GraphLearnSampler):
                                                                                 node_entity_check=self.node_entity_check)
         self.local_substitutable_graph_grammar.fit(G_pos, n_jobs)
 
-    def get_nearest_neighbor_iterable(self, graphlist):
+    def get_nearest_neighbor_iterable(self, graphlist, start_graphs,start_is_subset=True):
 
         # vectorize all
         graphlist, graphlist_ = itertools.tee(graphlist)
         X = self.vectorizer.transform(graphlist_)
 
+        start_graphs, graphlist_ = itertools.tee(start_graphs)
+        Y = self.vectorizer.transform(graphlist_)
+        forest = LSHForest()
+        forest.fit(X)
+        distances, indices = forest.kneighbors(Y, n_neighbors=2)
+
+        # we just assume that this is short...
+        start_graphs=list(start_graphs)
+        index=0
+        if start_is_subset:
+            index+=1
+
+        matches= [  (indices[i,index], i,distances[i,index])    for i in len(indices)  ]
+        matches.sort()
+
+        for index,graph in  enumerate( selection_iterator([a[0] for a in matches ])):
+            yield (graph, start_graphs[ matches[index][1]], matches[index][2] )
+
+
+
+
+    '''
+        # iterate over graphs
         graphlist, graphlist_ = itertools.tee(graphlist)
         for i, g in enumerate(graphlist):
-            gl, graphlist_ = itertools.tee(graphlist_)
 
             # compare to all other graphs and see who the NN is :)
+            gl, graphlist_ = itertools.tee(graphlist_)
             best_sim = 0.0
             NN = 0
             for i2, g2 in enumerate(gl):
@@ -61,7 +84,7 @@ class cluster(GraphLearnSampler):
                     best_sim = sim
                     NN = g2
             yield (g, NN, X[i2])
-
+    '''
     def _stop_condition(self, graph):
 
         if len(self.sample_path) == 1:
@@ -71,16 +94,17 @@ class cluster(GraphLearnSampler):
                 self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
                 raise Exception('goal reached')
 
-    def sample(self, graph_iter, sampling_interval=9999,
+    def sample(self, graph_iter,targets, targets_in_graphs,
+               sampling_interval=9999,
                batch_size=10,
                n_jobs=0,
                n_steps=50,
                select_cip_max_tries=20,
-               annealing_factor=1.0,
-               doXgraphs=9999):
+               annealing_factor=1.0
+               ):
 
-        graphiter = self.get_nearest_neighbor_iterable(graph_iter)
-        graphiter = itertools.islice(graphiter, doXgraphs)
+        graphiter = self.get_nearest_neighbor_iterable(graph_iter,targets,targets_in_graphs)
+        #graphiter = itertools.islice(graphiter, doXgraphs)
         for e in super(cluster, self).sample(graphiter,
                                              sampling_interval=sampling_interval,
                                              batch_size=batch_size,
