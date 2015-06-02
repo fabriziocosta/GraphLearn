@@ -143,9 +143,8 @@ class GraphLearnSampler(object):
         self.same_radius = same_radius
         self.similarity = similarity
 
-
         if n_samples:
-            sampling_interval=int((n_steps-burnout)/n_samples)+1
+            sampling_interval = int((n_steps - burnout) / n_samples) + 1
 
         self.sampling_interval = sampling_interval
         self.n_steps = n_steps
@@ -478,7 +477,7 @@ class GraphLearnSampler(object):
 
         raise Exception(
             'select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (
-            failcount))
+                failcount))
 
     def _accept_original_cip(self, cip):
         # if we have a hit in the grammar
