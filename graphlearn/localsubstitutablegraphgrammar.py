@@ -55,8 +55,10 @@ class LocalSubstitutableGraphGrammar:
             sampler will use this when preparing sampling
         '''
         if self.__dict__.get('locked', False):
-            logger.debug('jumping preprocessing of grammar, it is assumed that you have done so already')
+            logger.debug('skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing does not rerun every time we graphlearn.sample())')
             return
+        else:
+            logger.debug('preprocessing grammar')
         if same_radius:
             self.add_same_radius_quicklookup()
         if same_core_size:
