@@ -5,8 +5,8 @@ import graphlearn.graphtools as graphtools
 from collections import defaultdict
 from graphlearn.utils import calc_stats_from_grammar
 import logging
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 '''
         
@@ -20,17 +20,18 @@ logger = logging.getLogger(__name__)
 '''
 
 
-
-def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10,4), log_scale=True):
+def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_scale=True):
     plt.figure(figsize=size)
     plt.grid()
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.plot(data1, color='blue', lw=2)
-    plt.plot(data1, linestyle='None', markerfacecolor='white', markeredgecolor='blue', marker='o', markeredgewidth=2, markersize=8)
+    plt.plot(data1, linestyle='None', markerfacecolor='white', markeredgecolor='blue', marker='o', markeredgewidth=2,
+             markersize=8)
     if data2 is not None:
         plt.plot(data2, color='red', lw=2)
-        plt.plot(data2, linestyle='None', markerfacecolor='white', markeredgecolor='red', marker='o', markeredgewidth=2, markersize=8)
+        plt.plot(data2, linestyle='None', markerfacecolor='white', markeredgecolor='red', marker='o', markeredgewidth=2,
+                 markersize=8)
     if log_scale:
         plt.yscale('log')
     plt.xlim(-0.2, len(data1) + 0.2)
@@ -38,7 +39,7 @@ def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10,4), log_sc
     plt.show()
 
 
-def draw_grammar_stats(grammar, size=(10,4)):
+def draw_grammar_stats(grammar, size=(10, 4)):
     c, i, cc, ii = calc_stats_from_grammar(grammar)
     print "how often do we see interfacehashes"
     a = [(i[k], ii[k]) for k in i.keys()]
@@ -61,7 +62,7 @@ def draw_grammar_stats(grammar, size=(10,4)):
     plot_charts(a0, a1, xlabel='# cores', ylabel='counts', size=size)
 
     print 'histogram'
-    #a=[ (c[k],cc[k]) for k in c.keys()]
+    # a=[ (c[k],cc[k]) for k in c.keys()]
     a = [(i[k], ii[k]) for k in i.keys()]
 
     a0 = [e[0] for e in a]
@@ -85,24 +86,22 @@ def draw_grammar_stats(grammar, size=(10,4)):
 
     print 'other histogram'
     print 'how many cores exist with x many interfaces'
-    nc = [ v for v in c.values()  ]
+    nc = [v for v in c.values()]
     nc.sort()
-    d=defaultdict(int)
+    d = defaultdict(int)
     for e in nc:
-        d[e]+=1
-    dp=[]
-    for i in range(  max(nc)  ):
+        d[e] += 1
+    dp = []
+    for i in range(max(nc)):
         if i in d:
             dp.append(d[i])
         else:
             dp.append(d[i])
 
-    plot_charts(dp,size=size)
+    plot_charts(dp, size=size)
 
 
-
-
-def display(G, size=6, font_size=15, node_size=200, node_border=False, contract=False, vertex_label='label',**args):
+def display(G, size=6, font_size=15, node_size=200, node_border=False, contract=False, vertex_label='label', **args):
     if contract:
         G = contract_edges(G)
     G2 = G.copy()
@@ -110,7 +109,8 @@ def display(G, size=6, font_size=15, node_size=200, node_border=False, contract=
     if vertex_label == 'id':
         for n, d in G2.nodes_iter(data=True):
             d['id'] = str(n)
-    draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size, vertex_color='color', vertex_label=vertex_label,**args)
+    draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size, vertex_color='color',
+               vertex_label=vertex_label, **args)
 
 
 def cip_to_graph(cips=[], graphs=[]):
@@ -141,16 +141,13 @@ def cip_to_graph(cips=[], graphs=[]):
             regraphs.append(g2)
     return regraphs
 
+
 def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **args):
-
-
     if n_productions is None:
         n_productions = len(grammar)
 
     if len(grammar) < n_productions:
         n_productions = len(grammar)
-
-
 
     for i in range(n_productions):
         interface = grammar.keys()[i]
@@ -159,20 +156,17 @@ def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **arg
         cips = [core_cid_dict[chash].graph for chash in core_cid_dict.keys()]
 
         for cip in cips:
-            cip.graph.graph['frequency']=' frequency:'+cip.count
-        graphs= [cip.graph for cip in cips]
+            cip.graph.graph['frequency'] = ' frequency:' + cip.count
+        graphs = [cip.graph for cip in cips]
 
-        #dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
+        # dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
         print 'interface: ' + str(interface)
-        freq=lambda graph:graph.graph['frequency']
-        draw_graph_set_graphlearn(graphs, n_graphs_per_line=n_graphs_per_line, size=size,headlinehook=freq, **args)
-
-
+        freq = lambda graph: graph.graph['frequency']
+        draw_graph_set_graphlearn(graphs, n_graphs_per_line=n_graphs_per_line, size=size, headlinehook=freq, **args)
 
 
 def get_score_of_graph(graph):
-        return   "%s%s" % (' score: ' , str(graph.graph.get('score','?')) )
-
+    return "%s%s" % (' score: ', str(graph.graph.get('score', '?')))
 
 
 def set_colors(g, key='col'):
@@ -192,20 +186,15 @@ def remove_colors(g, key='col'):
         d[key] = 'white'
 
 
-
-def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4,contract=True,vertex_color=None,  **args):
-    graphs=list(graphs)
+def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4, contract=True, vertex_color=None, **args):
+    graphs = list(graphs)
     if contract:
-        graphs= [ contract_edges(g) for g in graphs  ]
-    if vertex_color==None:
+        graphs = [contract_edges(g) for g in graphs]
+    if vertex_color == None:
         for g in graphs:
             set_colors(g)
-        vertex_color= 'col'
-    draw_graph_set(graphs,n_graphs_per_line=n_graphs_per_line, size=size,vertex_color=vertex_color,**args)
-
-
-
-
+        vertex_color = 'col'
+    draw_graph_set(graphs, n_graphs_per_line=n_graphs_per_line, size=size, vertex_color=vertex_color, **args)
 
 
 def contract_edges(original_graph):
