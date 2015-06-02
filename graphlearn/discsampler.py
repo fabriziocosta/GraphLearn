@@ -71,7 +71,7 @@ class DiscSampler():
                                        n_jobs=1,
                                        n_steps=10,
                                        select_cip_max_tries=100,
-                                       annealing_factor=.5,
+                                       accept_annealing_factor=.5,
                                        generatormode=False
 
                                        )

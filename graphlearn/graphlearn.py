@@ -64,7 +64,7 @@ class GraphLearnSampler(object):
         self._sample_notes = None
         # factor for simulated annealing, 0 means off
         # 1 is pretty strong. 0.6 seems ok
-        self.annealing_factor = None
+        self.accept_annealing_factor = None
         # current step in sampling proces of a single graph
         self.step = None
         self.node_entity_check = node_entity_check
@@ -130,7 +130,8 @@ class GraphLearnSampler(object):
                batch_size=10,
                n_jobs=0,
                n_steps=50,
-               annealing_factor=0,
+               accept_annealing_factor=0,
+               accept_static_penalty=0.0,
                select_cip_max_tries=20,
                burnout=0,
                generatormode=False,
@@ -150,7 +151,8 @@ class GraphLearnSampler(object):
         self.n_steps = n_steps
         self.n_jobs = n_jobs
         self.same_core_size = same_core_size
-        self.annealing_factor = annealing_factor
+        self.accept_annealing_factor = accept_annealing_factor
+        self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
         self.burnout = burnout
         self.batch_size = batch_size
@@ -342,7 +344,7 @@ class GraphLearnSampler(object):
         score_ratio = score_graph_new / score_graph_old
         if score_ratio > 1.0:
             return True
-        score_ratio -= (float(self.step) / self.n_steps) * self.annealing_factor
+        score_ratio -= (float(self.step) / self.n_steps) * self.accept_annealing_factor + self.accept_static_penalty
         return score_ratio > random.random()
 
     def _propose(self, graph):
