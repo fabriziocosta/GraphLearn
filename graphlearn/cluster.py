@@ -100,7 +100,7 @@ class cluster(GraphLearnSampler):
                n_jobs=0,
                n_steps=50,
                select_cip_max_tries=20,
-               annealing_factor=1.0
+               accept_annealing_factor=1.0
                ):
 
         graphiter = self.get_nearest_neighbor_iterable(graph_iter,targets,targets_in_graphs)
@@ -111,7 +111,7 @@ class cluster(GraphLearnSampler):
                                              n_jobs=n_jobs,
                                              n_steps=n_steps,
                                              same_core_size=False,
-                                             annealing_factor=annealing_factor,
+                                             accept_annealing_factor=accept_annealing_factor,
                                              select_cip_max_tries=select_cip_max_tries):
             yield e
 

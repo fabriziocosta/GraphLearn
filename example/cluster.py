@@ -29,7 +29,7 @@ graphs = sampler.sample(graphs,
                         n_steps=steps,
                         n_jobs=1,
                         select_cip_max_tries = 200,
-                        annealing_factor= 2,
+                        accept_annealing_factor= 2,
                         doXgraphs= 9
                         )
 
