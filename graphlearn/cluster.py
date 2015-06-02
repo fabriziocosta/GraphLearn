@@ -1,10 +1,9 @@
-
-
 from graphlearn import GraphLearnSampler, LocalSubstitutableGraphGrammar
 import itertools
 import networkx as nx
-class cluster(GraphLearnSampler):
 
+
+class cluster(GraphLearnSampler):
     '''
     ok here is the plan:
 
@@ -38,81 +37,74 @@ class cluster(GraphLearnSampler):
         self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list, self.thickness_list,
                                                                                 core_interface_pair_remove_threshold,
                                                                                 interface_remove_threshold,
-                                                                                nbit=self.nbit, node_entity_check=self.node_entity_check)
-        self.local_substitutable_graph_grammar.fit(G_pos,n_jobs)
+                                                                                nbit=self.nbit,
+                                                                                node_entity_check=self.node_entity_check)
+        self.local_substitutable_graph_grammar.fit(G_pos, n_jobs)
 
-
-
-    def get_nearest_neighbor_iterable(self,graphlist):
+    def get_nearest_neighbor_iterable(self, graphlist):
 
         # vectorize all
         graphlist, graphlist_ = itertools.tee(graphlist)
         X = self.vectorizer.transform(graphlist_)
 
-        graphlist,graphlist_ = itertools.tee(graphlist)
-        for i,g in enumerate(graphlist):
-            gl,graphlist_ = itertools.tee(graphlist_)
+        graphlist, graphlist_ = itertools.tee(graphlist)
+        for i, g in enumerate(graphlist):
+            gl, graphlist_ = itertools.tee(graphlist_)
 
             # compare to all other graphs and see who the NN is :)
             best_sim = 0.0
             NN = 0
-            for i2,g2 in enumerate (gl):
+            for i2, g2 in enumerate(gl):
                 sim = X[i].dot(X[i2].T).todense()[0][0]
-                #print sim # just to make sure..
-                if sim > best_sim and i!=i2:
-                    best_sim=sim
+                # print sim # just to make sure..
+                if sim > best_sim and i != i2:
+                    best_sim = sim
                     NN = g2
-            yield (g,NN,X[i2])
-
+            yield (g, NN, X[i2])
 
     def _stop_condition(self, graph):
 
-        if len(self.sample_path)==1:
+        if len(self.sample_path) == 1:
             self.sample_path.append(self.goal_graph)
         if 'score' in graph.__dict__:
             if graph.score > 0.99999:
-                self._sample_notes+=';edge %d %d;' % (self.starthash,self.finhash)
+                self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
                 raise Exception('goal reached')
-
 
     def sample(self, graph_iter, sampling_interval=9999,
                batch_size=10,
                n_jobs=0,
                n_steps=50,
-               select_cip_max_tries = 20,
-               annealing_factor= 1.0,
+               select_cip_max_tries=20,
+               annealing_factor=1.0,
                doXgraphs=9999):
 
-
         graphiter = self.get_nearest_neighbor_iterable(graph_iter)
-        graphiter = itertools.islice(graphiter,doXgraphs)
-        for e in super(cluster,self).sample( graphiter ,
-                            sampling_interval=sampling_interval,
-                            batch_size=batch_size,
-                            n_jobs=n_jobs,
-                            n_steps=n_steps,
-                            same_core_size=False,
-                            annealing_factor = annealing_factor ,
-                            select_cip_max_tries=select_cip_max_tries):
+        graphiter = itertools.islice(graphiter, doXgraphs)
+        for e in super(cluster, self).sample(graphiter,
+                                             sampling_interval=sampling_interval,
+                                             batch_size=batch_size,
+                                             n_jobs=n_jobs,
+                                             n_steps=n_steps,
+                                             same_core_size=False,
+                                             annealing_factor=annealing_factor,
+                                             select_cip_max_tries=select_cip_max_tries):
             yield e
 
-
-    def _sample(self,g_pair):
-        self.starthash = hash( g_pair[0] )
+    def _sample(self, g_pair):
+        self.starthash = hash(g_pair[0])
         self.finhash = hash(g_pair[2])
         self.goal = g_pair[2]
-        self.goal_graph= g_pair[1]
+        self.goal_graph = g_pair[1]
         self.goal_size = len(self.vectorizer._edge_to_vertex_transform(self.goal_graph))
-        return super(cluster,self)._sample(g_pair[0])
+        return super(cluster, self)._sample(g_pair[0])
 
-
-    def _score(self,graph):
+    def _score(self, graph):
         if not '_score' in graph.__dict__:
             transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
             # slow so dont do it..
-            #graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
+            # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
             # print graph.score
-            #graph.score -= .007*abs( self.goal_size - len(graph) )
+            # graph.score -= .007*abs( self.goal_size - len(graph) )
         return graph._score
-
