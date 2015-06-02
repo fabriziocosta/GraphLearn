@@ -153,10 +153,10 @@ def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **arg
         interface = grammar.keys()[i]
         core_cid_dict = grammar[interface]
 
-        cips = [core_cid_dict[chash].graph for chash in core_cid_dict.keys()]
+        cips = [core_cid_dict[chash] for chash in core_cid_dict.keys()]
 
         for cip in cips:
-            cip.graph.graph['frequency'] = ' frequency:' + cip.count
+            cip.graph.graph['frequency'] = ' frequency:%s' % cip.count
         graphs = [cip.graph for cip in cips]
 
         # dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) if i < 5]
