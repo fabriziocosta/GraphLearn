@@ -3,7 +3,8 @@ import itertools
 import networkx as nx
 from sklearn.neighbors import LSHForest
 from eden.util import selection_iterator
-
+import logging
+logger= logging.getLogger(__name__)
 
 class cluster(GraphLearnSampler):
     '''
@@ -104,6 +105,7 @@ class cluster(GraphLearnSampler):
                ):
 
         graphiter = self.get_nearest_neighbor_iterable(graph_iter, targets, targets_in_graphs)
+        logger.debug('got neighbors')
         # graphiter = itertools.islice(graphiter, doXgraphs)
         for e in super(cluster, self).sample(graphiter,
                                              sampling_interval=sampling_interval,
