@@ -4,6 +4,7 @@ import networkx as nx
 from sklearn.neighbors import LSHForest
 from eden.util import selection_iterator
 
+from   sklearn.metrics.pairwise import cosine_distances as distance
 
 class cluster(GraphLearnSampler):
     '''
@@ -61,11 +62,11 @@ class cluster(GraphLearnSampler):
         if start_is_subset:
             index += 1
 
-        matches = [(indices[i, index], i, distances[i, index]) for i in len(indices)]
+        matches = [(indices[i, index], i, distances[i, index]) for i in range(len(indices))]
         matches.sort()
 
-        for index, graph in enumerate(selection_iterator([a[0] for a in matches])):
-            yield (graph, start_graphs[matches[index][1]], matches[index][2])
+        for index, graph in enumerate(selection_iterator(graphlist,[a[0] for a in matches])):
+            yield ((graph, start_graphs[matches[index][1]], X[matches[index][0]]) )
 
     '''
         # iterate over graphs
@@ -94,25 +95,11 @@ class cluster(GraphLearnSampler):
                 self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
                 raise Exception('goal reached')
 
-    def sample(self, graph_iter, targets, targets_in_graphs,
-               sampling_interval=9999,
-               batch_size=10,
-               n_jobs=0,
-               n_steps=50,
-               select_cip_max_tries=20,
-               accept_annealing_factor=1.0
-               ):
+    def sample(self, graph_iter, targets, targets_in_graphs,**kwargs):
 
         graphiter = self.get_nearest_neighbor_iterable(graph_iter, targets, targets_in_graphs)
         # graphiter = itertools.islice(graphiter, doXgraphs)
-        for e in super(cluster, self).sample(graphiter,
-                                             sampling_interval=sampling_interval,
-                                             batch_size=batch_size,
-                                             n_jobs=n_jobs,
-                                             n_steps=n_steps,
-                                             same_core_size=False,
-                                             accept_annealing_factor=accept_annealing_factor,
-                                             select_cip_max_tries=select_cip_max_tries):
+        for e in super(cluster, self).sample(graphiter,**kwargs):
             yield e
 
     def _sample(self, g_pair):
@@ -128,7 +115,11 @@ class cluster(GraphLearnSampler):
             transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-            graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
-            # print graph.score
+
+            #graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
+            graph._score=  (1 - distance(transformed_graph,self.goal))[0,0]
+
+
+            #print graph._score
             # graph.score -= .007*abs( self.goal_size - len(graph) )
         return graph._score
