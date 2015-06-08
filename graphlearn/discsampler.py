@@ -11,7 +11,7 @@ from eden.graph import Vectorizer
 import copy
 import heapq
 
-
+from utils.draw import draw_grammar
 class DiscSampler():
     '''
     '''
@@ -69,11 +69,11 @@ class DiscSampler():
             work = self.sampler.sample(graphz,
                                        batch_size=3,
                                        n_jobs=1,
-                                       n_steps=10,
+                                       n_steps=30,
                                        select_cip_max_tries=100,
                                        accept_annealing_factor=.5,
-                                       generatormode=False
-
+                                       generatormode=False,
+                                       same_core_size=False 
                                        )
 
             # lets see, we need to take care of
@@ -109,15 +109,16 @@ class DiscSampler():
     def fit_sampler(self, iter_pos, iter_neg):
 
         # getting the sampler ready:
-        self.sampler = MySampler()
+        vectorizer= Vectorizer(complexity=3, nbits=20)
+        self.sampler = MySampler(vectorizer=vectorizer)
         iter_pos, pos, pos_ = itertools.tee(iter_pos, 3)
-        self.estimator = self.sampler.estimatorobject.fit_2(iter_pos, iter_neg, Vectorizer())
+        self.estimator = self.sampler.estimatorobject.fit_2(iter_pos, iter_neg, vectorizer)
         print 'got estimeetaaa'
         self.sampler.estimator = self.estimator
         self.sampler.fit_grammar(pos)
-        print 'got grammar'
-        # calculating avg distance
-        # X = self.vectorizer.transform(pos_)
+        print 'got grammar:grammar is there oO'
+        #draw_grammar(self.sampler.local_substitutable_graph_grammar.grammar,n_productions=5)
+        
 
 
 class MySampler(GraphLearnSampler):

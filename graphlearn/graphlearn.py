@@ -14,7 +14,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
-
+import utils.draw as draw
 logger = logging.getLogger(__name__)
 
 
@@ -452,6 +452,7 @@ class GraphLearnSampler(object):
         """
 
         failcount = 0
+        nocip= 0
         for x in xrange(self.select_cip_max_tries):
             node = random.choice(graph.nodes())
             if 'edge' in graph.node[node]:
@@ -467,7 +468,7 @@ class GraphLearnSampler(object):
                                              hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
 
             if not cip:
-                failcount += 1
+                nocip += 1
                 continue
             cip = cip[0]
             if self._accept_original_cip(cip):
@@ -476,10 +477,11 @@ class GraphLearnSampler(object):
                 failcount += 1
 
         raise Exception(
-            'select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (
-                failcount))
+                'select_cip_for_substitution failed because no suiting interface was found, extract failed %d times; cip found but unacceptable:%s ' % 
+            ( failcount+nocip,failcount))
 
     def _accept_original_cip(self, cip):
+        #draw.display(cip.graph)
         # if we have a hit in the grammar
         if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
             #  if we have the same_radius rule implemented:
