@@ -26,7 +26,7 @@ def test_sampler():
                             probabilistic_core_choice=True,
                             n_steps=steps,
                             n_jobs=1,
-                            annealing_factor=0.9,
+                            accept_annealing_factor=0.9,
                             keep_duplicates=False)
     #graphs = sampler.sample(graphs,same_radius=True,sampling_interval=9999,batch_size=2,n_steps=steps,n_jobs=4)
     for e in graphs:
