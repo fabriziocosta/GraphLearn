@@ -92,7 +92,7 @@ for perc in percentages:
                         batch_size=int(count/4)+1,
                         n_steps=100,
                         n_jobs=-1,
-                        annealing_factor=0.9)
+                        accept_annealing_factor=0.9)
 
 
 

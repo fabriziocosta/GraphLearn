@@ -81,7 +81,7 @@ def sample(graphs):
                         batch_size=30,
                         n_steps=100,
                         n_jobs=-1,
-                        annealing_factor=0.9
+                        accept_annealing_factor=0.9
                         ))
 
 # initializing
