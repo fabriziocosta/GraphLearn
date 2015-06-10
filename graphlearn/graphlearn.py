@@ -14,7 +14,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
-import utils.draw as draw
+from utils import draw
 logger = logging.getLogger(__name__)
 
 
@@ -481,11 +481,13 @@ class GraphLearnSampler(object):
             ( failcount+nocip,failcount))
 
     def _accept_original_cip(self, cip):
-        #draw.display(cip.graph)
+        #cips=[cip]
+        #gr=draw.cip_to_graph( cips )
+        #draw.draw_graph_set_graphlearn(gr )
+        #print cip.interface_hash
         # if we have a hit in the grammar
         if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
             #  if we have the same_radius rule implemented:
-
             if self.same_radius:
                 # we jump if that hit has not the right radius
                 if not self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]:

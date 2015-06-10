@@ -101,7 +101,7 @@ def draw_grammar_stats(grammar, size=(10, 4)):
     plot_charts(dp, size=size)
 
 
-def display(G, size=6, font_size=15, node_size=200, node_border=False, contract=False, vertex_label='label', **args):
+def display(G, size=6, font_size=15, node_size=200, node_border=False, contract=False, vertex_label='label',edge_label=None, **args):
     if contract:
         G = contract_edges(G)
     G2 = G.copy()
