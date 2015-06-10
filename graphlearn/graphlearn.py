@@ -123,7 +123,7 @@ class GraphLearnSampler(object):
     def sample(self, graph_iter,
                probabilistic_core_choice=True,
                same_radius=False,
-               same_core_size=True,
+               same_core_size=False,
                similarity=-1,
                n_samples=None,
                batch_size=10,
