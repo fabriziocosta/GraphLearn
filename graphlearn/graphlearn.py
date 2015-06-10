@@ -125,7 +125,6 @@ class GraphLearnSampler(object):
                same_radius=False,
                same_core_size=True,
                similarity=-1,
-               sampling_interval=9999,
                n_samples=None,
                batch_size=10,
                n_jobs=0,
@@ -144,9 +143,8 @@ class GraphLearnSampler(object):
         self.similarity = similarity
 
         if n_samples:
-            sampling_interval = int((n_steps - burnout) / n_samples) + 1
+            self.sampling_interval = int((n_steps - burnout) / n_samples) + 1
 
-        self.sampling_interval = sampling_interval
         self.n_steps = n_steps
         self.n_jobs = n_jobs
         self.same_core_size = same_core_size
