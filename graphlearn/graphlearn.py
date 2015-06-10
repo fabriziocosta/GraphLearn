@@ -144,7 +144,8 @@ class GraphLearnSampler(object):
 
         if n_samples:
             self.sampling_interval = int((n_steps - burnout) / n_samples) + 1
-
+        else:
+            self.sampling_interval = 9999
         self.n_steps = n_steps
         self.n_jobs = n_jobs
         self.same_core_size = same_core_size
