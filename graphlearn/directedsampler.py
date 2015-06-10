@@ -6,7 +6,7 @@ from eden.util import selection_iterator
 
 from   sklearn.metrics.pairwise import cosine_distances as distance
 
-class cluster(GraphLearnSampler):
+class directedSampler(GraphLearnSampler):
     '''
     ok here is the plan:
 
@@ -95,12 +95,25 @@ class cluster(GraphLearnSampler):
                 self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
                 raise Exception('goal reached')
 
-    def sample(self, graph_iter, targets, targets_in_graphs,**kwargs):
+    def sample(self, graph_iter,target_graph=None, start_graphs=None, start_gr_in_graph_iter=None,**kwargs):
+        '''
+            graph iter are the background graphs that are always there.
+            if we set a target_graph, all the graphs move towrd that one.
+            if we set start_graphs, each start graph will try to reach its closest neighbor in the background
+        '''
 
-        graphiter = self.get_nearest_neighbor_iterable(graph_iter, targets, targets_in_graphs)
+        if start_graphs:
+            graphiter = self.get_nearest_neighbor_iterable(graph_iter, start_graphs, start_gr_in_graph_iter)
+
+        if target_graph:
+            target_copy= nx.Graph(target_graph)
+            target_vector= self.vectorizer.transform_single(target_copy)
+            graphiter = itertools.izip(graph_iter,itertools.repeat(target_graph),itertools.reapeat(target_vector))
+
         # graphiter = itertools.islice(graphiter, doXgraphs)
-        for e in super(cluster, self).sample(graphiter,**kwargs):
+        for e in super(directedSampler, self).sample(graphiter,**kwargs):
             yield e
+
 
     def _sample(self, g_pair):
         self.starthash = hash(g_pair[0])
@@ -108,7 +121,7 @@ class cluster(GraphLearnSampler):
         self.goal = g_pair[2]
         self.goal_graph = g_pair[1]
         self.goal_size = len(self.vectorizer._edge_to_vertex_transform(self.goal_graph))
-        return super(cluster, self)._sample(g_pair[0])
+        return super(directedSampler, self)._sample(g_pair[0])
 
     def _score(self, graph):
         if not '_score' in graph.__dict__:
