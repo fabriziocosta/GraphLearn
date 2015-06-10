@@ -108,7 +108,7 @@ class directedSampler(GraphLearnSampler):
         if target_graph:
             target_copy= nx.Graph(target_graph)
             target_vector= self.vectorizer.transform_single(target_copy)
-            graphiter = itertools.izip(graph_iter,itertools.repeat(target_graph),itertools.reapeat(target_vector))
+            graphiter = itertools.izip(graph_iter,itertools.repeat(target_graph),itertools.repeat(target_vector))
 
         # graphiter = itertools.islice(graphiter, doXgraphs)
         for e in super(directedSampler, self).sample(graphiter,**kwargs):
@@ -129,8 +129,8 @@ class directedSampler(GraphLearnSampler):
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
 
-            #graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
-            graph._score=  (1 - distance(transformed_graph,self.goal))[0,0]
+            graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
+            #graph._score=  (1 - distance(transformed_graph,self.goal))[0,0]
 
 
             #print graph._score
