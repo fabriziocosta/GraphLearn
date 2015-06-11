@@ -45,7 +45,7 @@ class estimator:
     def calibrate_estimator(self, X, estimator=None, nu=.5, cv=2):
         '''
             move bias until nu of X are in the negative class
-    
+
             then use scikits calibrate to calibrate self.estimator around the input
         '''
         #  move bias

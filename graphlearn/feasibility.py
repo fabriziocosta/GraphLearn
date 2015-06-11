@@ -35,7 +35,7 @@ class FeasibilityChecker():
         # for all the check functions
         for f in self.checklist:
             # if it fails:
-            if f(graph) == False:
+            if f(graph) is False:
                 # we may draw the graph
                 if self.draw_problem:
                     draw.display(graph)
