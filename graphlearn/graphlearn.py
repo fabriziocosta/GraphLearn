@@ -460,6 +460,21 @@ class GraphLearnSampler(object):
         random.shuffle(result_list)
         return result_list
 
+
+
+
+
+    def  select_original_cip_location(self,graph):
+        node = random.choice(graph.nodes())
+        if 'edge' in graph.node[node]:
+            node = random.choice(graph.neighbors(node))
+            # random radius and thickness
+        radius = random.choice(self.local_substitutable_graph_grammar.radius_list)
+        thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
+
+        return node,radius,thickness
+
+
     def select_original_cip(self, graph):
         """
             selects a chip randomly from the graph.
@@ -470,12 +485,7 @@ class GraphLearnSampler(object):
         failcount = 0
         nocip= 0
         for x in xrange(self.select_cip_max_tries):
-            node = random.choice(graph.nodes())
-            if 'edge' in graph.node[node]:
-                node = random.choice(graph.neighbors(node))
-            # random radius and thickness
-            radius = random.choice(self.local_substitutable_graph_grammar.radius_list)
-            thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
+            node,radius,thickness = self.select_original_cip_location(graph)
 
             # exteract_core_and_interface will return a list of results, we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible to extract at the desired radius/thicknes
@@ -488,6 +498,7 @@ class GraphLearnSampler(object):
                 continue
             cip = cip[0]
             if self._accept_original_cip(cip):
+                #print node,radius,cip.interface_hash
                 return cip
             else:
                 failcount += 1
