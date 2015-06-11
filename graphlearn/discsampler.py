@@ -1,18 +1,13 @@
-from graphlearn import GraphLearnSampler, LocalSubstitutableGraphGrammar
+from graphlearn import GraphLearnSampler
 import itertools
 import networkx as nx
-from scipy.sparse import csr_matrix, vstack
-from sklearn.neighbors import NearestNeighbors
 from sklearn.neighbors import LSHForest
-import numpy as np
 import heapq
-from eden.util import fit
 from eden.graph import Vectorizer
-import copy
-import heapq
 
 
 class DiscSampler():
+
     '''
     '''
 
@@ -35,7 +30,7 @@ class DiscSampler():
         for vector, graph in itertools.izip(X, iter2):
             graph2 = nx.Graph(graph)
             heapq.heappush(heap, (
-            self.sampler.estimator.predict_proba(self.sampler.vectorizer.transform_single(graph2))[0][1], k + 1, graph))
+                self.sampler.estimator.predict_proba(self.sampler.vectorizer.transform_single(graph2))[0][1], k + 1, graph))
         print 'got heap'
         distances, unused = forest.kneighbors(X, n_neighbors=2)
         distances = [a[1] for a in distances]  # the second element should be the dist we want
@@ -121,6 +116,7 @@ class DiscSampler():
 
 
 class MySampler(GraphLearnSampler):
+
     def _stop_condition(self, graph):
         '''
         i accept 2 versions oOo
@@ -141,7 +137,7 @@ class MySampler(GraphLearnSampler):
         # this will yield up to 30 graphs... graph
         # def _sample(self,input):
         #    res_list= []
-        #    for x in xrange(3): # hijacking similarity oO
+        # for x in xrange(3): # hijacking similarity oO
         #        inp=nx.Graph(input)
         #        res_list+= GraphLearnSampler._sample(self,inp).graph['sampling_info']['graphs_history'][1:-1]
         #    return res_list

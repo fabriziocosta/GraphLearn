@@ -4,9 +4,11 @@ import networkx as nx
 from sklearn.neighbors import LSHForest
 from eden.util import selection_iterator
 
-from   sklearn.metrics.pairwise import cosine_distances as distance
+from sklearn.metrics.pairwise import cosine_distances as distance
+
 
 class cluster(GraphLearnSampler):
+
     '''
     ok here is the plan:
 
@@ -65,8 +67,8 @@ class cluster(GraphLearnSampler):
         matches = [(indices[i, index], i, distances[i, index]) for i in range(len(indices))]
         matches.sort()
 
-        for index, graph in enumerate(selection_iterator(graphlist,[a[0] for a in matches])):
-            yield ((graph, start_graphs[matches[index][1]], X[matches[index][0]]) )
+        for index, graph in enumerate(selection_iterator(graphlist, [a[0] for a in matches])):
+            yield ((graph, start_graphs[matches[index][1]], X[matches[index][0]]))
 
     '''
         # iterate over graphs
@@ -95,11 +97,11 @@ class cluster(GraphLearnSampler):
                 self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
                 raise Exception('goal reached')
 
-    def sample(self, graph_iter, targets, targets_in_graphs,**kwargs):
+    def sample(self, graph_iter, targets, targets_in_graphs, **kwargs):
 
         graphiter = self.get_nearest_neighbor_iterable(graph_iter, targets, targets_in_graphs)
         # graphiter = itertools.islice(graphiter, doXgraphs)
-        for e in super(cluster, self).sample(graphiter,**kwargs):
+        for e in super(cluster, self).sample(graphiter, **kwargs):
             yield e
 
     def _sample(self, g_pair):
@@ -111,15 +113,14 @@ class cluster(GraphLearnSampler):
         return super(cluster, self)._sample(g_pair[0])
 
     def _score(self, graph):
-        if not '_score' in graph.__dict__:
+        if '_score' not in graph.__dict__:
             transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
 
-            #graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
-            graph._score=  (1 - distance(transformed_graph,self.goal))[0,0]
+            # graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
+            graph._score = (1 - distance(transformed_graph, self.goal))[0, 0]
 
-
-            #print graph._score
+            # print graph._score
             # graph.score -= .007*abs( self.goal_size - len(graph) )
         return graph._score
