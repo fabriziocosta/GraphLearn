@@ -28,7 +28,7 @@ class DiscSampler():
         and the forest ist just a nearest neighbor from sklearn
         '''
         griter, iter2 = itertools.tee(griter)
-        #~ X = self.vectorizer.transform(griter)
+        X = self.vectorizer.transform(griter)
         
         #~ forest = LSHForest()
         #~ forest.fit(X)
@@ -53,11 +53,13 @@ class DiscSampler():
         
         self.fit_sampler(graphiter,iterneg)
         a,b,c=self.get_heap_and_forest( griter2, 30)
-        
-        rez=self.sampler.sample(grait,sampling_interval=5,
+
+
+        grait= itertools.islice(grait,5)
+        rez=self.sampler.sample(grait,n_samples=5,
                                        batch_size=1,
                                        n_jobs=0,
-                                       n_steps=30,
+                                       n_steps=1,
                                        select_cip_max_tries=100,
                                        accept_annealing_factor=.5,
                                        generatormode=False,
@@ -96,7 +98,7 @@ class DiscSampler():
                                        accept_annealing_factor=.5,
                                        generatormode=False,
                                        same_core_size=False,
-                                       sampling_interval=3
+                                       n_samples=3
                                        )
             # lets see, we need to take care of
             # = the initialy poped stuff
