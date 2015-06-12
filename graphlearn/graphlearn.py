@@ -490,7 +490,7 @@ class GraphLearnSampler(object):
                 nocip += 1
                 continue
             cip = cip[0]
-            print node,radius,cip.interface_hash
+            #print node,radius,cip.interface_hash
 
             if self._accept_original_cip(cip):
                 return cip
