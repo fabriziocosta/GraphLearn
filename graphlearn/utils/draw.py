@@ -1,6 +1,8 @@
 import pylab as plt
 from eden.util.display import draw_graph, draw_graph_set
 import networkx as nx
+import numpy as np
+from scipy.optimize import curve_fit
 import graphlearn.graphtools as graphtools
 from collections import defaultdict
 from graphlearn.utils import calc_stats_from_grammar
@@ -9,7 +11,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 '''
-        
     functions to draw graphs:
         -draw_grammar
             visialize the samplers grammar
@@ -190,7 +191,7 @@ def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4, contract=True
     graphs = list(graphs)
     if contract:
         graphs = [contract_edges(g) for g in graphs]
-    if vertex_color == None:
+    if vertex_color is None:
         for g in graphs:
             set_colors(g)
         vertex_color = 'col'
@@ -208,7 +209,7 @@ def contract_edges(original_graph):
     G = nx.Graph(original_graph)
     # re-wire the endpoints of edge-vertices
     for n, d in original_graph.nodes_iter(data=True):
-        if d.get('edge', False) == True:
+        if d.get('edge', False) is True:
             # extract the endpoints
             endpoints = [u for u in original_graph.neighbors(n)]
             # assert (len(endpoints) == 2), 'ERROR: more than 2 endpoints'
@@ -220,31 +221,17 @@ def contract_edges(original_graph):
             G.add_edge(u, v, d)
             # remove the edge-vertex
             G.remove_node(n)
-        if d.get('node', False) == True:
+        if d.get('node', False) is True:
             # remove stale information
             G.node[n].pop('remote_neighbours', None)
     return G
 
 
-
-
-
-
-
-
-
-
-
-
-import numpy as np
-from numpy import *
-import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
-
 def learning_curve_function(x, a, b):
     return a * (1 - np.exp(-b * x))
 
-def draw_learning_curve(data_A = None , data_B = None, measure = None, x=None, delta=0.1, scaling=100, fname=None):
+
+def draw_learning_curve(data_A=None, data_B=None, measure=None, x=None, delta=0.1, scaling=100, fname=None):
     """
     Accepts as input an iterator over lists of numbers.
     Draws the exponential decay grpah over the means of lists.
@@ -260,11 +247,11 @@ def draw_learning_curve(data_A = None , data_B = None, measure = None, x=None, d
     x = np.array(x)
     mean_originals = []
     for originals in data_A:
-        mean_originals.append(mean(np.array(originals)))
+        mean_originals.append(np.mean(np.array(originals)))
 
     mean_originals_and_samples = []
     for originals_and_samples in data_B:
-        mean_originals_and_samples.append(mean(np.array(originals_and_samples)))
+        mean_originals_and_samples.append(np.mean(np.array(originals_and_samples)))
 
     a, b = curve_fit(learning_curve_function, x, mean_originals)
     c, d = curve_fit(learning_curve_function, x, mean_originals_and_samples)

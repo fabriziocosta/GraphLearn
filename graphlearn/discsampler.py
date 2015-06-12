@@ -1,19 +1,16 @@
 from graphlearn import GraphLearnSampler
 import itertools
 import networkx as nx
-#from scipy.sparse import csr_matrix, vstack
-#from sklearn.neighbors import NearestNeighbors
+
 from sklearn.neighbors import LSHForest
-#import numpy as np
-#import heapq
-#from eden.util import fit
-from eden.graph import Vectorizer
-#import copy
 import heapq
+from eden.graph import Vectorizer
+
 
 from utils import draw
 #from utils.draw import draw_grammar
 class DiscSampler():
+
     '''
     '''
 
@@ -27,6 +24,7 @@ class DiscSampler():
         heap is (dist to hyperplane, count, graph)
         and the forest ist just a nearest neighbor from sklearn
         '''
+
         griter, iter2 = itertools.tee(griter)
         X = self.vectorizer.transform(griter)
         
@@ -65,6 +63,7 @@ class DiscSampler():
                                        generatormode=False,
                                        same_core_size=False )
         return rez
+
 
     def sample_graphs(self, graphiter, iter_neg, radius, how_many, check_k, heap_chunk_size=10):
 
@@ -152,6 +151,7 @@ class DiscSampler():
 
 
 class MySampler(GraphLearnSampler):
+
     def _stop_condition(self, graph):
         '''
         i accept 2 versions oOo
@@ -172,7 +172,7 @@ class MySampler(GraphLearnSampler):
         # this will yield up to 30 graphs... graph
         # def _sample(self,input):
         #    res_list= []
-        #    for x in xrange(3): # hijacking similarity oO
+        # for x in xrange(3): # hijacking similarity oO
         #        inp=nx.Graph(input)
         #        res_list+= GraphLearnSampler._sample(self,inp).graph['sampling_info']['graphs_history'][1:-1]
         #    return res_list
