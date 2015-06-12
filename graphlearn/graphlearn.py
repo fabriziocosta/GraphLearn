@@ -497,8 +497,9 @@ class GraphLearnSampler(object):
                 nocip += 1
                 continue
             cip = cip[0]
+            print node,radius,cip.interface_hash
+
             if self._accept_original_cip(cip):
-                #print node,radius,cip.interface_hash
                 return cip
             else:
                 failcount += 1
@@ -511,7 +512,7 @@ class GraphLearnSampler(object):
         #cips=[cip]
         #gr=draw.cip_to_graph( cips )
         #draw.draw_graph_set_graphlearn(gr )
-        #print cip.interface_hash
+
         # if we have a hit in the grammar
         if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
             #  if we have the same_radius rule implemented:
