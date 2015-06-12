@@ -1,4 +1,3 @@
-import itertools
 from multiprocessing import Pool, Manager
 import graphtools
 import dill
@@ -9,10 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
-
-
 class coreInterfacePair:
+
     """
     this is refered to throughout the code as cip
     it contains the cip-graph and several pieces of information about it.
@@ -29,6 +26,7 @@ class coreInterfacePair:
 
 
 class LocalSubstitutableGraphGrammar:
+
     """
     the grammar.
         can learn from graphs
@@ -55,7 +53,8 @@ class LocalSubstitutableGraphGrammar:
             sampler will use this when preparing sampling
         '''
         if self.__dict__.get('locked', False):
-            logger.debug('skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing does not rerun every time we graphlearn.sample())')
+            logger.debug(
+                'skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing does not rerun every time we graphlearn.sample())')
             return
         else:
             logger.debug('preprocessing grammar')
@@ -265,7 +264,7 @@ class LocalSubstitutableGraphGrammar:
         """
         for gr in graphs:
             problem = (
-            gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check)
+                gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check)
             for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cid in core_interface_data_list:
                     self.add_core_interface_data(cid)
@@ -295,17 +294,14 @@ class LocalSubstitutableGraphGrammar:
         # distributing jobs to workers
         # result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
 
-
         if n_jobs > 1:
             pool = Pool(processes=n_jobs)
         else:
             pool = Pool()
 
-
         # extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
 
         results = pool.imap_unordered(extract_cips, self.argbuilder(graphs, batch_size=batch_size))
-
 
         # the resulting chips can now be put intro the grammar
         for batch in results:
@@ -331,7 +327,7 @@ def extract_cips(what):
 
 def extract_cores_and_interfaces(parameters):
     # happens if batcher fills things up with null
-    if parameters[0] == None:
+    if parameters[0] is None:
         return None
     try:
         # unpack arguments, expand the graph

@@ -6,7 +6,6 @@ import estimator
 from graphtools import extract_core_and_interface, core_substitution, graph_clean
 from feasibility import FeasibilityChecker
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
-import joblib
 from multiprocessing import Pool
 import dill
 import traceback
@@ -19,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class GraphLearnSampler(object):
+
     def __init__(self,
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -33,9 +33,6 @@ class GraphLearnSampler(object):
         self.feasibility_checker = FeasibilityChecker()
         self.postprocessor = postprocessing.PostProcessor()
 
-        # see utils.myeden.GraphLeanVectorizer,
-        # edens vectorizer assumes that graphs are not expanded.
-        # this is fixed with just a few lines of code.
         self.vectorizer = vectorizer
 
         # lists of int
@@ -118,8 +115,6 @@ class GraphLearnSampler(object):
                                                                                 node_entity_check=self.node_entity_check)
         self.local_substitutable_graph_grammar.fit(graphs, n_jobs)
 
-    ############################### SAMPLE ###########################
-
     def sample(self, graph_iter,
                probabilistic_core_choice=True,
                same_radius=False,
@@ -188,7 +183,7 @@ class GraphLearnSampler(object):
 
     def return_formatter(self, sample_product):
         # after _sample we need to decide what to yield...
-        if sample_product != None:
+        if sample_product is not None:
             if self.generatormode:
                 # yield all the graphs but jump first because that one is the start graph :)
                 for graph in sample_product.graph['sampling_info']['graphs_history'][1:]:
@@ -211,7 +206,7 @@ class GraphLearnSampler(object):
             output: (sampled_graph,{info dictionary})
         '''
 
-        if graph == None:
+        if graph is None:
             return None
         # prepare variables and graph
         graph = self._sample_init(graph)
@@ -237,8 +232,6 @@ class GraphLearnSampler(object):
                 # take snapshot
                 self._score_list_append(graph)
                 self._sample_path_append(graph)
-
-
 
         except Exception as exc:
             logger.debug(exc)
@@ -325,7 +318,7 @@ class GraphLearnSampler(object):
         :return: score of graph
         we also set graph.score_nonlog and graph.score
         """
-        if not '_score' in graph.__dict__:
+        if '_score' not in graph.__dict__:
             transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
@@ -367,7 +360,7 @@ class GraphLearnSampler(object):
          we wrap the propose single cip, so it may be overwritten some day
         '''
         graph = self._propose_graph(graph)
-        if graph != None:
+        if graph is not None:
             return graph
 
         raise Exception("propose failed.. reason is that propose_single_cip failed.")
@@ -415,7 +408,7 @@ class GraphLearnSampler(object):
 
             # while there are cores
             while core_hashes:
-                # get a random one by frequenciesuency
+                # get a random one by frequency
                 rand = random.randint(0, frequencies_sum)
                 current = 0.0
                 i = -1

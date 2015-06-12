@@ -4,9 +4,11 @@ import networkx as nx
 from sklearn.neighbors import LSHForest
 from eden.util import selection_iterator
 
-from   sklearn.metrics.pairwise import cosine_distances as distance
+from sklearn.metrics.pairwise import cosine_distances as distance
+
 
 class directedSampler(GraphLearnSampler):
+
     '''
     ok here is the plan:
 
@@ -65,8 +67,8 @@ class directedSampler(GraphLearnSampler):
         matches = [(indices[i, index], i, distances[i, index]) for i in range(len(indices))]
         matches.sort()
 
-        for index, graph in enumerate(selection_iterator(graphlist,[a[0] for a in matches])):
-            yield ((graph, start_graphs[matches[index][1]], X[matches[index][0]]) )
+        for index, graph in enumerate(selection_iterator(graphlist, [a[0] for a in matches])):
+            yield ((graph, start_graphs[matches[index][1]], X[matches[index][0]]))
 
     '''
         # iterate over graphs
@@ -95,6 +97,7 @@ class directedSampler(GraphLearnSampler):
                 self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
                 raise Exception('goal reached')
 
+
     def sample(self, graph_iter,target_graph=None, start_graphs=None, start_gr_in_graph_iter=None,**kwargs):
         '''
             graph iter are the background graphs that are always there.
@@ -110,8 +113,10 @@ class directedSampler(GraphLearnSampler):
             target_vector= self.vectorizer.transform_single(target_copy)
             graphiter = itertools.izip(graph_iter,itertools.repeat(target_graph),itertools.repeat(target_vector))
 
+
         # graphiter = itertools.islice(graphiter, doXgraphs)
         for e in super(directedSampler, self).sample(graphiter,**kwargs):
+
             yield e
 
 
@@ -124,15 +129,17 @@ class directedSampler(GraphLearnSampler):
         return super(directedSampler, self)._sample(g_pair[0])
 
     def _score(self, graph):
-        if not '_score' in graph.__dict__:
+        if '_score' not in graph.__dict__:
             transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
+
 
             graph._score = self.goal.dot(transformed_graph.T).todense()[0][0].sum()
             #graph._score=  (1 - distance(transformed_graph,self.goal))[0,0]
 
 
-            #print graph._score
+
+            # print graph._score
             # graph.score -= .007*abs( self.goal_size - len(graph) )
         return graph._score
