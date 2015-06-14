@@ -13,7 +13,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
-
+from utils import draw
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +42,7 @@ class GraphLearnSampler(object):
         self.estimatorobject = estimator
         # grammar object
         self.local_substitutable_graph_grammar = grammar
-        # cips hashes will be masked with this
+        # cips hashes will be masked with this, this is unrelated to the vectorizer
         self.hash_bitmask = pow(2, nbit) - 1
         self.nbit = nbit
         # boolean values to set restrictions on replacement
@@ -118,9 +118,8 @@ class GraphLearnSampler(object):
     def sample(self, graph_iter,
                probabilistic_core_choice=True,
                same_radius=False,
-               same_core_size=True,
+               same_core_size=False,
                similarity=-1,
-               sampling_interval=9999,
                n_samples=None,
                batch_size=10,
                n_jobs=0,
@@ -139,9 +138,9 @@ class GraphLearnSampler(object):
         self.similarity = similarity
 
         if n_samples:
-            sampling_interval = int((n_steps - burnout) / n_samples) + 1
-
-        self.sampling_interval = sampling_interval
+            self.sampling_interval = int((n_steps - burnout) / n_samples) + 1
+        else:
+            self.sampling_interval = 9999
         self.n_steps = n_steps
         self.n_jobs = n_jobs
         self.same_core_size = same_core_size
@@ -328,15 +327,32 @@ class GraphLearnSampler(object):
 
     def _accept(self, graph_old, graph_new):
         '''
-            return true if graph_new scores higher
+            we took the old graph to generate a new graph by conducting a replacement step.
+            now we want to know if this new graph is good enough to take the old ones place.
+            in this implementation we use the score of the graph to judge the new graph
         '''
 
+        # first calculate the score ratio between old and new graph.
         score_graph_old = self._score(graph_old)
         score_graph_new = self._score(graph_new)
         score_ratio = score_graph_new / score_graph_old
+
+        # if the new graph scores higher, the ratio is > 1 and we accept
         if score_ratio > 1.0:
             return True
-        score_ratio -= (float(self.step) / self.n_steps) * self.accept_annealing_factor + self.accept_static_penalty
+
+        # we now know that the new graph is worse than the old one, but we believe in second chances :)
+        # the score_ratio is the probability of being accepted, (see next comment block)
+        # there are 2 ways of messing with the score_ratio:
+        # 1. the annealing factor will increase the penalty as the sampling progresses
+        #       (values of 1 +- .5 are interesting here)
+        # 2. a static penalty applies a penalty that is always the same.
+        #       (-1 ~ always accept ; +1 ~  never accept)
+        score_ratio = score_ratio - (  (float(self.step)/self.n_steps) * self.accept_annealing_factor  )
+        score_ratio = score_ratio - self.accept_static_penalty
+
+        # score_ratio is smaller than 1. random.random generates a float between 0 and 1
+        # the smaller the score_ratio the smaller the chance of getting accepted.
         return score_ratio > random.random()
 
     def _propose(self, graph):
@@ -437,6 +453,21 @@ class GraphLearnSampler(object):
         random.shuffle(result_list)
         return result_list
 
+
+
+
+
+    def  select_original_cip_location(self,graph):
+        node = random.choice(graph.nodes())
+        if 'edge' in graph.node[node]:
+            node = random.choice(graph.neighbors(node))
+            # random radius and thickness
+        radius = random.choice(self.local_substitutable_graph_grammar.radius_list)
+        thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
+
+        return node,radius,thickness
+
+
     def select_original_cip(self, graph):
         """
             selects a chip randomly from the graph.
@@ -445,13 +476,9 @@ class GraphLearnSampler(object):
         """
 
         failcount = 0
+        nocip= 0
         for x in xrange(self.select_cip_max_tries):
-            node = random.choice(graph.nodes())
-            if 'edge' in graph.node[node]:
-                node = random.choice(graph.neighbors(node))
-            # random radius and thickness
-            radius = random.choice(self.local_substitutable_graph_grammar.radius_list)
-            thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
+            node,radius,thickness = self.select_original_cip_location(graph)
 
             # exteract_core_and_interface will return a list of results, we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible to extract at the desired radius/thicknes
@@ -460,23 +487,28 @@ class GraphLearnSampler(object):
                                              hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
 
             if not cip:
-                failcount += 1
+                nocip += 1
                 continue
             cip = cip[0]
+            #print node,radius,cip.interface_hash
+
             if self._accept_original_cip(cip):
                 return cip
             else:
                 failcount += 1
 
         raise Exception(
-            'select_cip_for_substitution failed because no suiting interface was found, extract failed %d times ' % (
-                failcount))
+                'select_cip_for_substitution failed because no suiting interface was found, extract failed %d times; cip found but unacceptable:%s ' % 
+            ( failcount+nocip,failcount))
 
     def _accept_original_cip(self, cip):
+        #cips=[cip]
+        #gr=draw.cip_to_graph( cips )
+        #draw.draw_graph_set_graphlearn(gr )
+
         # if we have a hit in the grammar
         if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
             #  if we have the same_radius rule implemented:
-
             if self.same_radius:
                 # we jump if that hit has not the right radius
                 if not self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]:
