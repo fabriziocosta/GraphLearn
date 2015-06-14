@@ -4,7 +4,7 @@ import os
 os.nice(19)
 
 import graphlearn.utils.draw as myutils
-import graphlearn.cluster as cl
+import graphlearn.directedsampler as cl
 from eden.converter.graph.gspan import gspan_to_eden
 import itertools
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 steps=500
 
-sampler=cl.cluster()
+sampler=cl.directedSampler()
 
 sampler.fit(gspan_to_eden( 'bursi.pos.gspan' ),  n_jobs=4)
 sampler.save('tmp/cluster.ge')
