@@ -322,7 +322,8 @@ class GraphLearnSampler(object):
             transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-            graph._score = self.estimator.predict_proba(transformed_graph)[0][1]
+            graph._score = self.estimator.predict_proba(transformed_graph)[0,1]
+
         return graph._score
 
     def _accept(self, graph_old, graph_new):
