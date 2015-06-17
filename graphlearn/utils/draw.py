@@ -195,6 +195,10 @@ def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4, contract=True
         for g in graphs:
             set_colors(g)
         vertex_color = 'col'
+
+    #for e in graphs:
+    #    e.graph['info']= get_score_of_graph(e)
+
     draw_graph_set(graphs, n_graphs_per_line=n_graphs_per_line, size=size, vertex_color=vertex_color, **args)
 
 

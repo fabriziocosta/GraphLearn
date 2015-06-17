@@ -90,11 +90,11 @@ class directedSampler(GraphLearnSampler):
 
     def _stop_condition(self, graph):
 
-        if len(self.sample_path) == 1 and self.goal_graph:
-            self.sample_path.append(self.goal_graph)
+        #if len(self.sample_path) == 1 and self.goal_graph:
+        #    self.sample_path.append(self.goal_graph)
 
-        if 'score' in graph.__dict__:
-            if graph.score > 0.99999:
+        if '_score' in graph.__dict__:
+            if graph._score > 0.99:
                 self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
                 raise Exception('goal reached')
 
