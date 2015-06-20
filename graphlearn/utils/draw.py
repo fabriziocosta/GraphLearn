@@ -102,16 +102,26 @@ def draw_grammar_stats(grammar, size=(10, 4)):
     plot_charts(dp, size=size)
 
 
+
+def set_ids(G2):
+    for n, d in G2.nodes_iter(data=True):
+        d['id'] = str(n)
+
+
 def display(G, size=6, font_size=15, node_size=200, node_border=False, contract=False, vertex_label='label',edge_label=None, **args):
     if contract:
         G = contract_edges(G)
     G2 = G.copy()
     set_colors(G2)
     if vertex_label == 'id':
-        for n, d in G2.nodes_iter(data=True):
-            d['id'] = str(n)
+        set_ids(G2)
+
+    if not edge_label:
+        for e1,e2,d in G.edges(data=True):
+            d['label']=''
+
     draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size, vertex_color='color',
-               vertex_label=vertex_label, **args)
+               vertex_label=vertex_label,edge_label='label', **args)
 
 
 def cip_to_graph(cips=[], graphs=[]):
