@@ -345,5 +345,8 @@ def extract_cores_and_interfaces(parameters):
                 cips.append(core_interface_list)
         return cips
     except:
-        print "extract_cores_and_interfaces_died"
-        print parameters
+        # as far as i remember this should almost never happen,
+        # if it does you may have a bigger problem.
+        # so i put this in info
+        logger.info( "extract_cores_and_interfaces_died" )
+        logger.info( parameters )

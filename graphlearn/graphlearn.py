@@ -106,13 +106,15 @@ class GraphLearnSampler(object):
         self.fit_grammar(graphs, core_interface_pair_remove_threshold, interface_remove_threshold, n_jobs=n_jobs)
 
     def fit_grammar(self, graphs, core_interface_pair_remove_threshold=2, interface_remove_threshold=2, n_jobs=-1):
-        self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
-                                                                                self.thickness_list,
-                                                                                complexity=self.complexity,
-                                                                                core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
-                                                                                interface_remove_threshold=interface_remove_threshold,
-                                                                                nbit=self.nbit,
-                                                                                node_entity_check=self.node_entity_check)
+
+        if not self.local_substitutable_graph_grammar:
+            self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
+                                                                                    self.thickness_list,
+                                                                                    complexity=self.complexity,
+                                                                                    core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
+                                                                                    interface_remove_threshold=interface_remove_threshold,
+                                                                                    nbit=self.nbit,
+                                                                                    node_entity_check=self.node_entity_check)
         self.local_substitutable_graph_grammar.fit(graphs, n_jobs)
 
     def sample(self, graph_iter,
@@ -458,34 +460,24 @@ class GraphLearnSampler(object):
 
 
 
-    def  select_original_cip_location(self,graph):
-        node = random.choice(graph.nodes())
-        if 'edge' in graph.node[node]:
-            node = random.choice(graph.neighbors(node))
-            # random radius and thickness
-        radius = random.choice(self.local_substitutable_graph_grammar.radius_list)
-        thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
-
-        return node,radius,thickness
 
 
     def select_original_cip(self, graph):
         """
-            selects a chip randomly from the graph.
-            root is a node_node and not an edge_node
-            radius and thickness are chosen to fit the grammars radius and thickness
+        selects a cip from the original graph.
+        (we try maxtries times to make sure we get something nice)
+
+        - original_cip_extraction  takes care of extracting a cip
+        - accept_original_cip makes sure that the cip we got is indeed in the grammar
         """
 
         failcount = 0
         nocip= 0
         for x in xrange(self.select_cip_max_tries):
-            node,radius,thickness = self.select_original_cip_location(graph)
-
             # exteract_core_and_interface will return a list of results, we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible to extract at the desired radius/thicknes
             #
-            cip = extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer,
-                                             hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
+            cip = self._original_cip_extraction(graph)
 
             if not cip:
                 nocip += 1
@@ -502,11 +494,31 @@ class GraphLearnSampler(object):
                 'select_cip_for_substitution failed because no suiting interface was found, extract failed %d times; cip found but unacceptable:%s ' % 
             ( failcount+nocip,failcount))
 
+
+    def  _original_cip_extraction(self,graph):
+        '''
+        selects the next candidate.
+        '''
+        node = random.choice(graph.nodes())
+        if 'edge' in graph.node[node]:
+            node = random.choice(graph.neighbors(node))
+            # random radius and thickness
+        radius = random.choice(self.local_substitutable_graph_grammar.radius_list)
+        thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
+
+        return extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer,
+                                             hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
+
+
     def _accept_original_cip(self, cip):
+        '''
+        :param cip: the cip we need to judge
+        :return: good or nogood (bool)
+        '''
+
         #cips=[cip]
         #gr=draw.cip_to_graph( cips )
         #draw.draw_graph_set_graphlearn(gr )
-
         # if we have a hit in the grammar
         if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
             #  if we have the same_radius rule implemented:
