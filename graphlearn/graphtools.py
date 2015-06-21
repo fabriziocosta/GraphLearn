@@ -1,7 +1,7 @@
 import networkx as nx
 from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
-from localsubstitutablegraphgrammar import coreInterfacePair
+from coreinterfacepair import CoreInterfacePair
 import logging
 import utils.draw as myutils
 logger = logging.getLogger(__name__)
@@ -142,7 +142,7 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
 
             core_nodes_count = sum([len(nodedict[x]) for x in range(radius_ + 1)])
 
-            cip_list.append(coreInterfacePair(interfacehash, corehash, cip_graph, radius_, thickness_, core_nodes_count,
+            cip_list.append(CoreInterfacePair(interfacehash, corehash, cip_graph, radius_, thickness_, core_nodes_count,
                                               distance_dict=nodedict))
     return cip_list
 

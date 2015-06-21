@@ -3,10 +3,11 @@ from eden.util.display import draw_graph, draw_graph_set
 import networkx as nx
 import numpy as np
 from scipy.optimize import curve_fit
-import graphlearn.graphtools as graphtools
 from collections import defaultdict
 from graphlearn.utils import calc_stats_from_grammar
 import logging
+import graphlearn.graphtools as graphtools
+
 
 logger = logging.getLogger(__name__)
 
