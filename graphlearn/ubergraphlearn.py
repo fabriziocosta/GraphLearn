@@ -10,7 +10,7 @@ import dill
 from eden import grouper
 import networkx as nx
 from utils import draw
-from eden.util.display import draw_graph
+import eden.util.display as edraw
 '''
 first we build the new sampler that is able to handle abstract graphs...
 '''
@@ -28,7 +28,7 @@ class UberSampler(GraphLearnSampler):
         if grammar:
             assert isinstance(grammar,UberGrammar)
         self.real_thickness_list=[2*e for e in real_thickness_list]
-        super(UberSampler, self).__init__(grammar,**kwargs)
+        super(UberSampler, self).__init__(grammar=grammar,**kwargs)
 
 
     def fit_grammar(self, graphs, core_interface_pair_remove_threshold=2, interface_remove_threshold=2, n_jobs=-1):
@@ -176,7 +176,7 @@ def make_abstract(graph,vectorizer):
 
 
 def extract_cips(node,
-    abstract_graph, real_graph ,abstract_radius_list,abstract_thickness_list, real_thickness_list,vectorizer,**argz):
+    abstract_graph, real_graph ,abstract_radius_list=None,abstract_thickness_list=None, real_thickness_list=None,vectorizer=None,**argz):
     '''
     :param node: node in the abstract graph
     :param abstract_graph:  the abstract graph expanded
@@ -198,7 +198,7 @@ def extract_cips(node,
         abstract_graph, radius_list=abstract_radius_list, thickness_list=abstract_thickness_list,vectorizer=vectorizer,**argz)
 
 
-    draw.display(abstract_cips[0].graph, vertex_label='id',size=10)
+    #draw.display(abstract_cips[0].graph, vertex_label='id',size=10)
 
 
 
@@ -208,25 +208,28 @@ def extract_cips(node,
             # MERGE THE CORE TO A SINGLE NODE::
             mergeids = [   abstract_graph.node[n]['contracted']  for z in range(acip.radius+1)  for n in acip.distance_dict.get(z)  ]
             mergeids = [id for sublist in mergeids for id in sublist ]
+
+
+
             real_copy= nx.Graph(real_graph)
 
-
+            ''' you will see the abstract interface with its nesting nodes on the real graph and
+                the real graph with the core marked
             print mergeids
             for m in mergeids:
                 real_copy.node[m]['colo']=0.5
             draw.set_ids(real_copy)
-            draw_graph(real_copy, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
-
+            #draw_graph(real_copy, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
 
             for e,d in acip.graph.nodes(data=True):
-                d['label']=str(d['contracted'])
-            draw_graph(acip.graph,vertex_label='label')
-
-
+                d['id']=str(d['contracted'])
+            #edraw.draw_graph(acip.graph,vertex_label='id')
+            edraw.draw_graph_set([real_copy,acip.graph], vertex_label='id',vertex_color='colo', edge_label=None,size=20)
+            '''
             for node in mergeids[1:]:
                 graphtools.merge(real_copy,mergeids[0],node)
 
-
+            #draw.draw_center(real_copy,mergeids[0],5)
 
             # BECAUSE WE COLLAPSED THE CORE WE CAN USE THE NORMAL EXTRACTOR AGAIM
             lowlevelcips = graphtools.extract_core_and_interface(mergeids[0],
@@ -236,7 +239,7 @@ def extract_cips(node,
             for lowcip in lowlevelcips:
 
                 #build real graph,  reverting the merge
-                lowcip.graph=real_graph.subgraph(lowcip.graph.nodes()+mergeids)
+                lowcip.graph=nx.Graph(real_graph.subgraph(lowcip.graph.nodes()+mergeids))
 
                 # of course we also need to mark the core nodes...
                 for n in mergeids:
@@ -251,5 +254,12 @@ def extract_cips(node,
 
                 #corecount
                 lowcip.core_nodes_count = acip.core_nodes_count
+
+                lowcip.radius=acip.radius
+                lowcip.abs_thickness= acip.thickness
+
                 cips.append(lowcip)
+
+
+
     return cips
