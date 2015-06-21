@@ -51,7 +51,8 @@ class UberSampler(GraphLearnSampler):
         '''
         selects the next candidate.
         '''
-        abstr= make_abstract(graph)
+        graph=self.vectorizer._edge_to_vertex_transform(graph)
+        abstr= make_abstract(graph,self.vectorizer)
         node = random.choice(abstr.nodes())
         if 'edge' in abstr.node[node]:
             node = random.choice(abstr.neighbors(node))
@@ -156,6 +157,14 @@ def make_abstract(graph,vectorizer):
     graph2 = vectorizer._edge_to_vertex_transform (graph2)
 
 
+    print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR"
+    draw.set_ids(graph)
+    edraw.draw_graph(graph, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
+
+    for e,d in graph2.nodes(data=True):
+        d['label']=str(d.get('contracted',''))
+    edraw.draw_graph(graph2, vertex_label='label',vertex_color=None, edge_label=None,size=20)
+    print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR END"
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this
     getabstr={ contra:node for node,d in graph2.nodes(data=True) for contra in d.get('contracted',[])  }
@@ -180,14 +189,14 @@ def make_abstract(graph,vectorizer):
 
 
 
-    '''  i let this here.. in case you ever need to display what this function does..
+    '''#  i let this here.. in case you ever need to display what this function does..
     draw.set_ids(graph)
-    draw_graph(graph, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
+    edraw.draw_graph(graph, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
 
     for e,d in graph2.nodes(data=True):
         d['label']=str(d['contracted'])
-    draw_graph(graph2, vertex_label='label',vertex_color=None, edge_label=None,size=20)
-    '''
+    edraw.draw_graph(graph2, vertex_label='label',vertex_color=None, edge_label=None,size=20)'''
+
     return graph2
 
 
