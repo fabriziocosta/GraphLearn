@@ -11,6 +11,8 @@ from eden import grouper
 import networkx as nx
 from utils import draw
 import eden.util.display as edraw
+
+
 '''
 first we build the new sampler that is able to handle abstract graphs...
 '''
@@ -34,14 +36,14 @@ class UberSampler(GraphLearnSampler):
     def fit_grammar(self, graphs, core_interface_pair_remove_threshold=2, interface_remove_threshold=2, n_jobs=-1):
         if not self.local_substitutable_graph_grammar:
             self.local_substitutable_graph_grammar = UberGrammar(
-                self.radius_list,
-                self.thickness_list,
+                real_thickness_list=self.real_thickness_list,
+                radius_list=self.radius_list,
+                thickness_list=self.thickness_list,
                 complexity=self.complexity,
                 core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
                 interface_remove_threshold=interface_remove_threshold,
                 nbit=self.nbit,
-                node_entity_check=self.node_entity_check,
-                real_thickness_list=self.real_thickness_list)
+                node_entity_check=self.node_entity_check)
         self.local_substitutable_graph_grammar.fit(graphs, n_jobs)
 
 
@@ -70,16 +72,29 @@ class UberGrammar(LocalSubstitutableGraphGrammar):
 
     def argbuilder(self, graphs, batch_size=10):
         args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check, self.real_thickness_list]
-        function = extract_cores_and_interfaces
+        function = extract_cores_and_interfaces_mk2
         for batch in grouper(graphs, batch_size):
             yield dill.dumps((function, args, batch))
 
     def __init__(self,real_thickness_list=None,**kwargs):
         self.real_thickness_list=real_thickness_list
-        super(UberSampler, self).__init__(**kwargs)
+        super(UberGrammar, self).__init__(**kwargs)
+
+    def read_single(self, graphs):
+        """
+            for graph in graphs:
+                get cips of graph
+                    put cips into grammar
+        """
+        for gr in graphs:
+            problem = (
+                gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check,self.real_thickness_list)
+            for core_interface_data_list in extract_cores_and_interfaces_mk2(problem):
+                for cid in core_interface_data_list:
+                    self.add_core_interface_data(cid)
 
 
-def extract_cores_and_interfaces(parameters):
+def extract_cores_and_interfaces_mk2(parameters):
     # happens if batcher fills things up with null
     if parameters[0] is None:
         return None
@@ -91,7 +106,7 @@ def extract_cores_and_interfaces(parameters):
         abstr= make_abstract(graph,vectorizer)
 
         for node in abstr.nodes_iter():
-            if 'edge' in graph.node[node]:
+            if 'edge' in abstr.node[node]:
                 continue
             core_interface_list = extract_cips(
                 node,
@@ -109,6 +124,7 @@ def extract_cores_and_interfaces(parameters):
     except:
         logger.info( "extract_cores_and_interfaces_died" )
         logger.info( parameters )
+
 
 
 '''
@@ -201,11 +217,10 @@ def extract_cips(node,
     #draw.display(abstract_cips[0].graph, vertex_label='id',size=10)
 
 
-
     cips=[]
     for acip in abstract_cips:
 
-            # MERGE THE CORE TO A SINGLE NODE::
+            # MERGE THE CORE TO A SINGLE NODE:
             mergeids = [   abstract_graph.node[n]['contracted']  for z in range(acip.radius+1)  for n in acip.distance_dict.get(z)  ]
             mergeids = [id for sublist in mergeids for id in sublist ]
 
@@ -259,7 +274,6 @@ def extract_cips(node,
                 lowcip.abs_thickness= acip.thickness
 
                 cips.append(lowcip)
-
 
 
     return cips

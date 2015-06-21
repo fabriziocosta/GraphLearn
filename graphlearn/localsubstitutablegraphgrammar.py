@@ -4,28 +4,13 @@ import dill
 from eden import grouper
 from eden.graph import Vectorizer
 import logging
-
+from coreinterfacepair import CoreInterfacePair
 logger = logging.getLogger(__name__)
 
 
-class coreInterfacePair:
-
-    """
-    this is refered to throughout the code as cip
-    it contains the cip-graph and several pieces of information about it.
-    """
-
-    def __init__(self, ihash=0, chash=0, graph=0, radius=0, thickness=0, core_nodes_count=0, distance_dict={}):
-        self.interface_hash = ihash
-        self.core_hash = chash
-        self.graph = graph
-        self.radius = radius
-        self.thickness = thickness
-        self.core_nodes_count = core_nodes_count
-        self.distance_dict = distance_dict
 
 
-class LocalSubstitutableGraphGrammar:
+class LocalSubstitutableGraphGrammar(object):
 
     """
     the grammar.
@@ -35,7 +20,7 @@ class LocalSubstitutableGraphGrammar:
     """
     # move all the things here that are needed to extract grammar
 
-    def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3, complexity=3,
+    def __init__(self, radius_list=None, thickness_list=None, core_interface_pair_remove_threshold=3, complexity=3,
                  interface_remove_threshold=2, nbit=20, node_entity_check=lambda x, y: True):
         self.grammar = {}
         self.interface_remove_threshold = interface_remove_threshold
@@ -245,7 +230,7 @@ class LocalSubstitutableGraphGrammar:
         if cid.core_hash in self.grammar[cid.interface_hash]:
             subgraph_data = self.grammar[cid.interface_hash][cid.core_hash]
         else:
-            subgraph_data = coreInterfacePair()
+            subgraph_data = CoreInterfacePair()
             self.grammar[cid.interface_hash][cid.core_hash] = subgraph_data
             subgraph_data.count = 0
 
@@ -265,6 +250,7 @@ class LocalSubstitutableGraphGrammar:
         for gr in graphs:
             problem = (
                 gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check)
+
             for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cid in core_interface_data_list:
                     self.add_core_interface_data(cid)
