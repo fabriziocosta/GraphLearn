@@ -6,8 +6,8 @@ from scipy.optimize import curve_fit
 from collections import defaultdict
 from graphlearn.utils import calc_stats_from_grammar
 import logging
-import graphlearn.graphtools as graphtools
-
+#import graphlearn.graphtools as graphtools
+import graphtools
 
 logger = logging.getLogger(__name__)
 

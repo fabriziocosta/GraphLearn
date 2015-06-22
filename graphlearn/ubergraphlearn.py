@@ -61,8 +61,12 @@ class UberSampler(GraphLearnSampler):
         thickness = random.choice(self.thickness_list)
         real_thickness = random.choice(self.real_thickness_list)
 
-        return extract_cips(node,abstr, graph, [radius], [thickness],[real_thickness], vectorizer=self.vectorizer,
+        g= extract_cips(node,abstr, graph, [radius], [thickness],[real_thickness], vectorizer=self.vectorizer,
                                              hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
+
+
+        #edraw.draw_graph(g[0].graph,edge_label=None,size=20)
+        return g
 
 
 '''
@@ -156,7 +160,7 @@ def make_abstract(graph,vectorizer):
     graph2.graph.pop('expanded') # EDEN WORKAROUND !!!!!!!!!
     graph2 = vectorizer._edge_to_vertex_transform (graph2)
 
-
+    '''
     print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR"
     draw.set_ids(graph)
     edraw.draw_graph(graph, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
@@ -165,6 +169,8 @@ def make_abstract(graph,vectorizer):
         d['label']=str(d.get('contracted',''))
     edraw.draw_graph(graph2, vertex_label='label',vertex_color=None, edge_label=None,size=20)
     print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR END"
+    '''
+
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this
     getabstr={ contra:node for node,d in graph2.nodes(data=True) for contra in d.get('contracted',[])  }
