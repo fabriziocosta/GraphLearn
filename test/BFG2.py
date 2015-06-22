@@ -1,118 +1,129 @@
 import sys
 sys.path.append("..")
+
+
 import matplotlib
 matplotlib.use('Agg')
 
+
+
+
 from eden.converter.graph.gspan import gspan_to_eden
-from graphlearn import GraphLearnSampler
+from graphlearn.graphlearn import GraphLearnSampler
 import itertools
 from eden.graph import Vectorizer
 import matplotlib.pyplot as plt
 
-import utils.myeden as me
-
-#2401 positives and 1936 negatives
-radius=[2,4]
-thickness=[2,4]
-sampler =GraphLearnSampler(radius_list=radius,thickness_list=thickness)
-
-graphs_pos= gspan_to_eden('../grammar/bursi.pos.gspan')
-graphs_neg= gspan_to_eden('../grammar/bursi.neg.gspan')
-testpos= gspan_to_eden('../grammar/bursi.pos.gspan')
-testneg= gspan_to_eden('../grammar/bursi.neg.gspan')
+from eden.util import fit_estimator as eden_fit_estimator
+import random
+from eden.util import selection_iterator as picker
+from sklearn.linear_model import SGDClassifier
 
 vect=Vectorizer(complexity = 3)
-
-
-
+#2401 positives and 1936 negatives
 NUMPOS=2401
 NUMNEG=1936
 
-#NUMPOS=27
-#NUMNEG=27
+path='../example/'
+######################## testing ##############################
+def get_estimator(it_pos, it_neg):
+    pos= vect.transform(it_pos)
+    neg = vect.transform(it_neg)
+    return eden_fit_estimator(SGDClassifier(),pos,neg)
 
-testneg=itertools.islice(testneg,int(NUMNEG*.7)+1,NUMNEG)
-testpos=itertools.islice(testpos,int(NUMPOS*.7)+1,NUMPOS)
-testpos=vect.transform(testpos)
-testneg=vect.transform(testneg)
 
-
+def test_estimator(estimator, pos, neg):
+    count = 0
+    for e in estimator.predict(pos):
+        if e == 1:
+            count +=1
+    for e in estimator.predict(neg):
+        if e!=1:
+            count+=1
+    return count
 
 def train_estimator_and_evaluate_testsets(pos_real,neg_real,pos_augmented,neg_augmented,test_pos,test_neg):
-    testcount= float(NUMNEG*.3+NUMPOS*.3)
-    vectorizer=Vectorizer(complexity = 3)
-    pr= vectorizer.transform(pos_real)
-    nr= vectorizer.transform(neg_real)
 
-    pa=vectorizer.transform(pos_augmented)
-    na=vectorizer.transform(neg_augmented)
-    real_esti= me.graphlearn_fit_estimator( pr,nr )
-    aug_esti= me.graphlearn_fit_estimator( pa,na )
-    
-    ori=0
-    
-    #print real_esti.predict(test_pos)
-    for e in real_esti.predict(test_pos):
-        if e == 1:
-            ori+=1
-    for e in real_esti.predict(test_neg):
-        if e!=1:
-            ori+=1
-    imp=0
-    for e in aug_esti.predict(test_pos):
-        if e == 1:
-            imp+=1
-    for e in aug_esti.predict(test_neg):
-        if e!=1:
-            imp+=1        
-    
+    pos_real,pos_real_ = itertools.tee(pos_real,2)
+    neg_real,neg_real_ = itertools.tee(neg_real,2)
+
+    pos_augmented = itertools.chain(pos_augmented,pos_real_)
+    neg_augmented = itertools.chain(neg_augmented,neg_real_)
+
+    testcount= float(NUMNEG*.3+NUMPOS*.3)
+    real_esti=  get_estimator(pos_real, neg_real)               #me.graphlearn_fit_estimator( pr,nr )
+    aug_esti= get_estimator( pos_augmented, neg_augmented)  #  me.graphlearn_fit_estimator( pa,na )
+
+    test_pos = vect.transform(test_pos)
+    test_neg = vect.transform(test_neg)
+
+    ori= test_estimator(real_esti,test_pos,test_neg)
+    imp = test_estimator(aug_esti,test_pos,test_neg)
+
     return imp/testcount,ori/testcount
 
+
+############ sampelr ###########
 def unpack(graphs):
     for graphlist in graphs:
         yield graphlist[0]
 
-#generate datapoints: 
-lenpo=int(NUMPOS*.7)
-lenne=int(NUMNEG*.7)
+def sample(graphs):
+
+    sampler =GraphLearnSampler()
+    graphs, graphs_ = itertools.tee(graphs)
+    sampler.fit(graphs)
+    return unpack(sampler.sample(graphs_,
+                        same_radius=False,
+                        same_core_size=False,
+                        sampling_interval=9999,
+                        select_cip_max_tries=100,
+                        batch_size=30,
+                        n_steps=100,
+                        n_jobs=-1,
+                        accept_annealing_factor=0.9
+                        ))
+
+# initializing
+graphs_pos= gspan_to_eden(path+'bursi.pos.gspan')
+graphs_neg= gspan_to_eden(path+'bursi.neg.gspan')
 originals=[]
 improved=[]
 percentages=[.2,.4,.6,.8,1]
-percentages=[.2]
+
 for perc in percentages:
 
-    count_pos = int(lenpo*perc)
-    count_neg = int(lenne*perc)
+    ######### first we generate all the iterators ###########
+    # how many graphs will be used for sampling?
+    count_pos = int(NUMPOS*.7*perc)
+    count_neg = int(NUMNEG*.7*perc)
 
-    graphs_pos, graphs_pos_ = itertools.tee(graphs_pos)
-    graphs_neg, graphs_neg_ = itertools.tee(graphs_neg)
+    # copy the mega set
+    graphs_pos, graphs_pos_, graphs_pos__ = itertools.tee(graphs_pos,3)
+    graphs_neg, graphs_neg_ , graphs_neg__= itertools.tee(graphs_neg,3)
+
+    #create a shuffeld list of graph ids
+    pos_id = range(NUMPOS)
+    neg_id = range(NUMNEG)
+    random.shuffle(pos_id)
+    random.shuffle(neg_id)
+
+    # use shuffled list to create test and sample set
+    pos,pos_ = itertools.tee(  picker(graphs_pos_,pos_id[:count_pos]) )
+    neg,neg_ = itertools.tee( picker (graphs_neg_,neg_id[:count_neg]))
+    postest = picker(graphs_pos__,pos_id[count_pos:int(NUMPOS*.3)])
+    negtest = picker(graphs_neg__,neg_id[count_neg:int(NUMNEG*.3)])
 
 
 
-    pos = me.select_random(graphs_pos_, lenpo,count_pos )
-    neg = me.select_random(graphs_neg_, lenne,count_neg )
+    ############### then we sample #####################
+    improved_neg= sample(neg)
+    improved_pos= sample(pos)
 
-    neg_,neg,neg__,neg___=itertools.tee(neg,4)
-    pos_,pos,pos__,pos___=itertools.tee(pos,4)
 
-    print 'negative sampler,',
-
-    imprules= {'n_jobs':4 , 'batch_size':(count_neg/4)+1,'improvement_steps':50}
-    sampler.fit(neg__)
-    improved_neg = unpack (sampler.sample(neg___,improvement_rules=imprules)  )
-
-    print 'positive sampler,',
-    imprules= {'n_jobs':4 , 'batch_size':(count_pos/4)+1,'improvement_steps':50}
-    sampler.fit(pos__)
-    improved_pos = unpack(  sampler.sample(pos___,improvement_rules=imprules) )
-
-    #testneg,testneg_=itertools.tee(testneg)
-    #testpos,testpos_=itertools.tee(testpos)
+    ######### and last we evaluate ###########
     print 'evaluating..'
-    imp,ori=train_estimator_and_evaluate_testsets( pos,neg, 
-        itertools.chain(pos_,improved_pos),
-        itertools.chain(neg_,improved_neg),
-        testpos,testneg)
+    imp,ori=train_estimator_and_evaluate_testsets( pos_,neg_,improved_pos, improved_neg, postest,negtest)
     improved.append(imp)
     originals.append(ori)
     print "done:"+str(perc)
@@ -120,7 +131,7 @@ for perc in percentages:
 
 print improved
 print originals
-# draw 
+# draw
 t = range(len(percentages))
 plt.plot(t,originals ,'bs')
 plt.plot(t, improved ,'g^')
