@@ -1,13 +1,14 @@
-import utils.myeden as graphlearn_utils
-import itertools
 from multiprocessing import Pool, Manager
 import graphtools
+import dill
+from eden import grouper
+from eden.graph import Vectorizer
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-################ALL THE THINGS HERE SERVE TO LEARN A GRAMMAR ############
-
-
-class core_interface_pair:
+class coreInterfacePair:
 
     """
     this is refered to throughout the code as cip
@@ -34,29 +35,41 @@ class LocalSubstitutableGraphGrammar:
     """
     # move all the things here that are needed to extract grammar
 
-    def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3,
-                 interface_remove_threshold=2, nbit=20):
+    def __init__(self, radius_list, thickness_list, core_interface_pair_remove_threshold=3, complexity=3,
+                 interface_remove_threshold=2, nbit=20, node_entity_check=lambda x, y: True):
         self.grammar = {}
         self.interface_remove_threshold = interface_remove_threshold
         self.radius_list = radius_list
         self.thickness_list = thickness_list
         self.core_interface_pair_remove_threshold = core_interface_pair_remove_threshold
-        self.vectorizer = graphlearn_utils.GraphLearnVectorizer()
+        self.vectorizer = Vectorizer(complexity=complexity)
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
+        # checked when extracting grammar. see graphtools
+        self.node_entity_check = node_entity_check
 
-    def grammar_preprocessing(self,n_jobs=0,same_radius=False,same_core_size=0):
+    def preprocessing(self, n_jobs=0, same_radius=False, same_core_size=0, probabilistic_core_choice=False):
         '''
             sampler will use this when preparing sampling
         '''
-        if n_jobs > 0:
-            self.multicore_transform()
+        if self.__dict__.get('locked', False):
+            logger.debug(
+                'skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing does not rerun every time we graphlearn.sample())')
+            return
+        else:
+            logger.debug('preprocessing grammar')
         if same_radius:
             self.add_same_radius_quicklookup()
         if same_core_size:
             self.add_core_size_quicklookup()
+        if probabilistic_core_choice:
+            self.add_frequency_quicklookup()
+        if n_jobs > 1:
+            self.multicore_transform()
 
-    def fit(self,G_iterator,n_jobs):
+        self.locked = True
+
+    def fit(self, G_iterator, n_jobs):
         self.read(G_iterator, n_jobs)
         self.clean()
 
@@ -67,6 +80,10 @@ class LocalSubstitutableGraphGrammar:
         note that we dont do this per default because then we cant save the grammar anymore
         while keeping the manager outside the object
         '''
+
+        # do nothing if transform already happened
+        if type(self.grammar) != dict:
+            return
         # move the grammar into a manager object...
         manager = Manager()
         shelve = manager.dict()
@@ -133,7 +150,8 @@ class LocalSubstitutableGraphGrammar:
                 # so if self.grammar ihash is in both i can compare the corehashes
                 for chash in self.grammar[ihash].keys():
                     if chash in other_grammar[ihash]:
-                        self.grammar[ihash][chash].counter = min(self.grammar[ihash][chash].counter, other_grammar[ihash][chash].counter)
+                        self.grammar[ihash][chash].counter = min(self.grammar[ihash][chash].counter,
+                                                                 other_grammar[ihash][chash].counter)
                     else:
                         self.grammar[ihash].pop(chash)
             else:
@@ -186,7 +204,22 @@ class LocalSubstitutableGraphGrammar:
                     core_size[nodes_count] = [core]
             self.core_size[interface] = core_size
 
-    def read(self, graphs, n_jobs=-1):
+    def add_frequency_quicklookup(self):
+        '''
+            how frequent is a core?
+        '''
+        self.frequency = {}
+        # for every interface
+        for interface in self.grammar.keys():
+            # we create a dict...
+            core_frequency = {}
+            #  fill it
+            for hash, cip in self.grammar[interface].items():
+                core_frequency[hash] = cip.count
+            # and attach it to the freq lookup
+            self.frequency[interface] = core_frequency
+
+    def read(self, graphs, n_jobs=-1, batch_size=20):
         '''
         we extract all chips from graphs of a graph iterator
         we use n_jobs processes to do so.
@@ -196,9 +229,9 @@ class LocalSubstitutableGraphGrammar:
         if n_jobs == 1:
             self.read_single(graphs)
         else:
-            self.read_multi(graphs, n_jobs)
+            self.read_multi(graphs, n_jobs, batch_size)
 
-    def grammar_add_core_interface_data(self, cid):
+    def add_core_interface_data(self, cid):
         '''
             cid is a core interface data instance.
             we will add the cid to our grammar.
@@ -212,7 +245,7 @@ class LocalSubstitutableGraphGrammar:
         if cid.core_hash in self.grammar[cid.interface_hash]:
             subgraph_data = self.grammar[cid.interface_hash][cid.core_hash]
         else:
-            subgraph_data = core_interface_pair()
+            subgraph_data = coreInterfacePair()
             self.grammar[cid.interface_hash][cid.core_hash] = subgraph_data
             subgraph_data.count = 0
 
@@ -230,50 +263,87 @@ class LocalSubstitutableGraphGrammar:
                     put cips into grammar
         """
         for gr in graphs:
-            problem = (gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask)
+            problem = (
+                gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check)
             for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cid in core_interface_data_list:
-                    self.grammar_add_core_interface_data(cid)
+                    self.add_core_interface_data(cid)
 
-    def read_multi(self, graphs, n_jobs):
+    def read_multi(self, graphs, n_jobs, batch_size):
         """
         will take graphs and to multiprocessing to extract their cips
         and put these cips in the grammar
+
+
+
+
+        multiprocessing takes lots of memory, my theory is, that the myeden.multiprocess
+        materializes the iterator too fast
         """
 
         # generate iterator of problem instances
+        '''
         problems = itertools.izip(graphs, itertools.repeat(self.radius_list),
                                   itertools.repeat(self.thickness_list),
                                   itertools.repeat(self.vectorizer),
-                                  itertools.repeat(self.hash_bitmask))
+                                  itertools.repeat(self.hash_bitmask),
+                                  itertools.repeat(self.node_entity_check)
+                                  )
+        '''
 
-        # creating pool of workers
-        if n_jobs == -1:
-            pool = Pool()
-        else:
-            pool = Pool(processes=n_jobs)
         # distributing jobs to workers
-        result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
-        # the resulting chips can now be put intro the grammar
-        for core_interface_data_listlist in result:
-            for core_interface_data_list in core_interface_data_listlist:
-                for cid in core_interface_data_list:
-                    self.grammar_add_core_interface_data(cid)
+        # result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
 
+        if n_jobs > 1:
+            pool = Pool(processes=n_jobs)
+        else:
+            pool = Pool()
+
+        # extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
+
+        results = pool.imap_unordered(extract_cips, self.argbuilder(graphs, batch_size=batch_size))
+
+        # the resulting chips can now be put intro the grammar
+        for batch in results:
+            for exci in batch:
+                if exci:  # exci might be None because the grouper fills up with empty problems
+                    for exci_result_per_node in exci:
+                        for cid in exci_result_per_node:
+                            self.add_core_interface_data(cid)
         pool.close()
+        pool.join()
+
+    def argbuilder(self, graphs, batch_size=10):
+        args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
+        function = extract_cores_and_interfaces
+        for batch in grouper(graphs, batch_size):
+            yield dill.dumps((function, args, batch))
+
+
+def extract_cips(what):
+    f, args, graph_batch = dill.loads(what)
+    return [f([y] + args) for y in graph_batch]
 
 
 def extract_cores_and_interfaces(parameters):
-    # unpack arguments, expand the graph
-    graph, radius_list, thickness_list, vectorizer, hash_bitmask = parameters
-    graph = graphlearn_utils.expand_edges(graph)
-    cips = []
-    for node in graph.nodes_iter():
-        if 'edge' in graph.node[node]:
-            continue
-        core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
-                                                         vectorizer=vectorizer, hash_bitmask=hash_bitmask)
-        if core_interface_list:
-            cips.append(core_interface_list)
-    return cips
-
+    # happens if batcher fills things up with null
+    if parameters[0] is None:
+        return None
+    try:
+        # unpack arguments, expand the graph
+        graph, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check = parameters
+        graph = vectorizer._edge_to_vertex_transform(graph)
+        cips = []
+        for node in graph.nodes_iter():
+            if 'edge' in graph.node[node]:
+                continue
+            core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
+                                                                        vectorizer=vectorizer,
+                                                                        hash_bitmask=hash_bitmask,
+                                                                        filter=node_entity_check)
+            if core_interface_list:
+                cips.append(core_interface_list)
+        return cips
+    except:
+        print "extract_cores_and_interfaces_died"
+        print parameters
