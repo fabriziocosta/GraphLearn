@@ -156,20 +156,22 @@ def make_abstract(graph,vectorizer):
         graph should be the same expanded graph that we will feed to extract_cips later...
     '''
     graph2 = vectorizer._revert_edge_to_vertex_transform (graph)
+    g3=graph2
     graph2 = get_abstraction(graph2)
+    g4=graph2
     graph2.graph.pop('expanded') # EDEN WORKAROUND !!!!!!!!!
     graph2 = vectorizer._edge_to_vertex_transform (graph2)
 
-    '''
-    print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR"
-    draw.set_ids(graph)
-    edraw.draw_graph(graph, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
 
-    for e,d in graph2.nodes(data=True):
+    print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR"
+    draw.set_ids(g3)
+    edraw.draw_graph(g3, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
+
+    for e,d in g4.nodes(data=True):
         d['label']=str(d.get('contracted',''))
-    edraw.draw_graph(graph2, vertex_label='label',vertex_color=None, edge_label=None,size=20)
+    edraw.draw_graph(g4, vertex_label='label',vertex_color=None, edge_label=None,size=20)
     print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR END"
-    '''
+
 
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this
