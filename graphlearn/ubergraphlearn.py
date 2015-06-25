@@ -33,6 +33,13 @@ class UberSampler(GraphLearnSampler):
         super(UberSampler, self).__init__(grammar=grammar,**kwargs)
 
 
+
+    # all we do here is overwrite the default for core-keeping
+    # since cores can be large they are unlikely to appear twice
+    def fit(self, graphs,core_interface_pair_remove_threshold=1,**kwargs):
+        super(UberSampler,self).fit(graphs,core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,**kwargs)
+
+
     def fit_grammar(self, graphs, core_interface_pair_remove_threshold=2, interface_remove_threshold=2, n_jobs=-1):
         if not self.local_substitutable_graph_grammar:
             self.local_substitutable_graph_grammar = UberGrammar(
@@ -235,7 +242,7 @@ def make_abstract(graph,vectorizer):
 
 
 def extract_cips(node,
-    abstract_graph, base_graph ,abstract_radius_list=None,abstract_thickness_list=None, base_thickness_list=None,vectorizer=None,**argz):
+    abstract_graph, base_graph ,abstract_radius_list=None,abstract_thickness_list=None, base_thickness_list=None,vectorizer=None,hash_bitmask=None,**argz):
     '''
     :param node: node in the abstract graph
     :param abstract_graph:  the abstract graph expanded
@@ -254,7 +261,7 @@ def extract_cips(node,
     # argz shoud be this stuff:
     #vectorizer=None, filter=lambda x, y: True, hash_bitmask
     abstract_cips=graphtools.extract_core_and_interface(node,
-        abstract_graph, radius_list=abstract_radius_list, thickness_list=abstract_thickness_list,vectorizer=vectorizer,**argz)
+        abstract_graph, radius_list=abstract_radius_list, thickness_list=abstract_thickness_list,vectorizer=vectorizer,hash_bitmask=hash_bitmask,**argz)
 
 
     #draw.display(abstract_cips[0].graph, vertex_label='id',size=10)
@@ -291,8 +298,9 @@ def extract_cips(node,
 
             # BECAUSE WE COLLAPSED THE CORE WE CAN USE THE NORMAL EXTRACTOR AGAIM
             base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
-                base_copy,radius_list=[0],thickness_list=base_thickness_list,vectorizer=vectorizer,**argz)
+                base_copy,radius_list=[0],thickness_list=base_thickness_list,vectorizer=vectorizer,hash_bitmask=hash_bitmask,**argz)
 
+            core_hash= graphtools.calc_core_hash(base_graph.subgraph(mergeids),hash_bitmask=hash_bitmask)
 
             for base_cip in base_level_cips:
 
@@ -308,7 +316,7 @@ def extract_cips(node,
 
                 # core hash needs to be 'correct'
                 # not sure  which one i should use..
-                base_cip.core_hash= acip.core_hash
+                base_cip.core_hash= core_hash
 
                 #corecount
                 base_cip.core_nodes_count = acip.core_nodes_count
