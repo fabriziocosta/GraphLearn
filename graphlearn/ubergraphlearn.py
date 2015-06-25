@@ -19,7 +19,7 @@ first we build the new sampler that is able to handle abstract graphs...
 
 class UberSampler(GraphLearnSampler):
 
-    def __init__(self,base_thickness_list=[1,2,3],grammar=None,**kwargs):
+    def __init__(self,base_thickness_list=[1,2,3],core_interface_pair_remove_threshold=1, interface_remove_threshold=2,grammar=None,**kwargs):
         '''
             graphlernsampler with its extensions..
 
@@ -27,21 +27,16 @@ class UberSampler(GraphLearnSampler):
                 is a real_thickness_list
                 and we make sure that the grammar can handle our new corez :)
         '''
+        # if we get a grammar we make sure that it is a ubergrammar
         if grammar:
             assert isinstance(grammar,UberGrammar)
+
         self.base_thickness_list=[2*e for e in base_thickness_list]
         super(UberSampler, self).__init__(grammar=grammar,**kwargs)
 
 
-
-    # all we do here is overwrite the default for core-keeping
-    # since cores can be large they are unlikely to appear twice
-    def fit(self, graphs,core_interface_pair_remove_threshold=1,**kwargs):
-        super(UberSampler,self).fit(graphs,core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,**kwargs)
-
-
-    def fit_grammar(self, graphs, core_interface_pair_remove_threshold=2, interface_remove_threshold=2, n_jobs=-1):
-        if not self.local_substitutable_graph_grammar:
+        # after the normal run, a grammar was created, but its a ordinary grammar .. so we build a new one
+        if not isinstance(self.local_substitutable_graph_grammar,UberGrammar):
             self.local_substitutable_graph_grammar = UberGrammar(
                 base_thickness_list=self.base_thickness_list,
                 radius_list=self.radius_list,
@@ -51,7 +46,6 @@ class UberSampler(GraphLearnSampler):
                 interface_remove_threshold=interface_remove_threshold,
                 nbit=self.nbit,
                 node_entity_check=self.node_entity_check)
-        self.local_substitutable_graph_grammar.fit(graphs, n_jobs)
 
 
     def  _original_cip_extraction(self,graph):
