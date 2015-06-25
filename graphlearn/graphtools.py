@@ -1,8 +1,9 @@
 import networkx as nx
 from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
-from localsubstitutablegraphgrammar import coreInterfacePair
+from coreinterfacepair import CoreInterfacePair
 import logging
+#import graphlearn.utils.draw as myutils
 
 logger = logging.getLogger(__name__)
 
@@ -89,10 +90,14 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
 
     if not filter(graph, root_node):
         return []
-    if 'hlabel' not in graph.node[0]:
+    if 'hlabel' not in graph.node[ graph.nodes()[0] ]:
         vectorizer._label_preprocessing(graph)
 
     # which nodes are in the relevant radius
+    #print root_node,max(radius_list) + max(thickness_list)
+    #myutils.display(graph,vertex_label='id',size=15)
+
+
     dist = nx.single_source_shortest_path_length(graph, root_node, max(radius_list) + max(thickness_list))
     # we want the relevant subgraph and we want to work on a copy
     master_cip_graph = nx.Graph(graph.subgraph(dist))
@@ -138,7 +143,7 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
 
             core_nodes_count = sum([len(nodedict[x]) for x in range(radius_ + 1)])
 
-            cip_list.append(coreInterfacePair(interfacehash, corehash, cip_graph, radius_, thickness_, core_nodes_count,
+            cip_list.append(CoreInterfacePair(interfacehash, corehash, cip_graph, radius_, thickness_, core_nodes_count,
                                               distance_dict=nodedict))
     return cip_list
 

@@ -139,7 +139,7 @@ class DiscSampler():
 
     def fit_sampler(self, iter_pos, iter_neg):
         # getting the sampler ready:
-        self.sampler = MySampler(complexity=3)
+        self.sampler = MySampler()
         iter_pos, pos, pos_ = itertools.tee(iter_pos, 3)
         self.estimator = self.sampler.estimatorobject.fit_2(iter_pos, iter_neg, self.sampler.vectorizer)
         print 'got estimeetaaa'
@@ -176,3 +176,12 @@ class MySampler(GraphLearnSampler):
         #        inp=nx.Graph(input)
         #        res_list+= GraphLearnSampler._sample(self,inp).graph['sampling_info']['graphs_history'][1:-1]
         #    return res_list
+
+def sample(self,**kwargs):
+        '''
+
+        '''
+
+        self.vectorizer=Vectorizer(nbits=self.nbits)
+        for e in super(MySampler, self).sample(**kwargs):
+            yield e
