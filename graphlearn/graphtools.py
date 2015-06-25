@@ -3,7 +3,8 @@ from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
 from coreinterfacepair import CoreInterfacePair
 import logging
-import utils.draw as myutils
+#import graphlearn.utils.draw as myutils
+
 logger = logging.getLogger(__name__)
 
 
