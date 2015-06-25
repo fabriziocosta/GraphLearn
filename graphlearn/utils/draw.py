@@ -3,10 +3,13 @@ from eden.util.display import draw_graph, draw_graph_set
 import networkx as nx
 import numpy as np
 from scipy.optimize import curve_fit
-import graphlearn.graphtools as graphtools
 from collections import defaultdict
 from graphlearn.utils import calc_stats_from_grammar
 import logging
+
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +22,26 @@ logger = logging.getLogger(__name__)
         -draw_graphs(list)
             drawing a list of graphs
 '''
+
+
+def graph_clean(graph):
+    '''
+    in the precess of creating a new graph,
+    we marked the nodes that were used as interface and core.
+    here we remove the marks.
+
+    also this is a copy of the function with the same name in graphtools.
+    it exists twice because python complained about cyclic imports
+    :param graph:
+    :return:
+    '''
+    for n, d in graph.nodes(data=True):
+        d.pop('core', None)
+        d.pop('interface', None)
+        d.pop('root', None)
+
+
+
 
 
 def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_scale=True):
@@ -102,16 +125,33 @@ def draw_grammar_stats(grammar, size=(10, 4)):
     plot_charts(dp, size=size)
 
 
+
+
+def draw_center(graph,root_node,radius):
+
+   dist = nx.single_source_shortest_path_length(graph, root_node,radius)
+   graph.node[root_node]['color']=0.5
+   draw_graph( nx.Graph(graph.subgraph(dist)) ,edge_label=None, vertex_color='color')
+
+
+
+def set_ids(G2):
+    for n, d in G2.nodes_iter(data=True):
+        d['id'] = str(n)
+
+
 def display(G, size=6, font_size=15, node_size=200, node_border=False, contract=False, vertex_label='label',edge_label=None, **args):
     if contract:
         G = contract_edges(G)
     G2 = G.copy()
     set_colors(G2)
     if vertex_label == 'id':
-        for n, d in G2.nodes_iter(data=True):
-            d['id'] = str(n)
+        set_ids(G2)
+
+
+
     draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size, vertex_color='color',
-               vertex_label=vertex_label, **args)
+               vertex_label=vertex_label,edge_label=edge_label, **args)
 
 
 def cip_to_graph(cips=[], graphs=[]):
@@ -125,7 +165,7 @@ def cip_to_graph(cips=[], graphs=[]):
     else:
         for c, g in zip(cips, graphs):
             remove_colors(g)
-            graphtools.graph_clean(g)
+            graph_clean(g)
             g2 = g.copy()
             d = {0: 'root'}
             index = 1
@@ -195,6 +235,10 @@ def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4, contract=True
         for g in graphs:
             set_colors(g)
         vertex_color = 'col'
+
+    #for e in graphs:
+    #    e.graph['info']= get_score_of_graph(e)
+
     draw_graph_set(graphs, n_graphs_per_line=n_graphs_per_line, size=size, vertex_color=vertex_color, **args)
 
 
