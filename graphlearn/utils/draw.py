@@ -6,8 +6,10 @@ from scipy.optimize import curve_fit
 from collections import defaultdict
 from graphlearn.utils import calc_stats_from_grammar
 import logging
-#import graphlearn.graphtools as graphtools
-import graphtools
+
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +22,26 @@ logger = logging.getLogger(__name__)
         -draw_graphs(list)
             drawing a list of graphs
 '''
+
+
+def graph_clean(graph):
+    '''
+    in the precess of creating a new graph,
+    we marked the nodes that were used as interface and core.
+    here we remove the marks.
+
+    also this is a copy of the function with the same name in graphtools.
+    it exists twice because python complained about cyclic imports
+    :param graph:
+    :return:
+    '''
+    for n, d in graph.nodes(data=True):
+        d.pop('core', None)
+        d.pop('interface', None)
+        d.pop('root', None)
+
+
+
 
 
 def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_scale=True):
@@ -143,7 +165,7 @@ def cip_to_graph(cips=[], graphs=[]):
     else:
         for c, g in zip(cips, graphs):
             remove_colors(g)
-            graphtools.graph_clean(g)
+            graph_clean(g)
             g2 = g.copy()
             d = {0: 'root'}
             index = 1
