@@ -216,30 +216,30 @@ class LocalSubstitutableGraphGrammar(object):
         else:
             self._read_multi(graphs, n_jobs, batch_size)
 
-    def _add_core_interface_data(self, cid):
+    def _add_core_interface_data(self, cip):
         '''
             cid is a core interface data instance.
             we will add the cid to our grammar.
         '''
 
         # initialize gramar[interfacehash] if necessary
-        if cid.interface_hash not in self.grammar:
-            self.grammar[cid.interface_hash] = {}
+        if cip.interface_hash not in self.grammar:
+            self.grammar[cip.interface_hash] = {}
 
-        # initialize or get grammar[interfacehash][corehash] which is now called subgraph_data
-        if cid.core_hash in self.grammar[cid.interface_hash]:
-            subgraph_data = self.grammar[cid.interface_hash][cid.core_hash]
+        # initialize or get grammar[interfacehash][corehash]
+        if cip.core_hash in self.grammar[cip.interface_hash]:
+            grammar_cip = self.grammar[cip.interface_hash][cip.core_hash]
         else:
-            subgraph_data = CoreInterfacePair()
-            self.grammar[cid.interface_hash][cid.core_hash] = subgraph_data
-            subgraph_data.count = 0
+            grammar_cip = CoreInterfacePair()
+            self.grammar[cip.interface_hash][cip.core_hash] = grammar_cip
+
 
         # put new information in the subgraph_data
         # we only save the count until we know that we will keep the actual cip
-        subgraph_data.count += 1
-        if subgraph_data.count == self.core_interface_pair_remove_threshold:
-            subgraph_data.__dict__.update(cid.__dict__)
-            subgraph_data.count = self.core_interface_pair_remove_threshold
+        grammar_cip.count += 1
+        if grammar_cip.count == self.core_interface_pair_remove_threshold:
+            grammar_cip.__dict__.update(cip.__dict__)
+            grammar_cip.count = self.core_interface_pair_remove_threshold
 
     def _read_single(self, graphs):
         """
@@ -252,8 +252,8 @@ class LocalSubstitutableGraphGrammar(object):
                 gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check)
 
             for core_interface_data_list in extract_cores_and_interfaces(problem):
-                for cid in core_interface_data_list:
-                    self._add_core_interface_data(cid)
+                for cip in core_interface_data_list:
+                    self._add_core_interface_data(cip)
 
     def _read_multi(self, graphs, n_jobs, batch_size):
         """
@@ -323,12 +323,12 @@ def extract_cores_and_interfaces(parameters):
         for node in graph.nodes_iter():
             if 'edge' in graph.node[node]:
                 continue
-            core_interface_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
+            cip_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
                                                                         vectorizer=vectorizer,
                                                                         hash_bitmask=hash_bitmask,
                                                                         filter=node_entity_check)
-            if core_interface_list:
-                cips.append(core_interface_list)
+            if cip_list:
+                cips.append(cip_list)
         return cips
     except:
         # as far as i remember this should almost never happen,
