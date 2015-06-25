@@ -44,21 +44,21 @@ class LocalSubstitutableGraphGrammar(object):
         else:
             logger.debug('preprocessing grammar')
         if same_radius:
-            self.add_same_radius_quicklookup()
+            self._add_same_radius_quicklookup()
         if same_core_size:
-            self.add_core_size_quicklookup()
+            self._add_core_size_quicklookup()
         if probabilistic_core_choice:
-            self.add_frequency_quicklookup()
+            self._add_frequency_quicklookup()
         if n_jobs > 1:
-            self.multicore_transform()
+            self._multicore_transform()
 
         self.locked = True
 
     def fit(self, G_iterator, n_jobs):
-        self.read(G_iterator, n_jobs)
+        self._read(G_iterator, n_jobs)
         self.clean()
 
-    def multicore_transform(self):
+    def _multicore_transform(self):
         '''
         this turns the grammar into a managed dictionary which we need for multiprocessing
 
@@ -79,7 +79,7 @@ class LocalSubstitutableGraphGrammar(object):
             shelve[k] = md
         self.grammar = shelve
 
-    def revert_multicore_transform(self):
+    def _revert_multicore_transform(self):
         # only if we are managed we need to do this
         if type(self.grammar) != dict:
             shelve = {}
@@ -158,7 +158,7 @@ class LocalSubstitutableGraphGrammar(object):
             if len(self.grammar[interface]) < self.interface_remove_threshold:
                 self.grammar.pop(interface)
 
-    def add_same_radius_quicklookup(self):
+    def _add_same_radius_quicklookup(self):
         '''
             there is now self.radiuslookup{ interfacehash: {radius:[list of corehashes with that ihash and radius]} }
         '''
@@ -174,7 +174,7 @@ class LocalSubstitutableGraphGrammar(object):
                     radius_lookup[radius] = [core]
             self.radiuslookup[interface] = radius_lookup
 
-    def add_core_size_quicklookup(self):
+    def _add_core_size_quicklookup(self):
         '''
             there is now self.radiuslookup{ interfacehash: {radius:[list of corehashes with that ihash and radius]} }
         '''
@@ -189,7 +189,7 @@ class LocalSubstitutableGraphGrammar(object):
                     core_size[nodes_count] = [core]
             self.core_size[interface] = core_size
 
-    def add_frequency_quicklookup(self):
+    def _add_frequency_quicklookup(self):
         '''
             how frequent is a core?
         '''
@@ -204,7 +204,7 @@ class LocalSubstitutableGraphGrammar(object):
             # and attach it to the freq lookup
             self.frequency[interface] = core_frequency
 
-    def read(self, graphs, n_jobs=-1, batch_size=20):
+    def _read(self, graphs, n_jobs=-1, batch_size=20):
         '''
         we extract all chips from graphs of a graph iterator
         we use n_jobs processes to do so.
@@ -212,11 +212,11 @@ class LocalSubstitutableGraphGrammar(object):
 
         # if we should use only one process we use read_single ,  else read_multi
         if n_jobs == 1:
-            self.read_single(graphs)
+            self._read_single(graphs)
         else:
-            self.read_multi(graphs, n_jobs, batch_size)
+            self._read_multi(graphs, n_jobs, batch_size)
 
-    def add_core_interface_data(self, cid):
+    def _add_core_interface_data(self, cid):
         '''
             cid is a core interface data instance.
             we will add the cid to our grammar.
@@ -241,7 +241,7 @@ class LocalSubstitutableGraphGrammar(object):
             subgraph_data.__dict__.update(cid.__dict__)
             subgraph_data.count = self.core_interface_pair_remove_threshold
 
-    def read_single(self, graphs):
+    def _read_single(self, graphs):
         """
             for graph in graphs:
                 get cips of graph
@@ -253,9 +253,9 @@ class LocalSubstitutableGraphGrammar(object):
 
             for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cid in core_interface_data_list:
-                    self.add_core_interface_data(cid)
+                    self._add_core_interface_data(cid)
 
-    def read_multi(self, graphs, n_jobs, batch_size):
+    def _read_multi(self, graphs, n_jobs, batch_size):
         """
         will take graphs and to multiprocessing to extract their cips
         and put these cips in the grammar
@@ -287,7 +287,7 @@ class LocalSubstitutableGraphGrammar(object):
 
         # extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
 
-        results = pool.imap_unordered(extract_cips, self.argbuilder(graphs, batch_size=batch_size))
+        results = pool.imap_unordered(extract_cips, self._multi_process_argbuilder(graphs, batch_size=batch_size))
 
         # the resulting chips can now be put intro the grammar
         for batch in results:
@@ -295,11 +295,11 @@ class LocalSubstitutableGraphGrammar(object):
                 if exci:  # exci might be None because the grouper fills up with empty problems
                     for exci_result_per_node in exci:
                         for cid in exci_result_per_node:
-                            self.add_core_interface_data(cid)
+                            self._add_core_interface_data(cid)
         pool.close()
         pool.join()
 
-    def argbuilder(self, graphs, batch_size=10):
+    def _multi_process_argbuilder(self, graphs, batch_size=10):
         args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
         function = extract_cores_and_interfaces
         for batch in grouper(graphs, batch_size):

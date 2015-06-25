@@ -81,7 +81,7 @@ class GraphLearnSampler(object):
         # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
 
     def save(self, file_name):
-        self.local_substitutable_graph_grammar.revert_multicore_transform()
+        self.local_substitutable_graph_grammar._revert_multicore_transform()
         dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
         # joblib.dump(self.__dict__, file_name, compress=1)
         logger.debug('Saved model: %s' % file_name)
