@@ -3,7 +3,8 @@ from graphlearn.graphtools import core_substitution, graph_clean
 
 from cip_predictor import CipPredictor
 
-
+import logging
+logger = logging.getLogger(__name__)
 
 class GraphLearnSamplerCipML(GraphLearnSampler, CipPredictor):
     """Extends database and predictor with an intelligent graph sampler.
