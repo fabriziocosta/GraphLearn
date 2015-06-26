@@ -31,7 +31,7 @@ class UberSampler(GraphLearnSampler):
         if grammar:
             assert isinstance(grammar,UberGrammar)
 
-        self.base_thickness_list=[2*e for e in base_thickness_list]
+        self.base_thickness_list=[int(2*e) for e in base_thickness_list]
         super(UberSampler, self).__init__(grammar=grammar,**kwargs)
 
 
@@ -166,12 +166,13 @@ def arbitrary_graph_abstraction_function(graph):
     graph = vertex_attributes.incident_edge_label(
         [graph], level = 2, output_attribute = 'type', separator = '.').next()
 
+    '''
     print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR mazu getabstr"
     graph2= graph.copy()
     graph2 = contraction(
         [graph2], contraction_attribute = 'type', modifiers = [], nesting = True).next()
     edraw.draw_graph(graph2, vertex_label='label',vertex_color=None, edge_label=None,size=30)
-
+    '''
 
     graph = contraction(
         [graph], contraction_attribute = 'type', modifiers = [], nesting = False).next()
@@ -184,20 +185,20 @@ def make_abstract(graph,vectorizer):
         graph should be the same expanded graph that we will feed to extract_cips later...
     '''
     graph2 = vectorizer._revert_edge_to_vertex_transform (graph)
-    g3=graph2
+    #g3=graph2
     graph2 = arbitrary_graph_abstraction_function(graph2)
-    g4=graph2
-    graph2.graph.pop('expanded') # EDEN WORKAROUND !!!!!!!!!
+    #g4=graph2
+    #graph2.graph.pop('expanded') # EDEN WORKAROUND !!!!!!!!!
     graph2 = vectorizer._edge_to_vertex_transform (graph2)
 
-
+    '''
     draw.set_ids(g3)
     edraw.draw_graph(g3, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
 
     for e,d in g4.nodes(data=True):
         d['label']=str(d.get('contracted',''))
     edraw.draw_graph(g4, vertex_label='label',vertex_color=None, edge_label=None,size=20)
-    print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR END"
+    '''
 
 
     # find out to which abstract node the edges belong
