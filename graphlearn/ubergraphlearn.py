@@ -12,7 +12,7 @@ import networkx as nx
 from utils import draw
 import eden.util.display as edraw
 
-
+import traceback
 '''
 first we build the new sampler that is able to handle abstract graphs...
 '''
@@ -127,9 +127,12 @@ def extract_cores_and_interfaces_mk2(parameters):
             if core_interface_list:
                 cips.append(core_interface_list)
         return cips
-    except:
-        logger.info( "extract_cores_and_interfaces_died" )
-        logger.info( parameters )
+
+    except Exception as exc:
+            logger.info(exc)
+            logger.info(traceback.format_exc(10))
+            logger.info( "extract_cores_and_interfaces_died" )
+            logger.info( parameters )
 
 
 
