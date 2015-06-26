@@ -113,7 +113,7 @@ class GraphLearnSampler(object):
             core_interface_pair_remove_threshold=2,
             interface_remove_threshold=2,
             n_jobs=-1,
-            nu=.5):
+            nu=.5,batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -121,7 +121,7 @@ class GraphLearnSampler(object):
 
         self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs)
 
-        self.local_substitutable_graph_grammar.fit(graphs, n_jobs)
+        self.local_substitutable_graph_grammar.fit(graphs, n_jobs,batch_size=batch_size)
 
 
 
