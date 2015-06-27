@@ -166,7 +166,7 @@ def arbitrary_graph_abstraction_function(graph):
     #annotate in node attribute 'type' the incident edges' labels
 
 
-    graph = vertex_attributes.incident_edge_label(
+    labeled_graph = vertex_attributes.incident_edge_label(
         [graph], level = 2, output_attribute = 'type', separator = '.').next()
 
     '''
@@ -177,10 +177,32 @@ def arbitrary_graph_abstraction_function(graph):
     edraw.draw_graph(graph2, vertex_label='label',vertex_color=None, edge_label=None,size=30)
     '''
 
-    graph = contraction(
-        [graph], contraction_attribute = 'type', modifiers = [], nesting = False).next()
+    contracted_graph = contraction(
+        [labeled_graph], contraction_attribute = 'type', modifiers = [], nesting = False).next()
 
-    return graph
+
+
+    check_and_draw(graph,contracted_graph)
+
+    return contracted_graph
+
+def check_and_draw(graph,abstr):
+
+    nodeset= set(   [ a for n,d in abstr.nodes(data=True) for a in d['contracted'] ]  )
+    broken=[]
+    for n in graph.nodes():
+        if n not in nodeset:
+            broken.append(n)
+            graph.node[n]['colo']=.5
+    if len(broken)>0:
+        print "FOUND SOMETHING BROKEN:"
+        draw.set_ids(graph)
+        graph.graph['info']='failed to see these:%s' % str(broken)
+        edraw.draw_graph(graph, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
+        for e,d in abstr.nodes(data=True):
+            d['label']=str(d.get('contracted',''))
+        edraw.draw_graph(abstr, vertex_label='label',vertex_color=None, edge_label=None,size=20)
+
 
 
 def make_abstract(graph,vectorizer):
@@ -188,25 +210,22 @@ def make_abstract(graph,vectorizer):
         graph should be the same expanded graph that we will feed to extract_cips later...
     '''
     graph2 = vectorizer._revert_edge_to_vertex_transform (graph)
-    #g3=graph2
+    g3=graph2
     graph2 = arbitrary_graph_abstraction_function(graph2)
-    #g4=graph2
+    g4=graph2
     #graph2.graph.pop('expanded') # EDEN WORKAROUND !!!!!!!!!
     graph2 = vectorizer._edge_to_vertex_transform (graph2)
-
-    '''
-    draw.set_ids(g3)
-    edraw.draw_graph(g3, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
-
-    for e,d in g4.nodes(data=True):
-        d['label']=str(d.get('contracted',''))
-    edraw.draw_graph(g4, vertex_label='label',vertex_color=None, edge_label=None,size=20)
-    '''
 
 
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this
     getabstr={ contra:node for node,d in graph2.nodes(data=True) for contra in d.get('contracted',[])  }
+
+
+    debug=True
+    if debug:
+        pass
+
 
     for n,d in graph.nodes(data=True):
         if 'edge' in d:
@@ -270,7 +289,7 @@ def extract_cips(node,
 
             # MERGE THE CORE TO A SINGLE NODE:
             mergeids = [   abstract_graph.node[n]['contracted']  for z in range(acip.radius+1)  for n in acip.distance_dict.get(z)  ]
-            mergeids = [id for sublist in mergeids for id in sublist ]
+            mergeids = [ id for sublist in mergeids for id in sublist ]
 
 
 
@@ -278,20 +297,23 @@ def extract_cips(node,
 
             ''' you will see the abstract interface with its nesting nodes on the real graph and
                 the real graph with the core marked
-            print mergeids
-            for m in mergeids:
-                base_copy.node[m]['colo']=0.5
-            draw.set_ids(base_copy)
+            '''
+            try:
+                for node in mergeids[1:]:
+                    graphtools.merge(base_copy,mergeids[0],node)
+            except nx.NetworkXError:
+                print mergeids
+                for m in mergeids:
+                    base_copy.node[m]['colo']=0.5
+                draw.set_ids(base_copy)
             #draw_graph(base_copy, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
 
-            for e,d in acip.graph.nodes(data=True):
-                d['id']=str(d['contracted'])
-            #edraw.draw_graph(acip.graph,vertex_label='id')
-            edraw.draw_graph_set([base_copy,acip.graph], vertex_label='id',vertex_color='colo', edge_label=None,size=20)
-            '''
-            for node in mergeids[1:]:
-                graphtools.merge(base_copy,mergeids[0],node)
+                for e,d in acip.graph.nodes(data=True):
+                    d['id']=str(d['contracted'])
+                #edraw.draw_graph(acip.graph,vertex_label='id')
+                edraw.draw_graph_set([base_copy,acip.graph], vertex_label='id',vertex_color='colo', edge_label=None,size=20)
 
+                return
             #draw.draw_center(base_copy,mergeids[0],5)
 
             # BECAUSE WE COLLAPSED THE CORE WE CAN USE THE NORMAL EXTRACTOR AGAIM
