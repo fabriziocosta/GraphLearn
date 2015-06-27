@@ -32,7 +32,7 @@ class UberSampler(GraphLearnSampler):
             assert isinstance(grammar,UberGrammar)
 
         self.base_thickness_list=[int(2*e) for e in base_thickness_list]
-        super(UberSampler, self).__init__(grammar=grammar,**kwargs)
+        super(UberSampler, self).__init__(grammar=grammar,core_interface_pair_remove_threshold=core_interface_pair_remove_threshold, interface_remove_threshold= interface_remove_threshold,**kwargs)
 
 
         # after the normal run, a grammar was created, but its a ordinary grammar .. so we build a new one
@@ -57,7 +57,7 @@ class UberSampler(GraphLearnSampler):
         node = random.choice(abstr.nodes())
         if 'edge' in abstr.node[node]:
             node = random.choice(abstr.neighbors(node))
-            # random radius and thickness
+        # random radius and thickness
         radius = random.choice(self.radius_list)
         thickness = random.choice(self.thickness_list)
         base_thickness = random.choice(self.base_thickness_list)
@@ -65,7 +65,7 @@ class UberSampler(GraphLearnSampler):
         g= extract_cips(node,abstr, graph, [radius], [thickness],[base_thickness], vectorizer=self.vectorizer,
                                              hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
 
-        #edraw.draw_graph(g[0].graph,edge_label=None,size=20)
+
         return g
 
 
@@ -164,6 +164,7 @@ def arbitrary_graph_abstraction_function(graph):
     #annotate in node attribute 'type' the incident edges' labels
     labeled_graph = vertex_attributes.incident_edge_label(
         [graph], level = 2, output_attribute = 'type', separator = '.').next()
+    # do contraction
     contracted_graph = contraction(
         [labeled_graph], contraction_attribute = 'type', modifiers = [], nesting = False).next()
     return contracted_graph
@@ -171,7 +172,6 @@ def arbitrary_graph_abstraction_function(graph):
 
 def check_and_draw(base_graph,abstr):
     '''
-
     :param base_graph: a base graph
     :param abstr: an abstract graph
     :return: check if EVERY node in base_graph is in any abstr.graph.node['contracted']
