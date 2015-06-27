@@ -65,7 +65,6 @@ class UberSampler(GraphLearnSampler):
         g= extract_cips(node,abstr, graph, [radius], [thickness],[base_thickness], vectorizer=self.vectorizer,
                                              hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
 
-
         #edraw.draw_graph(g[0].graph,edge_label=None,size=20)
         return g
 
@@ -169,25 +168,22 @@ def arbitrary_graph_abstraction_function(graph):
     labeled_graph = vertex_attributes.incident_edge_label(
         [graph], level = 2, output_attribute = 'type', separator = '.').next()
 
-    '''
-    print "DEBUGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOR mazu getabstr"
-    graph2= graph.copy()
-    graph2 = contraction(
-        [graph2], contraction_attribute = 'type', modifiers = [], nesting = True).next()
-    edraw.draw_graph(graph2, vertex_label='label',vertex_color=None, edge_label=None,size=30)
-    '''
-
     contracted_graph = contraction(
         [labeled_graph], contraction_attribute = 'type', modifiers = [], nesting = False).next()
 
+    check=check_and_draw(labeled_graph,contracted_graph)
 
-
-    check_and_draw(graph,contracted_graph)
-
+    if not check:
+        contracted_graph = contraction( [labeled_graph], contraction_attribute = 'type', modifiers = [], nesting = False,skip=True).next()
+        print "making sure"
+        check=check_and_draw(labeled_graph,contracted_graph)
+        print "made sure"
     return contracted_graph
 
-def check_and_draw(graph,abstr):
 
+
+
+def check_and_draw(graph,abstr):
     nodeset= set(   [ a for n,d in abstr.nodes(data=True) for a in d['contracted'] ]  )
     broken=[]
     for n in graph.nodes():
@@ -202,7 +198,8 @@ def check_and_draw(graph,abstr):
         for e,d in abstr.nodes(data=True):
             d['label']=str(d.get('contracted',''))
         edraw.draw_graph(abstr, vertex_label='label',vertex_color=None, edge_label=None,size=20)
-
+        return False
+    return True
 
 
 def make_abstract(graph,vectorizer):
@@ -271,9 +268,9 @@ def extract_cips(node,
     '''
     #if not filter(abstract_graph, node):
     #    return []
-    if 'hlabel' not in abstract_graph.node[0]:
+    if 'hlabel' not in abstract_graph.node[ abstract_graph.nodes()[0] ]:
         vectorizer._label_preprocessing(abstract_graph)
-    if 'hlabel' not in base_graph.node[0]:
+    if 'hlabel' not in base_graph.node[ base_graph.nodes()[0] ]:
         vectorizer._label_preprocessing(base_graph)
     # argz shoud be this stuff:
     #vectorizer=None, filter=lambda x, y: True, hash_bitmask
