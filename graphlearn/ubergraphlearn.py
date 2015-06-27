@@ -11,7 +11,7 @@ from eden import grouper
 import networkx as nx
 from utils import draw
 import eden.util.display as edraw
-
+import eden
 import traceback
 '''
 first we build the new sampler that is able to handle abstract graphs...
@@ -70,7 +70,7 @@ class UberSampler(GraphLearnSampler):
 
 
 '''
- here we build the new grammar things.. we basically just alter how graphs are read.
+ here we adjust the grammar.
 '''
 
 class UberGrammar(LocalSubstitutableGraphGrammar):
@@ -141,7 +141,6 @@ the things down here replace functions in the graphtools.
 
 
 def is_rna (graph):
-
     endcount=0
     for n,d in graph.nodes(data=True):
         if d['node']==True:
@@ -163,38 +162,31 @@ def arbitrary_graph_abstraction_function(graph):
     '''
 
     #annotate in node attribute 'type' the incident edges' labels
-
-
     labeled_graph = vertex_attributes.incident_edge_label(
         [graph], level = 2, output_attribute = 'type', separator = '.').next()
-
     contracted_graph = contraction(
         [labeled_graph], contraction_attribute = 'type', modifiers = [], nesting = False).next()
-
-    check=check_and_draw(labeled_graph,contracted_graph)
-
-    if not check:
-        contracted_graph = contraction( [labeled_graph], contraction_attribute = 'type', modifiers = [], nesting = False,skip=True).next()
-        print "making sure"
-        check=check_and_draw(labeled_graph,contracted_graph)
-        print "made sure"
     return contracted_graph
 
 
+def check_and_draw(base_graph,abstr):
+    '''
 
-
-def check_and_draw(graph,abstr):
+    :param base_graph: a base graph
+    :param abstr: an abstract graph
+    :return: check if EVERY node in base_graph is in any abstr.graph.node['contracted']
+    '''
     nodeset= set(   [ a for n,d in abstr.nodes(data=True) for a in d['contracted'] ]  )
     broken=[]
-    for n in graph.nodes():
+    for n in base_graph.nodes():
         if n not in nodeset:
             broken.append(n)
-            graph.node[n]['colo']=.5
+            base_graph.node[n]['colo']=.5
     if len(broken)>0:
         print "FOUND SOMETHING BROKEN:"
-        draw.set_ids(graph)
-        graph.graph['info']='failed to see these:%s' % str(broken)
-        edraw.draw_graph(graph, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
+        draw.set_ids(base_graph)
+        base_graph.graph['info']='failed to see these:%s' % str(broken)
+        edraw.draw_graph(base_graph, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
         for e,d in abstr.nodes(data=True):
             d['label']=str(d.get('contracted',''))
         edraw.draw_graph(abstr, vertex_label='label',vertex_color=None, edge_label=None,size=20)
@@ -207,22 +199,12 @@ def make_abstract(graph,vectorizer):
         graph should be the same expanded graph that we will feed to extract_cips later...
     '''
     graph2 = vectorizer._revert_edge_to_vertex_transform (graph)
-    g3=graph2
     graph2 = arbitrary_graph_abstraction_function(graph2)
-    g4=graph2
-    #graph2.graph.pop('expanded') # EDEN WORKAROUND !!!!!!!!!
     graph2 = vectorizer._edge_to_vertex_transform (graph2)
-
 
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this
     getabstr={ contra:node for node,d in graph2.nodes(data=True) for contra in d.get('contracted',[])  }
-
-
-    debug=True
-    if debug:
-        pass
-
 
     for n,d in graph.nodes(data=True):
         if 'edge' in d:
@@ -242,16 +224,6 @@ def make_abstract(graph,vectorizer):
                     else:
                         graph2.node[blob]['contracted']=set([n])
 
-
-
-    '''#  i let this here.. in case you ever need to display what this function does..
-    draw.set_ids(graph)
-    edraw.draw_graph(graph, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
-
-    for e,d in graph2.nodes(data=True):
-        d['label']=str(d['contracted'])
-    edraw.draw_graph(graph2, vertex_label='label',vertex_color=None, edge_label=None,size=20)'''
-
     return graph2
 
 
@@ -263,7 +235,7 @@ def extract_cips(node,
     :param base_graph:  the underlying real graph
     :param abstract_radius: radius in abstract graph
     :param abstract_thickness: thickness in abstr
-    :param base_thickness:  thickness in real graph
+    :param base_thickness:  thickness for the base graph
     :return:  a  list of cips
     '''
     #if not filter(abstract_graph, node):
@@ -272,76 +244,43 @@ def extract_cips(node,
         vectorizer._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[ base_graph.nodes()[0] ]:
         vectorizer._label_preprocessing(base_graph)
-    # argz shoud be this stuff:
-    #vectorizer=None, filter=lambda x, y: True, hash_bitmask
+
+
+    # on the abstract graph we use the normal extract cip stuff:
     abstract_cips=graphtools.extract_core_and_interface(node,
         abstract_graph, radius_list=abstract_radius_list, thickness_list=abstract_thickness_list,vectorizer=vectorizer,hash_bitmask=hash_bitmask,**argz)
-
-
-    #draw.display(abstract_cips[0].graph, vertex_label='id',size=10)
 
 
     cips=[]
     for acip in abstract_cips:
 
-            # MERGE THE CORE TO A SINGLE NODE:
-            mergeids = [   abstract_graph.node[n]['contracted']  for z in range(acip.radius+1)  for n in acip.distance_dict.get(z)  ]
-            mergeids = [ id for sublist in mergeids for id in sublist ]
+            # now we need to calculate the real cips:
+            # the trick is to also use the normal extractor, but in order to do that we need to collapse the 'core'
 
-
-
+            # MERGE THE CORE OF THE ABSTRACT GRAPH IN THE BASE GRAPH
+            mergeids = [ base_graph_id for radius in range(acip.radius+1) for abstract_node_id in acip.distance_dict.get(radius) for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']  ]
             base_copy= nx.Graph(base_graph)
+            for node in mergeids[1:]:
+                graphtools.merge(base_copy,mergeids[0],node)
 
-            ''' you will see the abstract interface with its nesting nodes on the real graph and
-                the real graph with the core marked
-            '''
-            try:
-                for node in mergeids[1:]:
-                    graphtools.merge(base_copy,mergeids[0],node)
-            except nx.NetworkXError:
-                print mergeids
-                for m in mergeids:
-                    base_copy.node[m]['colo']=0.5
-                draw.set_ids(base_copy)
-            #draw_graph(base_copy, vertex_label='id',vertex_color='colo', edge_label=None,size=20)
-
-                for e,d in acip.graph.nodes(data=True):
-                    d['id']=str(d['contracted'])
-                #edraw.draw_graph(acip.graph,vertex_label='id')
-                edraw.draw_graph_set([base_copy,acip.graph], vertex_label='id',vertex_color='colo', edge_label=None,size=20)
-
-                return
-            #draw.draw_center(base_copy,mergeids[0],5)
-
-            # BECAUSE WE COLLAPSED THE CORE WE CAN USE THE NORMAL EXTRACTOR AGAIM
+            # do cip extraction and calculate the real core hash
             base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
                 base_copy,radius_list=[0],thickness_list=base_thickness_list,vectorizer=vectorizer,hash_bitmask=hash_bitmask,**argz)
-
             core_hash= graphtools.calc_core_hash(base_graph.subgraph(mergeids),hash_bitmask=hash_bitmask)
 
+            # now we have a bunch of base_level_cips and need to attach info from the abstract cip.
             for base_cip in base_level_cips:
 
-                #build real graph,  reverting the merge
+                # we cheated a little with the core, so we need to undo our cheating
                 base_cip.graph=nx.Graph(base_graph.subgraph(base_cip.graph.nodes()+mergeids))
-
-                # of course we also need to mark the core nodes...
                 for n in mergeids:
                     base_cip.graph.node[n]['core']=True
-
-                #the hash needs to me melted with the abstract one OoeOO
-                base_cip.interface_hash+=acip.interface_hash
-
-                # core hash needs to be 'correct'
-                # not sure  which one i should use..
                 base_cip.core_hash= core_hash
 
-                #corecount
+                # merging cip info with the abstract graph
+                base_cip.interface_hash=eden.fast_hash_2(base_cip.interface_hash,acip.interface_hash,hash_bitmask)
                 base_cip.core_nodes_count = acip.core_nodes_count
-
                 base_cip.radius=acip.radius
                 base_cip.abstract_thickness= acip.thickness
-
                 cips.append(base_cip)
-
-
     return cips
