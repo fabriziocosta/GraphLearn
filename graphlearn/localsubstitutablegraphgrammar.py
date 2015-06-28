@@ -54,8 +54,8 @@ class LocalSubstitutableGraphGrammar(object):
 
         self.locked = True
 
-    def fit(self, G_iterator, n_jobs):
-        self._read(G_iterator, n_jobs)
+    def fit(self, G_iterator, n_jobs,batch_size=10):
+        self._read(G_iterator, n_jobs,batch_size=batch_size)
         self.clean()
 
     def _multicore_transform(self):
