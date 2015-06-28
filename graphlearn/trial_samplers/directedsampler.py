@@ -5,7 +5,7 @@ from sklearn.neighbors import LSHForest
 from eden.util import selection_iterator
 
 from sklearn.metrics.pairwise import cosine_distances as distance
-
+import copy
 
 class directedSampler(GraphLearnSampler):
 
@@ -49,27 +49,36 @@ class directedSampler(GraphLearnSampler):
     def get_nearest_neighbor_iterable(self, graphlist, start_graphs, start_is_subset=True):
 
         # vectorize all
-        graphlist, graphlist_ = itertools.tee(graphlist)
+        graphlist= list(graphlist)
+        graphlist_ = copy.deepcopy(graphlist)
         X = self.vectorizer.transform(graphlist_)
 
-        start_graphs, graphlist_ = itertools.tee(start_graphs)
+
+        start_graphs= list(start_graphs)
+        graphlist_= copy.deepcopy(start_graphs)
         Y = self.vectorizer.transform(graphlist_)
+        
+        
         forest = LSHForest()
         forest.fit(X)
+        #http://scikit-learn.org/stable/modules/neighbors.html
         distances, indices = forest.kneighbors(Y, n_neighbors=2)
 
         # we just assume that this is short...
-        start_graphs = list(start_graphs)
         index = 0
         if start_is_subset:
             index += 1
-
+        
+        #matches= ( X_index ,Y_index, distance  )
         matches = [(indices[i, index], i, distances[i, index]) for i in range(len(indices))]
         matches.sort()
 
-        for index, graph in enumerate(selection_iterator(graphlist, [a[0] for a in matches])):
-            yield ((graph, start_graphs[matches[index][1]], X[matches[index][0]]))
-
+        # this looks super confusing....
+        #for index, graph in enumerate(selection_iterator(graphlist, [a[0] for a in matches])):
+        #    yield ((graph, start_graphs[matches[index][1]], X[matches[index][0]]))
+        # so i wrote this:,,, you may even get rid of the matches variable i think.. and use indices directly
+        for Xi,Yi,dist in matches:
+            yield ((start_graphs[Yi],graphlist[Xi],X[Xi]))
     '''
         # iterate over graphs
         graphlist, graphlist_ = itertools.tee(graphlist)
@@ -96,6 +105,9 @@ class directedSampler(GraphLearnSampler):
         if '_score' in graph.__dict__:
             if graph._score > 0.99:
                 self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
+
+                #print graph._score
+                #draw.draw_graph_set_graphlearn(self.
                 raise Exception('goal reached')
 
 
@@ -115,12 +127,12 @@ class directedSampler(GraphLearnSampler):
         if start_graphs:
             graphiter = self.get_nearest_neighbor_iterable(graph_iter, start_graphs, start_gr_in_graph_iter)
 
-        if target_graph:
+        elif target_graph:
             target_copy= nx.Graph(target_graph)
             target_vector= self.vectorizer.transform_single(target_copy)
             graphiter = itertools.izip(graph_iter,itertools.repeat(target_graph),itertools.repeat(target_vector))
 
-        if target_vector is not None:
+        elif target_vector is not None:
             graphiter = itertools.izip(graph_iter,itertools.repeat(None),itertools.repeat(target_vector))
 
 
@@ -130,8 +142,10 @@ class directedSampler(GraphLearnSampler):
 
 
     def _sample(self, g_pair):
+        # g_pair = (startgraph, zie;graph, zielvector)
         self.starthash = hash(g_pair[0])
         self.finhash = hash(g_pair[2])
+        self.startgraph = g_pair[0]
         self.goal = g_pair[2]
         self.goal_graph = g_pair[1] # may be none oO
         #self.goal_size = len(self.vectorizer._edge_to_vertex_transform(self.goal_graph))
