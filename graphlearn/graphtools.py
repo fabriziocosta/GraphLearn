@@ -204,7 +204,8 @@ def get_good_isomorphism(graph,original_cip_graph,new_cip_graph,home,other):
         # we didnt break so every edge is save
         else:
             return mapping
-    draw.draw_graph_set_graphlearn([original_cip_graph,new_cip_graph])
+    # draw rejected pair:
+    #draw.draw_graph_set_graphlearn([original_cip_graph,new_cip_graph])
     return {}
 
 
