@@ -26,8 +26,8 @@ class DiscSampler():
         '''
 
 
-        graphs = [e for e in griter]
-        graphs2= copy.deepcopy(griter)
+        graphs = list(griter)
+        graphs2= copy.deepcopy(graphs)
         # transform doess mess up the graph objects
         X = self.vectorizer.transform(graphs)
 
@@ -148,7 +148,7 @@ class DiscSampler():
 
     def fit_sampler(self, iter_pos, iter_neg):
         # getting the sampler ready:
-        self.sampler = MySampler()
+        self.sampler = MySampler(radius_list=[0, 1],thickness_list=[0.5,1, 2])
         iter_pos, pos, pos_ = itertools.tee(iter_pos, 3)
         self.estimator = self.sampler.estimatorobject.fit_2(iter_pos, iter_neg, self.sampler.vectorizer)
         print 'got estimeetaaa'
