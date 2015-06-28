@@ -1,4 +1,4 @@
-from graphlearn import GraphLearnSampler, LocalSubstitutableGraphGrammar
+from graphlearn.graphlearn import GraphLearnSampler, LocalSubstitutableGraphGrammar
 import itertools
 import networkx as nx
 from sklearn.neighbors import LSHForest

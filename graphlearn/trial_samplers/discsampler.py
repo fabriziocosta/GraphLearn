@@ -1,4 +1,4 @@
-from graphlearn import GraphLearnSampler
+from graphlearn.graphlearn import GraphLearnSampler
 import itertools
 import networkx as nx
 
