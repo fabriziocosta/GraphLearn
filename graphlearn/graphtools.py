@@ -3,7 +3,8 @@ from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
 from coreinterfacepair import CoreInterfacePair
 import logging
-#import graphlearn.utils.draw as myutils
+
+import utils.draw as draw
 
 logger = logging.getLogger(__name__)
 
@@ -175,12 +176,36 @@ def merge(G, node, node2):
     G.remove_node(node2)
 
 
-def find_isomorphism(home, other):
+def find_all_isomorphisms(home, other):
     matcher = lambda x, y: x['label'] == y['label']
     GM = iso.GraphMatcher(home, other, node_match=matcher)
-    if GM.is_isomorphic() is False:
-        return {}
-    return GM.mapping
+    return GM.isomorphisms_iter()
+
+
+def get_good_isomorphism(graph,original_cip_graph,new_cip_graph,home,other):
+    '''
+    we need isomorphisms between two interfaces, netowrkx is able to calculate these.
+    we use these isomorphism mappings to do the core-replacement.
+    some mappings will cause the core replacement to violate the  'edge-nodes have exactly 2 neighbors' constraint.
+    here we filter those out.
+    :param graph: a graph
+    :cip-cip whatever: obvious
+    :param home: the interface in the home graph
+    :param other: the interface of a new cip
+    :return: a dictionary that is either empty or a good isomorphism
+    '''
+    for mapping in find_all_isomorphisms(home,other):
+        for home_node in mapping.keys():
+            if 'edge' in graph.node[home_node]:
+                old_neigh = len([e for e in  graph.neighbors(home_node) if e not in original_cip_graph.node ])
+                new_neigh = len([e for e in  new_cip_graph.neighbors(mapping[home_node])])
+                if old_neigh+new_neigh != 2:
+                    break
+        # we didnt break so every edge is save
+        else:
+            return mapping
+    draw.draw_graph_set_graphlearn([original_cip_graph,new_cip_graph])
+    return {}
 
 
 def core_substitution(graph, original_cip_graph, new_cip_graph):
@@ -196,16 +221,22 @@ def core_substitution(graph, original_cip_graph, new_cip_graph):
     original_graph_interface_nodes = [n for n, d in original_cip_graph.nodes(data=True) if 'core' not in d]
     original_interface_graph = nx.subgraph(original_cip_graph, original_graph_interface_nodes)
     # get isomorphism between interfaces, if none is found we return an empty graph
-    iso = find_isomorphism(original_interface_graph, new_cip_interface_graph)
+
+    iso = get_good_isomorphism(graph,original_cip_graph,new_cip_graph,original_interface_graph, new_cip_interface_graph)
+
     if len(iso) != len(original_interface_graph):
         # drawgraphs([graph,original_cip_graph,new_cip_graph],contract=False)
         return nx.Graph()
+
     # ok we got an isomorphism so lets do the merging
     G = nx.union(graph, new_cip_graph, rename=('', '-'))
+
     # removing old core
+    #original_graph_core_nodes = [n for n, d in original_cip_graph.nodes(data=True) if 'core' in d]
     original_graph_core_nodes = [n for n, d in original_cip_graph.nodes(data=True) if 'core' in d]
     for n in original_graph_core_nodes:
         G.remove_node(str(n))
+
     # merge interfaces
     for k, v in iso.iteritems():
         merge(G, str(k), '-' + str(v))
