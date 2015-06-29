@@ -48,12 +48,16 @@ class UberSampler(GraphLearnSampler):
                 node_entity_check=self.node_entity_check)
 
 
+    def _get_abstract_graph(self,graph):
+        return make_abstract(graph,self.vectorizer)
+
+
     def  _original_cip_extraction(self,graph):
         '''
         selects the next candidate.
         '''
         graph=self.vectorizer._edge_to_vertex_transform(graph)
-        abstr= make_abstract(graph,self.vectorizer)
+        abstr= self._get_abstract_graph(graph)
         node = random.choice(abstr.nodes())
         if 'edge' in abstr.node[node]:
             node = random.choice(abstr.neighbors(node))
@@ -139,21 +143,6 @@ def extract_cores_and_interfaces_mk2(parameters):
 the things down here replace functions in the graphtools.
 '''
 
-
-def is_rna (graph):
-    endcount=0
-    for n,d in graph.nodes(data=True):
-        if d['node']==True:
-            neighbors=graph.neighbors(n)
-            backbonecount= len( [ 1 for n in neighbors if graph.node[n]['label']=='-' ] )
-            if backbonecount == 2:
-                continue
-            if backbonecount == 1:
-                endcount+=1
-            if backbonecount > 2:
-                raise Exception ('backbone broken')
-    return endcount == 2
-
 def arbitrary_graph_abstraction_function(graph):
     '''
     # the function needs to set a 'contracted' attribute to each node with a set of vertices that are contractet.
@@ -198,7 +187,11 @@ def make_abstract(graph,vectorizer):
     '''
         graph should be the same expanded graph that we will feed to extract_cips later...
     '''
-    graph2 = vectorizer._revert_edge_to_vertex_transform (graph)
+
+    if isinstance(graph, nx.DiGraph):
+        graph= graph.to_undirected()
+
+    graph2 = vectorizer._revert_edge_to_vertex_transform(graph)
     graph2 = arbitrary_graph_abstraction_function(graph2)
     graph2 = vectorizer._edge_to_vertex_transform (graph2)
 
@@ -223,7 +216,6 @@ def make_abstract(graph,vectorizer):
                         graph2.node[blob]['contracted'].add(n)
                     else:
                         graph2.node[blob]['contracted']=set([n])
-
     return graph2
 
 
