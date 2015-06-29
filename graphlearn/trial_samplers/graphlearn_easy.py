@@ -3,9 +3,9 @@ import itertools
 import random
 import postprocessing
 import estimator
-from graphtools import extract_core_and_interface, core_substitution, graph_clean
-from feasibility import FeasibilityChecker
-from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
+from graphlearn.graphtools import extract_core_and_interface, core_substitution, graph_clean
+from graphlearn.feasibility import FeasibilityChecker
+from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool
 import dill
 import traceback
