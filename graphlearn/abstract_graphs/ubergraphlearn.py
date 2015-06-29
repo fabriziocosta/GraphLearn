@@ -1,15 +1,15 @@
 from eden.modifier.graph import vertex_attributes
 from eden.modifier.graph.structure import contraction
-import graphtools
+import graphlearn.graphtools as graphtools
 import random
-from graphlearn import GraphLearnSampler
-from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
+from graphlearn.graphlearn import GraphLearnSampler
+from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 import logging
 logger = logging.getLogger(__name__)
 import dill
 from eden import grouper
 import networkx as nx
-from utils import draw
+from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 import traceback

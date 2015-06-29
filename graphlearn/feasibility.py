@@ -37,7 +37,8 @@ class FeasibilityChecker():
             # if it fails:
             if f(graph) is False:
                 # we may draw the graph
-                if self.draw_problem:
+                if self.draw_problem and len(graph) > 0:
+
                     draw.display(graph)
                 # and claim unfeasible
                 return False

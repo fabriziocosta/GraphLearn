@@ -1,14 +1,14 @@
-from graphlearn import GraphLearnSampler
+from graphlearn.graphlearn import GraphLearnSampler
 import itertools
 import networkx as nx
 
 from sklearn.neighbors import LSHForest
 import heapq
 from eden.graph import Vectorizer
+import copy
 
-
-from utils import draw
-#from utils.draw import draw_grammar
+#from graphlearn.utils import draw
+#from graphlearn utils.draw import draw_grammar
 class DiscSampler():
 
     '''
@@ -25,27 +25,34 @@ class DiscSampler():
         and the forest ist just a nearest neighbor from sklearn
         '''
 
-        griter, iter2 = itertools.tee(griter)
-        X = self.vectorizer.transform(griter)
+
+        graphs = list(griter)
+        graphs2= copy.deepcopy(graphs)
+        # transform doess mess up the graph objects
+        X = self.vectorizer.transform(graphs)
+
+        forest = LSHForest()
+        forest.fit(X)
+        print 'got forest'
         
-        #~ forest = LSHForest()
-        #~ forest.fit(X)
-        #~ print 'got forest'
-        
-        #~ heap = []
-        #~ for vector, graph in itertools.izip(X, iter2):
-            #~ graph2 = nx.Graph(graph)
-            #~ heapq.heappush(heap, (
-            #~ self.sampler.estimator.predict_proba(self.sampler.vectorizer.transform_single(graph2))[0][1], k + 1, graph))
-        #~ print 'got heap'
-        #~ distances, unused = forest.kneighbors(X, n_neighbors=2)
-        #~ distances = [a[1] for a in distances]  # the second element should be the dist we want
-        #~ avg_dist = distances[len(distances) / 2]  # sum(distances)/len(distances)
-        #~ print 'got dist'
-        #~ 
-        #~ return heap, forest, avg_dist
-        #~ 
-        return 1,2,3
+        heap = []
+        for vector, graph in zip(X, graphs2):
+            graph2 = nx.Graph(graph)
+            heapq.heappush(heap, (
+                self.sampler.estimator.predict_proba(self.sampler.vectorizer.transform_single(graph2))[0][1], # score ~ dist from hyperplane
+                k + 1, # making sure that the counter is high so we dont output the startgraphz at the end
+                graph)) # at last the actual graph
+
+        print 'got heap'
+        distances, unused = forest.kneighbors(X, n_neighbors=2)
+        distances = [a[1] for a in distances]  # the second element should be the dist we want
+        avg_dist = distances[len(distances) / 2]  # sum(distances)/len(distances)
+        print 'got dist'
+
+        return heap, forest, avg_dist
+
+
+    '''
     def sample_simple(self,graphiter,iterneg):
         graphiter,grait,griter2 = itertools.tee(graphiter,3)
         
@@ -63,7 +70,7 @@ class DiscSampler():
                                        generatormode=False,
                                        same_core_size=False )
         return rez
-
+    '''
 
     def sample_graphs(self, graphiter, iter_neg, radius, how_many, check_k, heap_chunk_size=10):
 
@@ -131,19 +138,21 @@ class DiscSampler():
 
         return result
 
-
+    '''
     def simple_fit(self,iter_pos):
         self.sampler= GraphLearnSampler()
         self.sampler.fit(iter_pos)
         self.estimator=self.sampler.estimator
+    '''
+
 
     def fit_sampler(self, iter_pos, iter_neg):
         # getting the sampler ready:
-        self.sampler = MySampler()
+        self.sampler = MySampler(radius_list=[0, 1],thickness_list=[0.5,1, 2])
         iter_pos, pos, pos_ = itertools.tee(iter_pos, 3)
         self.estimator = self.sampler.estimatorobject.fit_2(iter_pos, iter_neg, self.sampler.vectorizer)
         print 'got estimeetaaa'
-        self.sampler.fit_grammar(pos)
+        self.sampler.local_substitutable_graph_grammar.fit(pos,n_jobs=-1,batch_size=8)
         self.sampler.estimator = self.estimator
         print 'got grammar:grammar is there oO'
         #draw_grammar(self.sampler.local_substitutable_graph_grammar.grammar,n_productions=5)
@@ -182,6 +191,6 @@ def sample(self,**kwargs):
 
         '''
 
-        self.vectorizer=Vectorizer(nbits=self.nbits)
+        #self.vectorizer=Vectorizer(nbits=self.nbits)
         for e in super(MySampler, self).sample(**kwargs):
             yield e
