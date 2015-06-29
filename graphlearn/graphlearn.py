@@ -256,10 +256,15 @@ class GraphLearnSampler(object):
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph)
-        sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
+        sampled_graph = self._revert_edge_to_vertex_transform(graph)
         sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path, 'score_history': self._score_list,
                                                 'accept_count': accept_counter, 'notes': self._sample_notes}
         return sampled_graph
+
+
+    def _revert_edge_to_vertex_transform(self,graph):
+        return self.vectorizer._revert_edge_to_vertex_transform(graph)
+
 
     def _score_list_append(self, graph):
         self._score_list.append(graph._score)
@@ -281,7 +286,7 @@ class GraphLearnSampler(object):
 
             # append :) .. rescuing score
             graph.graph['score'] = graph._score
-            self.sample_path.append(self.vectorizer._revert_edge_to_vertex_transform(graph))
+            self.sample_path.append(self._revert_edge_to_vertex_transform(graph))
 
     def _sample_init(self, graph):
         '''
@@ -410,7 +415,8 @@ class GraphLearnSampler(object):
             raise Exception('select randomized cips from grammar got bad cip')
 
         core_hashes = self._get_valid_core_hashes(cip)
-        logger.debug('Working with %d cores' % len(core_hashes))
+        # this message is not necessary as we know that there are always chips available
+        #logger.debug('Working with %d cores' % len(core_hashes))
 
         if self.probabilistic_core_choice:
             # get all the frequencies
