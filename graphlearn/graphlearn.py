@@ -22,12 +22,14 @@ class GraphLearnSampler(object):
     def __init__(self,
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
-                 grammar=None,
                  nbit=20,
                  complexity=3,
                  vectorizer=Vectorizer(complexity=3),
                  node_entity_check=lambda x, y: True,
-                 estimator=estimator.estimator()):
+                 estimator=estimator.estimator(),
+                 grammar=None,
+                 core_interface_pair_remove_threshold=2,
+                 interface_remove_threshold=2  ):
 
         self.complexity = complexity
         self.feasibility_checker = FeasibilityChecker()
@@ -40,8 +42,7 @@ class GraphLearnSampler(object):
         self.thickness_list = [int(2 * t) for t in thickness_list]
         # scikit  classifier
         self.estimatorobject = estimator
-        # grammar object
-        self.local_substitutable_graph_grammar = grammar
+
         # cips hashes will be masked with this, this is unrelated to the vectorizer
         self.hash_bitmask = pow(2, nbit) - 1
         self.nbit = nbit
@@ -78,6 +79,23 @@ class GraphLearnSampler(object):
         # is the core coosen by frequency?  (bool)
         self.probabilistic_core_choice = None
 
+
+
+
+        if not grammar:
+            self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
+                                                                                    self.thickness_list,
+                                                                                    complexity=self.complexity,
+                                                                                    core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
+                                                                                    interface_remove_threshold=interface_remove_threshold,
+                                                                                    nbit=self.nbit,
+                                                                                    node_entity_check=self.node_entity_check)
+        else:
+            self.local_substitutable_graph_grammar=grammar
+
+
+
+
         # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
 
     def save(self, file_name):
@@ -95,7 +113,7 @@ class GraphLearnSampler(object):
             core_interface_pair_remove_threshold=2,
             interface_remove_threshold=2,
             n_jobs=-1,
-            nu=.5):
+            nu=.5,batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -103,19 +121,12 @@ class GraphLearnSampler(object):
 
         self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs)
 
-        self.fit_grammar(graphs, core_interface_pair_remove_threshold, interface_remove_threshold, n_jobs=n_jobs)
+        self.local_substitutable_graph_grammar.fit(graphs, n_jobs,batch_size=batch_size)
 
-    def fit_grammar(self, graphs, core_interface_pair_remove_threshold=2, interface_remove_threshold=2, n_jobs=-1):
 
-        if not self.local_substitutable_graph_grammar:
-            self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
-                                                                                    self.thickness_list,
-                                                                                    complexity=self.complexity,
-                                                                                    core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
-                                                                                    interface_remove_threshold=interface_remove_threshold,
-                                                                                    nbit=self.nbit,
-                                                                                    node_entity_check=self.node_entity_check)
-        self.local_substitutable_graph_grammar.fit(graphs, n_jobs)
+
+
+
 
     def sample(self, graph_iter,
                probabilistic_core_choice=True,

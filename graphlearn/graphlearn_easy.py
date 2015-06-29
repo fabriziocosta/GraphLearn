@@ -48,9 +48,13 @@ class GraphLearnSampler(object):
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
                  grammar=None,
+                 core_interface_pair_remove_threshold=2,
+                 interface_remove_threshold=2,
                  complexity=3,
                  vectorizer=Vectorizer(complexity=3),
                  estimator=estimator.estimator()):
+
+
         self.complexity = complexity
         self.feasibility_checker = FeasibilityChecker()
         self.postprocessor = postprocessing.PostProcessor()
@@ -74,6 +78,13 @@ class GraphLearnSampler(object):
         self.select_cip_max_tries = None
         # sample path
         self.sample_path = None
+
+        self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
+                                                                                    self.thickness_list,
+                                                                                    complexity=self.complexity,
+                                                                                    core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
+                                                                                    interface_remove_threshold=interface_remove_threshold,
+                                                                                    nbit=20)
         
     def save(self, file_name):
         self.local_substitutable_graph_grammar._revert_multicore_transform()
@@ -95,18 +106,8 @@ class GraphLearnSampler(object):
         """
         graphs, graphs_ = itertools.tee(graphs)
         self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu)
-        self.fit_grammar(graphs, core_interface_pair_remove_threshold, interface_remove_threshold)
-
-    def fit_grammar(self, graphs, core_interface_pair_remove_threshold=2, interface_remove_threshold=2):
-
-        if not self.local_substitutable_graph_grammar:
-            self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
-                                                                                    self.thickness_list,
-                                                                                    complexity=self.complexity,
-                                                                                    core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
-                                                                                    interface_remove_threshold=interface_remove_threshold,
-                                                                                    nbit=20)
         self.local_substitutable_graph_grammar.fit(graphs)
+
 
 
 
