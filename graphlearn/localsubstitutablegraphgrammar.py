@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class LocalSubstitutableGraphGrammar(object):
-
     """
     the grammar.
         can learn from graphs
@@ -100,7 +99,7 @@ class LocalSubstitutableGraphGrammar(object):
         for interface in self.grammar:
             if interface in other_grammar:
                 for core in self.grammar[interface]:
-                    if core in other_grammar[interface]:
+                    if core in other_grammar[interface].keys():
                         if substract_cip_count:
                             self.grammar[interface][core].count -= other_grammar[interface][core].count
                         else:
@@ -124,9 +123,9 @@ class LocalSubstitutableGraphGrammar(object):
 
     def intersect(self, other_grammar):
         """intersection of grammars"""
-        for interface in self.grammar:
+        for interface in self.grammar.keys():
             if interface in other_grammar:
-                for core in self.grammar[interface]:
+                for core in self.grammar[interface].keys():
                     if core in other_grammar[interface]:
                         self.grammar[interface][core].counter = min(self.grammar[interface][core].counter,
                                                                    other_grammar[interface][core].counter)
@@ -138,7 +137,7 @@ class LocalSubstitutableGraphGrammar(object):
     def clean(self):
         """remove cips and interfaces not been seen enough during grammar creation"""
         for interface in self.grammar:
-            for core in self.grammar[interface]:
+            for core in self.grammar[interface].keys():
                 if self.grammar[interface][core].count < self.min_cip_count:
                     self.grammar[interface].pop(core)
 
