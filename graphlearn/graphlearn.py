@@ -28,8 +28,8 @@ class GraphLearnSampler(object):
                  node_entity_check=lambda x, y: True,
                  estimator=estimator.estimator(),
                  grammar=None,
-                 core_interface_pair_remove_threshold=2,
-                 interface_remove_threshold=2  ):
+                 min_cip_count=2,
+                 min_interface_count=2  ):
 
         self.complexity = complexity
         self.feasibility_checker = FeasibilityChecker()
@@ -86,8 +86,8 @@ class GraphLearnSampler(object):
             self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
                                                                                     self.thickness_list,
                                                                                     complexity=self.complexity,
-                                                                                    core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
-                                                                                    interface_remove_threshold=interface_remove_threshold,
+                                                                                    min_cip_count=min_cip_count,
+                                                                                    min_interface_count=min_interface_count,
                                                                                     nbit=self.nbit,
                                                                                     node_entity_check=self.node_entity_check)
         else:
@@ -110,8 +110,8 @@ class GraphLearnSampler(object):
         logger.debug('Loaded model: %s' % file_name)
 
     def fit(self, graphs,
-            core_interface_pair_remove_threshold=2,
-            interface_remove_threshold=2,
+            min_cip_count=2,
+            min_interface_count=2,
             n_jobs=-1,
             nu=.5,batch_size=10):
         """
@@ -410,6 +410,11 @@ class GraphLearnSampler(object):
             raise Exception('select randomized cips from grammar got bad cip')
 
         core_hashes = self._get_valid_core_hashes(cip)
+
+        #DIEGO'S CHANGE: we don't want the original cip in the candidates
+        if cip.core_hash in core_hashes:
+            core_hashes.remove(cip.core_hash)
+
         logger.debug('Working with %d cores' % len(core_hashes))
 
         if self.probabilistic_core_choice:
@@ -439,7 +444,8 @@ class GraphLearnSampler(object):
             for core_hash in core_hashes:
                 yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
 
-        raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in ")
+        # DIEGO'S CHANGE: we need to avoid raising exception at the end of the generator
+        #raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in ")
 
     def _get_valid_core_hashes(self, cip):
         '''
@@ -502,7 +508,7 @@ class GraphLearnSampler(object):
                 failcount += 1
 
         raise Exception(
-                'select_cip_for_substitution failed because no suiting interface was found, extract failed %d times; cip found but unacceptable:%s ' % 
+                'select_cip_for_substitution failed because no suiting interface was found, extract failed %d times; cip found but unacceptable:%s ' %
             ( failcount+nocip,failcount))
 
 
