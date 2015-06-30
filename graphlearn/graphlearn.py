@@ -324,7 +324,7 @@ class GraphLearnSampler(object):
         if self.similarity > 0:
             if self.step == 0:
                 self.vectorizer._reference_vec = self.vectorizer._convert_dict_to_sparse_matrix(
-                    self.vectorizer._transform(0, nx.Graph(graph)))
+                    self.vectorizer._transform(0, nx.graph.copy()))
             else:
                 similarity = self.vectorizer._similarity(graph, [1])
                 if similarity < self.similarity:
@@ -337,7 +337,7 @@ class GraphLearnSampler(object):
         we also set graph.score_nonlog and graph.score
         """
         if '_score' not in graph.__dict__:
-            transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
+            transformed_graph = self.vectorizer.transform_single(graph.copy())
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph._score = self.estimator.predict_proba(transformed_graph)[0,1]
@@ -415,8 +415,8 @@ class GraphLearnSampler(object):
             raise Exception('select randomized cips from grammar got bad cip')
 
         core_hashes = self._get_valid_core_hashes(cip)
-        # this message is not necessary as we know that there are always chips available
-        #logger.debug('Working with %d cores' % len(core_hashes))
+
+        logger.debug('Working with %d cores' % len(core_hashes))
 
         if self.probabilistic_core_choice:
             # get all the frequencies
