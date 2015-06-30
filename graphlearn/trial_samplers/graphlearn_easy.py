@@ -1,8 +1,8 @@
 import networkx as nx
 import itertools
 import random
-import postprocessing
-import estimator
+from graphlearn import postprocessing
+from graphlearn import estimator
 from graphlearn.graphtools import extract_core_and_interface, core_substitution, graph_clean
 from graphlearn.feasibility import FeasibilityChecker
 from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -13,7 +13,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
-from utils import draw
+from graphlearn.utils import draw
 logger = logging.getLogger(__name__)
 
 
@@ -80,11 +80,11 @@ class GraphLearnSampler(object):
         self.sample_path = None
 
         self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
-                                                                                    self.thickness_list,
-                                                                                    complexity=self.complexity,
-                                                                                    core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
-                                                                                    interface_remove_threshold=interface_remove_threshold,
-                                                                                    nbit=20)
+                                                                                self.thickness_list,
+                                                                                complexity=self.complexity,
+                                                                                core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
+                                                                                interface_remove_threshold=interface_remove_threshold,
+                                                                                nbit=20)
         
     def save(self, file_name):
         self.local_substitutable_graph_grammar._revert_multicore_transform()
@@ -106,7 +106,7 @@ class GraphLearnSampler(object):
         """
         graphs, graphs_ = itertools.tee(graphs)
         self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu)
-        self.local_substitutable_graph_grammar.fit(graphs)
+        self.local_substitutable_graph_grammar.fit(graphs, n_jobs = 1)
 
 
 

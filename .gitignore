@@ -3,3 +3,4 @@ working_examples/
 *-checkpoint.ipynb
 *.pyc
 .ipynb_checkpoints/
+*.ge
