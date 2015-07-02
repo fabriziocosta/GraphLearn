@@ -177,9 +177,19 @@ def merge(G, node, node2):
 
 
 def find_all_isomorphisms(home, other):
-    matcher = lambda x, y: x['label'] == y['label']
-    GM = iso.GraphMatcher(home, other, node_match=matcher)
-    return GM.isomorphisms_iter()
+
+    if iso.faster_could_be_isomorphic(home,other):
+        matcher = lambda x, y: x['label'] == y['label']
+        GM = iso.GraphMatcher(home, other, node_match=matcher)
+        for index,mapping in  enumerate(GM.isomorphisms_iter()):
+            if index > 1:
+                logger.debug('delivering isomorphism nr.%s' % index )
+            if index==5: # give up ..
+                break
+            yield mapping
+    else:
+        logger.debug('faster iso check failed')
+
 
 
 def get_good_isomorphism(graph,original_cip_graph,new_cip_graph,home,other):
