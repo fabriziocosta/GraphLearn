@@ -81,8 +81,6 @@ class UberSampler(GraphLearnSampler):
 
 class UberGrammar(LocalSubstitutableGraphGrammar):
 
-
-
     def __init__(self,base_thickness_list=None,**kwargs):
         self.base_thickness_list=base_thickness_list
         super(UberGrammar, self).__init__(**kwargs)
@@ -112,7 +110,6 @@ class UberGrammar(LocalSubstitutableGraphGrammar):
         for batch in grouper(graphs, batch_size):
             yield dill.dumps((function, args, batch))
 '''
-
 
 
 def extract_cores_and_interfaces_mk2(parameters):

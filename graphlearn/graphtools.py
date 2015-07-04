@@ -3,7 +3,7 @@ from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
 from coreinterfacepair import CoreInterfacePair
 import logging
-
+import traceback
 import utils.draw as draw
 
 logger = logging.getLogger(__name__)
@@ -78,16 +78,16 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
                                hash_bitmask=2 ** 20 - 1, filter=lambda x, y: True):
     """
 
-:param root_node: root root_node
-:param graph: graph
-:param radius_list:
-:param thickness_list:
-:param vectorizer: a vectorizer
-:param hash_bitmask:
+    :param root_node: root root_node
+    :param graph: graph
+    :param radius_list:
+    :param thickness_list:
+    :param vectorizer: a vectorizer
+    :param hash_bitmask:
 
 
-:return: radius_list*thicknes_list long list of cips
-"""
+    :return: radius_list*thicknes_list long list of cips
+    """
 
     if not filter(graph, root_node):
         return []
@@ -267,3 +267,101 @@ def graph_clean(graph):
         d.pop('core', None)
         d.pop('interface', None)
         d.pop('root', None)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_list=None, vectorizer=None,
+                               hash_bitmask=2 ** 20 - 1, filter=lambda x, y: True,esti=None):
+    """
+
+    :param root_node: root root_node
+    :param graph: graph
+    :param radius_list:
+    :param thickness_list:
+    :param vectorizer: a vectorizer
+    :param hash_bitmask:
+    :return: radius_list*thicknes_list long list of cips
+    """
+    try:
+        if not filter(graph, root_node):
+            return []
+        if 'hlabel' not in graph.node[ graph.nodes()[0] ]:
+            vectorizer._label_preprocessing(graph)
+
+        # which nodes are in the relevant radius
+        #print root_node,max(radius_list) + max(thickness_list)
+        #myutils.display(graph,vertex_label='id',size=15)
+
+
+        dist = nx.single_source_shortest_path_length(graph, root_node, max(radius_list) + max(thickness_list))
+        # we want the relevant subgraph and we want to work on a copy
+        master_cip_graph = graph.subgraph(dist).copy()
+
+        # we want to inverse the dictionary.
+        # so now we see {distance:[list of nodes at that distance]}
+        nodedict = invert_dict(dist)
+
+        cip_list = []
+        for thickness_ in thickness_list:
+            for radius_ in radius_list:
+
+                # see if it is feasable to extract
+                if radius_ + thickness_ not in nodedict:
+                    continue
+
+                core_graph_nodes = [item for x in range(radius_ + 1) for item in nodedict.get(x, [])]
+                if not filter(master_cip_graph, core_graph_nodes):
+                    continue
+
+                corehash = calc_core_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
+
+
+                interface_graph_nodes = [item for x in range(radius_ + 1, radius_ + thickness_ + 1) for item in
+                                         nodedict.get(x, [])]
+
+
+                #interfacehash = calc_interface_hash(master_cip_graph.subgraph(interface_graph_nodes), hash_bitmask)
+                interfacehash= round(esti.predict_proba(vectorizer.transform_single(master_cip_graph.subgraph(interface_graph_nodes).copy()))[0,0],7)
+
+
+                # get relevant subgraph
+                nodes = [node for i in range(radius_ + thickness_ + 1) for node in nodedict[i]]
+                cip_graph = master_cip_graph.subgraph(nodes).copy()
+
+                # marking cores and interfaces in subgraphs
+                for i in range(radius_ + 1):
+                    for no in nodedict[i]:
+                        cip_graph.node[no]['core'] = True
+                        if 'interface' in cip_graph.node[no]:
+                            cip_graph.node[no].pop('interface')
+                for i in range(radius_ + 1, radius_ + thickness_ + 1):
+                    if i in nodedict:
+                        for no in nodedict[i]:
+                            cip_graph.node[no]['interface'] = True
+                            if 'core' in cip_graph.node[no]:
+                                cip_graph.node[no].pop('core')
+
+                core_nodes_count = sum([len(nodedict[x]) for x in range(radius_ + 1)])
+
+                cip_list.append(CoreInterfacePair(interfacehash, corehash, cip_graph, radius_, thickness_, core_nodes_count,
+                                                  distance_dict=nodedict))
+        return cip_list
+
+    except Exception as exc:
+            print traceback.format_exc(10)
+
+
