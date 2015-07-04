@@ -322,13 +322,21 @@ def extract_cores_and_interfaces(parameters):
         graph, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check = parameters
         graph = vectorizer._edge_to_vertex_transform(graph)
         cips = []
-        for node in graph.nodes_iter():
-            if 'edge' in graph.node[node]:
+        for root_node in graph.nodes_iter():
+            if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
+            '''
+            cip_list = graphtools.extract_core_and_interface(root_node, graph, radius_list, thickness_list,
                                                                         vectorizer=vectorizer,
                                                                         hash_bitmask=hash_bitmask,
                                                                         filter=node_entity_check)
+            '''
+
+            cip_list= extract_core_and_interface_single_root(root_node, graph, radius_list, thickness_list,
+                                                                vectorizer=vectorizer,
+                                                                hash_bitmask=hash_bitmask,
+                                                                filter=node_entity_check)
+
             if cip_list:
                 cips.append(cip_list)
         return cips
@@ -338,3 +346,10 @@ def extract_cores_and_interfaces(parameters):
         # so i put this in info
         logger.info( "extract_cores_and_interfaces_died" )
         logger.info( parameters )
+
+
+
+def extract_core_and_interface_single_root(**kwargs):
+    return graphtools.extract_core_and_interface( **kwargs)
+
+
