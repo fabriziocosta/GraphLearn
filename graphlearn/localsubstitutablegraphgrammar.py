@@ -247,10 +247,9 @@ class LocalSubstitutableGraphGrammar(object):
                 get cips of graph
                     put cips into grammar
         """
+        args=self._get_args()
         for gr in graphs:
-            problem = (
-                gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check)
-
+            problem = [gr]+args
             for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cip in core_interface_data_list:
                     self._add_core_interface_data(cip)
@@ -299,8 +298,11 @@ class LocalSubstitutableGraphGrammar(object):
         pool.close()
         pool.join()
 
+    def _get_args(self):
+        return  [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
+
     def _multi_process_argbuilder(self, graphs, batch_size=10):
-        args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
+        args=self._get_args()
         function = extract_cores_and_interfaces
         for batch in grouper(graphs, batch_size):
             yield dill.dumps((function, args, batch))
