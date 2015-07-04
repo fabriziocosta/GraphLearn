@@ -283,10 +283,17 @@ def graph_clean(graph):
 
 
 
-
+'''
+  this is just a test to see if we can use an the estimator stuff to calculate the interface hash.
+    the experiment failed. 
+'''
 def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_list=None, vectorizer=None,
                                hash_bitmask=2 ** 20 - 1, filter=lambda x, y: True,esti=None):
     """
+
+
+    this is just a test to see if we can use an the estimator stuff to calculate the interface hash.
+    the experiment failed.
 
     :param root_node: root root_node
     :param graph: graph
