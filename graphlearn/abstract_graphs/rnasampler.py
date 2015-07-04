@@ -1,18 +1,18 @@
 
-
 from ubergraphlearn import UberSampler
 import ubergraphlearn
 import networkx as nx
 import graphlearn.utils.draw as draw
 import random
+
+
+
 class RNASampler(UberSampler):
 
     '''
      the plan is simple, during sampling we work with directed graphs.
-
      input graphs and cip-graphs graphs are turned into directed graphs before being processed further.
     '''
-
 
     '''
     cores and graphs will be turned into diGraphs!
