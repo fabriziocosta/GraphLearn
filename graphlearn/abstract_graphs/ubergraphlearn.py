@@ -13,6 +13,8 @@ from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 import traceback
+
+
 '''
 first we build the new sampler that is able to handle abstract graphs...
 '''
@@ -79,16 +81,18 @@ class UberSampler(GraphLearnSampler):
 
 class UberGrammar(LocalSubstitutableGraphGrammar):
 
-    def _multi_process_argbuilder(self, graphs, batch_size=10):
-        args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check, self.base_thickness_list]
-        function = extract_cores_and_interfaces_mk2
-        for batch in grouper(graphs, batch_size):
-            yield dill.dumps((function, args, batch))
+
 
     def __init__(self,base_thickness_list=None,**kwargs):
         self.base_thickness_list=base_thickness_list
         super(UberGrammar, self).__init__(**kwargs)
 
+    def _get_args(self):
+        return  [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check,self.base_thickness_list]
+
+
+
+'''
     def _read_single(self, graphs):
         """
             for graph in graphs:
@@ -101,6 +105,14 @@ class UberGrammar(LocalSubstitutableGraphGrammar):
             for core_interface_data_list in extract_cores_and_interfaces_mk2(problem):
                 for cid in core_interface_data_list:
                     self._add_core_interface_data(cid)
+
+    def _multi_process_argbuilder(self, graphs, batch_size=10):
+        args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check, self.base_thickness_list]
+        function = extract_cores_and_interfaces_mk2
+        for batch in grouper(graphs, batch_size):
+            yield dill.dumps((function, args, batch))
+'''
+
 
 
 def extract_cores_and_interfaces_mk2(parameters):
@@ -137,6 +149,7 @@ def extract_cores_and_interfaces_mk2(parameters):
             logger.info( "extract_cores_and_interfaces_died" )
             logger.info( parameters )
 
+LocalSubstitutableGraphGrammar.extract_cores_and_interfaces=extract_cores_and_interfaces_mk2  # @@@
 
 
 '''
