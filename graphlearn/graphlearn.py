@@ -13,7 +13,6 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
-from utils import draw
 logger = logging.getLogger(__name__)
 
 
@@ -28,8 +27,8 @@ class GraphLearnSampler(object):
                  node_entity_check=lambda x, y: True,
                  estimator=estimator.estimator(),
                  grammar=None,
-                 cip_remove_threshold=2,
-                 interface_remove_threshold=2  ):
+                 min_cip_count=2,
+                 min_interface_count=2):
 
         self.complexity = complexity
         self.feasibility_checker = FeasibilityChecker()
@@ -57,8 +56,8 @@ class GraphLearnSampler(object):
         self.n_steps = None
         # number of jobs created by multiprocessing  -1 to let python guess how many cores you have
         self.n_jobs = None
-        # currently stores information on why the sampling was stopped before n_steps ; will be attached to the graphinfo
-        # returned by _sample()
+        # currently stores information on why the sampling was stopped before n_steps ;
+        # will be attached to the graphinfo returned by _sample()
         self._sample_notes = None
         # factor for simulated annealing, 0 means off
         # 1 is pretty strong. 0.6 seems ok
@@ -79,41 +78,36 @@ class GraphLearnSampler(object):
         # is the core coosen by frequency?  (bool)
         self.probabilistic_core_choice = None
 
-
-
-
         if not grammar:
-            self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
-                                                                                    self.thickness_list,
-                                                                                    complexity=self.complexity,
-                                                                                    cip_remove_threshold=cip_remove_threshold,
-                                                                                    interface_remove_threshold=interface_remove_threshold,
-                                                                                    nbit=self.nbit,
-                                                                                    node_entity_check=self.node_entity_check)
+            self.lsgg = \
+                LocalSubstitutableGraphGrammar(self.radius_list,
+                                               self.thickness_list,
+                                               complexity=self.complexity,
+                                               min_cip_count=min_cip_count,
+                                               min_interface_count=min_interface_count,
+                                               nbit=self.nbit,
+                                               node_entity_check=self.node_entity_check)
         else:
-            self.local_substitutable_graph_grammar=grammar
-
-
-
+            self.lsgg = grammar
 
         # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
 
     def save(self, file_name):
-        self.local_substitutable_graph_grammar._revert_multicore_transform()
+        self.lsgg._revert_multicore_transform()
         dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
-        #joblib.dump(self.__dict__, file_name, compress=1)
+        # joblib.dump(self.__dict__, file_name, compress=1)
         logger.debug('Saved model: %s' % file_name)
 
     def load(self, file_name):
-        #self.__dict__ = joblib.load(file_name)
+        # self.__dict__ = joblib.load(file_name)
         self.__dict__ = dill.load(open(file_name))
         logger.debug('Loaded model: %s' % file_name)
 
     def fit(self, graphs,
-            core_interface_pair_remove_threshold=2,
-            interface_remove_threshold=2,
+            min_cip_count=2,
+            min_interface_count=2,
             n_jobs=-1,
-            nu=.5,batch_size=10):
+            nu=.5, batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -121,12 +115,7 @@ class GraphLearnSampler(object):
 
         self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs)
 
-        self.local_substitutable_graph_grammar.fit(graphs, n_jobs,batch_size=batch_size)
-
-
-
-
-
+        self.lsgg.fit(graphs, n_jobs, batch_size=batch_size)
 
     def sample(self, graph_iter,
                probabilistic_core_choice=True,
@@ -141,7 +130,7 @@ class GraphLearnSampler(object):
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
                burnout=0,
-               generatormode=False,
+               generator_mode=False,
                keep_duplicates=False):
         """
             input: graph iterator
@@ -163,12 +152,10 @@ class GraphLearnSampler(object):
         self.burnout = burnout
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
-        self.generatormode = generatormode
+        self.generator_mode = generator_mode
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
-        self.local_substitutable_graph_grammar.preprocessing(n_jobs, same_radius, same_core_size,
-                                                             probabilistic_core_choice)
-
+        self.lsgg.preprocessing(n_jobs, same_radius, same_core_size, probabilistic_core_choice)
         logger.debug(serialize_dict(self.__dict__))
 
         # sampling
@@ -191,13 +178,14 @@ class GraphLearnSampler(object):
                         yield new_graph
             pool.close()
             pool.join()
-            # for pair in graphlearn_utils.multiprocess(graph_iter,_sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
+            # for pair in graphlearn_utils.multiprocess(graph_iter,\
+            #                                           _sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
             #    yield pair
 
     def return_formatter(self, sample_product):
         # after _sample we need to decide what to yield...
         if sample_product is not None:
-            if self.generatormode:
+            if self.generator_mode:
                 # yield all the graphs but jump first because that one is the start graph :)
                 for graph in sample_product.graph['sampling_info']['graphs_history'][1:]:
                     yield graph
@@ -257,8 +245,10 @@ class GraphLearnSampler(object):
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph)
         sampled_graph = self._revert_edge_to_vertex_transform(graph)
-        sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path, 'score_history': self._score_list,
-                                                'accept_count': accept_counter, 'notes': self._sample_notes}
+        sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
+                                                'score_history': self._score_list,
+                                                'accept_count': accept_counter,
+                                                'notes': self._sample_notes}
         return sampled_graph
 
 
@@ -340,7 +330,7 @@ class GraphLearnSampler(object):
             transformed_graph = self.vectorizer.transform_single(graph.copy())
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-            graph._score = self.estimator.predict_proba(transformed_graph)[0,1]
+            graph._score = self.estimator.predict_proba(transformed_graph)[0, 1]
 
         return graph._score
 
@@ -367,7 +357,7 @@ class GraphLearnSampler(object):
         #       (values of 1 +- .5 are interesting here)
         # 2. a static penalty applies a penalty that is always the same.
         #       (-1 ~ always accept ; +1 ~  never accept)
-        score_ratio = score_ratio - (  (float(self.step)/self.n_steps) * self.accept_annealing_factor  )
+        score_ratio = score_ratio - ((float(self.step) / self.n_steps) * self.accept_annealing_factor)
         score_ratio = score_ratio - self.accept_static_penalty
 
         # score_ratio is smaller than 1. random.random generates a float between 0 and 1
@@ -416,13 +406,17 @@ class GraphLearnSampler(object):
 
         core_hashes = self._get_valid_core_hashes(cip)
 
+        # DIEGO'S CHANGE: we don't want the original cip in the candidates
+        if cip.core_hash in core_hashes:
+            core_hashes.remove(cip.core_hash)
+
         logger.debug('Working with %d cores' % len(core_hashes))
 
         if self.probabilistic_core_choice:
             # get all the frequencies
             frequencies = []
             for core_hash in core_hashes:
-                frequencies.append(self.local_substitutable_graph_grammar.frequency[cip.interface_hash][core_hash])
+                frequencies.append(self.lsgg.frequency[cip.interface_hash][core_hash])
 
             frequencies_sum = sum(frequencies)
 
@@ -436,17 +430,17 @@ class GraphLearnSampler(object):
                     current += frequencies[i + 1]
                     i += 1
                 # yield and delete
-                yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hashes[i]]
+                yield self.lsgg.grammar[cip.interface_hash][core_hashes[i]]
                 frequencies_sum -= frequencies[i]
                 del frequencies[i]
                 del core_hashes[i]
-
         else:
             for core_hash in core_hashes:
-                yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
-
-        raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in ")
-
+                yield self.lsgg.grammar[cip.interface_hash][core_hash]
+        # DIEGO'S CHANGE: we need to avoid raising exception at the end of the generator
+        # raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in ")
+        
+        # you want to remove this? why?
     def _get_valid_core_hashes(self, cip):
         '''
         :param cip: the chip to be replaced
@@ -454,11 +448,11 @@ class GraphLearnSampler(object):
         '''
 
         if self.same_radius:
-            result_list = list(self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius])
+            result_list = list(self.lsgg.radiuslookup[cip.interface_hash][cip.radius])
             # if both are activated..
             if self.same_core_size:
                 result_list2 = list(
-                    self.local_substitutable_graph_grammar.core_size[cip.interface_hash][cip.core_nodes_count])
+                    self.lsgg.core_size[cip.interface_hash][cip.core_nodes_count])
                 result = []
                 for hash in result_list2:
                     if hash in result_list:
@@ -466,18 +460,12 @@ class GraphLearnSampler(object):
                 result_list = result
         elif self.same_core_size:
             result_list = list(
-                self.local_substitutable_graph_grammar.core_size[cip.interface_hash][cip.core_nodes_count])
+                self.lsgg.core_size[cip.interface_hash][cip.core_nodes_count])
         else:
-            result_list = list(self.local_substitutable_graph_grammar.grammar[cip.interface_hash].keys())
+            result_list = list(self.lsgg.grammar[cip.interface_hash].keys())
 
         random.shuffle(result_list)
         return result_list
-
-
-
-
-
-
 
     def select_original_cip(self, graph):
         """
@@ -489,18 +477,19 @@ class GraphLearnSampler(object):
         """
 
         failcount = 0
-        nocip= 0
+        nocip = 0
         for x in xrange(self.select_cip_max_tries):
-            # exteract_core_and_interface will return a list of results, we expect just one so we unpack with [0]
-            # in addition the selection might fail because it is not possible to extract at the desired radius/thicknes
-            #
+            # exteract_core_and_interface will return a list of results,
+            # we expect just one so we unpack with [0]
+            # in addition the selection might fail because it is not possible
+            # to extract at the desired radius/thicknes
             cip = self._original_cip_extraction(graph)
 
             if not cip:
                 nocip += 1
                 continue
             cip = cip[0]
-            #print node,radius,cip.interface_hash
+            # print node,radius,cip.interface_hash
 
             if self._accept_original_cip(cip):
                 return cip
@@ -508,11 +497,10 @@ class GraphLearnSampler(object):
                 failcount += 1
 
         raise Exception(
-                'select_cip_for_substitution failed because no suiting interface was found, extract failed %d times; cip found but unacceptable:%s ' % 
-            ( failcount+nocip,failcount))
+            'select_cip_for_substitution failed because no suiting interface was found, \
+            extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount))
 
-
-    def  _original_cip_extraction(self,graph):
+    def _original_cip_extraction(self, graph):
         '''
         selects the next candidate.
         '''
@@ -520,12 +508,11 @@ class GraphLearnSampler(object):
         if 'edge' in graph.node[node]:
             node = random.choice(graph.neighbors(node))
             # random radius and thickness
-        radius = random.choice(self.local_substitutable_graph_grammar.radius_list)
-        thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
+        radius = random.choice(self.lsgg.radius_list)
+        thickness = random.choice(self.lsgg.thickness_list)
 
         return extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer,
-                                             hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
-
+                                          hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
 
     def _accept_original_cip(self, cip):
         '''
@@ -533,18 +520,18 @@ class GraphLearnSampler(object):
         :return: good or nogood (bool)
         '''
 
-        #cips=[cip]
-        #gr=draw.cip_to_graph( cips )
-        #draw.draw_graph_set_graphlearn(gr )
+        # cips=[cip]
+        # gr=draw.cip_to_graph( cips )
+        # draw.draw_graph_set_graphlearn(gr )
         # if we have a hit in the grammar
-        if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
+        if cip.interface_hash in self.lsgg.grammar:
             #  if we have the same_radius rule implemented:
             if self.same_radius:
                 # we jump if that hit has not the right radius
-                if not self.local_substitutable_graph_grammar.radiuslookup[cip.interface_hash][cip.radius]:
+                if not self.lsgg.radiuslookup[cip.interface_hash][cip.radius]:
                     return False
             if self.same_core_size:
-                if cip.core_nodes_count not in self.local_substitutable_graph_grammar.core_size[cip.interface_hash]:
+                if cip.core_nodes_count not in self.lsgg.core_size[cip.interface_hash]:
                     return False
             return True
         return False
