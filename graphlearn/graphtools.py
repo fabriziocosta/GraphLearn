@@ -173,8 +173,15 @@ def merge(G, node, node2):
     input nodes are strings,
     node is the king
     '''
+
+
     for n in G.neighbors(node2):
         G.add_edge(node, n)
+
+    if isinstance(G,nx.DiGraph):
+        for n in G.predecessors(node2):
+            G.add_edge(n,node)
+
     G.node[node]['interface'] = True
     G.remove_node(node2)
 
@@ -207,18 +214,24 @@ def get_good_isomorphism(graph,original_cip_graph,new_cip_graph,home,other):
     :param other: the interface of a new cip
     :return: a dictionary that is either empty or a good isomorphism
     '''
-    for mapping in find_all_isomorphisms(home,other):
-        for home_node in mapping.keys():
-            if 'edge' in graph.node[home_node]:
-                old_neigh = len([e for e in  graph.neighbors(home_node) if e not in original_cip_graph.node ])
-                new_neigh = len([e for e in  new_cip_graph.neighbors(mapping[home_node])])
-                if old_neigh+new_neigh != 2:
-                    break
-        # we didnt break so every edge is save
-        else:
+
+    if isinstance(home, nx.DiGraph):
+        for mapping in find_all_isomorphisms(home,other):
             return mapping
-    # draw rejected pair:
-    #draw.draw_graph_set_graphlearn([original_cip_graph,new_cip_graph])
+
+    else:
+        for mapping in find_all_isomorphisms(home,other):
+            for home_node in mapping.keys():
+                if 'edge' in graph.node[home_node]:
+                    old_neigh = len([e for e in  graph.neighbors(home_node) if e not in original_cip_graph.node ])
+                    new_neigh = len([e for e in  new_cip_graph.neighbors(mapping[home_node])])
+                    if old_neigh+new_neigh != 2:
+                        break
+            # we didnt break so every edge is save
+            else:
+                return mapping
+        # draw rejected pair:
+        #draw.draw_graph_set_graphlearn([original_cip_graph,new_cip_graph])
     return {}
 
 
@@ -239,7 +252,9 @@ def core_substitution(graph, original_cip_graph, new_cip_graph):
     iso = get_good_isomorphism(graph,original_cip_graph,new_cip_graph,original_interface_graph, new_cip_interface_graph)
 
     if len(iso) != len(original_interface_graph):
-        # drawgraphs([graph,original_cip_graph,new_cip_graph],contract=False)
+        print iso
+        draw.display(original_cip_graph,contract=False,vertex_label='id')
+        draw.display(new_cip_graph,contract=False,vertex_label='id')
         return nx.Graph()
 
     # ok we got an isomorphism so lets do the merging
