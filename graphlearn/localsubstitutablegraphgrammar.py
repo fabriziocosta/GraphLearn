@@ -4,13 +4,11 @@ import dill
 from eden import grouper
 from eden.graph import Vectorizer
 import logging
-from coreinterfacepair import CoreInterfacePair
 logger = logging.getLogger(__name__)
 
 
-
-
 class LocalSubstitutableGraphGrammar(object):
+
     """
     the grammar.
         can learn from graphs
@@ -43,7 +41,8 @@ class LocalSubstitutableGraphGrammar(object):
         """
         if self.__dict__.get('locked', False):
             logger.debug(
-                'skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing does not rerun every time we graphlearn.sample())')
+                'skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing \
+                 does not rerun every time we graphlearn.sample())')
             return
         else:
             logger.debug('preprocessing grammar')
@@ -58,8 +57,8 @@ class LocalSubstitutableGraphGrammar(object):
 
         self.locked = True
 
-    def fit(self, G_iterator, n_jobs,batch_size=10):
-        self._read(G_iterator, n_jobs,batch_size=batch_size)
+    def fit(self, graph_iterator, n_jobs, batch_size=10):
+        self._read(graph_iterator, n_jobs, batch_size=batch_size)
         self.clean()
 
     def _multicore_transform(self):
@@ -128,7 +127,7 @@ class LocalSubstitutableGraphGrammar(object):
                 for core in self.grammar[interface].keys():
                     if core in other_grammar[interface]:
                         self.grammar[interface][core].counter = min(self.grammar[interface][core].counter,
-                                                                   other_grammar[interface][core].counter)
+                                                                    other_grammar[interface][core].counter)
                     else:
                         self.grammar[interface].pop(core)
             else:
@@ -136,11 +135,10 @@ class LocalSubstitutableGraphGrammar(object):
 
     def clean(self):
         """remove cips and interfaces not been seen enough during grammar creation"""
-        for interface in self.grammar:
+        for interface in self.grammar.keys():
             for core in self.grammar[interface].keys():
                 if self.grammar[interface][core].count < self.min_cip_count:
                     self.grammar[interface].pop(core)
-
             if len(self.grammar[interface]) < self.min_interface_count:
                 self.grammar.pop(interface)
 
@@ -149,7 +147,6 @@ class LocalSubstitutableGraphGrammar(object):
         self.radiuslookup = {}
         for interface in self.grammar:
             radius_lookup = [[]] * (max(self.radius_list) + 1)
-
             for core in self.grammar[interface]:
                 radius = self.grammar[interface][core].radius
                 if radius in radius_lookup:
@@ -207,8 +204,12 @@ class LocalSubstitutableGraphGrammar(object):
                     put cips into grammar
         """
         for gr in graphs:
-            problem = (
-                gr, self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check)
+            problem = (gr,
+                       self.radius_list,
+                       self.thickness_list,
+                       self.vectorizer,
+                       self.hash_bitmask,
+                       self.node_entity_check)
 
             for core_interface_data_list in extract_cores_and_interfaces(problem):
                 for cip in core_interface_data_list:
@@ -246,7 +247,8 @@ class LocalSubstitutableGraphGrammar(object):
 
         # extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
 
-        results = pool.imap_unordered(extract_cips, self._multi_process_argbuilder(graphs, batch_size=batch_size))
+        results = pool.imap_unordered(extract_cips,
+                                      self._multi_process_argbuilder(graphs, batch_size=batch_size))
 
         # the resulting chips can now be put intro the grammar
         for batch in results:
@@ -259,7 +261,11 @@ class LocalSubstitutableGraphGrammar(object):
         pool.join()
 
     def _multi_process_argbuilder(self, graphs, batch_size=10):
-        args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
+        args = [self.radius_list,
+                self.thickness_list,
+                self.vectorizer,
+                self.hash_bitmask,
+                self.node_entity_check]
         function = extract_cores_and_interfaces
         for batch in grouper(graphs, batch_size):
             yield dill.dumps((function, args, batch))
@@ -283,9 +289,9 @@ def extract_cores_and_interfaces(parameters):
             if 'edge' in graph.node[node]:
                 continue
             cip_list = graphtools.extract_core_and_interface(node, graph, radius_list, thickness_list,
-                                                                        vectorizer=vectorizer,
-                                                                        hash_bitmask=hash_bitmask,
-                                                                        filter=node_entity_check)
+                                                             vectorizer=vectorizer,
+                                                             hash_bitmask=hash_bitmask,
+                                                             filter=node_entity_check)
             if cip_list:
                 cips.append(cip_list)
         return cips
@@ -293,5 +299,5 @@ def extract_cores_and_interfaces(parameters):
         # as far as i remember this should almost never happen,
         # if it does you may have a bigger problem.
         # so i put this in info
-        logger.info( "extract_cores_and_interfaces_died" )
-        logger.info( parameters )
+        logger.info("extract_cores_and_interfaces_died")
+        logger.info(parameters)
