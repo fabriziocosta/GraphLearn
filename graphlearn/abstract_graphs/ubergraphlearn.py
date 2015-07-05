@@ -21,7 +21,7 @@ first we build the new sampler that is able to handle abstract graphs...
 
 class UberSampler(GraphLearnSampler):
 
-    def __init__(self,base_thickness_list=[1,2,3],cip_remove_threshold=1, interface_remove_threshold=2,grammar=None,**kwargs):
+    def __init__(self,base_thickness_list=[1,2,3],min_cip_count=1, min_interface_count=2,grammar=None,**kwargs):
         '''
             graphlernsampler with its extensions..
 
@@ -34,7 +34,7 @@ class UberSampler(GraphLearnSampler):
             assert isinstance(grammar,UberGrammar)
 
         self.base_thickness_list=[int(2*e) for e in base_thickness_list]
-        super(UberSampler, self).__init__(grammar=grammar, cip_remove_threshold=cip_remove_threshold, interface_remove_threshold= interface_remove_threshold,**kwargs)
+        super(UberSampler, self).__init__(grammar=grammar, min_cip_count=min_cip_count, min_interface_count= min_interface_count,**kwargs)
 
 
         # after the normal run, a grammar was created, but its a ordinary grammar .. so we build a new one
@@ -44,8 +44,8 @@ class UberSampler(GraphLearnSampler):
                 radius_list=self.radius_list,
                 thickness_list=self.thickness_list,
                 complexity=self.complexity,
-                cip_remove_threshold=cip_remove_threshold,
-                interface_remove_threshold=interface_remove_threshold,
+                min_cip_count=min_cip_count,
+                min_interface_count=min_interface_count,
                 nbit=self.nbit,
                 node_entity_check=self.node_entity_check)
 
