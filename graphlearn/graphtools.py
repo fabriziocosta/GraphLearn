@@ -253,8 +253,8 @@ def core_substitution(graph, original_cip_graph, new_cip_graph):
 
     if len(iso) != len(original_interface_graph):
         print iso
-        draw.display(original_cip_graph,contract=False,vertex_label='id')
-        draw.display(new_cip_graph,contract=False,vertex_label='id')
+        #draw.display(original_cip_graph,contract=False,vertex_label='id')
+        #draw.display(new_cip_graph,contract=False,vertex_label='id')
         return nx.Graph()
 
     # ok we got an isomorphism so lets do the merging
