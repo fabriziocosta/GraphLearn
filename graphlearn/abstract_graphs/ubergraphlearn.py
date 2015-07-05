@@ -89,7 +89,8 @@ class UberGrammar(LocalSubstitutableGraphGrammar):
         return  [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check,self.base_thickness_list]
 
 
-
+    def get_cip_extractor(self):
+        return extract_cores_and_interfaces_mk2
 '''
     def _read_single(self, graphs):
         """
@@ -145,9 +146,6 @@ def extract_cores_and_interfaces_mk2(parameters):
             logger.info(traceback.format_exc(10))
             logger.info( "extract_cores_and_interfaces_died" )
             logger.info( parameters )
-
-LocalSubstitutableGraphGrammar.extract_cores_and_interfaces=extract_cores_and_interfaces_mk2  # @@@
-
 
 '''
 the things down here replace functions in the graphtools.

@@ -99,9 +99,11 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
     #myutils.display(graph,vertex_label='id',size=15)
 
 
-    dist = nx.single_source_shortest_path_length(graph, root_node, max(radius_list) + max(thickness_list))
+
+    undir_graph = nx.Graph(graph)
+    dist = nx.single_source_shortest_path_length(undir_graph, root_node, max(radius_list) + max(thickness_list))
     # we want the relevant subgraph and we want to work on a copy
-    master_cip_graph = nx.Graph(graph.subgraph(dist))
+    master_cip_graph = graph.subgraph(dist).copy()
 
     # we want to inverse the dictionary.
     # so now we see {distance:[list of nodes at that distance]}
@@ -127,7 +129,7 @@ def extract_core_and_interface(root_node, graph, radius_list=None, thickness_lis
 
             # get relevant subgraph
             nodes = [node for i in range(radius_ + thickness_ + 1) for node in nodedict[i]]
-            cip_graph = nx.Graph(master_cip_graph.subgraph(nodes))
+            cip_graph = master_cip_graph.subgraph(nodes).copy()
 
             # marking cores and interfaces in subgraphs
             for i in range(radius_ + 1):
@@ -271,21 +273,9 @@ def graph_clean(graph):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 '''
   this is just a test to see if we can use an the estimator stuff to calculate the interface hash.
-    the experiment failed. 
+    the experiment failed.
 '''
 def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_list=None, vectorizer=None,
                                hash_bitmask=2 ** 20 - 1, filter=lambda x, y: True,esti=None):
