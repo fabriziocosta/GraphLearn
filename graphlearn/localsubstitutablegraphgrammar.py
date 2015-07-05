@@ -250,42 +250,20 @@ class LocalSubstitutableGraphGrammar(object):
         args=self._get_args()
         for gr in graphs:
             problem = [gr]+args
-            for core_interface_data_list in extract_cores_and_interfaces(problem):
+            for core_interface_data_list in self.get_cip_extractor()(problem):
                 for cip in core_interface_data_list:
                     self._add_core_interface_data(cip)
 
     def _read_multi(self, graphs, n_jobs, batch_size):
         """
-        will take graphs and to multiprocessing to extract their cips
-        and put these cips in the grammar
-
-
-
-
-        multiprocessing takes lots of memory, my theory is, that the myeden.multiprocess
-        materializes the iterator too fast
+        like read_single but with multiple processes
         """
 
-        # generate iterator of problem instances
-        '''
-        problems = itertools.izip(graphs, itertools.repeat(self.radius_list),
-                                  itertools.repeat(self.thickness_list),
-                                  itertools.repeat(self.vectorizer),
-                                  itertools.repeat(self.hash_bitmask),
-                                  itertools.repeat(self.node_entity_check)
-                                  )
-        '''
-
-        # distributing jobs to workers
-        # result = pool.imap_unordered(extract_cores_and_interfaces, problems, 10)
 
         if n_jobs > 1:
             pool = Pool(processes=n_jobs)
         else:
             pool = Pool()
-
-        # extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
-
         results = pool.imap_unordered(extract_cips, self._multi_process_argbuilder(graphs, batch_size=batch_size))
 
         # the resulting chips can now be put intro the grammar
@@ -298,17 +276,35 @@ class LocalSubstitutableGraphGrammar(object):
         pool.close()
         pool.join()
 
-    def _get_args(self):
-        return  [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
 
     def _multi_process_argbuilder(self, graphs, batch_size=10):
         args=self._get_args()
-        function = extract_cores_and_interfaces
+        function = self.get_cip_extractor()
         for batch in grouper(graphs, batch_size):
             yield dill.dumps((function, args, batch))
 
 
+    '''
+    these 2 let you easily change the cip extraction process...
+
+    the problem was that you needed to overwrite read_single AND read_multi when you wanted to change the cip
+    extractor. :)
+    '''
+    def _get_args(self):
+        return  [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
+
+    def get_cip_extractor(self):
+        return extract_cores_and_interfaces
+
+
+
+
+
 def extract_cips(what):
+    '''
+    :param what: unpacks and runs jobs that were packed by the _multi_process_argbuilder
+    :return:  [extract_cores_and_interfaces(stuff),extract_cores_and_interfaces(stuff), ...]
+    '''
     f, args, graph_batch = dill.loads(what)
     return [f([y] + args) for y in graph_batch]
 
@@ -325,18 +321,10 @@ def extract_cores_and_interfaces(parameters):
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            '''
-            cip_list = graphtools.extract_core_and_interface(root_node, graph, radius_list, thickness_list,
-                                                                        vectorizer=vectorizer,
-                                                                        hash_bitmask=hash_bitmask,
-                                                                        filter=node_entity_check)
-            '''
-
             cip_list= extract_core_and_interface_single_root(root_node, graph, radius_list, thickness_list,
                                                                 vectorizer=vectorizer,
                                                                 hash_bitmask=hash_bitmask,
                                                                 filter=node_entity_check)
-
             if cip_list:
                 cips.append(cip_list)
         return cips
@@ -346,7 +334,6 @@ def extract_cores_and_interfaces(parameters):
         # so i put this in info
         logger.info( "extract_cores_and_interfaces_died" )
         logger.info( parameters )
-
 
 
 def extract_core_and_interface_single_root(**kwargs):
