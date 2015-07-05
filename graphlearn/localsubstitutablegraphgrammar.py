@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class LocalSubstitutableGraphGrammar(object):
-
     """
     the grammar.
         can learn from graphs
@@ -20,13 +19,13 @@ class LocalSubstitutableGraphGrammar(object):
     """
     # move all the things here that are needed to extract grammar
 
-    def __init__(self, radius_list=None, thickness_list=None, core_interface_pair_remove_threshold=3, complexity=3,
-                 interface_remove_threshold=2, nbit=20, node_entity_check=lambda x, y: True):
+    def __init__(self, radius_list=None, thickness_list=None, min_cip_count=3, complexity=3,
+                 min_interface_count=2, nbit=20, node_entity_check=lambda x, y: True):
         self.grammar = {}
-        self.interface_remove_threshold = interface_remove_threshold
+        self.min_interface_count = min_interface_count
         self.radius_list = radius_list
         self.thickness_list = thickness_list
-        self.core_interface_pair_remove_threshold = core_interface_pair_remove_threshold
+        self.min_cip_count = min_cip_count
         self.vectorizer = Vectorizer(complexity=complexity)
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
@@ -34,9 +33,14 @@ class LocalSubstitutableGraphGrammar(object):
         self.node_entity_check = node_entity_check
 
     def preprocessing(self, n_jobs=0, same_radius=False, same_core_size=0, probabilistic_core_choice=False):
-        '''
-            sampler will use this when preparing sampling
-        '''
+        """Preprocess need to be done before sampling.
+
+        Args:
+            n_jobs: number of jobs to run for the task
+            same_radius: creates same radius data structure
+            same_core: creates same core data structure
+            probabilistic_core_choice: creates probabilistic core data structure
+        """
         if self.__dict__.get('locked', False):
             logger.debug(
                 'skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing does not rerun every time we graphlearn.sample())')
@@ -91,82 +95,62 @@ class LocalSubstitutableGraphGrammar(object):
             self.grammar = shelve
 
     def difference(self, other_grammar, substract_cip_count=False):
-
-        # i assume set() my even be faster than sort...
-        # should be even faster to just test -_-
-
-        # mykeys=set(my.keys())
-        # otherkeys=set(other_grammar.keys())
-        for ihash in self.grammar.keys():
-            if ihash in other_grammar:
-                # so if my ihash is in both i can compare the corehashes
-                for chash in self.grammar[ihash].keys():
-                    if chash in other_grammar[ihash]:
+        """difference between grammars"""
+        for interface in self.grammar:
+            if interface in other_grammar:
+                for core in self.grammar[interface]:
+                    if core in other_grammar[interface].keys():
                         if substract_cip_count:
-                            self.grammar[ihash][chash].count -= self.grammar[ihash][chash].count
+                            self.grammar[interface][core].count -= other_grammar[interface][core].count
                         else:
-                            self.grammar[ihash].pop(chash)
+                            self.grammar[interface].pop(core)
+
         if substract_cip_count:
             self.clean()
 
-    def union(self, other_grammar, cip_count_function=sum):
-        '''
-        we build the union of grammars..
-        '''
-
-        for ihash in other_grammar.keys():
-            if ihash in self.grammar:
-                # ok so we are in the intersection...
-                for chash in other_grammar[ihash]:
-                    if chash in self.grammar[ihash]:
-
-                        self.grammar[ihash][chash].counter = cip_count_function(
-                            self.grammar[ihash][chash].counter, other_grammar[ihash][chash].counter)
+    def union(self, other_grammar):
+        """union of grammars"""
+        for interface in self.grammar:
+            if interface in other_grammar:
+                for core in self.grammar[interface]:
+                    if core in other_grammar[interface]:
+                        self.grammar[interface][core].counter = sum(self.grammar[interface][core].counter,
+                                                                    other_grammar[interface][core].counter)
                     else:
-                        self.grammar[ihash][chash] = other_grammar[ihash][chash]
+                        self.grammar[interface][core] = other_grammar[interface][core]
             else:
-                self.grammar[ihash] = other_grammar[ihash]
+                self.grammar[interface] = other_grammar[interface]
 
     def intersect(self, other_grammar):
-        # counts will be added...
-
-        for ihash in self.grammar.keys():
-            if ihash in other_grammar:
-                # so if self.grammar ihash is in both i can compare the corehashes
-                for chash in self.grammar[ihash].keys():
-                    if chash in other_grammar[ihash]:
-                        self.grammar[ihash][chash].counter = min(self.grammar[ihash][chash].counter,
-                                                                 other_grammar[ihash][chash].counter)
+        """intersection of grammars"""
+        for interface in self.grammar.keys():
+            if interface in other_grammar:
+                for core in self.grammar[interface].keys():
+                    if core in other_grammar[interface]:
+                        self.grammar[interface][core].counter = min(self.grammar[interface][core].counter,
+                                                                   other_grammar[interface][core].counter)
                     else:
-                        self.grammar[ihash].pop(chash)
+                        self.grammar[interface].pop(core)
             else:
-                self.grammar.pop(ihash)
+                self.grammar.pop(interface)
 
     def clean(self):
-        """
-            after adding many cips to the grammar it is possible
-            that some thresholds are not reached, and we dont want unnecessary ballast in
-            our grammar.
-            so we clean up.
-        """
-        for interface in self.grammar.keys():
-
+        """remove cips and interfaces not been seen enough during grammar creation"""
+        for interface in self.grammar:
             for core in self.grammar[interface].keys():
-                if self.grammar[interface][core].count < self.core_interface_pair_remove_threshold:
+                if self.grammar[interface][core].count < self.min_cip_count:
                     self.grammar[interface].pop(core)
 
-            if len(self.grammar[interface]) < self.interface_remove_threshold:
+            if len(self.grammar[interface]) < self.min_interface_count:
                 self.grammar.pop(interface)
 
     def _add_same_radius_quicklookup(self):
-        '''
-            there is now self.radiuslookup{ interfacehash: {radius:[list of corehashes with that ihash and radius]} }
-        '''
+        """adds self.radiuslookup{ interface: { radius:[list of cores] } }"""
         self.radiuslookup = {}
-        for interface in self.grammar.keys():
+        for interface in self.grammar:
             radius_lookup = [[]] * (max(self.radius_list) + 1)
 
-            for core in self.grammar[interface].keys():
+            for core in self.grammar[interface]:
                 radius = self.grammar[interface][core].radius
                 if radius in radius_lookup:
                     radius_lookup[radius].append(core)
@@ -175,13 +159,11 @@ class LocalSubstitutableGraphGrammar(object):
             self.radiuslookup[interface] = radius_lookup
 
     def _add_core_size_quicklookup(self):
-        '''
-            there is now self.radiuslookup{ interfacehash: {radius:[list of corehashes with that ihash and radius]} }
-        '''
+        """"adds self.core_size{ interface: { core_size:[list of cores] } }"""
         self.core_size = {}
-        for interface in self.grammar.keys():
+        for interface in self.grammar:
             core_size = {}
-            for core in self.grammar[interface].keys():
+            for core in self.grammar[interface]:
                 nodes_count = self.grammar[interface][core].core_nodes_count
                 if nodes_count in core_size:
                     core_size[nodes_count].append(core)
@@ -190,56 +172,33 @@ class LocalSubstitutableGraphGrammar(object):
             self.core_size[interface] = core_size
 
     def _add_frequency_quicklookup(self):
-        '''
-            how frequent is a core?
-        '''
+        """adds self.frequency{ interface: { core_frequency:[list of cores] } }"""
         self.frequency = {}
-        # for every interface
-        for interface in self.grammar.keys():
-            # we create a dict...
+        for interface in self.grammar:
             core_frequency = {}
-            #  fill it
             for hash, cip in self.grammar[interface].items():
                 core_frequency[hash] = cip.count
-            # and attach it to the freq lookup
             self.frequency[interface] = core_frequency
 
     def _read(self, graphs, n_jobs=-1, batch_size=20):
-        '''
-        we extract all chips from graphs of a graph iterator
-        we use n_jobs processes to do so.
-        '''
-
-        # if we should use only one process we use read_single ,  else read_multi
+        """find all posible cips in graph list and add them to the grammar"""
         if n_jobs == 1:
             self._read_single(graphs)
         else:
             self._read_multi(graphs, n_jobs, batch_size)
 
     def _add_core_interface_data(self, cip):
-        '''
-            cid is a core interface data instance.
-            we will add the cid to our grammar.
-        '''
+        """add the cip to the grammar"""
+        interface = cip.interface_hash
+        core = cip.core_hash
 
-        # initialize gramar[interfacehash] if necessary
-        if cip.interface_hash not in self.grammar:
-            self.grammar[cip.interface_hash] = {}
+        if interface not in self.grammar:
+            self.grammar[interface] = {}
 
-        # initialize or get grammar[interfacehash][corehash]
-        if cip.core_hash in self.grammar[cip.interface_hash]:
-            grammar_cip = self.grammar[cip.interface_hash][cip.core_hash]
-        else:
-            grammar_cip = CoreInterfacePair()
-            self.grammar[cip.interface_hash][cip.core_hash] = grammar_cip
+        if core not in self.grammar[interface]:
+            self.grammar[interface][core] = cip
 
-
-        # put new information in the subgraph_data
-        # we only save the count until we know that we will keep the actual cip
-        grammar_cip.count += 1
-        if grammar_cip.count == self.core_interface_pair_remove_threshold:
-            grammar_cip.__dict__.update(cip.__dict__)
-            grammar_cip.count = self.core_interface_pair_remove_threshold
+        self.grammar[interface][core].count += 1
 
     def _read_single(self, graphs):
         """
@@ -294,8 +253,8 @@ class LocalSubstitutableGraphGrammar(object):
             for exci in batch:
                 if exci:  # exci might be None because the grouper fills up with empty problems
                     for exci_result_per_node in exci:
-                        for cid in exci_result_per_node:
-                            self._add_core_interface_data(cid)
+                        for cip in exci_result_per_node:
+                            self._add_core_interface_data(cip)
         pool.close()
         pool.join()
 
