@@ -93,6 +93,7 @@ class RNASampler(UberSampler):
 
 class rna_grammar(UberGrammar):
     pass
+
 def expanded_rna_graph_to_digraph(graph):
     '''
     :param graph:  an expanded rna representing graph as produced by eden.

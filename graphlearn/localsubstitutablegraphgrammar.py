@@ -5,6 +5,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 import logging
 from coreinterfacepair import CoreInterfacePair
+import traceback
 logger = logging.getLogger(__name__)
 
 
@@ -20,13 +21,13 @@ class LocalSubstitutableGraphGrammar(object):
     """
     # move all the things here that are needed to extract grammar
 
-    def __init__(self, radius_list=None, thickness_list=None, core_interface_pair_remove_threshold=3, complexity=3,
+    def __init__(self, radius_list=None, thickness_list=None, cip_remove_threshold=3, complexity=3,
                  interface_remove_threshold=2, nbit=20, node_entity_check=lambda x, y: True):
         self.grammar = {}
         self.interface_remove_threshold = interface_remove_threshold
         self.radius_list = radius_list
         self.thickness_list = thickness_list
-        self.core_interface_pair_remove_threshold = core_interface_pair_remove_threshold
+        self.cip_remove_threshold = cip_remove_threshold
         self.vectorizer = Vectorizer(complexity=complexity)
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
@@ -152,7 +153,7 @@ class LocalSubstitutableGraphGrammar(object):
         for interface in self.grammar.keys():
 
             for core in self.grammar[interface].keys():
-                if self.grammar[interface][core].count < self.core_interface_pair_remove_threshold:
+                if self.grammar[interface][core].count < self.cip_remove_threshold:
                     self.grammar[interface].pop(core)
 
             if len(self.grammar[interface]) < self.interface_remove_threshold:
@@ -237,9 +238,9 @@ class LocalSubstitutableGraphGrammar(object):
         # put new information in the subgraph_data
         # we only save the count until we know that we will keep the actual cip
         grammar_cip.count += 1
-        if grammar_cip.count == self.core_interface_pair_remove_threshold:
+        if grammar_cip.count == self.cip_remove_threshold:
             grammar_cip.__dict__.update(cip.__dict__)
-            grammar_cip.count = self.core_interface_pair_remove_threshold
+            grammar_cip.count = self.cip_remove_threshold
 
     def _read_single(self, graphs):
         """
@@ -321,19 +322,24 @@ def extract_cores_and_interfaces(parameters):
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list= extract_core_and_interface_single_root(root_node, graph, radius_list, thickness_list,
-                                                                vectorizer=vectorizer,
-                                                                hash_bitmask=hash_bitmask,
-                                                                filter=node_entity_check)
+            cip_list= extract_core_and_interface_single_root(root_node=root_node,
+                                                             graph=graph,
+                                                             radius_list=radius_list,
+                                                             thickness_list=thickness_list,
+                                                             vectorizer=vectorizer,
+                                                             hash_bitmask=hash_bitmask,
+                                                             filter=node_entity_check)
             if cip_list:
                 cips.append(cip_list)
         return cips
-    except:
+
+    except Exception as exc:
+        logger.debug(traceback.format_exc(10))
         # as far as i remember this should almost never happen,
         # if it does you may have a bigger problem.
         # so i put this in info
-        logger.info( "extract_cores_and_interfaces_died" )
-        logger.info( parameters )
+        #logger.info( "extract_cores_and_interfaces_died" )
+        #logger.info( parameters )
 
 
 def extract_core_and_interface_single_root(**kwargs):

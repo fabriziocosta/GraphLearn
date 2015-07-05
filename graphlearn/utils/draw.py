@@ -244,8 +244,10 @@ def remove_colors(g, key='col'):
 
 def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4, contract=True, vertex_color=None, **args):
     graphs = list(graphs)
+
     if contract:
         graphs = [contract_edges(g) for g in graphs]
+
     if vertex_color is None:
         for g in graphs:
             set_colors(g)

@@ -21,7 +21,7 @@ first we build the new sampler that is able to handle abstract graphs...
 
 class UberSampler(GraphLearnSampler):
 
-    def __init__(self,base_thickness_list=[1,2,3],core_interface_pair_remove_threshold=1, interface_remove_threshold=2,grammar=None,**kwargs):
+    def __init__(self,base_thickness_list=[1,2,3],cip_remove_threshold=1, interface_remove_threshold=2,grammar=None,**kwargs):
         '''
             graphlernsampler with its extensions..
 
@@ -34,7 +34,7 @@ class UberSampler(GraphLearnSampler):
             assert isinstance(grammar,UberGrammar)
 
         self.base_thickness_list=[int(2*e) for e in base_thickness_list]
-        super(UberSampler, self).__init__(grammar=grammar,core_interface_pair_remove_threshold=core_interface_pair_remove_threshold, interface_remove_threshold= interface_remove_threshold,**kwargs)
+        super(UberSampler, self).__init__(grammar=grammar, cip_remove_threshold=cip_remove_threshold, interface_remove_threshold= interface_remove_threshold,**kwargs)
 
 
         # after the normal run, a grammar was created, but its a ordinary grammar .. so we build a new one
@@ -44,7 +44,7 @@ class UberSampler(GraphLearnSampler):
                 radius_list=self.radius_list,
                 thickness_list=self.thickness_list,
                 complexity=self.complexity,
-                core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
+                cip_remove_threshold=cip_remove_threshold,
                 interface_remove_threshold=interface_remove_threshold,
                 nbit=self.nbit,
                 node_entity_check=self.node_entity_check)
@@ -259,7 +259,7 @@ def extract_cips(node,
 
             # MERGE THE CORE OF THE ABSTRACT GRAPH IN THE BASE GRAPH
             mergeids = [ base_graph_id for radius in range(acip.radius+1) for abstract_node_id in acip.distance_dict.get(radius) for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']  ]
-            base_copy= nx.Graph(base_graph)
+            base_copy= base_graph.copy()
             for node in mergeids[1:]:
                 graphtools.merge(base_copy,mergeids[0],node)
 
@@ -272,7 +272,7 @@ def extract_cips(node,
             for base_cip in base_level_cips:
 
                 # we cheated a little with the core, so we need to undo our cheating
-                base_cip.graph=nx.Graph(base_graph.subgraph(base_cip.graph.nodes()+mergeids))
+                base_cip.graph=base_graph.subgraph(base_cip.graph.nodes()+mergeids).copy()
                 for n in mergeids:
                     base_cip.graph.node[n]['core']=True
                 base_cip.core_hash= core_hash
