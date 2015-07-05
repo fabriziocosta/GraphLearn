@@ -28,7 +28,7 @@ class GraphLearnSampler(object):
                  node_entity_check=lambda x, y: True,
                  estimator=estimator.estimator(),
                  grammar=None,
-                 core_interface_pair_remove_threshold=2,
+                 cip_remove_threshold=2,
                  interface_remove_threshold=2  ):
 
         self.complexity = complexity
@@ -86,7 +86,7 @@ class GraphLearnSampler(object):
             self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
                                                                                     self.thickness_list,
                                                                                     complexity=self.complexity,
-                                                                                    core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
+                                                                                    cip_remove_threshold=cip_remove_threshold,
                                                                                     interface_remove_threshold=interface_remove_threshold,
                                                                                     nbit=self.nbit,
                                                                                     node_entity_check=self.node_entity_check)
@@ -101,11 +101,11 @@ class GraphLearnSampler(object):
     def save(self, file_name):
         self.local_substitutable_graph_grammar._revert_multicore_transform()
         dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
-        # joblib.dump(self.__dict__, file_name, compress=1)
+        #joblib.dump(self.__dict__, file_name, compress=1)
         logger.debug('Saved model: %s' % file_name)
 
     def load(self, file_name):
-        # self.__dict__ = joblib.load(file_name)
+        #self.__dict__ = joblib.load(file_name)
         self.__dict__ = dill.load(open(file_name))
         logger.debug('Loaded model: %s' % file_name)
 

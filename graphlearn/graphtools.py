@@ -5,6 +5,7 @@ from coreinterfacepair import CoreInterfacePair
 import logging
 import traceback
 import utils.draw as draw
+from eden.graph import Vectorizer
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ def calc_node_name(interfacegraph, node, hash_bitmask):
     return l
 
 
-def extract_core_and_interface(root_node, graph, radius_list=None, thickness_list=None, vectorizer=None,
+def extract_core_and_interface(root_node=None, graph=None, radius_list=None, thickness_list=None, vectorizer=Vectorizer(),
                                hash_bitmask=2 ** 20 - 1, filter=lambda x, y: True):
     """
 
