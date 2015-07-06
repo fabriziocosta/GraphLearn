@@ -82,7 +82,7 @@ class GraphLearnSampler(object):
         self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
                                                                                     self.thickness_list,
                                                                                     complexity=self.complexity,
-                                                                                    core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
+                                                                                    cip_remove_threshold=core_interface_pair_remove_threshold,
                                                                                     interface_remove_threshold=interface_remove_threshold,
                                                                                     nbit=20)
         

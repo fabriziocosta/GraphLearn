@@ -140,17 +140,32 @@ def set_ids(G2):
         d['id'] = str(n)
 
 
-def display(G, size=6, font_size=15, node_size=200, node_border=False, contract=False, vertex_label='label',edge_label=None, **args):
+def display(G, size=6, font_size=15, node_size=200, node_border=False,show_direction=False,edge_color=None, contract=False,vertex_color='color', vertex_label='label',edge_label=None, **args):
+
+
+
+
+    if show_direction:
+        contract=False
+
+
     if contract:
         G = contract_edges(G)
     G2 = G.copy()
     set_colors(G2)
+
+    if show_direction:
+        for n,d in G2.nodes(data=True):
+            if 'edge' in d:
+                ne=G2.neighnors(n)
+                for e in ne:
+                    G2[n][e]['color']='red'
+
+
     if vertex_label == 'id':
         set_ids(G2)
 
-
-
-    draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size, vertex_color='color',
+    draw_graph(G2, size=size, node_size=node_size, node_border=node_border, font_size=font_size, edge_color=edge_color,vertex_color=vertex_color,
                vertex_label=vertex_label,edge_label=edge_label, **args)
 
 
@@ -229,8 +244,10 @@ def remove_colors(g, key='col'):
 
 def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4, contract=True, vertex_color=None, **args):
     graphs = list(graphs)
+
     if contract:
         graphs = [contract_edges(g) for g in graphs]
+
     if vertex_color is None:
         for g in graphs:
             set_colors(g)

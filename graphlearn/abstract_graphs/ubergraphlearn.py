@@ -13,13 +13,15 @@ from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 import traceback
+
+
 '''
 first we build the new sampler that is able to handle abstract graphs...
 '''
 
 class UberSampler(GraphLearnSampler):
 
-    def __init__(self,base_thickness_list=[1,2,3],core_interface_pair_remove_threshold=1, interface_remove_threshold=2,grammar=None,**kwargs):
+    def __init__(self,base_thickness_list=[1,2,3],min_cip_count=1, min_interface_count=2,grammar=None,**kwargs):
         '''
             graphlernsampler with its extensions..
 
@@ -32,7 +34,7 @@ class UberSampler(GraphLearnSampler):
             assert isinstance(grammar,UberGrammar)
 
         self.base_thickness_list=[int(2*e) for e in base_thickness_list]
-        super(UberSampler, self).__init__(grammar=grammar,core_interface_pair_remove_threshold=core_interface_pair_remove_threshold, interface_remove_threshold= interface_remove_threshold,**kwargs)
+        super(UberSampler, self).__init__(grammar=grammar, min_cip_count=min_cip_count, min_interface_count= min_interface_count,**kwargs)
 
 
         # after the normal run, a grammar was created, but its a ordinary grammar .. so we build a new one
@@ -42,10 +44,14 @@ class UberSampler(GraphLearnSampler):
                 radius_list=self.radius_list,
                 thickness_list=self.thickness_list,
                 complexity=self.complexity,
-                core_interface_pair_remove_threshold=core_interface_pair_remove_threshold,
-                interface_remove_threshold=interface_remove_threshold,
+                min_cip_count=min_cip_count,
+                min_interface_count=min_interface_count,
                 nbit=self.nbit,
                 node_entity_check=self.node_entity_check)
+
+
+    def _get_abstract_graph(self,graph):
+        return make_abstract(graph,self.vectorizer)
 
 
     def  _original_cip_extraction(self,graph):
@@ -53,7 +59,7 @@ class UberSampler(GraphLearnSampler):
         selects the next candidate.
         '''
         graph=self.vectorizer._edge_to_vertex_transform(graph)
-        abstr= make_abstract(graph,self.vectorizer)
+        abstr= self._get_abstract_graph(graph)
         node = random.choice(abstr.nodes())
         if 'edge' in abstr.node[node]:
             node = random.choice(abstr.neighbors(node))
@@ -75,16 +81,17 @@ class UberSampler(GraphLearnSampler):
 
 class UberGrammar(LocalSubstitutableGraphGrammar):
 
-    def _multi_process_argbuilder(self, graphs, batch_size=10):
-        args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check, self.base_thickness_list]
-        function = extract_cores_and_interfaces_mk2
-        for batch in grouper(graphs, batch_size):
-            yield dill.dumps((function, args, batch))
-
     def __init__(self,base_thickness_list=None,**kwargs):
         self.base_thickness_list=base_thickness_list
         super(UberGrammar, self).__init__(**kwargs)
 
+    def _get_args(self):
+        return  [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check,self.base_thickness_list]
+
+
+    def get_cip_extractor(self):
+        return extract_cores_and_interfaces_mk2
+'''
     def _read_single(self, graphs):
         """
             for graph in graphs:
@@ -97,6 +104,13 @@ class UberGrammar(LocalSubstitutableGraphGrammar):
             for core_interface_data_list in extract_cores_and_interfaces_mk2(problem):
                 for cid in core_interface_data_list:
                     self._add_core_interface_data(cid)
+
+    def _multi_process_argbuilder(self, graphs, batch_size=10):
+        args = [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check, self.base_thickness_list]
+        function = extract_cores_and_interfaces_mk2
+        for batch in grouper(graphs, batch_size):
+            yield dill.dumps((function, args, batch))
+'''
 
 
 def extract_cores_and_interfaces_mk2(parameters):
@@ -133,26 +147,9 @@ def extract_cores_and_interfaces_mk2(parameters):
             logger.info( "extract_cores_and_interfaces_died" )
             logger.info( parameters )
 
-
-
 '''
 the things down here replace functions in the graphtools.
 '''
-
-
-def is_rna (graph):
-    endcount=0
-    for n,d in graph.nodes(data=True):
-        if d['node']==True:
-            neighbors=graph.neighbors(n)
-            backbonecount= len( [ 1 for n in neighbors if graph.node[n]['label']=='-' ] )
-            if backbonecount == 2:
-                continue
-            if backbonecount == 1:
-                endcount+=1
-            if backbonecount > 2:
-                raise Exception ('backbone broken')
-    return endcount == 2
 
 def arbitrary_graph_abstraction_function(graph):
     '''
@@ -198,7 +195,11 @@ def make_abstract(graph,vectorizer):
     '''
         graph should be the same expanded graph that we will feed to extract_cips later...
     '''
-    graph2 = vectorizer._revert_edge_to_vertex_transform (graph)
+
+    if isinstance(graph, nx.DiGraph):
+        graph= graph.to_undirected()
+
+    graph2 = vectorizer._revert_edge_to_vertex_transform(graph)
     graph2 = arbitrary_graph_abstraction_function(graph2)
     graph2 = vectorizer._edge_to_vertex_transform (graph2)
 
@@ -223,7 +224,6 @@ def make_abstract(graph,vectorizer):
                         graph2.node[blob]['contracted'].add(n)
                     else:
                         graph2.node[blob]['contracted']=set([n])
-
     return graph2
 
 
@@ -259,7 +259,7 @@ def extract_cips(node,
 
             # MERGE THE CORE OF THE ABSTRACT GRAPH IN THE BASE GRAPH
             mergeids = [ base_graph_id for radius in range(acip.radius+1) for abstract_node_id in acip.distance_dict.get(radius) for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']  ]
-            base_copy= nx.Graph(base_graph)
+            base_copy= base_graph.copy()
             for node in mergeids[1:]:
                 graphtools.merge(base_copy,mergeids[0],node)
 
@@ -272,7 +272,7 @@ def extract_cips(node,
             for base_cip in base_level_cips:
 
                 # we cheated a little with the core, so we need to undo our cheating
-                base_cip.graph=nx.Graph(base_graph.subgraph(base_cip.graph.nodes()+mergeids))
+                base_cip.graph=base_graph.subgraph(base_cip.graph.nodes()+mergeids).copy()
                 for n in mergeids:
                     base_cip.graph.node[n]['core']=True
                 base_cip.core_hash= core_hash

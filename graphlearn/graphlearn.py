@@ -244,12 +244,17 @@ class GraphLearnSampler(object):
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph)
-        sampled_graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
+        sampled_graph = self._revert_edge_to_vertex_transform(graph)
         sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
                                                 'score_history': self._score_list,
                                                 'accept_count': accept_counter,
                                                 'notes': self._sample_notes}
         return sampled_graph
+
+
+    def _revert_edge_to_vertex_transform(self,graph):
+        return self.vectorizer._revert_edge_to_vertex_transform(graph)
+
 
     def _score_list_append(self, graph):
         self._score_list.append(graph._score)
@@ -271,7 +276,7 @@ class GraphLearnSampler(object):
 
             # append :) .. rescuing score
             graph.graph['score'] = graph._score
-            self.sample_path.append(self.vectorizer._revert_edge_to_vertex_transform(graph))
+            self.sample_path.append(self._revert_edge_to_vertex_transform(graph))
 
     def _sample_init(self, graph):
         '''
@@ -309,7 +314,7 @@ class GraphLearnSampler(object):
         if self.similarity > 0:
             if self.step == 0:
                 self.vectorizer._reference_vec = self.vectorizer._convert_dict_to_sparse_matrix(
-                    self.vectorizer._transform(0, nx.Graph(graph)))
+                    self.vectorizer._transform(0, nx.graph.copy()))
             else:
                 similarity = self.vectorizer._similarity(graph, [1])
                 if similarity < self.similarity:
@@ -322,7 +327,7 @@ class GraphLearnSampler(object):
         we also set graph.score_nonlog and graph.score
         """
         if '_score' not in graph.__dict__:
-            transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
+            transformed_graph = self.vectorizer.transform_single(graph.copy())
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graph._score = self.estimator.predict_proba(transformed_graph)[0, 1]
@@ -434,7 +439,8 @@ class GraphLearnSampler(object):
                 yield self.lsgg.grammar[cip.interface_hash][core_hash]
         # DIEGO'S CHANGE: we need to avoid raising exception at the end of the generator
         # raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in ")
-
+        
+        # you want to remove this? why?
     def _get_valid_core_hashes(self, cip):
         '''
         :param cip: the chip to be replaced
