@@ -314,7 +314,7 @@ class GraphLearnSampler(object):
         if self.similarity > 0:
             if self.step == 0:
                 self.vectorizer._reference_vec = self.vectorizer._convert_dict_to_sparse_matrix(
-                    self.vectorizer._transform(0, nx.graph.copy()))
+                    self.vectorizer._transform(0, graph.copy()))
             else:
                 similarity = self.vectorizer._similarity(graph, [1])
                 if similarity < self.similarity:

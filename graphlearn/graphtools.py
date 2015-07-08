@@ -173,11 +173,8 @@ def merge(G, node, node2):
     input nodes are strings,
     node is the king
     '''
-
-
     for n in G.neighbors(node2):
         G.add_edge(node, n)
-
     if isinstance(G,nx.DiGraph):
         for n in G.predecessors(node2):
             G.add_edge(n,node)
@@ -252,9 +249,9 @@ def core_substitution(graph, original_cip_graph, new_cip_graph):
     iso = get_good_isomorphism(graph,original_cip_graph,new_cip_graph,original_interface_graph, new_cip_interface_graph)
 
     if len(iso) != len(original_interface_graph):
-        print iso
-        #draw.display(original_cip_graph,contract=False,vertex_label='id')
-        #draw.display(new_cip_graph,contract=False,vertex_label='id')
+        #print iso
+        #draw.display(original_cip_graph)
+        #draw.display(new_cip_graph)
         return nx.Graph()
 
     # ok we got an isomorphism so lets do the merging
@@ -376,5 +373,3 @@ def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_li
 
     except Exception as exc:
             print traceback.format_exc(10)
-
-

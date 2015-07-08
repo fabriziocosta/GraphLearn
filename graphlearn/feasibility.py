@@ -17,8 +17,6 @@ def default_check(graph):
         return False
 
 
-
-
     if isinstance(graph,nx.DiGraph):
         return True
 
