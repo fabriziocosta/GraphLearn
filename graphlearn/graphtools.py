@@ -29,7 +29,6 @@ def calc_interface_hash(interface_graph, hash_bitmask):
     """
     l = []
     node_name_cache = {}
-
     all_nodes = set(interface_graph.nodes())
     visited = set()
     # all the edges
