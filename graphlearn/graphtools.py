@@ -23,7 +23,7 @@ def invert_dict(d):
     return d2
 
 
-def calc_interface_hash(interface_graph, hash_bitmask):
+def calc_interface_hash(interface_graph, hash_bitmask, **node_name_args):
     """
         so we calculate a hash of a graph
     """
@@ -38,11 +38,11 @@ def calc_interface_hash(interface_graph, hash_bitmask):
 
         ha = node_name_cache.get(a, -1)
         if ha == -1:
-            ha = calc_node_name(interface_graph, a, hash_bitmask)
+            ha = calc_node_name(interface_graph, a, hash_bitmask, **node_name_args)
             node_name_cache[a] = ha
         hb = node_name_cache.get(b, -1)
         if hb == -1:
-            hb = calc_node_name(interface_graph, b, hash_bitmask)
+            hb = calc_node_name(interface_graph, b, hash_bitmask, **node_name_args)
             node_name_cache[b] = hb
         l.append((ha ^ hb) + (ha + hb))
         # z=(ha ^ hb) + (ha + hb)
@@ -55,12 +55,7 @@ def calc_interface_hash(interface_graph, hash_bitmask):
     ihash = fast_hash(l + z, hash_bitmask)
     return ihash
 
-
-def calc_core_hash(core_graph, hash_bitmask):
-    return calc_interface_hash(core_graph, hash_bitmask)
-
-
-def calc_node_name(interfacegraph, node, hash_bitmask):
+def calc_node_name(interfacegraph, node, hash_bitmask, dist_dict={}, radius=0):
     '''
      part of generating the hash for a graph is calculating the hash of a node in the graph
     '''
@@ -68,10 +63,16 @@ def calc_node_name(interfacegraph, node, hash_bitmask):
     # d is now node:dist
     # l is a list of  hash(label,distance)
     # l=[   func([interfacegraph.node[nid]['intlabel'],dis])  for nid,dis in d.items()]
-    l = [interfacegraph.node[nid]['hlabel'][0] + dis for nid, dis in d.items()]
+    l = [interfacegraph.node[nid]['hlabel'][0] + dis + dist_dict[nid]-radius for nid, dis in d.items()]
     l.sort()
     l = fast_hash(l, hash_bitmask)
     return l
+
+
+def calc_core_hash(core_graph, hash_bitmask,**kwargs):
+    return calc_interface_hash(core_graph, hash_bitmask,**kwargs)
+
+
 
 
 def extract_core_and_interface(root_node=None, graph=None, radius_list=None, thickness_list=None, vectorizer=Vectorizer(),
@@ -84,8 +85,6 @@ def extract_core_and_interface(root_node=None, graph=None, radius_list=None, thi
     :param thickness_list:
     :param vectorizer: a vectorizer
     :param hash_bitmask:
-
-
     :return: radius_list*thicknes_list long list of cips
     """
 
@@ -121,11 +120,11 @@ def extract_core_and_interface(root_node=None, graph=None, radius_list=None, thi
             if not filter(master_cip_graph, core_graph_nodes):
                 continue
 
-            corehash = calc_core_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
+            corehash = calc_core_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask, dist_dict=dist, radius=radius_)
 
             interface_graph_nodes = [item for x in range(radius_ + 1, radius_ + thickness_ + 1) for item in
                                      nodedict.get(x, [])]
-            interfacehash = calc_interface_hash(master_cip_graph.subgraph(interface_graph_nodes), hash_bitmask)
+            interfacehash = calc_interface_hash(master_cip_graph.subgraph(interface_graph_nodes), hash_bitmask, dist_dict=dist, radius=radius_)
 
             # get relevant subgraph
             nodes = [node for i in range(radius_ + thickness_ + 1) for node in nodedict[i]]
@@ -187,11 +186,11 @@ def find_all_isomorphisms(home, other):
     if iso.faster_could_be_isomorphic(home,other):
         matcher = lambda x, y: x['label'] == y['label']
         GM = iso.GraphMatcher(home, other, node_match=matcher)
-        for index,mapping in  enumerate(GM.isomorphisms_iter()):
+        for index,mapping in enumerate(GM.isomorphisms_iter()):
             if index > 1:
                 logger.debug('delivering isomorphism nr.%s' % index )
-            if index==5: # give up ..
-                break
+            #if index==10: # give up ..
+            #    break
             yield mapping
     else:
         logger.debug('faster iso check failed')
