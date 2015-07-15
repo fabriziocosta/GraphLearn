@@ -63,7 +63,7 @@ def calc_node_name(interfacegraph, node, hash_bitmask, dist_dict={}, radius=0):
     # d is now node:dist
     # l is a list of  hash(label,distance)
     # l=[   func([interfacegraph.node[nid]['intlabel'],dis])  for nid,dis in d.items()]
-    l = [interfacegraph.node[nid]['hlabel'][0] + dis + dist_dict[nid]-radius for nid, dis in d.items()]
+    l = [interfacegraph.node[nid]['hlabel'][0] + dis + dist_dict.get(nid,0)-radius for nid, dis in d.items()]
     l.sort()
     l = fast_hash(l, hash_bitmask)
     return l
@@ -211,9 +211,18 @@ def get_good_isomorphism(graph,original_cip_graph,new_cip_graph,home,other):
     '''
 
     if isinstance(home, nx.DiGraph):
-        for mapping in find_all_isomorphisms(home,other):
-            return mapping
+        #for mapping in find_all_isomorphisms(home,other):
+        #    return mapping
 
+        for mapping in find_all_isomorphisms(home,other):
+            for home_node in mapping.keys():
+                if 'edge' in graph.node[home_node]:
+                    old_neigh = len([e for e in  graph.neighbors(home_node) if e not in original_cip_graph.node ])
+                    new_neigh = len([e for e in  new_cip_graph.neighbors(mapping[home_node])])
+                    if 0 < (old_neigh+new_neigh) <3 : # we have a directed graph so 1 and 2 neighbors are ok
+                        break
+            else:
+                return mapping
     else:
         for mapping in find_all_isomorphisms(home,other):
             for home_node in mapping.keys():
