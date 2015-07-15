@@ -132,11 +132,6 @@ def expanded_rna_graph_to_digraph(graph):
 
 
 
-
-
-
-
-
 def direct_abstractor(graph,v):
     '''
     going through the normal channels to make an abstract graph is slow
@@ -163,16 +158,21 @@ def direct_abstractor(graph,v):
 
     aite={}
 
+    done=set()
+
     while tasks:
         n=tasks.pop()
-        stru,out,inc = get_substruct(graph,n)
-        print 'recv',stru,out,inc
-
+        if n in done:
+            continue
+        stru,out,inc,label = get_substruct(graph,n)
+        #print 'recv',stru,out,inc
+        if not stru:
+            break
         # so the struct gets its own node
         next_node=len(result)
         result.add_node(next_node)
-        result[next_node]['contracted']=set(stru)
-
+        result.node[next_node]['contracted']=set(stru)
+        result.node[next_node]['label']=label
         for o in out:
             # somebody already created the node
             if o in aite:
@@ -181,20 +181,28 @@ def direct_abstractor(graph,v):
                 out_node=len(result)
                 result.add_node(out_node)
                 aite[o]=out_node
-                result[out_node]['contracted']=set([o])
+                result.node[out_node]['contracted']=set([o])
+                result.node[out_node]['label']='e'
+                result.node[out_node]['edge']=True
             result.add_edge(next_node,out_node)
 
         for i in inc:
             # somebody already created the node
-            if o in aite:
-                in_node = aite[o]
+            if i in aite:
+                in_node = aite[i]
             else:
                 in_node=len(result)
                 result.add_node(in_node)
-                aite[o]=in_node
-                result[in_node]['contracted']=set([i])
+                aite[i]=in_node
+                result.node[in_node]['contracted']=set([i])
+                result.node[in_node]['label']='e'
+                result.node[in_node]['edge']=True
             result.add_edge(in_node,next_node)
-        tasks+=[graph.neighbors(o)[0] for o in out]
+
+            # dont consider this for calculation. we just calculated this :)
+            done.add( graph.neighbors(i)[0])
+
+        tasks+=[graph.neighbors(o)[0] for o in out if graph.neighbors(o)[0] ]
 
 
 
@@ -218,30 +226,31 @@ def post(graph,root):
 
 def get_substruct(graph, root):
     '''
-
     :param graph: the full graph
     :param root: node to start from
     :return: dont know yet(  [ nodes in the structure ],[outgoing],[incoming]   )
     '''
-    print 'entering substr',root
+    #print 'entering substr',root
     nei= graph.neighbors(root)
     struct=[root]
 
+    outgoing=[]
     incoming= [n for n,d in predec(graph,root)  if d['label']=='-' ]
+    label='R'
     # ok the beginning structure is a stack
     if len(nei)==2:
-
+        label='B'
         # we know there is a bond, we add it.
         backbone,bond = getsucc(graph,root)
         struct+=bond
 
         # since this is the first one in a stack we have an outgoing edge somewhere, so we can also save that one.
-        outgoing=[n for n,d in post(graph,bond[1]) if d['label']=='-' ]
+        outgoing+=[n for n,d in post(graph,bond[1]) if d['label']=='-' ]
 
         while True:
             # now there are 2 possibilities: a stacking or not a stacking
             fail=False
-            a= backbone[1]
+            a = backbone[1]
             abackbone , abond = getsucc(graph,a)
             if not abond:
                 fail=True
@@ -249,18 +258,18 @@ def get_substruct(graph, root):
                 b= abond[1]
                 bbackbone , bwhatever = getsucc(graph,b)
                 if bbackbone[1]!= struct[-1]:
+
                     fail=True
             if fail:
                 outgoing.append( backbone[0])
                 incoming += [n for n,d in predec(graph, bond[1] )  if d['label']=='-' ]
-                return struct,outgoing,incoming
+                return struct,outgoing,incoming,label
             else:
                 struct+=backbone
-                struct+=abond
                 struct.append(bbackbone[0])
+                struct+=abond
                 backbone=abackbone
                 bond = abond
-
     # the beginning struct is a normal string
     # we start with a nodenode
     elif len(nei)==1:
@@ -270,8 +279,11 @@ def get_substruct(graph, root):
                 struct.append(ne[0])
                 root = ne[0]
             else:
-                return (struct[:-1],[struct[-1]],incoming)
+                return (struct[:-2],[struct[-2]],incoming,label)
     #
+    elif len(nei)==0:
+        return [[root],[],graph.predecessors(root),label]
+
     else:
         print 'nei+root',nei,root
         raise Exception('something is wrong with this node')
@@ -298,8 +310,7 @@ def getsucc(graph,root):
             retb+=graph[node].keys()
             retb.remove(root)
 
-    print 'getsuc',reta, retb,root
-
+    #print 'getsuc',reta, retb,root
     return reta, retb
 
 

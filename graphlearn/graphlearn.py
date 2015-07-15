@@ -401,8 +401,8 @@ class GraphLearnSampler(object):
         draw.display(original_cip.graph)
         ih=original_cip.interface_hash
         ch = self.lsgg.grammar[ih].keys()
-        print 'grammar'
-        draw.draw_graph_set_graphlearn( [  self.lsgg.grammar[ih][c].graph for c in ch  ] ,contract=False )
+        #print 'grammar'
+        #draw.draw_graph_set_graphlearn( [  self.lsgg.grammar[ih][c].graph for c in ch  ] ,contract=False )
         print 'candidates'
         draw.draw_graph_set_graphlearn( [cip.graph for cip in  self._select_cips(original_cip) ] ,contract=False)
 
