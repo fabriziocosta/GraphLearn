@@ -130,7 +130,6 @@ def draw_grammar_stats(grammar, size=(10, 4)):
 
 
 def draw_center(graph, root_node, radius):
-
     dist = nx.single_source_shortest_path_length(graph, root_node, radius)
     graph.node[root_node]['color'] = 0.5
     draw_graph(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color')
@@ -156,7 +155,6 @@ def display(graph,
 
     if show_direction:
         contract = False
-
     if contract:
         graph = contract_edges(graph)
     graph2 = graph.copy()
@@ -168,7 +166,6 @@ def display(graph,
                 ne = graph2.neighnors(n)
                 for e in ne:
                     graph2[n][e]['color'] = 'red'
-
     if vertex_label == 'id':
         set_ids(graph2)
 
