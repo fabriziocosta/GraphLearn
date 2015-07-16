@@ -127,11 +127,11 @@ def draw_grammar_stats(grammar, size=(10, 4)):
 
 
 
-def draw_center(graph,root_node,radius):
+def draw_center(graph,root_node=None,radius=5,**kwargs):
 
    dist = nx.single_source_shortest_path_length(graph, root_node,radius)
    graph.node[root_node]['color']=0.5
-   draw_graph( nx.Graph(graph.subgraph(dist)) ,edge_label=None, vertex_color='color')
+   display( nx.Graph(graph.subgraph(dist)) , **kwargs )
 
 
 
@@ -142,12 +142,8 @@ def set_ids(G2):
 
 def display(G, size=6, font_size=15, node_size=200, node_border=False,show_direction=False,edge_color=None, contract=False,vertex_color='color', vertex_label='label',edge_label=None, **args):
 
-
-
-
     if show_direction:
         contract=False
-
 
     if contract:
         G = contract_edges(G)
@@ -155,12 +151,12 @@ def display(G, size=6, font_size=15, node_size=200, node_border=False,show_direc
     set_colors(G2)
 
     if show_direction:
+        edge_color='color'
         for n,d in G2.nodes(data=True):
             if 'edge' in d:
-                ne=G2.neighnors(n)
+                ne=G2.neighbors(n)
                 for e in ne:
-                    G2[n][e]['color']='red'
-
+                    G2[n][e]['color']=0.5
 
     if vertex_label == 'id':
         set_ids(G2)
