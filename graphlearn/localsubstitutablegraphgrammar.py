@@ -41,6 +41,9 @@ class LocalSubstitutableGraphGrammar(object):
             same_core: creates same core data structure
             probabilistic_core_choice: creates probabilistic core data structure
         """
+        # FIXME: resolve this bug!
+        # I have hardwired the non locking but resolve it in a more appropriate way!
+        self.__dict__['locked'] = False
         if self.__dict__.get('locked', False):
             logger.debug(
                 'skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing \
@@ -205,9 +208,9 @@ class LocalSubstitutableGraphGrammar(object):
                 get cips of graph
                     put cips into grammar
         """
-        args=self._get_args()
+        args = self._get_args()
         for gr in graphs:
-            problem = [gr]+args
+            problem = [gr] + args
             for core_interface_data_list in self.get_cip_extractor()(problem):
                 for cip in core_interface_data_list:
                     self._add_core_interface_data(cip)
@@ -216,7 +219,6 @@ class LocalSubstitutableGraphGrammar(object):
         """
         like read_single but with multiple processes
         """
-
 
         if n_jobs > 1:
             pool = Pool(processes=n_jobs)
@@ -239,11 +241,10 @@ class LocalSubstitutableGraphGrammar(object):
         pool.join()
 
     def _multi_process_argbuilder(self, graphs, batch_size=10):
-        args=self._get_args()
+        args = self._get_args()
         function = self.get_cip_extractor()
         for batch in grouper(graphs, batch_size):
             yield dill.dumps((function, args, batch))
-
 
     '''
     these 2 let you easily change the cip extraction process...
@@ -251,14 +252,12 @@ class LocalSubstitutableGraphGrammar(object):
     the problem was that you needed to overwrite read_single AND read_multi when you wanted to change the cip
     extractor. :)
     '''
+
     def _get_args(self):
-        return  [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
+        return [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
 
     def get_cip_extractor(self):
         return extract_cores_and_interfaces
-
-
-
 
 
 def extract_cips(what):
@@ -282,14 +281,14 @@ def extract_cores_and_interfaces(parameters):
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = graphtools.extract_core_and_interface(root_node = root_node, 
-                                                             graph=graph, 
-                                                             radius_list=radius_list, 
-                                                             thickness_list = thickness_list,
+            cip_list = graphtools.extract_core_and_interface(root_node=root_node,
+                                                             graph=graph,
+                                                             radius_list=radius_list,
+                                                             thickness_list=thickness_list,
                                                              vectorizer=vectorizer,
                                                              hash_bitmask=hash_bitmask,
                                                              filter=node_entity_check)
-           
+
             if cip_list:
                 cips.append(cip_list)
         return cips
@@ -304,6 +303,4 @@ def extract_cores_and_interfaces(parameters):
 
 
 def extract_core_and_interface_single_root(**kwargs):
-    return graphtools.extract_core_and_interface( **kwargs)
-
-
+    return graphtools.extract_core_and_interface(**kwargs)

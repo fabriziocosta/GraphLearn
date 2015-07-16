@@ -251,10 +251,8 @@ class GraphLearnSampler(object):
                                                 'notes': self._sample_notes}
         return sampled_graph
 
-
-    def _revert_edge_to_vertex_transform(self,graph):
+    def _revert_edge_to_vertex_transform(self, graph):
         return self.vectorizer._revert_edge_to_vertex_transform(graph)
-
 
     def _score_list_append(self, graph):
         self._score_list.append(graph._score)
@@ -439,8 +437,8 @@ class GraphLearnSampler(object):
                 yield self.lsgg.grammar[cip.interface_hash][core_hash]
         # DIEGO'S CHANGE: we need to avoid raising exception at the end of the generator
         # raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in ")
-        
         # you want to remove this? why?
+
     def _get_valid_core_hashes(self, cip):
         '''
         :param cip: the chip to be replaced
