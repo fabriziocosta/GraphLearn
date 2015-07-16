@@ -22,27 +22,26 @@ def invert_dict(d):
     return d2
 
 
-def calc_interface_hash(interface_graph, hash_bitmask):
+def graph_hash(graph, hash_bitmask, node_name_label=None):
     """
         so we calculate a hash of a graph
     """
     l = []
     node_name_cache = {}
-
-    all_nodes = set(interface_graph.nodes())
+    all_nodes = set(graph.nodes())
     visited = set()
     # all the edges
-    for (a, b) in interface_graph.edges():
+    for (a, b) in graph.edges():
         visited.add(a)
         visited.add(b)
 
         ha = node_name_cache.get(a, -1)
         if ha == -1:
-            ha = calc_node_name(interface_graph, a, hash_bitmask)
+            ha = calc_node_name(graph, a, hash_bitmask, node_name_label)
             node_name_cache[a] = ha
         hb = node_name_cache.get(b, -1)
         if hb == -1:
-            hb = calc_node_name(interface_graph, b, hash_bitmask)
+            hb = calc_node_name(graph, b, hash_bitmask, node_name_label)
             node_name_cache[b] = hb
         l.append((ha ^ hb) + (ha + hb))
         # z=(ha ^ hb) + (ha + hb)
@@ -50,17 +49,16 @@ def calc_interface_hash(interface_graph, hash_bitmask):
     l.sort()
 
     # nodes that dont have edges
-    z = [interface_graph.node[node_id]['hlabel'][0] for node_id in all_nodes - visited]
+    if node_name_label is None:
+        z = [graph.node[node_id]['hlabel'][0] for node_id in all_nodes - visited]
+    else:
+        z = [graph.node[node_id][node_name_label] for node_id in all_nodes - visited]
     z.sort()
     ihash = fast_hash(l + z, hash_bitmask)
     return ihash
 
 
-def calc_core_hash(core_graph, hash_bitmask):
-    return calc_interface_hash(core_graph, hash_bitmask)
-
-
-def calc_node_name(interfacegraph, node, hash_bitmask):
+def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label):
     '''
      part of generating the hash for a graph is calculating the hash of a node in the graph
     '''
@@ -68,7 +66,10 @@ def calc_node_name(interfacegraph, node, hash_bitmask):
     # d is now node:dist
     # l is a list of  hash(label,distance)
     # l=[   func([interfacegraph.node[nid]['intlabel'],dis])  for nid,dis in d.items()]
-    l = [interfacegraph.node[nid]['hlabel'][0] + dis for nid, dis in d.items()]
+    if node_name_label is None:
+        l = [interfacegraph.node[nid]['hlabel'][0] + dis for nid, dis in d.items()]
+    else:
+        l = [interfacegraph.node[nid][node_name_label] + dis for nid, dis in d.items()]
     l.sort()
     l = fast_hash(l, hash_bitmask)
     return l
@@ -89,8 +90,6 @@ def extract_core_and_interface(root_node=None,
     :param thickness_list:
     :param vectorizer: a vectorizer
     :param hash_bitmask:
-
-
     :return: radius_list*thicknes_list long list of cips
     """
 
@@ -125,12 +124,17 @@ def extract_core_and_interface(root_node=None,
             if not filter(master_cip_graph, core_graph_nodes):
                 continue
 
-            core_hash = calc_core_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
+            core_hash = graph_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
 
             interface_graph_nodes = [item for x in range(radius_ + 1, radius_ + thickness_ + 1)
                                      for item in node_dict.get(x, [])]
+            for inode in interface_graph_nodes:
+                label = master_cip_graph.node[inode]['hlabel'][0]
+                master_cip_graph.node[inode]['temporary_substitution_label'] = label + dist[inode] - radius_
             subgraph = master_cip_graph.subgraph(interface_graph_nodes)
-            interface_hash = calc_interface_hash(subgraph, hash_bitmask)
+            interface_hash = graph_hash(subgraph,
+                                        hash_bitmask,
+                                        node_name_label='temporary_substitution_label')
 
             # get relevant subgraph
             nodes = [node for i in range(radius_ + thickness_ + 1) for node in node_dict[i]]
@@ -209,7 +213,7 @@ def find_all_isomorphisms(home, other):
         logger.debug('faster iso check failed')
 
 
-def get_good_isomorphism(graph, original_cip_graph, new_cip_graph, home, other):
+def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
     '''
     we need isomorphisms between two interfaces, netowrkx is able to calculate these.
     we use these isomorphism mappings to do the core-replacement.
@@ -223,17 +227,27 @@ def get_good_isomorphism(graph, original_cip_graph, new_cip_graph, home, other):
     :param other: the interface of a new cip
     :return: a dictionary that is either empty or a good isomorphism
     '''
-
     if isinstance(home, nx.DiGraph):
         for mapping in find_all_isomorphisms(home, other):
             return mapping
 
+        # this is probably broken  ASDASD
+        for mapping in find_all_isomorphisms(home, other):
+            for home_node in mapping.keys():
+                if 'edge' in graph.node[home_node]:
+                    old_neigh = len([e for e in graph.neighbors(home_node) if e not in orig_cip_graph.node])
+                    new_neigh = len([e for e in new_cip_graph.neighbors(mapping[home_node])])
+                    # we have a directed graph so 1 and 2 neighbors are ok
+                    if 0 < (old_neigh + new_neigh) < 3:
+                        break
+            else:
+                return mapping
     else:
         for mapping in find_all_isomorphisms(home, other):
             for home_node in mapping.keys():
                 if 'edge' in graph.node[home_node]:
                     old_neigh = len([e for e in graph.neighbors(home_node)
-                                     if e not in original_cip_graph.node])
+                                     if e not in orig_cip_graph.node])
                     new_neigh = len([e for e in new_cip_graph.neighbors(mapping[home_node])])
                     if old_neigh + new_neigh != 2:
                         break
@@ -241,11 +255,11 @@ def get_good_isomorphism(graph, original_cip_graph, new_cip_graph, home, other):
             else:
                 return mapping
         # draw rejected pair:
-        # draw.draw_graph_set_graphlearn([original_cip_graph,new_cip_graph])
+        # draw.draw_graph_set_graphlearn([orig_cip_graph,new_cip_graph])
     return {}
 
 
-def core_substitution(graph, original_cip_graph, new_cip_graph):
+def core_substitution(graph, orig_cip_graph, new_cip_graph):
     """
     graph is the whole graph..
     subgraph is the interfaceregrion in that we will transplant
@@ -255,28 +269,28 @@ def core_substitution(graph, original_cip_graph, new_cip_graph):
     new_graph_interface_nodes = [n for n, d in new_cip_graph.nodes(data=True) if 'core' not in d]
     new_cip_interface_graph = nx.subgraph(new_cip_graph, new_graph_interface_nodes)
 
-    original_graph_interface_nodes = [n for n, d in original_cip_graph.nodes(data=True) if 'core' not in d]
-    original_interface_graph = nx.subgraph(original_cip_graph, original_graph_interface_nodes)
+    original_graph_interface_nodes = [n for n, d in orig_cip_graph.nodes(data=True) if 'core' not in d]
+    original_interface_graph = nx.subgraph(orig_cip_graph, original_graph_interface_nodes)
     # get isomorphism between interfaces, if none is found we return an empty graph
 
     iso = get_good_isomorphism(graph,
-                               original_cip_graph,
+                               orig_cip_graph,
                                new_cip_graph,
                                original_interface_graph,
                                new_cip_interface_graph)
 
     if len(iso) != len(original_interface_graph):
-        print iso
-        # draw.display(original_cip_graph,contract=False,vertex_label='id')
-        # draw.display(new_cip_graph,contract=False,vertex_label='id')
+        # print iso
+        # draw.display(orig_cip_graph)
+        # draw.display(new_cip_graph)
         return nx.Graph()
 
     # ok we got an isomorphism so lets do the merging
     graph = nx.union(graph, new_cip_graph, rename=('', '-'))
 
     # removing old core
-    # original_graph_core_nodes = [n for n, d in original_cip_graph.nodes(data=True) if 'core' in d]
-    original_graph_core_nodes = [n for n, d in original_cip_graph.nodes(data=True) if 'core' in d]
+    # original_graph_core_nodes = [n for n, d in orig_cip_graph.nodes(data=True) if 'core' in d]
+    original_graph_core_nodes = [n for n, d in orig_cip_graph.nodes(data=True) if 'core' in d]
     for n in original_graph_core_nodes:
         graph.remove_node(str(n))
 
@@ -353,16 +367,15 @@ def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_li
                 if not filter(master_cip_graph, core_graph_nodes):
                     continue
 
-                core_hash = calc_core_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
+                core_hash = graph_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
 
                 interface_graph_nodes = [item for x in range(radius_ + 1, radius_ + thickness_ + 1)
                                          for item in node_dict.get(x, [])]
 
-                # interface_hash = calc_interface_hash(master_cip_graph.subgraph(interface_graph_nodes),
-                # hash_bitmask)
-                subgraph = master_cip_graph.subgraph(interface_graph_nodes).copy()
-                prob = estimator.predict_proba(vectorizer.transform_single(subgraph))[0, 0]
-                interface_hash = round(prob, 7)
+                interface_hash = graph_hash(master_cip_graph.subgraph(interface_graph_nodes), hash_bitmask)
+                # subgraph = master_cip_graph.subgraph(interface_graph_nodes).copy()
+                # prob = estimator.predict_proba(vectorizer.transform_single(subgraph))[0, 0]
+                # interface_hash = round(prob, 7)
 
                 # get relevant subgraph
                 nodes = [node for i in range(radius_ + thickness_ + 1) for node in node_dict[i]]

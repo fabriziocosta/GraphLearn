@@ -13,6 +13,8 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
+
+import utils.draw as draw
 logger = logging.getLogger(__name__)
 
 
@@ -312,7 +314,7 @@ class GraphLearnSampler(object):
         if self.similarity > 0:
             if self.step == 0:
                 self.vectorizer._reference_vec = self.vectorizer._convert_dict_to_sparse_matrix(
-                    self.vectorizer._transform(0, nx.graph.copy()))
+                    self.vectorizer._transform(0, graph.copy()))
             else:
                 similarity = self.vectorizer._similarity(graph, [1])
                 if similarity < self.similarity:
@@ -383,6 +385,7 @@ class GraphLearnSampler(object):
 
         # see which substitution to make
         candidate_cips = self._select_cips(original_cip)
+
         for candidate_cip in candidate_cips:
             # substitute and return
             graph_new = core_substitution(graph, original_cip.graph, candidate_cip.graph)
@@ -391,6 +394,16 @@ class GraphLearnSampler(object):
                 return self.postprocessor.postprocess(graph_new)
             else:
                 logger.debug('feasibility checker failed')
+
+        print 'printing le errer'
+        draw.display(original_cip.graph)
+        ih=original_cip.interface_hash
+        ch = self.lsgg.grammar[ih].keys()
+        #print 'grammar'
+        #draw.draw_graph_set_graphlearn( [  self.lsgg.grammar[ih][c].graph for c in ch  ] ,contract=False )
+        print 'candidates'
+        draw.draw_graph_set_graphlearn( [cip.graph for cip in  self._select_cips(original_cip) ] ,contract=False)
+
 
     def _select_cips(self, cip):
         """
