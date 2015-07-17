@@ -101,7 +101,6 @@ class directedSampler(GraphLearnSampler):
 
         #if len(self.sample_path) == 1 and self.goal_graph:
         #    self.sample_path.append(self.goal_graph)
-
         if '_score' in graph.__dict__:
             if graph._score > 0.99:
                 self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
