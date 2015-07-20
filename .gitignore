@@ -2,5 +2,6 @@ working_examples/
 *.sdf
 *-checkpoint.ipynb
 *.pyc
-.ipynb_checkpoints/
+.ipynb_checkpoints
 *.ge
+
