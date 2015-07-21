@@ -4,7 +4,6 @@ import dill
 from eden import grouper
 from eden.graph import Vectorizer
 import logging
-from coreinterfacepair import CoreInterfacePair
 import traceback
 logger = logging.getLogger(__name__)
 
@@ -254,7 +253,11 @@ class LocalSubstitutableGraphGrammar(object):
     '''
 
     def _get_args(self):
-        return [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
+        return [self.radius_list,
+                self.thickness_list,
+                self.vectorizer,
+                self.hash_bitmask,
+                self.node_entity_check]
 
     def get_cip_extractor(self):
         return extract_cores_and_interfaces
@@ -293,13 +296,13 @@ def extract_cores_and_interfaces(parameters):
                 cips.append(cip_list)
         return cips
 
-    except Exception as exc:
+    except Exception:
         logger.debug(traceback.format_exc(10))
         # as far as i remember this should almost never happen,
         # if it does you may have a bigger problem.
         # so i put this in info
-        #logger.info( "extract_cores_and_interfaces_died" )
-        #logger.info( parameters )
+        # logger.info( "extract_cores_and_interfaces_died" )
+        # logger.info( parameters )
 
 
 def extract_core_and_interface_single_root(**kwargs):

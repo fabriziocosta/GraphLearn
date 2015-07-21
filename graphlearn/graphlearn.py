@@ -1,4 +1,3 @@
-import networkx as nx
 import itertools
 import random
 import postprocessing
@@ -104,6 +103,9 @@ class GraphLearnSampler(object):
         # self.__dict__ = joblib.load(file_name)
         self.__dict__ = dill.load(open(file_name))
         logger.debug('Loaded model: %s' % file_name)
+
+    def get_grammar(self):
+        return self.lsgg.grammar
 
     def fit(self, graphs,
             min_cip_count=2,
@@ -397,13 +399,12 @@ class GraphLearnSampler(object):
 
         print 'printing le errer'
         draw.display(original_cip.graph)
-        ih=original_cip.interface_hash
-        ch = self.lsgg.grammar[ih].keys()
-        #print 'grammar'
-        #draw.draw_graph_set_graphlearn( [  self.lsgg.grammar[ih][c].graph for c in ch  ] ,contract=False )
+        # ih = original_cip.interface_hash
+        # ch = self.lsgg.grammar[ih].keys()
+        # print 'grammar'
+        # draw.draw_graph_set_graphlearn( [  self.lsgg.grammar[ih][c].graph for c in ch  ] ,contract=False )
         print 'candidates'
-        draw.draw_graph_set_graphlearn( [cip.graph for cip in  self._select_cips(original_cip) ] ,contract=False)
-
+        draw.draw_graph_set_graphlearn([cip.graph for cip in self._select_cips(original_cip)], contract=False)
 
     def _select_cips(self, cip):
         """

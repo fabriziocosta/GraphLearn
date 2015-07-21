@@ -83,7 +83,6 @@ def extract_core_and_interface(root_node=None,
                                hash_bitmask=2 ** 20 - 1,
                                filter=lambda x, y: True):
     """
-
     :param root_node: root root_node
     :param graph: graph
     :param radius_list:
