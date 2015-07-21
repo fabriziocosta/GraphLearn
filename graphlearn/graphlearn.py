@@ -378,7 +378,7 @@ class GraphLearnSampler(object):
 
     def _propose_graph(self, graph):
         """
-        we choose ONE core in the graph and return a valid grpah with a changed core
+        we choose ONE core in the graph and return a valid graph with a changed core
 
         note that when we chose the core, we made sure that there would be possible replacements..
         """
@@ -396,15 +396,17 @@ class GraphLearnSampler(object):
                 return self.postprocessor.postprocess(graph_new)
             else:
                 logger.debug('feasibility checker failed')
-
-        print 'printing le errer'
-        draw.display(original_cip.graph)
-        # ih = original_cip.interface_hash
-        # ch = self.lsgg.grammar[ih].keys()
-        # print 'grammar'
-        # draw.draw_graph_set_graphlearn( [  self.lsgg.grammar[ih][c].graph for c in ch  ] ,contract=False )
-        print 'candidates'
-        draw.draw_graph_set_graphlearn([cip.graph for cip in self._select_cips(original_cip)], contract=False)
+        # DEBUG ONLY
+        if True:
+            print 'printing le errer'
+            draw.display(original_cip.graph)
+            ih = original_cip.interface_hash
+            ch = self.lsgg.grammar[ih].keys()
+            print 'grammar'
+            draw.draw_graph_set_graphlearn([self.lsgg.grammar[ih][c].graph for c in ch], contract=False)
+            print 'candidates'
+            candidates = [cip.graph for cip in self._select_cips(original_cip)]
+            draw.draw_graph_set_graphlearn(candidates, contract=False)
 
     def _select_cips(self, cip):
         """
