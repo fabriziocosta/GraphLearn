@@ -13,7 +13,6 @@ from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
 
-import utils.draw as draw
 logger = logging.getLogger(__name__)
 
 
@@ -242,7 +241,7 @@ class GraphLearnSampler(object):
             logger.debug(exc)
             logger.debug(traceback.format_exc(10))
             self._sample_notes += "\n" + str(exc)
-            self._sample_notes += '\nstoped at step %d' % self.step
+            self._sample_notes += '\nstopped at step %d' % self.step
 
         self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
         # we put the result in the sample_path
@@ -263,7 +262,6 @@ class GraphLearnSampler(object):
 
     def _sample_path_append(self, graph):
         # conditions meet?
-        #
         if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnout):
 
             # do we want to omit duplicates?
@@ -398,6 +396,7 @@ class GraphLearnSampler(object):
                 logger.debug('feasibility checker failed')
         # DEBUG ONLY
         if True:
+            import utils.draw as draw
             print 'printing le errer'
             draw.display(original_cip.graph)
             ih = original_cip.interface_hash
