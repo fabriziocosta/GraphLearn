@@ -305,10 +305,6 @@ def contract_edges(original_graph):
     return graph
 
 
-def learning_curve_function(x, a, b):
-    return a * (1 - np.exp(-b * x))
-
-
 def draw_learning_curve(data_first=None,
                         data_second=None,
                         measure=None,
@@ -320,6 +316,9 @@ def draw_learning_curve(data_first=None,
     Accepts as input an iterator over lists of numbers.
     Draws the exponential decay grpah over the means of lists.
     """
+
+    def learning_curve_function(x, a, b):
+        return a * (1 - np.exp(-b * x))
 
     x_axis = np.array(x_axis)
     mean_originals = []
