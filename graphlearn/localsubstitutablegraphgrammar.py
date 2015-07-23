@@ -30,8 +30,9 @@ class LocalSubstitutableGraphGrammar(object):
         self.nbit = nbit
         # checked when extracting grammar. see graphtools
         self.node_entity_check = node_entity_check
+        self.prep_is_outdated=True
 
-    def preprocessing(self, n_jobs=0, same_radius=False, same_core_size=0, probabilistic_core_choice=False):
+    def preprocessing(self, n_jobs=0, same_core_size=0, probabilistic_core_choice=False):
         """Preprocess need to be done before sampling.
 
         Args:
@@ -40,26 +41,18 @@ class LocalSubstitutableGraphGrammar(object):
             same_core: creates same core data structure
             probabilistic_core_choice: creates probabilistic core data structure
         """
-        # FIXME: resolve this bug!
-        # I have hardwired the non locking but resolve it in a more appropriate way!
-        self.__dict__['locked'] = False
-        if self.__dict__.get('locked', False):
-            logger.debug(
-                'skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing \
-                 does not rerun every time we graphlearn.sample())')
-            return
-        else:
-            logger.debug('preprocessing grammar')
-        if same_radius:
-            self._add_same_radius_quicklookup()
-        if same_core_size:
-            self._add_core_size_quicklookup()
-        if probabilistic_core_choice:
-            self._add_frequency_quicklookup()
+
+        logger.debug('preprocessing grammar')
+        if self.prep_is_outdated:
+            if same_core_size:
+                self._add_core_size_quicklookup()
+            if probabilistic_core_choice:
+                self._add_frequency_quicklookup()
+
+            self.prep_is_outdated = False
         if n_jobs > 1:
             self._multicore_transform()
 
-        self.locked = True
 
     def fit(self, graph_iterator, n_jobs, batch_size=10):
         self._read(graph_iterator, n_jobs, batch_size=batch_size)
@@ -110,6 +103,7 @@ class LocalSubstitutableGraphGrammar(object):
 
         if substract_cip_count:
             self.clean()
+        self.prep_is_outdated = True
 
     def union(self, other_grammar):
         """union of grammars"""
@@ -123,6 +117,7 @@ class LocalSubstitutableGraphGrammar(object):
                         self.grammar[interface][core] = other_grammar[interface][core]
             else:
                 self.grammar[interface] = other_grammar[interface]
+        self.prep_is_outdated = True
 
     def intersect(self, other_grammar):
         """intersection of grammars"""
@@ -136,6 +131,7 @@ class LocalSubstitutableGraphGrammar(object):
                         self.grammar[interface].pop(core)
             else:
                 self.grammar.pop(interface)
+        self.prep_is_outdated = True
 
     def clean(self):
         """remove cips and interfaces not been seen enough during grammar creation"""
@@ -145,19 +141,10 @@ class LocalSubstitutableGraphGrammar(object):
                     self.grammar[interface].pop(core)
             if len(self.grammar[interface]) < self.min_interface_count:
                 self.grammar.pop(interface)
+        self.prep_is_outdated = True
 
-    def _add_same_radius_quicklookup(self):
-        """adds self.radiuslookup{ interface: { radius:[list of cores] } }"""
-        self.radiuslookup = {}
-        for interface in self.grammar:
-            radius_lookup = [[]] * (max(self.radius_list) + 1)
-            for core in self.grammar[interface]:
-                radius = self.grammar[interface][core].radius
-                if radius in radius_lookup:
-                    radius_lookup[radius].append(core)
-                else:
-                    radius_lookup[radius] = [core]
-            self.radiuslookup[interface] = radius_lookup
+
+
 
     def _add_core_size_quicklookup(self):
         """"adds self.core_size{ interface: { core_size:[list of cores] } }"""
@@ -187,6 +174,7 @@ class LocalSubstitutableGraphGrammar(object):
             self._read_single(graphs)
         else:
             self._read_multi(graphs, n_jobs, batch_size)
+        self.prep_is_outdated = True
 
     def _add_core_interface_data(self, cip):
         """add the cip to the grammar"""

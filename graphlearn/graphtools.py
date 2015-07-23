@@ -225,11 +225,14 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
     :param home: the interface in the home graph
     :param other: the interface of a new cip
     :return: a dictionary that is either empty or a good isomorphism
+
+
+    update 23.7.15: not sure if this is a problem anymore//
     '''
     if isinstance(home, nx.DiGraph):
         for mapping in find_all_isomorphisms(home, other):
             return mapping
-
+        '''
         # this is probably broken  ASDASD
         for mapping in find_all_isomorphisms(home, other):
             for home_node in mapping.keys():
@@ -241,7 +244,12 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
                         break
             else:
                 return mapping
+        '''
     else:
+        # i think we cant break here anymore..
+        for mapping in find_all_isomorphisms(home, other):
+            return mapping
+        '''
         for mapping in find_all_isomorphisms(home, other):
             for home_node in mapping.keys():
                 if 'edge' in graph.node[home_node]:
@@ -255,6 +263,7 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
                 return mapping
         # draw rejected pair:
         # draw.draw_graph_set_graphlearn([orig_cip_graph,new_cip_graph])
+        '''
     return {}
 
 
