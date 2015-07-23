@@ -50,7 +50,7 @@ class GraphLearnSampler(object):
         self.same_core_size = None
         # a similaritythreshold at which to stop sampling.  a value <= 0 will render this useless
         self.similarity = None
-        # we will save current graph at every intervalth step of sampling and attach to graphinfos[graphs]
+        # we will save current graph at every interval step of sampling and attach to graphinfos[graphs]
         self.sampling_interval = None
         # how many sampling steps are done
         self.n_steps = None
@@ -62,7 +62,7 @@ class GraphLearnSampler(object):
         # factor for simulated annealing, 0 means off
         # 1 is pretty strong. 0.6 seems ok
         self.accept_annealing_factor = None
-        # current step in sampling proces of a single graph
+        # current step in sampling process of a single graph
         self.step = None
         self.node_entity_check = node_entity_check
 
@@ -73,9 +73,9 @@ class GraphLearnSampler(object):
         self.sample_path = None
 
         # sample this many before sampling interval starts
-        self.burnout = None
+        self.burnin = None
 
-        # is the core coosen by frequency?  (bool)
+        # is the core chosen by frequency?  (bool)
         self.probabilistic_core_choice = None
 
         if not grammar:
@@ -95,29 +95,21 @@ class GraphLearnSampler(object):
     def save(self, file_name):
         self.lsgg._revert_multicore_transform()
         dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
-        # joblib.dump(self.__dict__, file_name, compress=1)
         logger.debug('Saved model: %s' % file_name)
 
     def load(self, file_name):
-        # self.__dict__ = joblib.load(file_name)
         self.__dict__ = dill.load(open(file_name))
         logger.debug('Loaded model: %s' % file_name)
 
     def get_grammar(self):
         return self.lsgg.grammar
 
-    def fit(self, graphs,
-            min_cip_count=2,
-            min_interface_count=2,
-            n_jobs=-1,
-            nu=.5, batch_size=10):
+    def fit(self, graphs, n_jobs=-1, nu=.5, batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
         graphs, graphs_ = itertools.tee(graphs)
-
         self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs)
-
         self.lsgg.fit(graphs, n_jobs, batch_size=batch_size)
 
     def sample(self, graph_iter,
@@ -132,7 +124,7 @@ class GraphLearnSampler(object):
                accept_annealing_factor=0,
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
-               burnout=0,
+               burnin=0,
                generator_mode=False,
                keep_duplicates=False):
         """
@@ -143,7 +135,7 @@ class GraphLearnSampler(object):
         self.similarity = similarity
 
         if n_samples:
-            self.sampling_interval = int((n_steps - burnout) / n_samples) + 1
+            self.sampling_interval = int((n_steps - burnin) / n_samples) + 1
         else:
             self.sampling_interval = 9999
         self.n_steps = n_steps
@@ -152,7 +144,7 @@ class GraphLearnSampler(object):
         self.accept_annealing_factor = accept_annealing_factor
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
-        self.burnout = burnout
+        self.burnin = burnin
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
         self.generator_mode = generator_mode
@@ -262,7 +254,7 @@ class GraphLearnSampler(object):
 
     def _sample_path_append(self, graph):
         # conditions meet?
-        if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnout):
+        if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnin):
 
             # do we want to omit duplicates?
             if not self.keep_duplicates:
