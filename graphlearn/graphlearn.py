@@ -46,7 +46,6 @@ class GraphLearnSampler(object):
         self.hash_bitmask = pow(2, nbit) - 1
         self.nbit = nbit
         # boolean values to set restrictions on replacement
-        self.same_radius = None
         self.same_core_size = None
         # a similaritythreshold at which to stop sampling.  a value <= 0 will render this useless
         self.similarity = None
@@ -73,7 +72,7 @@ class GraphLearnSampler(object):
         self.sample_path = None
 
         # sample this many before sampling interval starts
-        self.burnout = None
+        self.burn_in = None
 
         # is the core coosen by frequency?  (bool)
         self.probabilistic_core_choice = None
@@ -122,7 +121,6 @@ class GraphLearnSampler(object):
 
     def sample(self, graph_iter,
                probabilistic_core_choice=True,
-               same_radius=False,
                same_core_size=False,
                similarity=-1,
                n_samples=None,
@@ -132,18 +130,17 @@ class GraphLearnSampler(object):
                accept_annealing_factor=0,
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
-               burnout=0,
+               burn_in=0,
                generator_mode=False,
                keep_duplicates=False):
         """
             input: graph iterator
             output: yield (sampled_graph,{dictionary of info about sampling process}
         """
-        self.same_radius = same_radius
         self.similarity = similarity
 
         if n_samples:
-            self.sampling_interval = int((n_steps - burnout) / n_samples) + 1
+            self.sampling_interval = int((n_steps - burn_in) / n_samples) + 1
         else:
             self.sampling_interval = 9999
         self.n_steps = n_steps
@@ -152,13 +149,13 @@ class GraphLearnSampler(object):
         self.accept_annealing_factor = accept_annealing_factor
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
-        self.burnout = burnout
+        self.burn_in = burn_in
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
         self.generator_mode = generator_mode
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
-        self.lsgg.preprocessing(n_jobs, same_radius, same_core_size, probabilistic_core_choice)
+        self.lsgg.preprocessing(n_jobs, same_core_size, probabilistic_core_choice)
         logger.debug(serialize_dict(self.__dict__))
 
         # sampling
@@ -262,7 +259,7 @@ class GraphLearnSampler(object):
 
     def _sample_path_append(self, graph):
         # conditions meet?
-        if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnout):
+        if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burn_in):
 
             # do we want to omit duplicates?
             if not self.keep_duplicates:
@@ -376,36 +373,40 @@ class GraphLearnSampler(object):
 
     def _propose_graph(self, graph):
         """
-        we choose ONE core in the graph and return a valid graph with a changed core
+        so here is the whole procedure:
 
-        note that when we chose the core, we made sure that there would be possible replacements..
+        select cip tries MAXTRIES times to find a cip from graph.
+        on the way it will yield all the possible original_cips it finds.
+
+        on each we do our best to find a hit in the grammar.
+        as soon as we found one replacement that works we are good and return.
+
         """
-        # finding a legit candidate..
-        original_cip = self.select_original_cip(graph)
 
-        # see which substitution to make
-        candidate_cips = self._select_cips(original_cip)
+        for original_cip in self.select_original_cip(graph):
+            # see which substitution to make
+            candidate_cips = self._select_cips(original_cip)
 
-        for candidate_cip in candidate_cips:
-            # substitute and return
-            graph_new = core_substitution(graph, original_cip.graph, candidate_cip.graph)
-            if self.feasibility_checker.check(graph_new):
-                graph_clean(graph_new)
-                return self.postprocessor.postprocess(graph_new)
-            else:
-                logger.debug('feasibility checker failed')
-        # DEBUG ONLY
-        if True:
-            import utils.draw as draw
-            print 'printing le errer'
-            draw.display(original_cip.graph)
-            ih = original_cip.interface_hash
-            ch = self.lsgg.grammar[ih].keys()
-            print 'grammar'
-            draw.draw_graph_set_graphlearn([self.lsgg.grammar[ih][c].graph for c in ch], contract=False)
-            print 'candidates'
-            candidates = [cip.graph for cip in self._select_cips(original_cip)]
-            draw.draw_graph_set_graphlearn(candidates, contract=False)
+            for candidate_cip in candidate_cips:
+                # substitute and return
+                graph_new = core_substitution(graph, original_cip.graph, candidate_cip.graph)
+                if self.feasibility_checker.check(graph_new):
+                    graph_clean(graph_new)
+                    return self.postprocessor.postprocess(graph_new)
+                else:
+                    logger.debug('feasibility checker failed')
+            # DEBUG ONLY
+            if True:
+                import utils.draw as draw
+                print 'printing le errer'
+                draw.graphlearn_draw(original_cip.graph)
+                ih = original_cip.interface_hash
+                ch = self.lsgg.grammar[ih].keys()
+                print 'grammar'
+                draw.graphlearn_draw([self.lsgg.grammar[ih][c].graph for c in ch], contract=False)
+                print 'candidates'
+                candidates = [cip.graph for cip in self._select_cips(original_cip)]
+                draw.graphlearn_draw(candidates, contract=False)
 
     def _select_cips(self, cip):
         """
@@ -417,68 +418,57 @@ class GraphLearnSampler(object):
         if not cip:
             raise Exception('select randomized cips from grammar got bad cip')
 
-        core_hashes = self._get_valid_core_hashes(cip)
-
-        # DIEGO'S CHANGE: we don't want the original cip in the candidates
+        # get core hashes
+        core_hashes= self.lsgg.grammar[cip.interface_hash].keys()
         if cip.core_hash in core_hashes:
             core_hashes.remove(cip.core_hash)
-
         logger.debug('Working with %d cores' % len(core_hashes))
 
-        if self.probabilistic_core_choice:
-            # get all the frequencies
-            frequencies = []
-            for core_hash in core_hashes:
-                frequencies.append(self.lsgg.frequency[cip.interface_hash][core_hash])
-
-            frequencies_sum = sum(frequencies)
-
-            # while there are cores
-            while core_hashes:
-                # get a random one by frequency
-                rand = random.randint(0, frequencies_sum)
-                current = 0.0
-                i = -1
-                while current < rand:
-                    current += frequencies[i + 1]
-                    i += 1
-                # yield and delete
-                yield self.lsgg.grammar[cip.interface_hash][core_hashes[i]]
-                frequencies_sum -= frequencies[i]
-                del frequencies[i]
-                del core_hashes[i]
-        else:
-            for core_hash in core_hashes:
+        # get weights and yield accordingly
+        weights= self._get_core_weights(cip, core_hashes)
+        for core_hash in self.probabilistic_choice(weights,core_hashes):
                 yield self.lsgg.grammar[cip.interface_hash][core_hash]
-        # DIEGO'S CHANGE: we need to avoid raising exception at the end of the generator
-        # raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in ")
-        # you want to remove this? why?
 
-    def _get_valid_core_hashes(self, cip):
-        '''
-        :param cip: the chip to be replaced
-        :return: list of core_hashes of acceptable replacement cips
-        '''
 
-        if self.same_radius:
-            result_list = list(self.lsgg.radiuslookup[cip.interface_hash][cip.radius])
-            # if both are activated..
-            if self.same_core_size:
-                result_list2 = list(
-                    self.lsgg.core_size[cip.interface_hash][cip.core_nodes_count])
-                result = []
-                for hash in result_list2:
-                    if hash in result_list:
-                        result.append(hash)
-                result_list = result
+    def _get_core_weights(self, cip, core_hashes):
+        core_weights=[]
+
+        if self.probabilistic_core_choice:
+            for core_hash in core_hashes:
+                core_weights.append(self.lsgg.frequency[cip.interface_hash][core_hash])
+
         elif self.same_core_size:
-            result_list = list(
-                self.lsgg.core_size[cip.interface_hash][cip.core_nodes_count])
+            for core in core_hashes:
+                if core in self.lsgg.core_size[cip.interface_hash][cip.core_nodes_count]:
+                    core_weights.append(1)
+                else:
+                    core_weights.append(0)
         else:
-            result_list = list(self.lsgg.grammar[cip.interface_hash].keys())
+            core_weights= [1]*len(core_hashes)
 
-        random.shuffle(result_list)
-        return result_list
+        return core_weights
+
+    def probabilistic_choice(self, ratings, core_hashes):
+        # so you have a list of core_hashes
+        # now for every core_hash put a number in a rating list
+        # we will choose one according to the probability induced by those numbers
+        ratings_sum = sum(ratings)
+        # while there are cores
+        while core_hashes:
+            # get a random one by frequency
+            rand = random.randint(1, ratings_sum)
+            current = 0.0
+            i = -1
+            while current < rand:
+                current += ratings[i + 1]
+                i += 1
+            # yield and delete
+            yield core_hashes[i]
+            ratings_sum -= ratings[i]
+            del ratings[i]
+            del core_hashes[i]
+
+
 
     def select_original_cip(self, graph):
         """
@@ -497,7 +487,6 @@ class GraphLearnSampler(object):
             # in addition the selection might fail because it is not possible
             # to extract at the desired radius/thicknes
             cip = self._original_cip_extraction(graph)
-
             if not cip:
                 nocip += 1
                 continue
@@ -505,7 +494,7 @@ class GraphLearnSampler(object):
             # print node,radius,cip.interface_hash
 
             if self._accept_original_cip(cip):
-                return cip
+                yield cip
             else:
                 failcount += 1
 
@@ -532,17 +521,11 @@ class GraphLearnSampler(object):
         :param cip: the cip we need to judge
         :return: good or nogood (bool)
         '''
-
         # cips=[cip]
         # gr=draw.cip_to_graph( cips )
         # draw.draw_graph_set_graphlearn(gr )
         # if we have a hit in the grammar
         if len(self.lsgg.grammar.get(cip.interface_hash,{})) > 1:
-            #  if we have the same_radius rule implemented:
-            if self.same_radius:
-                # we jump if that hit has not the right radius
-                if len (self.lsgg.radiuslookup[cip.interface_hash][cip.radius]) < 2:
-                    return False
             if self.same_core_size:
                 if  len (self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count,[])) < 2:
                     return False
