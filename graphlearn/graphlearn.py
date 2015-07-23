@@ -537,14 +537,14 @@ class GraphLearnSampler(object):
         # gr=draw.cip_to_graph( cips )
         # draw.draw_graph_set_graphlearn(gr )
         # if we have a hit in the grammar
-        if cip.interface_hash in self.lsgg.grammar:
+        if len(self.lsgg.grammar.get(cip.interface_hash,{})) > 1:
             #  if we have the same_radius rule implemented:
             if self.same_radius:
                 # we jump if that hit has not the right radius
-                if not self.lsgg.radiuslookup[cip.interface_hash][cip.radius]:
+                if len (self.lsgg.radiuslookup[cip.interface_hash][cip.radius]) < 2:
                     return False
             if self.same_core_size:
-                if cip.core_nodes_count not in self.lsgg.core_size[cip.interface_hash]:
+                if  len (self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count,[])) < 2:
                     return False
             return True
         return False
