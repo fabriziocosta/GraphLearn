@@ -349,7 +349,7 @@ def draw_learning_curve(data_first=None,
     plt.plot((x_axis + delta) * scaling, mean_originals, 'ro', label='')
     plt.plot((x_axis_fit) * scaling, mean_originals_fit, 'r-', label='Original')
 
-    plt.box_axisplot(data_second, positions=(x_axis - delta) * scaling, notch=False)
+    plt.boxplot(data_second, positions=(x_axis - delta) * scaling, notch=False)
     plt.plot((x_axis - delta) * scaling, mean_originals_and_samples, 'go', label='')
     plt.plot((x_axis_fit) * scaling, mean_originals_and_samples_fit, 'g-', label='Original+sampled')
     plt.grid()
