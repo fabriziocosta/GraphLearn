@@ -165,15 +165,21 @@ class LocalSubstitutableGraphGrammar(object):
         """"adds self.core_size{ interface: { core_size:[list of cores] } }"""
         self.core_size = {}
         for interface in self.productions:
+            for core in self.productions[interface]:
+                self.core_size[core]=self.productions[interface][core].core_nodes_count
+
+        '''
+        for interface in self.productions:
             core_size = {}
             for core in self.productions[interface]:
                 nodes_count = self.productions[interface][core].core_nodes_count
+
                 if nodes_count in core_size:
                     core_size[nodes_count].append(core)
                 else:
                     core_size[nodes_count] = [core]
             self.core_size[interface] = core_size
-
+        '''
     def _add_frequency_quicklookup(self):
         """adds self.frequency{ interface: { core_frequency:[list of cores] } }"""
         self.frequency = {}
