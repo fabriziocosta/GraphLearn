@@ -151,6 +151,7 @@ class GraphLearnSampler(object):
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
         self.lsgg.preprocessing(n_jobs, same_radius, same_core_size, probabilistic_core_choice)
+
         logger.debug(serialize_dict(self.__dict__))
 
         # sampling
@@ -395,9 +396,9 @@ class GraphLearnSampler(object):
             print 'printing le errer'
             draw.display(original_cip.graph)
             ih = original_cip.interface_hash
-            ch = self.lsgg.grammar[ih].keys()
+            ch = self.lsgg.productions[ih].keys()
             print 'grammar'
-            draw.draw_graph_set_graphlearn([self.lsgg.grammar[ih][c].graph for c in ch], contract=False)
+            draw.draw_graph_set_graphlearn([self.lsgg.productions[ih][c].graph for c in ch], contract=False)
             print 'candidates'
             candidates = [cip.graph for cip in self._select_cips(original_cip)]
             draw.draw_graph_set_graphlearn(candidates, contract=False)
@@ -438,13 +439,13 @@ class GraphLearnSampler(object):
                     current += frequencies[i + 1]
                     i += 1
                 # yield and delete
-                yield self.lsgg.grammar[cip.interface_hash][core_hashes[i]]
+                yield self.lsgg.productions[cip.interface_hash][core_hashes[i]]
                 frequencies_sum -= frequencies[i]
                 del frequencies[i]
                 del core_hashes[i]
         else:
             for core_hash in core_hashes:
-                yield self.lsgg.grammar[cip.interface_hash][core_hash]
+                yield self.lsgg.productions[cip.interface_hash][core_hash]
         # DIEGO'S CHANGE: we need to avoid raising exception at the end of the generator
         # raise Exception("select_randomized_cips_from_grammar didn't find any acceptable cip in ")
         # you want to remove this? why?
@@ -470,7 +471,7 @@ class GraphLearnSampler(object):
             result_list = list(
                 self.lsgg.core_size[cip.interface_hash][cip.core_nodes_count])
         else:
-            result_list = list(self.lsgg.grammar[cip.interface_hash].keys())
+            result_list = list(self.lsgg.productions[cip.interface_hash].keys())
 
         random.shuffle(result_list)
         return result_list
@@ -532,14 +533,14 @@ class GraphLearnSampler(object):
         # gr=draw.cip_to_graph( cips )
         # draw.draw_graph_set_graphlearn(gr )
         # if we have a hit in the grammar
-        if len(self.lsgg.grammar.get(cip.interface_hash)) > 1:
+        if len(self.lsgg.productions.get(cip.interface_hash, {})) > 1:
             #  if we have the same_radius rule implemented:
             if self.same_radius:
                 # we jump if that hit has not the right radius
                 if len(self.lsgg.radiuslookup[cip.interface_hash][cip.radius]) < 2:
                     return False
             if self.same_core_size:
-                if len(self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count)) < 2:
+                if len(self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count, [])) < 2:
                     return False
             return True
         return False
