@@ -64,6 +64,9 @@ class LocalSubstitutableGraphGrammar(object):
     def fit(self, graph_iterator, n_jobs, batch_size=10):
         self._read(graph_iterator, n_jobs, batch_size=batch_size)
         self.clean()
+        interface_counts, core_counts, cip_counts = self.size()
+        logger.debug('#interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
+                     (interface_counts, core_counts, cip_counts))
 
     def size(self):
         interface_counts = len(self.productions)
