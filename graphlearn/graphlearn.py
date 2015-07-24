@@ -101,8 +101,8 @@ class GraphLearnSampler(object):
         self.__dict__ = dill.load(open(file_name))
         logger.debug('Loaded model: %s' % file_name)
 
-    def get_grammar(self):
-        return self.lsgg.grammar
+    def grammar(self):
+        return self.lsgg
 
     def fit(self, graphs, n_jobs=-1, nu=.5, batch_size=10):
         """
@@ -333,6 +333,8 @@ class GraphLearnSampler(object):
             in this implementation we use the score of the graph to judge the new graph
         '''
 
+        accept_decision = False
+
         # first calculate the score ratio between old and new graph.
         score_graph_old = self._score(graph_old)
         score_graph_new = self._score(graph_new)
@@ -340,21 +342,22 @@ class GraphLearnSampler(object):
 
         # if the new graph scores higher, the ratio is > 1 and we accept
         if score_ratio > 1.0:
-            return True
+            accept_decision = True
+        else:
+            # we now know that the new graph is worse than the old one, but we believe in second chances :)
+            # the score_ratio is the probability of being accepted, (see next comment block)
+            # there are 2 ways of messing with the score_ratio:
+            # 1. the annealing factor will increase the penalty as the sampling progresses
+            #       (values of 1 +- .5 are interesting here)
+            # 2. a static penalty applies a penalty that is always the same.
+            #       (-1 ~ always accept ; +1 ~  never accept)
+            score_ratio = score_ratio - ((float(self.step) / self.n_steps) * self.accept_annealing_factor)
+            score_ratio = score_ratio - self.accept_static_penalty
 
-        # we now know that the new graph is worse than the old one, but we believe in second chances :)
-        # the score_ratio is the probability of being accepted, (see next comment block)
-        # there are 2 ways of messing with the score_ratio:
-        # 1. the annealing factor will increase the penalty as the sampling progresses
-        #       (values of 1 +- .5 are interesting here)
-        # 2. a static penalty applies a penalty that is always the same.
-        #       (-1 ~ always accept ; +1 ~  never accept)
-        score_ratio = score_ratio - ((float(self.step) / self.n_steps) * self.accept_annealing_factor)
-        score_ratio = score_ratio - self.accept_static_penalty
-
-        # score_ratio is smaller than 1. random.random generates a float between 0 and 1
-        # the smaller the score_ratio the smaller the chance of getting accepted.
-        return score_ratio > random.random()
+            # score_ratio is smaller than 1. random.random generates a float between 0 and 1
+            # the smaller the score_ratio the smaller the chance of getting accepted.
+            accept_decision = (score_ratio > random.random())
+        return accept_decision
 
     def _propose(self, graph):
         '''
@@ -387,7 +390,7 @@ class GraphLearnSampler(object):
             else:
                 logger.debug('feasibility checker failed')
         # DEBUG ONLY
-        if True:
+        if False:
             import utils.draw as draw
             print 'printing le errer'
             draw.display(original_cip.graph)
@@ -529,14 +532,14 @@ class GraphLearnSampler(object):
         # gr=draw.cip_to_graph( cips )
         # draw.draw_graph_set_graphlearn(gr )
         # if we have a hit in the grammar
-        if len(self.lsgg.grammar.get(cip.interface_hash,{})) > 1:
+        if len(self.lsgg.grammar.get(cip.interface_hash)) > 1:
             #  if we have the same_radius rule implemented:
             if self.same_radius:
                 # we jump if that hit has not the right radius
-                if len (self.lsgg.radiuslookup[cip.interface_hash][cip.radius]) < 2:
+                if len(self.lsgg.radiuslookup[cip.interface_hash][cip.radius]) < 2:
                     return False
             if self.same_core_size:
-                if  len (self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count,[])) < 2:
+                if len(self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count)) < 2:
                     return False
             return True
         return False
