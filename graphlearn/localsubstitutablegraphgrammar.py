@@ -20,7 +20,7 @@ class LocalSubstitutableGraphGrammar(object):
 
     def __init__(self, radius_list=None, thickness_list=None, min_cip_count=3, complexity=3,
                  min_interface_count=2, nbit=20, node_entity_check=lambda x, y: True):
-        self.grammar = {}
+        self.productions = {}
         self.min_interface_count = min_interface_count
         self.radius_list = radius_list
         self.thickness_list = thickness_list
@@ -74,85 +74,87 @@ class LocalSubstitutableGraphGrammar(object):
         '''
 
         # do nothing if transform already happened
-        if type(self.grammar) != dict:
+        if type(self.productions) != dict:
             return
         # move the grammar into a manager object...
         manager = Manager()
         shelve = manager.dict()
-        for k, v in self.grammar.iteritems():
+        for k, v in self.productions.iteritems():
             md = manager.dict()
             for k2, v2 in v.iteritems():
                 md[k2] = v2
             shelve[k] = md
-        self.grammar = shelve
+        self.productions = shelve
 
     def _revert_multicore_transform(self):
         # only if we are managed we need to do this
-        if type(self.grammar) != dict:
+        if type(self.productions) != dict:
             shelve = {}
-            for k, v in self.grammar.iteritems():
+            for k, v in self.productions.iteritems():
                 md = {}
                 for k2, v2 in v.iteritems():
                     md[k2] = v2
                 shelve[k] = md
-            self.grammar = shelve
+            self.productions = shelve
 
     def difference(self, other_grammar, substract_cip_count=False):
         """difference between grammars"""
-        for interface in self.grammar:
+        for interface in self.productions:
             if interface in other_grammar:
-                for core in self.grammar[interface]:
+                for core in self.productions[interface]:
                     if core in other_grammar[interface].keys():
                         if substract_cip_count:
-                            self.grammar[interface][core].count -= other_grammar[interface][core].count
+                            self.productions[interface][core].count -= other_grammar[interface][core].count
                         else:
-                            self.grammar[interface].pop(core)
+                            self.productions[interface].pop(core)
 
         if substract_cip_count:
             self.clean()
 
     def union(self, other_grammar):
         """union of grammars"""
-        for interface in self.grammar:
+        for interface in self.productions:
             if interface in other_grammar:
-                for core in self.grammar[interface]:
+                for core in self.productions[interface]:
                     if core in other_grammar[interface]:
-                        self.grammar[interface][core].counter = sum(self.grammar[interface][core].counter,
-                                                                    other_grammar[interface][core].counter)
+                        self.productions[interface][core].counter = \
+                            sum(self.productions[interface][core].counter,
+                                other_grammar[interface][core].counter)
                     else:
-                        self.grammar[interface][core] = other_grammar[interface][core]
+                        self.productions[interface][core] = other_grammar[interface][core]
             else:
-                self.grammar[interface] = other_grammar[interface]
+                self.productions[interface] = other_grammar[interface]
 
     def intersect(self, other_grammar):
         """intersection of grammars"""
-        for interface in self.grammar.keys():
+        for interface in self.productions.keys():
             if interface in other_grammar:
-                for core in self.grammar[interface].keys():
+                for core in self.productions[interface].keys():
                     if core in other_grammar[interface]:
-                        self.grammar[interface][core].counter = min(self.grammar[interface][core].counter,
-                                                                    other_grammar[interface][core].counter)
+                        self.productions[interface][core].counter = \
+                            min(self.productions[interface][core].counter,
+                                other_grammar[interface][core].counter)
                     else:
-                        self.grammar[interface].pop(core)
+                        self.productions[interface].pop(core)
             else:
-                self.grammar.pop(interface)
+                self.productions.pop(interface)
 
     def clean(self):
         """remove cips and interfaces not been seen enough during grammar creation"""
-        for interface in self.grammar.keys():
-            for core in self.grammar[interface].keys():
-                if self.grammar[interface][core].count < self.min_cip_count:
-                    self.grammar[interface].pop(core)
-            if len(self.grammar[interface]) < self.min_interface_count:
-                self.grammar.pop(interface)
+        for interface in self.productions.keys():
+            for core in self.productions[interface].keys():
+                if self.productions[interface][core].count < self.min_cip_count:
+                    self.productions[interface].pop(core)
+            if len(self.productions[interface]) < self.min_interface_count:
+                self.productions.pop(interface)
 
     def _add_same_radius_quicklookup(self):
         """adds self.radiuslookup{ interface: { radius:[list of cores] } }"""
         self.radiuslookup = {}
-        for interface in self.grammar:
+        for interface in self.productions:
             radius_lookup = [[]] * (max(self.radius_list) + 1)
-            for core in self.grammar[interface]:
-                radius = self.grammar[interface][core].radius
+            for core in self.productions[interface]:
+                radius = self.productions[interface][core].radius
                 if radius in radius_lookup:
                     radius_lookup[radius].append(core)
                 else:
@@ -162,10 +164,10 @@ class LocalSubstitutableGraphGrammar(object):
     def _add_core_size_quicklookup(self):
         """"adds self.core_size{ interface: { core_size:[list of cores] } }"""
         self.core_size = {}
-        for interface in self.grammar:
+        for interface in self.productions:
             core_size = {}
-            for core in self.grammar[interface]:
-                nodes_count = self.grammar[interface][core].core_nodes_count
+            for core in self.productions[interface]:
+                nodes_count = self.productions[interface][core].core_nodes_count
                 if nodes_count in core_size:
                     core_size[nodes_count].append(core)
                 else:
@@ -175,9 +177,9 @@ class LocalSubstitutableGraphGrammar(object):
     def _add_frequency_quicklookup(self):
         """adds self.frequency{ interface: { core_frequency:[list of cores] } }"""
         self.frequency = {}
-        for interface in self.grammar:
+        for interface in self.productions:
             core_frequency = {}
-            for hash, cip in self.grammar[interface].items():
+            for hash, cip in self.productions[interface].items():
                 core_frequency[hash] = cip.count
             self.frequency[interface] = core_frequency
 
@@ -193,13 +195,24 @@ class LocalSubstitutableGraphGrammar(object):
         interface = cip.interface_hash
         core = cip.core_hash
 
-        if interface not in self.grammar:
-            self.grammar[interface] = {}
+        if interface not in self.productions:
+            self.productions[interface] = {}
 
-        if core not in self.grammar[interface]:
-            self.grammar[interface][core] = cip
+        if core not in self.productions[interface]:
+            self.productions[interface][core] = cip
 
-        self.grammar[interface][core].count += 1
+        self.productions[interface][core].count += 1
+
+    def size(self):
+        interface_counts = len(self.productions)
+        cip_counts = 0
+        core_set = set()
+        for interface in self.productions:
+            for core in self.productions[interface]:
+                core_set.add(core)
+            cip_counts += len(self.productions[interface])
+        core_counts = len(core_set)
+        return interface_counts, core_counts, cip_counts
 
     def _read_single(self, graphs):
         """
