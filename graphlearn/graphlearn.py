@@ -46,7 +46,7 @@ class GraphLearnSampler(object):
         self.hash_bitmask = pow(2, nbit) - 1
         self.nbit = nbit
         # boolean values to set restrictions on replacement
-        self.same_core_size = None
+        self.max_core_size_diff = None
         # a similaritythreshold at which to stop sampling.  a value <= 0 will render this useless
         self.similarity = None
         # we will save current graph at every interval step of sampling and attach to graphinfos[graphs]
@@ -60,7 +60,7 @@ class GraphLearnSampler(object):
         self._sample_notes = None
         # factor for simulated annealing, 0 means off
         # 1 is pretty strong. 0.6 seems ok
-        self.accept_annealing_factor = None
+        self.improving_threshold = None
         # current step in sampling process of a single graph
         self.step = None
         self.node_entity_check = node_entity_check
@@ -113,13 +113,13 @@ class GraphLearnSampler(object):
 
     def sample(self, graph_iter,
                probabilistic_core_choice=True,
-               same_core_size=False,
+               max_core_size_diff=-1,
                similarity=-1,
                n_samples=None,
                batch_size=10,
                n_jobs=0,
                n_steps=50,
-               accept_annealing_factor=0,
+               improving_threshold=-1,
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
                burnin=0,
@@ -137,8 +137,8 @@ class GraphLearnSampler(object):
             self.sampling_interval = 9999
         self.n_steps = n_steps
         self.n_jobs = n_jobs
-        self.same_core_size = same_core_size
-        self.accept_annealing_factor = accept_annealing_factor
+        self.max_core_size_diff = max_core_size_diff
+        self.improving_threshold = improving_threshold
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
         self.burnin = burnin
@@ -147,7 +147,7 @@ class GraphLearnSampler(object):
         self.generator_mode = generator_mode
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
-        self.lsgg.preprocessing(n_jobs, same_core_size, probabilistic_core_choice)
+        self.lsgg.preprocessing(n_jobs, max_core_size_diff, probabilistic_core_choice)
         logger.debug(serialize_dict(self.__dict__))
 
         # sampling
@@ -348,7 +348,15 @@ class GraphLearnSampler(object):
             #       (values of 1 +- .5 are interesting here)
             # 2. a static penalty applies a penalty that is always the same.
             #       (-1 ~ always accept ; +1 ~  never accept)
-            score_ratio = score_ratio - ((float(self.step) / self.n_steps) * self.accept_annealing_factor)
+
+            if self.improving_threshold > 0:
+
+                progress= (float(self.step) / self.n_steps)
+                score_ratio = score_ratio - (progress / self.improving_threshold)
+
+            elif self.improving_threshold == 0:
+                return False
+
             score_ratio = score_ratio - self.accept_static_penalty
 
             # score_ratio is smaller than 1. random.random generates a float between 0 and 1
@@ -419,48 +427,51 @@ class GraphLearnSampler(object):
             core_hashes.remove(cip.core_hash)
         logger.debug('Working with %d cores' % len(core_hashes))
 
-        # get weights and yield accordingly
-        weights= self._get_core_weights(cip, core_hashes)
-        for core_hash in self.probabilistic_choice(weights,core_hashes):
+        # get values and yield accordingly
+        values = self._core_values(cip, core_hashes)
+        for core_hash in self.probabilistic_choice(values,core_hashes):
                 yield self.lsgg.productions[cip.interface_hash][core_hash]
 
 
-    def _get_core_weights(self, cip, core_hashes):
+    def _core_values(self, cip, core_hashes):
         core_weights=[]
 
         if self.probabilistic_core_choice:
             for core_hash in core_hashes:
                 core_weights.append(self.lsgg.frequency[cip.interface_hash][core_hash])
 
-        elif self.same_core_size:
+        elif self.max_core_size_diff > - 1:
+            unit = 100/(self.max_core_size_diff+1)
+            goal_size= cip.core_nodes_count
             for core in core_hashes:
-                if core in self.lsgg.core_size[cip.interface_hash][cip.core_nodes_count]:
-                    core_weights.append(1)
-                else:
-                    core_weights.append(0)
+                size = self.lsgg.core_size[core]
+                value = 100 - ( abs(goal_size - size) * unit)
+                core_weights.append(value)
         else:
             core_weights= [1]*len(core_hashes)
 
         return core_weights
 
-    def probabilistic_choice(self, ratings, core_hashes):
+    def probabilistic_choice(self, values, core_hashes):
         # so you have a list of core_hashes
         # now for every core_hash put a number in a rating list
         # we will choose one according to the probability induced by those numbers
-        ratings_sum = sum(ratings)
+        ratings_sum = sum(values)
         # while there are cores
-        while core_hashes:
+        while core_hashes and ratings_sum > 0.0:
             # get a random one by frequency
-            rand = random.randint(1, ratings_sum)
+            rand = random.uniform(0.0, ratings_sum)
+            if rand == 0.0:
+                break
             current = 0.0
             i = -1
             while current < rand:
-                current += ratings[i + 1]
+                current += values[i + 1]
                 i += 1
             # yield and delete
             yield core_hashes[i]
-            ratings_sum -= ratings[i]
-            del ratings[i]
+            ratings_sum -= values[i]
+            del values[i]
             del core_hashes[i]
 
 
@@ -521,7 +532,7 @@ class GraphLearnSampler(object):
         # draw.draw_graph_set_graphlearn(gr )
         # if we have a hit in the grammar
         if len(self.lsgg.productions.get(cip.interface_hash,{})) > 1:
-            if self.same_core_size:
+            if self.max_core_size_diff:
                 if len(self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count, [])) < 2:
                     return False
             return True
