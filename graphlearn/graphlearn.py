@@ -49,7 +49,7 @@ class GraphLearnSampler(object):
         self.same_core_size = None
         # a similaritythreshold at which to stop sampling.  a value <= 0 will render this useless
         self.similarity = None
-        # we will save current graph at every intervalth step of sampling and attach to graphinfos[graphs]
+        # we will save current graph at every interval step of sampling and attach to graphinfos[graphs]
         self.sampling_interval = None
         # how many sampling steps are done
         self.n_steps = None
@@ -61,7 +61,7 @@ class GraphLearnSampler(object):
         # factor for simulated annealing, 0 means off
         # 1 is pretty strong. 0.6 seems ok
         self.accept_annealing_factor = None
-        # current step in sampling proces of a single graph
+        # current step in sampling process of a single graph
         self.step = None
         self.node_entity_check = node_entity_check
 
@@ -72,9 +72,9 @@ class GraphLearnSampler(object):
         self.sample_path = None
 
         # sample this many before sampling interval starts
-        self.burn_in = None
+        self.burnin = None
 
-        # is the core coosen by frequency?  (bool)
+        # is the core chosen by frequency?  (bool)
         self.probabilistic_core_choice = None
 
         if not grammar:
@@ -94,29 +94,21 @@ class GraphLearnSampler(object):
     def save(self, file_name):
         self.lsgg._revert_multicore_transform()
         dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
-        # joblib.dump(self.__dict__, file_name, compress=1)
         logger.debug('Saved model: %s' % file_name)
 
     def load(self, file_name):
-        # self.__dict__ = joblib.load(file_name)
         self.__dict__ = dill.load(open(file_name))
         logger.debug('Loaded model: %s' % file_name)
 
-    def get_grammar(self):
-        return self.lsgg.grammar
+    def grammar(self):
+        return self.lsgg
 
-    def fit(self, graphs,
-            min_cip_count=2,
-            min_interface_count=2,
-            n_jobs=-1,
-            nu=.5, batch_size=10):
+    def fit(self, graphs, n_jobs=-1, nu=.5, batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
         graphs, graphs_ = itertools.tee(graphs)
-
         self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs)
-
         self.lsgg.fit(graphs, n_jobs, batch_size=batch_size)
 
     def sample(self, graph_iter,
@@ -130,7 +122,7 @@ class GraphLearnSampler(object):
                accept_annealing_factor=0,
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
-               burn_in=0,
+               burnin=0,
                generator_mode=False,
                keep_duplicates=False):
         """
@@ -140,7 +132,7 @@ class GraphLearnSampler(object):
         self.similarity = similarity
 
         if n_samples:
-            self.sampling_interval = int((n_steps - burn_in) / n_samples) + 1
+            self.sampling_interval = int((n_steps - burnin) / n_samples) + 1
         else:
             self.sampling_interval = 9999
         self.n_steps = n_steps
@@ -149,7 +141,7 @@ class GraphLearnSampler(object):
         self.accept_annealing_factor = accept_annealing_factor
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
-        self.burn_in = burn_in
+        self.burnin = burnin
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
         self.generator_mode = generator_mode
@@ -259,7 +251,7 @@ class GraphLearnSampler(object):
 
     def _sample_path_append(self, graph):
         # conditions meet?
-        if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burn_in):
+        if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnin):
 
             # do we want to omit duplicates?
             if not self.keep_duplicates:
@@ -338,6 +330,8 @@ class GraphLearnSampler(object):
             in this implementation we use the score of the graph to judge the new graph
         '''
 
+        accept_decision = False
+
         # first calculate the score ratio between old and new graph.
         score_graph_old = self._score(graph_old)
         score_graph_new = self._score(graph_new)
@@ -345,21 +339,22 @@ class GraphLearnSampler(object):
 
         # if the new graph scores higher, the ratio is > 1 and we accept
         if score_ratio > 1.0:
-            return True
+            accept_decision = True
+        else:
+            # we now know that the new graph is worse than the old one, but we believe in second chances :)
+            # the score_ratio is the probability of being accepted, (see next comment block)
+            # there are 2 ways of messing with the score_ratio:
+            # 1. the annealing factor will increase the penalty as the sampling progresses
+            #       (values of 1 +- .5 are interesting here)
+            # 2. a static penalty applies a penalty that is always the same.
+            #       (-1 ~ always accept ; +1 ~  never accept)
+            score_ratio = score_ratio - ((float(self.step) / self.n_steps) * self.accept_annealing_factor)
+            score_ratio = score_ratio - self.accept_static_penalty
 
-        # we now know that the new graph is worse than the old one, but we believe in second chances :)
-        # the score_ratio is the probability of being accepted, (see next comment block)
-        # there are 2 ways of messing with the score_ratio:
-        # 1. the annealing factor will increase the penalty as the sampling progresses
-        #       (values of 1 +- .5 are interesting here)
-        # 2. a static penalty applies a penalty that is always the same.
-        #       (-1 ~ always accept ; +1 ~  never accept)
-        score_ratio = score_ratio - ((float(self.step) / self.n_steps) * self.accept_annealing_factor)
-        score_ratio = score_ratio - self.accept_static_penalty
-
-        # score_ratio is smaller than 1. random.random generates a float between 0 and 1
-        # the smaller the score_ratio the smaller the chance of getting accepted.
-        return score_ratio > random.random()
+            # score_ratio is smaller than 1. random.random generates a float between 0 and 1
+            # the smaller the score_ratio the smaller the chance of getting accepted.
+            accept_decision = (score_ratio > random.random())
+        return accept_decision
 
     def _propose(self, graph):
         '''
@@ -527,7 +522,7 @@ class GraphLearnSampler(object):
         # if we have a hit in the grammar
         if len(self.lsgg.grammar.get(cip.interface_hash,{})) > 1:
             if self.same_core_size:
-                if  len (self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count,[])) < 2:
+                if len(self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count, [])) < 2:
                     return False
             return True
         return False
