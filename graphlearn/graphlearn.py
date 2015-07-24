@@ -396,9 +396,9 @@ class GraphLearnSampler(object):
                 print 'printing le errer'
                 draw.graphlearn_draw(original_cip.graph)
                 ih = original_cip.interface_hash
-                ch = self.lsgg.grammar[ih].keys()
+                ch = self.lsgg.productions[ih].keys()
                 print 'grammar'
-                draw.graphlearn_draw([self.lsgg.grammar[ih][c].graph for c in ch], contract=False)
+                draw.graphlearn_draw([self.lsgg.productions[ih][c].graph for c in ch], contract=False)
                 print 'candidates'
                 candidates = [cip.graph for cip in self._select_cips(original_cip)]
                 draw.graphlearn_draw(candidates, contract=False)
@@ -414,7 +414,7 @@ class GraphLearnSampler(object):
             raise Exception('select randomized cips from grammar got bad cip')
 
         # get core hashes
-        core_hashes= self.lsgg.grammar[cip.interface_hash].keys()
+        core_hashes= self.lsgg.productions[cip.interface_hash].keys()
         if cip.core_hash in core_hashes:
             core_hashes.remove(cip.core_hash)
         logger.debug('Working with %d cores' % len(core_hashes))
@@ -422,7 +422,7 @@ class GraphLearnSampler(object):
         # get weights and yield accordingly
         weights= self._get_core_weights(cip, core_hashes)
         for core_hash in self.probabilistic_choice(weights,core_hashes):
-                yield self.lsgg.grammar[cip.interface_hash][core_hash]
+                yield self.lsgg.productions[cip.interface_hash][core_hash]
 
 
     def _get_core_weights(self, cip, core_hashes):
@@ -520,7 +520,7 @@ class GraphLearnSampler(object):
         # gr=draw.cip_to_graph( cips )
         # draw.draw_graph_set_graphlearn(gr )
         # if we have a hit in the grammar
-        if len(self.lsgg.grammar.get(cip.interface_hash,{})) > 1:
+        if len(self.lsgg.productions.get(cip.interface_hash,{})) > 1:
             if self.same_core_size:
                 if len(self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count, [])) < 2:
                     return False
