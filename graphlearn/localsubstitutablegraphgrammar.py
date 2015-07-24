@@ -65,6 +65,17 @@ class LocalSubstitutableGraphGrammar(object):
         self._read(graph_iterator, n_jobs, batch_size=batch_size)
         self.clean()
 
+    def size(self):
+        interface_counts = len(self.productions)
+        cip_counts = 0
+        core_set = set()
+        for interface in self.productions:
+            for core in self.productions[interface]:
+                core_set.add(core)
+            cip_counts += len(self.productions[interface])
+        core_counts = len(core_set)
+        return interface_counts, core_counts, cip_counts
+
     def _multicore_transform(self):
         '''
         this turns the grammar into a managed dictionary which we need for multiprocessing
@@ -202,17 +213,6 @@ class LocalSubstitutableGraphGrammar(object):
             self.productions[interface][core] = cip
 
         self.productions[interface][core].count += 1
-
-    def size(self):
-        interface_counts = len(self.productions)
-        cip_counts = 0
-        core_set = set()
-        for interface in self.productions:
-            for core in self.productions[interface]:
-                core_set.add(core)
-            cip_counts += len(self.productions[interface])
-        core_counts = len(core_set)
-        return interface_counts, core_counts, cip_counts
 
     def _read_single(self, graphs):
         """
