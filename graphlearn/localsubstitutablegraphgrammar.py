@@ -32,7 +32,7 @@ class LocalSubstitutableGraphGrammar(object):
         self.node_entity_check = node_entity_check
         self.prep_is_outdated=True
 
-    def preprocessing(self, n_jobs=0, same_core_size=0, probabilistic_core_choice=False):
+    def preprocessing(self, n_jobs=0, max_core_size_diff=0, probabilistic_core_choice=False):
         """Preprocess need to be done before sampling.
 
         Args:
@@ -44,11 +44,10 @@ class LocalSubstitutableGraphGrammar(object):
 
         logger.debug('preprocessing grammar')
         if self.prep_is_outdated:
-            if same_core_size:
+            if max_core_size_diff > -1:
                 self._add_core_size_quicklookup()
             if probabilistic_core_choice:
                 self._add_frequency_quicklookup()
-
             self.prep_is_outdated = False
         if n_jobs > 1:
             self._multicore_transform()

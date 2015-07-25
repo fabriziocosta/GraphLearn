@@ -132,7 +132,7 @@ class GraphLearnSampler(object):
         self.similarity = similarity
 
         if n_samples:
-            self.sampling_interval = int((n_steps - burnin) / n_samples) + 1
+            self.sampling_interval = int((n_steps - burnin) / (n_samples-1)) + 1
         else:
             self.sampling_interval = 9999
         self.n_steps = n_steps
@@ -209,6 +209,7 @@ class GraphLearnSampler(object):
 
         try:
             for self.step in xrange(self.n_steps):
+                self._sample_path_append(graph)
                 logger.debug('iteration:%d' % self.step)
 
                 # check similarity - stop condition..
@@ -222,9 +223,7 @@ class GraphLearnSampler(object):
                     graph = candidate_graph
 
                 # save score
-                # take snapshot
                 self._score_list_append(graph)
-                self._sample_path_append(graph)
 
         except Exception as exc:
             logger.debug(exc)
@@ -235,7 +234,7 @@ class GraphLearnSampler(object):
         self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
-        self._sample_path_append(graph)
+        self._sample_path_append(graph, force=True)
         sampled_graph = self._revert_edge_to_vertex_transform(graph)
         sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
                                                 'score_history': self._score_list,
@@ -249,9 +248,9 @@ class GraphLearnSampler(object):
     def _score_list_append(self, graph):
         self._score_list.append(graph._score)
 
-    def _sample_path_append(self, graph):
+    def _sample_path_append(self, graph, force = False):
         # conditions meet?
-        if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnin):
+        if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnin) or force:
 
             # do we want to omit duplicates?
             if not self.keep_duplicates:
@@ -383,7 +382,6 @@ class GraphLearnSampler(object):
 
         on each we do our best to find a hit in the grammar.
         as soon as we found one replacement that works we are good and return.
-
         """
 
         for original_cip in self.select_original_cip(graph):
@@ -399,10 +397,10 @@ class GraphLearnSampler(object):
                 else:
                     logger.debug('feasibility checker failed')
             # DEBUG ONLY
-            if True:
+            if False:
                 import utils.draw as draw
                 print 'printing le errer'
-                draw.graphlearn_draw(original_cip.graph)
+                draw.graphlearn_draw([original_cip.graph])
                 ih = original_cip.interface_hash
                 ch = self.lsgg.productions[ih].keys()
                 print 'grammar'
@@ -440,8 +438,8 @@ class GraphLearnSampler(object):
             for core_hash in core_hashes:
                 core_weights.append(self.lsgg.frequency[cip.interface_hash][core_hash])
 
-        elif self.max_core_size_diff > - 1:
-            unit = 100/(self.max_core_size_diff+1)
+        elif self.max_core_size_diff > -1:
+            unit = 100 / (self.max_core_size_diff+1)
             goal_size= cip.core_nodes_count
             for core in core_hashes:
                 size = self.lsgg.core_size[core]
@@ -532,9 +530,6 @@ class GraphLearnSampler(object):
         # draw.draw_graph_set_graphlearn(gr )
         # if we have a hit in the grammar
         if len(self.lsgg.productions.get(cip.interface_hash,{})) > 1:
-            if self.max_core_size_diff:
-                if len(self.lsgg.core_size[cip.interface_hash].get(cip.core_nodes_count, [])) < 2:
-                    return False
             return True
         return False
 
