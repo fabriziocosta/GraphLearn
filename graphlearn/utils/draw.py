@@ -6,7 +6,7 @@ from scipy.optimize import curve_fit
 from collections import defaultdict
 from graphlearn.utils import calc_stats_from_grammar
 import logging
-
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ def set_ids(graph):
         d['id'] = str(n)
 
 
-def display(graph,
+def graphlearn_draw(graphs,
             size=6,
             font_size=15,
             node_size=200,
@@ -167,28 +167,37 @@ def display(graph,
             show_direction=False,
             edge_color=None,
             contract=False,
-            vertex_color='color',
+            vertex_color=None,
             vertex_label='label',
             edge_label=None,
             **args):
 
-    if show_direction:
-        contract = False
-    if contract:
-        graph = contract_edges(graph)
-    graph2 = graph.copy()
-    set_colors(graph2)
+    if not isinstance(graphs, list):
+        graphs=list(graphs)
 
-    if show_direction:
-        for n, d in graph2.nodes(data=True):
-            if 'edge' in d:
-                ne = graph2.neighnors(n)
-                for e in ne:
-                    graph2[n][e]['color'] = 'red'
-    if vertex_label == 'id':
-        set_ids(graph2)
+    graphs=copy.deepcopy(graphs)
 
-    draw_graph(graph2,
+    for graph in graphs:
+
+        if show_direction:
+            contract = False
+        if contract:
+            graph = contract_edges(graphs)
+
+        if vertex_color is None:
+            set_colors(graph)
+            vertex_color = 'col'
+
+        if show_direction:
+            for n, d in graph.nodes(data=True):
+                if 'edge' in d:
+                    ne = graph.neighnors(n)
+                    for e in ne:
+                        graph[n][e]['color'] = 'red'
+        if vertex_label == 'id':
+            set_ids(graph)
+
+    draw_graph_set(graphs,
                size=size,
                node_size=node_size,
                node_border=node_border,
@@ -200,7 +209,20 @@ def display(graph,
                **args)
 
 
-def cip_to_graph(cips=[], graphs=[]):
+def set_colors(g, key='col'):
+    for n, d in g.nodes(data=True):
+        if 'root' in d:
+            d[key] = 1
+        elif 'core' in d:
+            d[key] = 0.65
+        elif 'interface' in d:
+            d[key] = 0.45
+        else:
+            d[key] = 0
+
+
+
+def cip_to_drawable_graph(cips=[], graphs=[]):
     regraphs = []
     if not graphs:
         for cip in cips:
@@ -255,7 +277,7 @@ def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **arg
         # if i < 5]
         print('interface id: %s [%d options]' % (interface, len(grammar[interface])))
         freq = lambda graph: graph.graph['frequency']
-        draw_graph_set_graphlearn(graphs,
+        graphlearn_draw(graphs,
                                   n_graphs_per_line=n_graphs_per_line,
                                   size=size,
                                   headlinehook=freq,
@@ -266,38 +288,9 @@ def get_score_of_graph(graph):
     return "%s%s" % (' score: ', str(graph.graph.get('score', '?')))
 
 
-def set_colors(g, key='col'):
-    for n, d in g.nodes(data=True):
-        if 'root' in d:
-            d[key] = 1
-        elif 'core' in d:
-            d[key] = 0.65
-        elif 'interface' in d:
-            d[key] = 0.45
-        else:
-            d[key] = 0
-
-
 def remove_colors(g, key='col'):
     for n, d in g.nodes(data=True):
         d[key] = 'white'
-
-
-def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4, contract=True, vertex_color=None, **args):
-    graphs = list(graphs)
-
-    if contract:
-        graphs = [contract_edges(g) for g in graphs]
-
-    if vertex_color is None:
-        for g in graphs:
-            set_colors(g)
-        vertex_color = 'col'
-
-    # for e in graphs:
-    #    e.graph['info']= get_score_of_graph(e)
-
-    draw_graph_set(graphs, n_graphs_per_line=n_graphs_per_line, size=size, vertex_color=vertex_color, **args)
 
 
 def contract_edges(original_graph):
