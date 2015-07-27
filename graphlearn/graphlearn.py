@@ -149,7 +149,7 @@ class GraphLearnSampler(object):
         self.probabilistic_core_choice = probabilistic_core_choice
         self.score_core_choice= score_core_choice
         if probabilistic_core_choice and score_core_choice:
-            raise ('conflicting cip choice parameters')
+            raise Exception ('conflicting cip choice parameters')
 
         self.generator_mode = generator_mode
         self.keep_duplicates = keep_duplicates
