@@ -13,8 +13,8 @@ class estimator:
 
     def fit(self, graphs, vectorizer=None, nu=.5, cv=2, n_jobs=-1):
         X = vectorizer.transform(graphs)
-        estimator = self.fit_estimator(X, n_jobs=n_jobs, cv=cv)
-        cal_estimator = self.calibrate_estimator(X, estimator=estimator, nu=nu, cv=cv)
+        self.estimator = self.fit_estimator(X, n_jobs=n_jobs, cv=cv)
+        cal_estimator = self.calibrate_estimator(X, estimator=self.estimator, nu=nu, cv=cv)
         return cal_estimator
 
     def fit_2(self, ipos, ineg, vectorizer=None, cv=2, n_jobs=-1):
@@ -32,7 +32,6 @@ class estimator:
         by inversing the X set to get a negative set
         and then using edens fit_estimator
         '''
-
         # create negative set:
         X_neg = X.multiply(-1)
         # i hope loss is log.. not 100% sure..
@@ -46,7 +45,6 @@ class estimator:
     def calibrate_estimator(self, X, estimator=None, nu=.5, cv=2):
         '''
             move bias until nu of X are in the negative class
-
             then use scikits calibrate to calibrate self.estimator around the input
         '''
         #  move bias

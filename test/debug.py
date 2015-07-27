@@ -20,13 +20,13 @@ def test_sampler():
     # we test multicore and single:
     graphs = sampler.sample(graphs,
                             same_radius=False,
-                            same_core_size=False,
+                            max_core_size_diff=False,
                             sampling_interval=9999,
                             batch_size=2,
                             probabilistic_core_choice=True,
                             n_steps=steps,
                             n_jobs=1,
-                            accept_annealing_factor=0.9,
+                            improving_threshold=0.9,
                             keep_duplicates=False)
     #graphs = sampler.sample(graphs,same_radius=True,sampling_interval=9999,batch_size=2,n_steps=steps,n_jobs=4)
     for e in graphs:

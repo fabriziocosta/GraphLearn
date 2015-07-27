@@ -101,9 +101,9 @@ class DiscSampler():
                                        n_jobs=0,
                                        n_steps=30,
                                        select_cip_max_tries=100,
-                                       accept_annealing_factor=.5,
+                                       improving_threshold=.5,
                                        generatormode=False,
-                                       same_core_size=False,
+                                       max_core_size_diff=False,
                                        n_samples=3
                                        )
             # lets see, we need to take care of
