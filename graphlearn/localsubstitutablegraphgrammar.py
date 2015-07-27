@@ -51,7 +51,7 @@ class LocalSubstitutableGraphGrammar(object):
 
             if calculate_cip_value:
                 if estimator==None:
-                    raise ('grammar preprocess failed, no estimator given')
+                    raise Exception ('grammar preprocess failed, no estimator given')
                 self.calculate_cip_value(estimator)
             self.prep_is_outdated = False
         if n_jobs > 1:

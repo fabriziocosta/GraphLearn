@@ -437,7 +437,6 @@ def mark_median( graph,inp='importance',out='is_good'):
     cutoff=values[index]
 
 
-
     for n,d in graph.nodes(data=True):
         if 'edge' not in d:
             if d[inp] <= cutoff:
