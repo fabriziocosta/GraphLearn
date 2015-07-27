@@ -2,7 +2,7 @@ import itertools
 import random
 import postprocessing
 import estimator
-from graphtools import extract_core_and_interface, core_substitution, graph_clean
+from graphtools import extract_core_and_interface, core_substitution, graph_clean, mark_median
 from feasibility import FeasibilityChecker
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool
@@ -118,6 +118,7 @@ class GraphLearnSampler(object):
                n_samples=None,
                batch_size=10,
                n_jobs=0,
+               target_orig_cip=False,
                n_steps=50,
                improving_threshold=-1,
                accept_static_penalty=0.0,
@@ -137,6 +138,7 @@ class GraphLearnSampler(object):
             self.sampling_interval = 9999
         self.n_steps = n_steps
         self.n_jobs = n_jobs
+        self.target_orig_cip= target_orig_cip
         self.max_core_size_diff = max_core_size_diff
         self.improving_threshold = improving_threshold
         self.accept_static_penalty = accept_static_penalty
@@ -510,6 +512,18 @@ class GraphLearnSampler(object):
         '''
         selects the next candidate.
         '''
+
+        if self.target_orig_cip:
+            from eden.modifier.graph.vertex_attributes import colorize_binary
+            graph2=graph.copy() # annotate kills the graph i assume
+            graph2 = self.vectorizer.annotate( [graph2], estimator=self.estimatorobject.estimator ).next()
+            for n,d in graph2.nodes(data=True):
+                if 'edge' not in d:
+                    graph.node[n]['importance'] = d['importance']
+
+            mark_median( graph,inp='importance',out='is_good')
+            #graph = colorize_binary(graph_list = [graph], output_attribute = 'color_value', input_attribute='importance', level=0).next()
+
         node = random.choice(graph.nodes())
         if 'edge' in graph.node[node]:
             node = random.choice(graph.neighbors(node))
@@ -525,13 +539,27 @@ class GraphLearnSampler(object):
         :param cip: the cip we need to judge
         :return: good or nogood (bool)
         '''
-        # cips=[cip]
-        # gr=draw.cip_to_graph( cips )
-        # draw.draw_graph_set_graphlearn(gr )
-        # if we have a hit in the grammar
+
+        score_ok=True
+        if self.target_orig_cip:
+            imp=[]
+            for n,d in cip.graph.nodes(data=True):
+                if not 'interface' in d and 'edge' not in d:
+                   imp.append( d['is_good'] )
+
+            if  ( float(sum(imp)) / len(imp)) > 0.9:
+                #print imp
+                #from utils import draw
+                #draw.draw_graph(cip.graph, vertex_label='is_good', secondary_vertex_label='importance')
+                score_ok = False
+
+        in_grammar=False
         if len(self.lsgg.productions.get(cip.interface_hash,{})) > 1:
-            return True
-        return False
+            in_grammar = True
+
+        print 'accept_orig_cip:',score_ok, in_grammar
+
+        return in_grammar and score_ok
 
 
 def _sample_multi(what):
