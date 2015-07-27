@@ -32,7 +32,7 @@ class LocalSubstitutableGraphGrammar(object):
         self.node_entity_check = node_entity_check
         self.prep_is_outdated=True
 
-    def preprocessing(self, n_jobs=0, max_core_size_diff=0, probabilistic_core_choice=False):
+    def preprocessing(self, n_jobs=0,calculate_cip_value=False, max_core_size_diff=0, probabilistic_core_choice=False, estimator=None):
         """Preprocess need to be done before sampling.
 
         Args:
@@ -48,10 +48,25 @@ class LocalSubstitutableGraphGrammar(object):
                 self._add_core_size_quicklookup()
             if probabilistic_core_choice:
                 self._add_frequency_quicklookup()
+
+            if calculate_cip_value:
+                if estimator==None:
+                    raise ('grammar preprocess failed, no estimator given')
+                self.calculate_cip_value(estimator)
             self.prep_is_outdated = False
         if n_jobs > 1:
             self._multicore_transform()
 
+
+    def calculate_cip_value(self,estimator):
+
+        self.scores={}
+        for interface in self.productions:
+            for core in self.productions[interface]:
+                gr=self.productions[interface][core].graph.copy()
+                transformed_graph = self.vectorizer.transform_single(gr)
+                score = estimator.base_estimator.predict_proba(transformed_graph)[0, 1]
+                self.scores[core] = score
 
     def fit(self, graph_iterator, n_jobs, batch_size=10):
         self._read(graph_iterator, n_jobs, batch_size=batch_size)

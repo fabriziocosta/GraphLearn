@@ -113,6 +113,7 @@ class GraphLearnSampler(object):
 
     def sample(self, graph_iter,
                probabilistic_core_choice=True,
+               score_core_choice = False,
                max_core_size_diff=-1,
                similarity=-1,
                n_samples=None,
@@ -146,10 +147,11 @@ class GraphLearnSampler(object):
         self.burnin = burnin
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
+        self.score_core_choice= score_core_choice
         self.generator_mode = generator_mode
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
-        self.lsgg.preprocessing(n_jobs, max_core_size_diff, probabilistic_core_choice)
+        self.lsgg.preprocessing(n_jobs,score_core_choice, max_core_size_diff, probabilistic_core_choice, self.estimator)
         logger.debug(serialize_dict(self.__dict__))
 
         # sampling
@@ -440,6 +442,12 @@ class GraphLearnSampler(object):
             for core_hash in core_hashes:
                 core_weights.append(self.lsgg.frequency[cip.interface_hash][core_hash])
 
+
+        elif self.score_core_choice:
+           for core_hash in core_hashes:
+                core_weights.append(self.lsgg.scores[core_hash])
+           logger.debug('core weights:%s' % str(core_weights))
+
         elif self.max_core_size_diff > -1:
             unit = 100 / (self.max_core_size_diff+1)
             goal_size= cip.core_nodes_count
@@ -557,7 +565,7 @@ class GraphLearnSampler(object):
         if len(self.lsgg.productions.get(cip.interface_hash,{})) > 1:
             in_grammar = True
 
-        print 'accept_orig_cip:',score_ok, in_grammar
+        logger.debug( 'accept_orig_cip: %r %r' % (score_ok, in_grammar))
 
         return in_grammar and score_ok
 
