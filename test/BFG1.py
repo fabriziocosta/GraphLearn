@@ -86,13 +86,13 @@ for perc in percentages:
 
     improved_graphs = sampler.sample( graphs_pos_,
                         same_radius=False,
-                        same_core_size=True,
+                        max_core_size_diff=True,
                         sampling_interval=9999,
                         select_cip_max_tries=100,
                         batch_size=int(count/4)+1,
                         n_steps=100,
                         n_jobs=-1,
-                        accept_annealing_factor=0.9)
+                        improving_threshold=0.9)
 
 
 
