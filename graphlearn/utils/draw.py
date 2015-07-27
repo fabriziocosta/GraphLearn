@@ -160,22 +160,22 @@ def set_ids(graph):
 
 
 def graphlearn_draw(graphs,
-            size=6,
-            font_size=15,
-            node_size=200,
-            node_border=False,
-            show_direction=False,
-            edge_color=None,
-            contract=False,
-            vertex_color=None,
-            vertex_label='label',
-            edge_label=None,
-            **args):
+                    size=6,
+                    font_size=15,
+                    node_size=200,
+                    node_border=False,
+                    show_direction=False,
+                    edge_color=None,
+                    contract=False,
+                    vertex_color=None,
+                    vertex_label='label',
+                    edge_label=None,
+                    **args):
 
     if not isinstance(graphs, list):
-        graphs=list(graphs)
+        graphs = list(graphs)
 
-    graphs=copy.deepcopy(graphs)
+    graphs = copy.deepcopy(graphs)
 
     for graph in graphs:
 
@@ -198,15 +198,15 @@ def graphlearn_draw(graphs,
             set_ids(graph)
 
     draw_graph_set(graphs,
-               size=size,
-               node_size=node_size,
-               node_border=node_border,
-               font_size=font_size,
-               edge_color=edge_color,
-               vertex_color=vertex_color,
-               vertex_label=vertex_label,
-               edge_label=edge_label,
-               **args)
+                   size=size,
+                   node_size=node_size,
+                   node_border=node_border,
+                   font_size=font_size,
+                   edge_color=edge_color,
+                   vertex_color=vertex_color,
+                   vertex_label=vertex_label,
+                   edge_label=edge_label,
+                   **args)
 
 
 def set_colors(g, key='col'):
@@ -219,7 +219,6 @@ def set_colors(g, key='col'):
             d[key] = 0.45
         else:
             d[key] = 0
-
 
 
 def cip_to_drawable_graph(cips=[], graphs=[]):
@@ -278,10 +277,10 @@ def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **arg
         print('interface id: %s [%d options]' % (interface, len(grammar[interface])))
         freq = lambda graph: graph.graph['frequency']
         graphlearn_draw(graphs,
-                                  n_graphs_per_line=n_graphs_per_line,
-                                  size=size,
-                                  headlinehook=freq,
-                                  **args)
+                        n_graphs_per_line=n_graphs_per_line,
+                        size=size,
+                        headlinehook=freq,
+                        **args)
 
 
 def get_score_of_graph(graph):
