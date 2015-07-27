@@ -172,8 +172,10 @@ def graphlearn_draw(graphs,
             edge_label=None,
             **args):
 
-    if not isinstance(graphs, list):
-        graphs=list(graphs)
+    if isinstance(graphs, nx.Graph):
+        graphs=[graphs]
+
+
 
     graphs=copy.deepcopy(graphs)
 
