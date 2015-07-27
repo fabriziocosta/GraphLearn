@@ -225,11 +225,14 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
     :param home: the interface in the home graph
     :param other: the interface of a new cip
     :return: a dictionary that is either empty or a good isomorphism
+
+
+    update 23.7.15: not sure if this is a problem anymore//
     '''
     if isinstance(home, nx.DiGraph):
         for mapping in find_all_isomorphisms(home, other):
             return mapping
-
+        '''
         # this is probably broken  ASDASD
         for mapping in find_all_isomorphisms(home, other):
             for home_node in mapping.keys():
@@ -241,7 +244,12 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
                         break
             else:
                 return mapping
+        '''
     else:
+        # i think we cant break here anymore..
+        for mapping in find_all_isomorphisms(home, other):
+            return mapping
+        '''
         for mapping in find_all_isomorphisms(home, other):
             for home_node in mapping.keys():
                 if 'edge' in graph.node[home_node]:
@@ -255,6 +263,7 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
                 return mapping
         # draw rejected pair:
         # draw.draw_graph_set_graphlearn([orig_cip_graph,new_cip_graph])
+        '''
     return {}
 
 
@@ -406,3 +415,36 @@ def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_li
 
     except Exception:
         logger.debug(traceback.format_exc(10))
+
+
+
+
+
+def mark_median( graph,inp='importance',out='is_good'):
+    # get median
+    values=[]
+    for n,d in graph.nodes(data=True):
+        if 'edge' not in d:
+            values.append(  d[inp]   )
+
+
+    # determine cutoff
+    values.sort()
+    values.append(9999)
+    index = len(values)/2 -1
+    while values[index+1]==values[index]:
+        index+=1
+    cutoff=values[index]
+
+
+
+    for n,d in graph.nodes(data=True):
+        if 'edge' not in d:
+            if d[inp] <= cutoff:
+                d[out] = 0
+            else:
+                d[out]=1
+
+
+
+

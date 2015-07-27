@@ -30,8 +30,9 @@ class LocalSubstitutableGraphGrammar(object):
         self.nbit = nbit
         # checked when extracting grammar. see graphtools
         self.node_entity_check = node_entity_check
+        self.prep_is_outdated=True
 
-    def preprocessing(self, n_jobs=0, same_radius=False, same_core_size=0, probabilistic_core_choice=False):
+    def preprocessing(self, n_jobs=0,calculate_cip_value=False, max_core_size_diff=0, probabilistic_core_choice=False, estimator=None):
         """Preprocess need to be done before sampling.
 
         Args:
@@ -40,26 +41,32 @@ class LocalSubstitutableGraphGrammar(object):
             same_core: creates same core data structure
             probabilistic_core_choice: creates probabilistic core data structure
         """
-        # FIXME: resolve this bug!
-        # I have hardwired the non locking but resolve it in a more appropriate way!
-        self.__dict__['locked'] = False
-        if self.__dict__.get('locked', False):
-            logger.debug(
-                'skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing \
-                 does not rerun every time we graphlearn.sample())')
-            return
-        else:
-            logger.debug('preprocessing grammar')
-        if same_radius:
-            self._add_same_radius_quicklookup()
-        if same_core_size:
-            self._add_core_size_quicklookup()
-        if probabilistic_core_choice:
-            self._add_frequency_quicklookup()
+
+        logger.debug('preprocessing grammar')
+        if self.prep_is_outdated:
+            if max_core_size_diff > -1:
+                self._add_core_size_quicklookup()
+            if probabilistic_core_choice:
+                self._add_frequency_quicklookup()
+
+            if calculate_cip_value:
+                if estimator==None:
+                    raise ('grammar preprocess failed, no estimator given')
+                self.calculate_cip_value(estimator)
+            self.prep_is_outdated = False
         if n_jobs > 1:
             self._multicore_transform()
 
-        self.locked = True
+
+    def calculate_cip_value(self,estimator):
+
+        self.scores={}
+        for interface in self.productions:
+            for core in self.productions[interface]:
+                gr=self.productions[interface][core].graph.copy()
+                transformed_graph = self.vectorizer.transform_single(gr)
+                score = estimator.base_estimator.predict_proba(transformed_graph)[0, 1]
+                self.scores[core] = score
 
     def fit(self, graph_iterator, n_jobs, batch_size=10):
         self._read(graph_iterator, n_jobs, batch_size=batch_size)
@@ -124,6 +131,7 @@ class LocalSubstitutableGraphGrammar(object):
 
         if substract_cip_count:
             self.clean()
+        self.prep_is_outdated = True
 
     def union(self, other_grammar):
         """union of grammars"""
@@ -138,7 +146,7 @@ class LocalSubstitutableGraphGrammar(object):
                         self.productions[interface][core] = other_grammar[interface][core]
             else:
                 self.productions[interface] = other_grammar[interface]
-
+        self.prep_is_outdated = True
     def intersect(self, other_grammar):
         """intersection of grammars"""
         for interface in self.productions.keys():
@@ -152,6 +160,7 @@ class LocalSubstitutableGraphGrammar(object):
                         self.productions[interface].pop(core)
             else:
                 self.productions.pop(interface)
+        self.prep_is_outdated = True
 
     def clean(self):
         """remove cips and interfaces not been seen enough during grammar creation"""
@@ -161,33 +170,30 @@ class LocalSubstitutableGraphGrammar(object):
                     self.productions[interface].pop(core)
             if len(self.productions[interface]) < self.min_interface_count:
                 self.productions.pop(interface)
+        self.prep_is_outdated = True
 
-    def _add_same_radius_quicklookup(self):
-        """adds self.radiuslookup{ interface: { radius:[list of cores] } }"""
-        self.radiuslookup = {}
-        for interface in self.productions:
-            radius_lookup = [[]] * (max(self.radius_list) + 1)
-            for core in self.productions[interface]:
-                radius = self.productions[interface][core].radius
-                if radius in radius_lookup:
-                    radius_lookup[radius].append(core)
-                else:
-                    radius_lookup[radius] = [core]
-            self.radiuslookup[interface] = radius_lookup
+
+
 
     def _add_core_size_quicklookup(self):
         """"adds self.core_size{ interface: { core_size:[list of cores] } }"""
         self.core_size = {}
         for interface in self.productions:
+            for core in self.productions[interface]:
+                self.core_size[core]=self.productions[interface][core].core_nodes_count
+
+        '''
+        for interface in self.productions:
             core_size = {}
             for core in self.productions[interface]:
                 nodes_count = self.productions[interface][core].core_nodes_count
+
                 if nodes_count in core_size:
                     core_size[nodes_count].append(core)
                 else:
                     core_size[nodes_count] = [core]
             self.core_size[interface] = core_size
-
+        '''
     def _add_frequency_quicklookup(self):
         """adds self.frequency{ interface: { core_frequency:[list of cores] } }"""
         self.frequency = {}
@@ -203,6 +209,7 @@ class LocalSubstitutableGraphGrammar(object):
             self._read_single(graphs)
         else:
             self._read_multi(graphs, n_jobs, batch_size)
+        self.prep_is_outdated = True
 
     def _add_core_interface_data(self, cip):
         """add the cip to the grammar"""
