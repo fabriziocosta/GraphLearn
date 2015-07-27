@@ -148,10 +148,10 @@ def draw_grammar_stats(grammar, size=(10, 4)):
     plot_charts(dp, size=size)
 
 
-def draw_center(graph, root_node, radius):
+def draw_center(graph, root_node, radius, **args):
     dist = nx.single_source_shortest_path_length(graph, root_node, radius)
     graph.node[root_node]['color'] = 0.5
-    draw_graph(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color')
+    graphlearn_draw(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color',**args)
 
 
 def set_ids(graph):
@@ -193,7 +193,7 @@ def graphlearn_draw(graphs,
         if show_direction:
             for n, d in graph.nodes(data=True):
                 if 'edge' in d:
-                    ne = graph.neighnors(n)
+                    ne = graph.neighbors(n)
                     for e in ne:
                         graph[n][e]['color'] = 'red'
         if vertex_label == 'id':
@@ -301,7 +301,7 @@ def contract_edges(original_graph):
         that have no partner, eden gives error in this case.
         i still want to see them :)
     """
-    # start from a copy of the original graph
+    # start from 0a copy of the original graph
     graph = nx.Graph(original_graph)
     # re-wire the endpoints of edge-vertices
     for n, d in original_graph.nodes_iter(data=True):

@@ -42,7 +42,7 @@ class UberSampler(GraphLearnSampler):
                                           min_interface_count=min_interface_count,
                                           **kwargs)
 
-        # after the normal run, a grammar was created, but its a ordinary grammar .. so we build a new one
+        # after the normal run, a grammar was created, but its an ordinary grammar .. so we build a new one
         if not isinstance(self.lsgg, UberGrammar):
             self.lsgg = UberGrammar(base_thickness_list=self.base_thickness_list,
                                     radius_list=self.radius_list,
@@ -269,7 +269,7 @@ def extract_cips(node,
                                                                 vectorizer=vectorizer,
                                                                 hash_bitmask=hash_bitmask,
                                                                 **argz)
-        core_hash = graphtools.calc_core_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
+        core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
 
         # now we have a bunch of base_level_cips and need to attach info from the abstract cip.
         for base_cip in base_level_cips:
