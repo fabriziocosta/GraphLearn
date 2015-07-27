@@ -415,3 +415,36 @@ def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_li
 
     except Exception:
         logger.debug(traceback.format_exc(10))
+
+
+
+
+
+def mark_median( graph,inp='importance',out='is_good'):
+    # get median
+    values=[]
+    for n,d in graph.nodes(data=True):
+        if 'edge' not in d:
+            values.append(  d[inp]   )
+
+
+    # determine cutoff
+    values.sort()
+    values.append(9999)
+    index = len(values)/2 -1
+    while values[index+1]==values[index]:
+        index+=1
+    cutoff=values[index]
+
+
+
+    for n,d in graph.nodes(data=True):
+        if 'edge' not in d:
+            if d[inp] <= cutoff:
+                d[out] = 0
+            else:
+                d[out]=1
+
+
+
+
