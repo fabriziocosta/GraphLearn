@@ -113,7 +113,7 @@ class GraphLearnSampler(object):
 
     def sample(self, graph_iter,
                probabilistic_core_choice=True,
-               score_core_choice = False,
+               score_core_choice=False,
                max_core_size_diff=-1,
                similarity=-1,
                n_samples=None,
@@ -134,12 +134,12 @@ class GraphLearnSampler(object):
         self.similarity = similarity
 
         if n_samples:
-            self.sampling_interval = int((n_steps - burnin) / (n_samples-1)) + 1
+            self.sampling_interval = int((n_steps - burnin) / (n_samples - 1)) + 1
         else:
             self.sampling_interval = 9999
         self.n_steps = n_steps
         self.n_jobs = n_jobs
-        self.target_orig_cip= target_orig_cip
+        self.target_orig_cip = target_orig_cip
         self.max_core_size_diff = max_core_size_diff
         self.improving_threshold = improving_threshold
         self.accept_static_penalty = accept_static_penalty
@@ -147,14 +147,18 @@ class GraphLearnSampler(object):
         self.burnin = burnin
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
-        self.score_core_choice= score_core_choice
+        self.score_core_choice = score_core_choice
         if probabilistic_core_choice and score_core_choice:
             raise ('conflicting cip choice parameters')
 
         self.generator_mode = generator_mode
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
-        self.lsgg.preprocessing(n_jobs,score_core_choice, max_core_size_diff, probabilistic_core_choice, self.estimator)
+        self.lsgg.preprocessing(n_jobs,
+                                score_core_choice,
+                                max_core_size_diff,
+                                probabilistic_core_choice,
+                                self.estimator)
         logger.debug(serialize_dict(self.__dict__))
 
         # sampling
@@ -255,7 +259,7 @@ class GraphLearnSampler(object):
     def _score_list_append(self, graph):
         self._score_list.append(graph._score)
 
-    def _sample_path_append(self, graph, force = False):
+    def _sample_path_append(self, graph, force=False):
         # conditions meet?
         if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnin) or force:
 
@@ -357,7 +361,7 @@ class GraphLearnSampler(object):
 
             if self.improving_threshold > 0:
 
-                progress= (float(self.step) / self.n_steps)
+                progress = (float(self.step) / self.n_steps)
                 score_ratio = score_ratio - (progress / self.improving_threshold)
 
             elif self.improving_threshold == 0:
@@ -427,39 +431,37 @@ class GraphLearnSampler(object):
             raise Exception('select randomized cips from grammar got bad cip')
 
         # get core hashes
-        core_hashes= self.lsgg.productions[cip.interface_hash].keys()
+        core_hashes = self.lsgg.productions[cip.interface_hash].keys()
         if cip.core_hash in core_hashes:
             core_hashes.remove(cip.core_hash)
         logger.debug('Working with %d cores' % len(core_hashes))
 
         # get values and yield accordingly
         values = self._core_values(cip, core_hashes)
-        for core_hash in self.probabilistic_choice(values,core_hashes):
-                yield self.lsgg.productions[cip.interface_hash][core_hash]
-
+        for core_hash in self.probabilistic_choice(values, core_hashes):
+            yield self.lsgg.productions[cip.interface_hash][core_hash]
 
     def _core_values(self, cip, core_hashes):
-        core_weights=[]
+        core_weights = []
 
         if self.probabilistic_core_choice:
             for core_hash in core_hashes:
                 core_weights.append(self.lsgg.frequency[cip.interface_hash][core_hash])
 
-
         elif self.score_core_choice:
-           for core_hash in core_hashes:
+            for core_hash in core_hashes:
                 core_weights.append(self.lsgg.scores[core_hash])
-           logger.debug('core weights:%s' % str(core_weights))
+            logger.debug('core weights:%s' % str(core_weights))
 
         elif self.max_core_size_diff > -1:
-            unit = 100 / (self.max_core_size_diff+1)
-            goal_size= cip.core_nodes_count
+            unit = 100 / (self.max_core_size_diff + 1)
+            goal_size = cip.core_nodes_count
             for core in core_hashes:
                 size = self.lsgg.core_size[core]
-                value = 100 - ( abs(goal_size - size) * unit)
+                value = 100 - (abs(goal_size - size) * unit)
                 core_weights.append(value)
         else:
-            core_weights= [1]*len(core_hashes)
+            core_weights = [1] * len(core_hashes)
 
         return core_weights
 
@@ -484,8 +486,6 @@ class GraphLearnSampler(object):
             ratings_sum -= values[i]
             del values[i]
             del core_hashes[i]
-
-
 
     def select_original_cip(self, graph):
         """
@@ -525,15 +525,16 @@ class GraphLearnSampler(object):
         '''
 
         if self.target_orig_cip:
-            from eden.modifier.graph.vertex_attributes import colorize_binary
-            graph2=graph.copy() # annotate kills the graph i assume
-            graph2 = self.vectorizer.annotate( [graph2], estimator=self.estimatorobject.estimator ).next()
-            for n,d in graph2.nodes(data=True):
+            graph2 = graph.copy()  # annotate kills the graph i assume
+            graph2 = self.vectorizer.annotate([graph2], estimator=self.estimatorobject.estimator).next()
+            for n, d in graph2.nodes(data=True):
                 if 'edge' not in d:
                     graph.node[n]['importance'] = d['importance']
 
-            mark_median( graph,inp='importance',out='is_good')
-            #graph = colorize_binary(graph_list = [graph], output_attribute = 'color_value', input_attribute='importance', level=0).next()
+            mark_median(graph, inp='importance', out='is_good')
+            # from eden.modifier.graph.vertex_attributes import colorize_binary
+            # graph = colorize_binary(graph_list = [graph], output_attribute = 'color_value',
+            #    input_attribute = 'importance', level = 0).next()
 
         node = random.choice(graph.nodes())
         if 'edge' in graph.node[node]:
@@ -551,24 +552,24 @@ class GraphLearnSampler(object):
         :return: good or nogood (bool)
         '''
 
-        score_ok=True
+        score_ok = True
         if self.target_orig_cip:
-            imp=[]
-            for n,d in cip.graph.nodes(data=True):
-                if not 'interface' in d and 'edge' not in d:
-                   imp.append( d['is_good'] )
+            imp = []
+            for n, d in cip.graph.nodes(data=True):
+                if 'interface' not in d and 'edge' not in d:
+                    imp.append(d['is_good'])
 
-            if  ( float(sum(imp)) / len(imp)) > 0.9:
-                #print imp
-                #from utils import draw
-                #draw.draw_graph(cip.graph, vertex_label='is_good', secondary_vertex_label='importance')
+            if (float(sum(imp)) / len(imp)) > 0.9:
+                # print imp
+                # from utils import draw
+                # draw.draw_graph(cip.graph, vertex_label='is_good', secondary_vertex_label='importance')
                 score_ok = False
 
-        in_grammar=False
-        if len(self.lsgg.productions.get(cip.interface_hash,{})) > 1:
+        in_grammar = False
+        if len(self.lsgg.productions.get(cip.interface_hash, {})) > 1:
             in_grammar = True
 
-        logger.debug( 'accept_orig_cip: %r %r' % (score_ok, in_grammar))
+        logger.debug('accept_orig_cip: %r %r' % (score_ok, in_grammar))
 
         return in_grammar and score_ok
 
