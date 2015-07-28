@@ -275,9 +275,18 @@ def extract_cips(node,
         for base_cip in base_level_cips:
 
             # we cheated a little with the core, so we need to undo our cheating
+            whatever=base_cip.graph.copy()
             base_cip.graph = base_graph.subgraph(base_cip.graph.nodes() + mergeids).copy()
+
             for n in mergeids:
                 base_cip.graph.node[n]['core'] = True
+
+            for n,d in base_cip.graph.nodes(data=True):
+                if 'core' not in d:
+                    d['interface']=True
+                    d['distance_dependent_label'] = whatever.node[n]['distance_dependent_label']
+
+
             base_cip.core_hash = core_hash
 
             # merging cip info with the abstract graph
