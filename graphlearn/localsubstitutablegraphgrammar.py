@@ -4,7 +4,6 @@ import dill
 from eden import grouper
 from eden.graph import Vectorizer
 import logging
-from coreinterfacepair import CoreInterfacePair
 import traceback
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ class LocalSubstitutableGraphGrammar(object):
 
     def __init__(self, radius_list=None, thickness_list=None, min_cip_count=3, complexity=3,
                  min_interface_count=2, nbit=20, node_entity_check=lambda x, y: True):
-        self.grammar = {}
+        self.productions = {}
         self.min_interface_count = min_interface_count
         self.radius_list = radius_list
         self.thickness_list = thickness_list
@@ -31,8 +30,9 @@ class LocalSubstitutableGraphGrammar(object):
         self.nbit = nbit
         # checked when extracting grammar. see graphtools
         self.node_entity_check = node_entity_check
+        self.prep_is_outdated=True
 
-    def preprocessing(self, n_jobs=0, same_radius=False, same_core_size=0, probabilistic_core_choice=False):
+    def preprocessing(self, n_jobs=0,calculate_cip_value=False, max_core_size_diff=0, probabilistic_core_choice=False, estimator=None):
         """Preprocess need to be done before sampling.
 
         Args:
@@ -41,30 +41,50 @@ class LocalSubstitutableGraphGrammar(object):
             same_core: creates same core data structure
             probabilistic_core_choice: creates probabilistic core data structure
         """
-        # FIXME: resolve this bug!
-        # I have hardwired the non locking but resolve it in a more appropriate way!
-        self.__dict__['locked'] = False
-        if self.__dict__.get('locked', False):
-            logger.debug(
-                'skipping preprocessing of grammar. (we lock the grammar after sampling, so the preprocessing \
-                 does not rerun every time we graphlearn.sample())')
-            return
-        else:
-            logger.debug('preprocessing grammar')
-        if same_radius:
-            self._add_same_radius_quicklookup()
-        if same_core_size:
-            self._add_core_size_quicklookup()
-        if probabilistic_core_choice:
-            self._add_frequency_quicklookup()
+
+        logger.debug('preprocessing grammar')
+        if self.prep_is_outdated:
+            if max_core_size_diff > -1:
+                self._add_core_size_quicklookup()
+            if probabilistic_core_choice:
+                self._add_frequency_quicklookup()
+
+            if calculate_cip_value:
+                if estimator==None:
+                    raise Exception ('grammar preprocess failed, no estimator given')
+                self.calculate_cip_value(estimator)
+            self.prep_is_outdated = False
         if n_jobs > 1:
             self._multicore_transform()
 
-        self.locked = True
+
+    def calculate_cip_value(self,estimator):
+
+        self.scores={}
+        for interface in self.productions:
+            for core in self.productions[interface]:
+                gr=self.productions[interface][core].graph.copy()
+                transformed_graph = self.vectorizer.transform_single(gr)
+                score = estimator.base_estimator.predict_proba(transformed_graph)[0, 1]
+                self.scores[core] = score
 
     def fit(self, graph_iterator, n_jobs, batch_size=10):
         self._read(graph_iterator, n_jobs, batch_size=batch_size)
         self.clean()
+        interface_counts, core_counts, cip_counts = self.size()
+        logger.debug('#interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
+                     (interface_counts, core_counts, cip_counts))
+
+    def size(self):
+        interface_counts = len(self.productions)
+        cip_counts = 0
+        core_set = set()
+        for interface in self.productions:
+            for core in self.productions[interface]:
+                core_set.add(core)
+            cip_counts += len(self.productions[interface])
+        core_counts = len(core_set)
+        return interface_counts, core_counts, cip_counts
 
     def _multicore_transform(self):
         '''
@@ -75,110 +95,111 @@ class LocalSubstitutableGraphGrammar(object):
         '''
 
         # do nothing if transform already happened
-        if type(self.grammar) != dict:
+        if type(self.productions) != dict:
             return
         # move the grammar into a manager object...
         manager = Manager()
         shelve = manager.dict()
-        for k, v in self.grammar.iteritems():
+        for k, v in self.productions.iteritems():
             md = manager.dict()
             for k2, v2 in v.iteritems():
                 md[k2] = v2
             shelve[k] = md
-        self.grammar = shelve
+        self.productions = shelve
 
     def _revert_multicore_transform(self):
         # only if we are managed we need to do this
-        if type(self.grammar) != dict:
+        if type(self.productions) != dict:
             shelve = {}
-            for k, v in self.grammar.iteritems():
+            for k, v in self.productions.iteritems():
                 md = {}
                 for k2, v2 in v.iteritems():
                     md[k2] = v2
                 shelve[k] = md
-            self.grammar = shelve
+            self.productions = shelve
 
     def difference(self, other_grammar, substract_cip_count=False):
         """difference between grammars"""
-        for interface in self.grammar:
+        for interface in self.productions:
             if interface in other_grammar:
-                for core in self.grammar[interface]:
+                for core in self.productions[interface]:
                     if core in other_grammar[interface].keys():
                         if substract_cip_count:
-                            self.grammar[interface][core].count -= other_grammar[interface][core].count
+                            self.productions[interface][core].count -= other_grammar[interface][core].count
                         else:
-                            self.grammar[interface].pop(core)
+                            self.productions[interface].pop(core)
 
         if substract_cip_count:
             self.clean()
+        self.prep_is_outdated = True
 
     def union(self, other_grammar):
         """union of grammars"""
-        for interface in self.grammar:
+        for interface in self.productions:
             if interface in other_grammar:
-                for core in self.grammar[interface]:
+                for core in self.productions[interface]:
                     if core in other_grammar[interface]:
-                        self.grammar[interface][core].counter = sum(self.grammar[interface][core].counter,
-                                                                    other_grammar[interface][core].counter)
+                        self.productions[interface][core].counter = \
+                            sum(self.productions[interface][core].counter,
+                                other_grammar[interface][core].counter)
                     else:
-                        self.grammar[interface][core] = other_grammar[interface][core]
+                        self.productions[interface][core] = other_grammar[interface][core]
             else:
-                self.grammar[interface] = other_grammar[interface]
-
+                self.productions[interface] = other_grammar[interface]
+        self.prep_is_outdated = True
     def intersect(self, other_grammar):
         """intersection of grammars"""
-        for interface in self.grammar.keys():
+        for interface in self.productions.keys():
             if interface in other_grammar:
-                for core in self.grammar[interface].keys():
+                for core in self.productions[interface].keys():
                     if core in other_grammar[interface]:
-                        self.grammar[interface][core].counter = min(self.grammar[interface][core].counter,
-                                                                    other_grammar[interface][core].counter)
+                        self.productions[interface][core].counter = \
+                            min(self.productions[interface][core].counter,
+                                other_grammar[interface][core].counter)
                     else:
-                        self.grammar[interface].pop(core)
+                        self.productions[interface].pop(core)
             else:
-                self.grammar.pop(interface)
+                self.productions.pop(interface)
+        self.prep_is_outdated = True
 
     def clean(self):
         """remove cips and interfaces not been seen enough during grammar creation"""
-        for interface in self.grammar.keys():
-            for core in self.grammar[interface].keys():
-                if self.grammar[interface][core].count < self.min_cip_count:
-                    self.grammar[interface].pop(core)
-            if len(self.grammar[interface]) < self.min_interface_count:
-                self.grammar.pop(interface)
+        for interface in self.productions.keys():
+            for core in self.productions[interface].keys():
+                if self.productions[interface][core].count < self.min_cip_count:
+                    self.productions[interface].pop(core)
+            if len(self.productions[interface]) < self.min_interface_count:
+                self.productions.pop(interface)
+        self.prep_is_outdated = True
 
-    def _add_same_radius_quicklookup(self):
-        """adds self.radiuslookup{ interface: { radius:[list of cores] } }"""
-        self.radiuslookup = {}
-        for interface in self.grammar:
-            radius_lookup = [[]] * (max(self.radius_list) + 1)
-            for core in self.grammar[interface]:
-                radius = self.grammar[interface][core].radius
-                if radius in radius_lookup:
-                    radius_lookup[radius].append(core)
-                else:
-                    radius_lookup[radius] = [core]
-            self.radiuslookup[interface] = radius_lookup
+
+
 
     def _add_core_size_quicklookup(self):
         """"adds self.core_size{ interface: { core_size:[list of cores] } }"""
         self.core_size = {}
-        for interface in self.grammar:
+        for interface in self.productions:
+            for core in self.productions[interface]:
+                self.core_size[core]=self.productions[interface][core].core_nodes_count
+
+        '''
+        for interface in self.productions:
             core_size = {}
-            for core in self.grammar[interface]:
-                nodes_count = self.grammar[interface][core].core_nodes_count
+            for core in self.productions[interface]:
+                nodes_count = self.productions[interface][core].core_nodes_count
+
                 if nodes_count in core_size:
                     core_size[nodes_count].append(core)
                 else:
                     core_size[nodes_count] = [core]
             self.core_size[interface] = core_size
-
+        '''
     def _add_frequency_quicklookup(self):
         """adds self.frequency{ interface: { core_frequency:[list of cores] } }"""
         self.frequency = {}
-        for interface in self.grammar:
+        for interface in self.productions:
             core_frequency = {}
-            for hash, cip in self.grammar[interface].items():
+            for hash, cip in self.productions[interface].items():
                 core_frequency[hash] = cip.count
             self.frequency[interface] = core_frequency
 
@@ -188,19 +209,20 @@ class LocalSubstitutableGraphGrammar(object):
             self._read_single(graphs)
         else:
             self._read_multi(graphs, n_jobs, batch_size)
+        self.prep_is_outdated = True
 
     def _add_core_interface_data(self, cip):
         """add the cip to the grammar"""
         interface = cip.interface_hash
         core = cip.core_hash
 
-        if interface not in self.grammar:
-            self.grammar[interface] = {}
+        if interface not in self.productions:
+            self.productions[interface] = {}
 
-        if core not in self.grammar[interface]:
-            self.grammar[interface][core] = cip
+        if core not in self.productions[interface]:
+            self.productions[interface][core] = cip
 
-        self.grammar[interface][core].count += 1
+        self.productions[interface][core].count += 1
 
     def _read_single(self, graphs):
         """
@@ -254,7 +276,11 @@ class LocalSubstitutableGraphGrammar(object):
     '''
 
     def _get_args(self):
-        return [self.radius_list, self.thickness_list, self.vectorizer, self.hash_bitmask, self.node_entity_check]
+        return [self.radius_list,
+                self.thickness_list,
+                self.vectorizer,
+                self.hash_bitmask,
+                self.node_entity_check]
 
     def get_cip_extractor(self):
         return extract_cores_and_interfaces
@@ -293,13 +319,13 @@ def extract_cores_and_interfaces(parameters):
                 cips.append(cip_list)
         return cips
 
-    except Exception as exc:
+    except Exception:
         logger.debug(traceback.format_exc(10))
         # as far as i remember this should almost never happen,
         # if it does you may have a bigger problem.
         # so i put this in info
-        #logger.info( "extract_cores_and_interfaces_died" )
-        #logger.info( parameters )
+        # logger.info( "extract_cores_and_interfaces_died" )
+        # logger.info( parameters )
 
 
 def extract_core_and_interface_single_root(**kwargs):

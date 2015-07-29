@@ -83,7 +83,6 @@ def extract_core_and_interface(root_node=None,
                                hash_bitmask=2 ** 20 - 1,
                                filter=lambda x, y: True):
     """
-
     :param root_node: root root_node
     :param graph: graph
     :param radius_list:
@@ -130,11 +129,11 @@ def extract_core_and_interface(root_node=None,
                                      for item in node_dict.get(x, [])]
             for inode in interface_graph_nodes:
                 label = master_cip_graph.node[inode]['hlabel'][0]
-                master_cip_graph.node[inode]['temporary_substitution_label'] = label + dist[inode] - radius_
+                master_cip_graph.node[inode]['distance_dependent_label'] = label + dist[inode] - radius_
             subgraph = master_cip_graph.subgraph(interface_graph_nodes)
             interface_hash = graph_hash(subgraph,
                                         hash_bitmask,
-                                        node_name_label='temporary_substitution_label')
+                                        node_name_label='distance_dependent_label')
 
             # get relevant subgraph
             nodes = [node for i in range(radius_ + thickness_ + 1) for node in node_dict[i]]
@@ -199,11 +198,10 @@ def merge(graph, node, node2):
 
 
 def find_all_isomorphisms(home, other):
-
     if iso.faster_could_be_isomorphic(home, other):
-        matcher = lambda x, y: x['label'] == y['label']
-        graph_matcher = iso.GraphMatcher(home, other, node_match=matcher)
-        for index, mapping in enumerate(graph_matcher.isomorphisms_iter()):
+        label_matcher = lambda x, y: x['distance_dependent_label'] == y['distance_dependent_label']
+        graph_label_matcher = iso.GraphMatcher(home, other, node_match=label_matcher)
+        for index, mapping in enumerate(graph_label_matcher.isomorphisms_iter()):
             if index > 1:
                 logger.debug('delivering isomorphism # %s' % index)
             if index == 5:  # give up ..
@@ -211,11 +209,12 @@ def find_all_isomorphisms(home, other):
             yield mapping
     else:
         logger.debug('faster iso check failed')
+        raise StopIteration
 
 
 def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
     '''
-    we need isomorphisms between two interfaces, netowrkx is able to calculate these.
+    we need isomorphisms between two interfaces, networkx is able to calculate these.
     we use these isomorphism mappings to do the core-replacement.
     some mappings will cause the core replacement to violate the 'edge-nodes have exactly 2 neighbors'
     constraint.
@@ -226,11 +225,14 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
     :param home: the interface in the home graph
     :param other: the interface of a new cip
     :return: a dictionary that is either empty or a good isomorphism
+
+
+    update 23.7.15: not sure if this is a problem anymore//
     '''
     if isinstance(home, nx.DiGraph):
         for mapping in find_all_isomorphisms(home, other):
             return mapping
-
+        '''
         # this is probably broken  ASDASD
         for mapping in find_all_isomorphisms(home, other):
             for home_node in mapping.keys():
@@ -242,7 +244,12 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
                         break
             else:
                 return mapping
+        '''
     else:
+        # i think we cant break here anymore..
+        for mapping in find_all_isomorphisms(home, other):
+            return mapping
+        '''
         for mapping in find_all_isomorphisms(home, other):
             for home_node in mapping.keys():
                 if 'edge' in graph.node[home_node]:
@@ -256,6 +263,7 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
                 return mapping
         # draw rejected pair:
         # draw.draw_graph_set_graphlearn([orig_cip_graph,new_cip_graph])
+        '''
     return {}
 
 
@@ -407,3 +415,35 @@ def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_li
 
     except Exception:
         logger.debug(traceback.format_exc(10))
+
+
+
+
+
+def mark_median( graph,inp='importance',out='is_good'):
+    # get median
+    values=[]
+    for n,d in graph.nodes(data=True):
+        if 'edge' not in d:
+            values.append(  d[inp]   )
+
+
+    # determine cutoff
+    values.sort()
+    values.append(9999)
+    index = len(values)/2 -1
+    while values[index+1]==values[index]:
+        index+=1
+    cutoff=values[index]
+
+
+    for n,d in graph.nodes(data=True):
+        if 'edge' not in d:
+            if d[inp] <= cutoff:
+                d[out] = 0
+            else:
+                d[out]=1
+
+
+
+
