@@ -52,7 +52,7 @@ class RNASampler(UberSampler):
             return graph
         except:
             print 'revert broke'
-            draw.display(graph,contract=False)
+            draw.graphlearn_draw(graph,contract=False)
 
 
 
