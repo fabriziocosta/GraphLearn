@@ -202,9 +202,7 @@ def find_all_isomorphisms(home, other):
         label_matcher = lambda x, y: x['distance_dependent_label'] == y['distance_dependent_label']
         graph_label_matcher = iso.GraphMatcher(home, other, node_match=label_matcher)
         for index, mapping in enumerate(graph_label_matcher.isomorphisms_iter()):
-            if index > 1:
-                logger.debug('delivering isomorphism # %s' % index)
-            if index == 5:  # give up ..
+            if index == 15:  # give up ..
                 break
             yield mapping
     else:
@@ -228,23 +226,37 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
 
 
     update 23.7.15: not sure if this is a problem anymore//
+    undate 29.07.15: with thickness .5 things go wrong when directed because the interfacenode just has no direction indicator
     '''
     if isinstance(home, nx.DiGraph):
-        for mapping in find_all_isomorphisms(home, other):
-            return mapping
-        '''
-        # this is probably broken  ASDASD
-        for mapping in find_all_isomorphisms(home, other):
+        #for mapping in find_all_isomorphisms(home, other):
+        #    return mapping
+
+        # for all the mappings home-> other
+        for i,mapping in enumerate( find_all_isomorphisms(home, other)):
             for home_node in mapping.keys():
+                #check if all the edge nodes are not violating anything
                 if 'edge' in graph.node[home_node]:
+
+                    # neighbors onthe outside
                     old_neigh = len([e for e in graph.neighbors(home_node) if e not in orig_cip_graph.node])
+                    # neighbors on the inside
                     new_neigh = len([e for e in new_cip_graph.neighbors(mapping[home_node])])
-                    # we have a directed graph so 1 and 2 neighbors are ok
-                    if 0 < (old_neigh + new_neigh) < 3:
+
+                    # predec onthe outside
+                    old_pre = len([e for e in graph.predecessors(home_node) if e not in orig_cip_graph.node])
+                    # predec on the inside
+                    new_pre = len([e for e in new_cip_graph.predecessors(mapping[home_node])])
+
+                    # an edge node should have at least one outging and one incoming edge...
+                    if old_neigh+new_neigh==0 or old_pre+new_pre ==0:
                         break
             else:
+                if i > 0:
+                    logger.log(5,'isomorphism #%d accepted' % i)
+
                 return mapping
-        '''
+
     else:
         # i think we cant break here anymore..
         for mapping in find_all_isomorphisms(home, other):
