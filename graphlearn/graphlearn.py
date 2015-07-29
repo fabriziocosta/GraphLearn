@@ -121,6 +121,7 @@ class GraphLearnSampler(object):
                n_jobs=0,
                target_orig_cip=False,
                n_steps=50,
+               quick_skip_orig_cip=False,
                improving_threshold=-1,
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
@@ -138,6 +139,7 @@ class GraphLearnSampler(object):
         else:
             self.sampling_interval = 9999
         self.n_steps = n_steps
+        self.quick_skip_orig_cip=quick_skip_orig_cip
         self.n_jobs = n_jobs
         self.target_orig_cip = target_orig_cip
         self.max_core_size_diff = max_core_size_diff
@@ -221,7 +223,7 @@ class GraphLearnSampler(object):
         try:
             for self.step in xrange(self.n_steps):
                 self._sample_path_append(graph)
-                logger.debug('iteration:%d' % self.step)
+
 
                 # check similarity - stop condition..
                 self._stop_condition(graph)
@@ -247,6 +249,7 @@ class GraphLearnSampler(object):
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph, force=True)
         sampled_graph = self._revert_edge_to_vertex_transform(graph)
+
         sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
                                                 'score_history': self._score_list,
                                                 'accept_count': accept_counter,
@@ -395,18 +398,24 @@ class GraphLearnSampler(object):
         as soon as we found one replacement that works we are good and return.
         """
 
-        for original_cip in self.select_original_cip(graph):
+        for orig_cip_ctr,original_cip in enumerate( self.select_original_cip(graph) ):
             # see which substitution to make
             candidate_cips = self._select_cips(original_cip)
 
-            for candidate_cip in candidate_cips:
+            for attempt,candidate_cip in enumerate(candidate_cips):
+                choices = len(self.lsgg.productions[candidate_cip.interface_hash].keys()) -1
+
                 # substitute and return
                 graph_new = core_substitution(graph, original_cip.graph, candidate_cip.graph)
+
                 if self.feasibility_checker.check(graph_new):
                     graph_clean(graph_new)
+                    logger.debug("_propose_graph delivers... iteration %d ; core %d of %d ;original_cips tried  %d" % (self.step,attempt,choices,orig_cip_ctr))
                     return self.postprocessor.postprocess(graph_new)
-                else:
-                    logger.debug('feasibility checker failed')
+
+                if self.quick_skip_orig_cip:
+                    break
+
             # DEBUG ONLY
             if False:
                 import utils.draw as draw
@@ -434,7 +443,8 @@ class GraphLearnSampler(object):
         core_hashes = self.lsgg.productions[cip.interface_hash].keys()
         if cip.core_hash in core_hashes:
             core_hashes.remove(cip.core_hash)
-        logger.debug('Working with %d cores' % len(core_hashes))
+
+
 
         # get values and yield accordingly
         values = self._core_values(cip, core_hashes)
@@ -569,7 +579,7 @@ class GraphLearnSampler(object):
         if len(self.lsgg.productions.get(cip.interface_hash, {})) > 1:
             in_grammar = True
 
-        logger.debug('accept_orig_cip: %r %r' % (score_ok, in_grammar))
+        logger.log( 5, 'accept_orig_cip: %r %r' % (score_ok, in_grammar))
 
         return in_grammar and score_ok
 

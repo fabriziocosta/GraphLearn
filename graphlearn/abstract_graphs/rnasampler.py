@@ -51,8 +51,8 @@ class RNASampler(UberSampler):
             graph=self.vectorizer._revert_edge_to_vertex_transform(graph)
             return graph
         except:
-            print 'revert broke'
-            draw.graphlearn_draw(graph,contract=False)
+            print 'rnasampler: revert edge to vertex transform failed'
+            draw.graphlearn_draw(graph,contract=False, size=20)
 
 
 
@@ -132,6 +132,46 @@ def expanded_rna_graph_to_digraph(graph):
 
 
 
+def get_start_and_end_node(graph):
+    # make n the first node of the sequence
+    start=-1
+    end=-1
+    for n,d in graph.nodes_iter(data=True):
+
+        # edge nodes cant be start or end
+        if 'edge' in d:
+            continue
+
+        # check for start
+        if start == -1:
+            l= graph.predecessors(n)
+            if len(l)==0:
+                start = n
+            if len(l)==1:
+                if graph.node[ l[0] ]['label']=='=':
+                    start = n
+
+        # check for end:
+        if end == -1:
+            l= graph.neighbors(n)
+            if len(l)==0:
+                end = n
+            if len(l)==1:
+                if graph.node[ l[0] ]['label']=='=':
+                    end = n
+
+    # check and return
+    if start==-1 or end==-1:
+        raise Exception ('your beautiful "rna" has no clear start or end')
+    return start,end
+
+
+def get_mod_dict(graph):
+    s,e=get_start_and_end_node(graph)
+    return {s:696969 , e:123123123}
+
+ubergraphlearn.get_mod_dict=get_mod_dict
+
 def direct_abstractor(graph,v):
     '''
     going through the normal channels to make an abstract graph is slow
@@ -141,18 +181,8 @@ def direct_abstractor(graph,v):
     :param graph: an expanded digraph.
     :return: contracted graph
     '''
-    # make n the first node of the sequence
-    for n,d in graph.nodes_iter(data=True):
-        if 'edge' not in d:
-            l= graph.predecessors(n)
-            if len(l)==0:
-                break
-            if len(l)==1:
-                if graph.node[ l[0] ]['label']=='=':
-                    break
-    if n==len(graph):
-        raise Exception ('cant make this abstract, its not an rna, go away!')
 
+    n,not_used= get_start_and_end_node(graph)
     tasks=[n]
     result = nx.Graph()
 
@@ -203,8 +233,6 @@ def direct_abstractor(graph,v):
             done.add( graph.neighbors(i)[0])
 
         tasks+=[graph.neighbors(o)[0] for o in out if graph.neighbors(o)[0] ]
-
-
 
     return result
 
