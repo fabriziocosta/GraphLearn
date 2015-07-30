@@ -268,8 +268,7 @@ class GraphLearnSampler(object):
             if self.feasibility_checker.check(graph_new):
                 graph_clean(graph_new)
                 return self.postprocessor.postprocess(graph_new)
-            else:
-                logger.debug('feasibility checker failed')
+
 
     def _select_cips(self, cip):
         """
