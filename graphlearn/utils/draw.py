@@ -148,10 +148,10 @@ def draw_grammar_stats(grammar, size=(10, 4)):
     plot_charts(dp, size=size)
 
 
-def draw_center(graph, root_node, radius):
+def draw_center(graph, root_node, radius, **args):
     dist = nx.single_source_shortest_path_length(graph, root_node, radius)
     graph.node[root_node]['color'] = 0.5
-    draw_graph(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color')
+    graphlearn_draw(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color',**args)
 
 
 def set_ids(graph):
@@ -170,6 +170,7 @@ def graphlearn_draw(graphs,
                     vertex_color=None,
                     vertex_label='label',
                     edge_label=None,
+                    edge_alpha=.5,
                     **args):
 
     if isinstance(graphs, nx.Graph):
@@ -183,21 +184,30 @@ def graphlearn_draw(graphs,
 
         if show_direction:
             contract = False
+
         if contract:
             graph = contract_edges(graphs)
 
         if vertex_color is None:
             set_colors(graph)
-            vertex_color = 'col'
 
         if show_direction:
             for n, d in graph.nodes(data=True):
                 if 'edge' in d:
-                    ne = graph.neighnors(n)
+                    ne = graph.neighbors(n)
                     for e in ne:
-                        graph[n][e]['color'] = 'red'
+                        graph[n][e]['color'] = 1
+
+
         if vertex_label == 'id':
             set_ids(graph)
+
+    if vertex_color is None:
+        vertex_color = 'col'
+    if show_direction:
+            edge_color = 'color'
+            edge_alpha=1.0
+
 
     draw_graph_set(graphs,
                    size=size,
@@ -208,6 +218,7 @@ def graphlearn_draw(graphs,
                    vertex_color=vertex_color,
                    vertex_label=vertex_label,
                    edge_label=edge_label,
+                   edge_alpha=edge_alpha,
                    **args)
 
 
@@ -252,7 +263,7 @@ def cip_to_drawable_graph(cips=[], graphs=[]):
     return regraphs
 
 
-def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **args):
+def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5,n_graphs_per_production=10, size=4, **args):
     if n_productions is None:
         n_productions = len(grammar)
 
@@ -262,6 +273,7 @@ def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **arg
     most_prolific_productions = sorted(
         [(len(grammar[interface]), interface) for interface in grammar],
         reverse=True)
+
     for i in range(n_productions):
         interface = most_prolific_productions[i][1]
         # interface = grammar.keys()[i]
@@ -271,13 +283,21 @@ def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **arg
 
         for cip in cips:
             cip.graph.graph['frequency'] = ' frequency:%s' % cip.count
+
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True)
         graphs = [cip.graph for count, cip in most_frequent_cips]
 
+        graphs= graphs[:n_graphs_per_production]
         # dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) \
         # if i < 5]
         print('interface id: %s [%d options]' % (interface, len(grammar[interface])))
-        freq = lambda graph: graph.graph['frequency']
+        freq = lambda graph: graph.graph.get('frequency','no freqency data')
+
+
+        # uebersampler gets to do this because he is the uebersampler
+        if 'abstract_view' in cips[0].__dict__:
+            graphs.append(cips[0].abstract_view)
+
         graphlearn_draw(graphs,
                         n_graphs_per_line=n_graphs_per_line,
                         size=size,
@@ -301,7 +321,7 @@ def contract_edges(original_graph):
         that have no partner, eden gives error in this case.
         i still want to see them :)
     """
-    # start from a copy of the original graph
+    # start from 0a copy of the original graph
     graph = nx.Graph(original_graph)
     # re-wire the endpoints of edge-vertices
     for n, d in original_graph.nodes_iter(data=True):
