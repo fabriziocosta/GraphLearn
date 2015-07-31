@@ -139,7 +139,7 @@ class GraphLearnSampler(object):
         else:
             self.sampling_interval = 9999
         self.n_steps = n_steps
-        self.quick_skip_orig_cip=quick_skip_orig_cip
+        self.quick_skip_orig_cip = quick_skip_orig_cip
         self.n_jobs = n_jobs
         self.target_orig_cip = target_orig_cip
         self.max_core_size_diff = max_core_size_diff
@@ -223,7 +223,6 @@ class GraphLearnSampler(object):
         try:
             for self.step in xrange(self.n_steps):
                 self._sample_path_append(graph)
-
 
                 # check similarity - stop condition..
                 self._stop_condition(graph)
@@ -398,36 +397,24 @@ class GraphLearnSampler(object):
         as soon as we found one replacement that works we are good and return.
         """
 
-        for orig_cip_ctr,original_cip in enumerate( self.select_original_cip(graph) ):
+        for orig_cip_ctr, original_cip in enumerate(self.select_original_cip(graph)):
             # see which substitution to make
             candidate_cips = self._select_cips(original_cip)
 
-            for attempt,candidate_cip in enumerate(candidate_cips):
-                choices = len(self.lsgg.productions[candidate_cip.interface_hash].keys()) -1
+            for attempt, candidate_cip in enumerate(candidate_cips):
+                choices = len(self.lsgg.productions[candidate_cip.interface_hash].keys()) - 1
 
                 # substitute and return
                 graph_new = core_substitution(graph, original_cip.graph, candidate_cip.graph)
 
                 if self.feasibility_checker.check(graph_new):
                     graph_clean(graph_new)
-                    logger.debug("_propose_graph delivers... iteration %d ; core %d of %d ;original_cips tried  %d" % (self.step,attempt,choices,orig_cip_ctr))
+                    logger.debug("_propose_graph delivers... iteration %d ; core %d of %d ; original_cips tried  %d" %
+                                 (self.step, attempt, choices, orig_cip_ctr))
                     return self.postprocessor.postprocess(graph_new)
 
                 if self.quick_skip_orig_cip:
                     break
-
-            # DEBUG ONLY
-            if False:
-                import utils.draw as draw
-                print 'printing le errer'
-                draw.graphlearn_draw([original_cip.graph])
-                ih = original_cip.interface_hash
-                ch = self.lsgg.productions[ih].keys()
-                print 'grammar'
-                draw.graphlearn_draw([self.lsgg.productions[ih][c].graph for c in ch], contract=False)
-                print 'candidates'
-                candidates = [cip.graph for cip in self._select_cips(original_cip)]
-                draw.graphlearn_draw(candidates, contract=False)
 
     def _select_cips(self, cip):
         """
@@ -444,8 +431,6 @@ class GraphLearnSampler(object):
         if cip.core_hash in core_hashes:
             core_hashes.remove(cip.core_hash)
 
-
-
         # get values and yield accordingly
         values = self._core_values(cip, core_hashes)
         for core_hash in self.probabilistic_choice(values, core_hashes):
@@ -461,14 +446,13 @@ class GraphLearnSampler(object):
         elif self.score_core_choice:
             for core_hash in core_hashes:
                 core_weights.append(self.lsgg.scores[core_hash])
-            logger.debug('core weights:%s' % str(core_weights))
 
         elif self.max_core_size_diff > -1:
-            unit = 100 / (self.max_core_size_diff + 1)
+            unit = 100 / float(self.max_core_size_diff + 1)
             goal_size = cip.core_nodes_count
             for core in core_hashes:
                 size = self.lsgg.core_size[core]
-                value = 100 - (abs(goal_size - size) * unit)
+                value = max(0, 100 - (abs(goal_size - size) * unit))
                 core_weights.append(value)
         else:
             core_weights = [1] * len(core_hashes)
@@ -508,7 +492,7 @@ class GraphLearnSampler(object):
 
         failcount = 0
         nocip = 0
-        for x in xrange(self.select_cip_max_tries):
+        for x in range(self.select_cip_max_tries):
             # exteract_core_and_interface will return a list of results,
             # we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible
@@ -579,7 +563,7 @@ class GraphLearnSampler(object):
         if len(self.lsgg.productions.get(cip.interface_hash, {})) > 1:
             in_grammar = True
 
-        logger.log( 5, 'accept_orig_cip: %r %r' % (score_ok, in_grammar))
+        logger.log(5, 'accept_orig_cip: %r %r' % (score_ok, in_grammar))
 
         return in_grammar and score_ok
 

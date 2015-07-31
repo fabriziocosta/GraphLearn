@@ -1,5 +1,5 @@
 import pylab as plt
-from eden.util.display import draw_graph, draw_graph_set
+from eden.util.display import draw_graph_set
 import networkx as nx
 import numpy as np
 from scipy.optimize import curve_fit
@@ -151,7 +151,7 @@ def draw_grammar_stats(grammar, size=(10, 4)):
 def draw_center(graph, root_node, radius, **args):
     dist = nx.single_source_shortest_path_length(graph, root_node, radius)
     graph.node[root_node]['color'] = 0.5
-    graphlearn_draw(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color',**args)
+    graphlearn_draw(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color', **args)
 
 
 def set_ids(graph):
@@ -174,9 +174,7 @@ def graphlearn_draw(graphs,
                     **args):
 
     if isinstance(graphs, nx.Graph):
-        graphs=[graphs]
-
-
+        graphs = [graphs]
 
     graphs = copy.deepcopy(graphs)
 
@@ -186,7 +184,7 @@ def graphlearn_draw(graphs,
             contract = False
 
         if contract:
-            graph = contract_edges(graphs)
+            graph = contract_edges(graph)
 
         if vertex_color is None:
             set_colors(graph)
@@ -198,16 +196,14 @@ def graphlearn_draw(graphs,
                     for e in ne:
                         graph[n][e]['color'] = 1
 
-
         if vertex_label == 'id':
             set_ids(graph)
 
     if vertex_color is None:
         vertex_color = 'col'
     if show_direction:
-            edge_color = 'color'
-            edge_alpha=1.0
-
+        edge_color = 'color'
+        edge_alpha = 1.0
 
     draw_graph_set(graphs,
                    size=size,
@@ -263,7 +259,12 @@ def cip_to_drawable_graph(cips=[], graphs=[]):
     return regraphs
 
 
-def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5,n_graphs_per_production=10, size=4, **args):
+def draw_grammar(grammar,
+                 n_productions=None,
+                 n_graphs_per_line=5,
+                 n_graphs_per_production=10,
+                 size=4,
+                 **args):
     if n_productions is None:
         n_productions = len(grammar)
 
@@ -287,12 +288,11 @@ def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5,n_graphs_per_p
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True)
         graphs = [cip.graph for count, cip in most_frequent_cips]
 
-        graphs= graphs[:n_graphs_per_production]
+        graphs = graphs[:n_graphs_per_production]
         # dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) \
         # if i < 5]
         print('interface id: %s [%d options]' % (interface, len(grammar[interface])))
-        freq = lambda graph: graph.graph.get('frequency','no freqency data')
-
+        freq = lambda graph: graph.graph.get('frequency', 'no freqency data')
 
         # uebersampler gets to do this because he is the uebersampler
         if 'abstract_view' in cips[0].__dict__:
