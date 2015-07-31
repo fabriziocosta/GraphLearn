@@ -112,9 +112,11 @@ class GraphLearnSampler(object):
         self.lsgg.fit(graphs, n_jobs, batch_size=batch_size)
 
     def sample(self, graph_iter,
+
                probabilistic_core_choice=True,
                score_core_choice=False,
                max_core_size_diff=-1,
+
                similarity=-1,
                n_samples=None,
                batch_size=10,
@@ -127,15 +129,54 @@ class GraphLearnSampler(object):
                select_cip_max_tries=20,
                burnin=0,
                generator_mode=False,
+               omit_seed=True,
                keep_duplicates=False):
         """
-            input: graph iterator
-            output: yield (sampled_graph,{dictionary of info about sampling process}
+
+        :param graph_iter:  seed graphs
+
+        # strategy for choosing a cip inside the grammar
+        :param probabilistic_core_choice:  the more of a cip i have seen, the more likely ill use it
+        :param score_core_choice:   ill use the estimator to determine how likely every cip is. (higher score => higher proba)
+        :param max_core_size_diff: ill prefer cips that wont change the size of the graph
+
+        # sampling
+        :param n_samples:  how many graphs will i print at the end
+        :param batch_size:  how many seeds are going to get batched ( small: overhead, large: needs ram )
+        :param n_jobs: ill start this many threads
+        :param n_steps: how many samplesteps are conducted
+        :param burnin: do this many steps before collecting samples
+
+        # sampling strategy
+        :param target_orig_cip:  we will use the estimator to determine weak regions in the graph that need improvement
+        :param quick_skip_orig_cip: dont try all the hits in the grammar, if the first fails (due to feasibility) we give up
+        :param improving_threshold: fraction after which we only accept graphs that improve the score.
+        :param accept_static_penalty: so there is a chance to accept a lower scoring grpah,  here we penalize
+        :param select_cip_max_tries: how often do we try to get an original cip before declaring the seed done
+        :param similarity:  provides the option to kill the sampling  eg if distance to seed is too large.
+
+        # output options
+        :param generator_mode: yield every graph on its own   or  put all the n_samples as an argument in the last graph
+        :param omit_seed: dont record the seed graph
+        :param keep_duplicates: duplicates are not recorded
+
+
+        :return:  yield graphs
+
         """
+
+
+
         self.similarity = similarity
 
+
+
+        if probabilistic_core_choice+score_core_choice+max_core_size_diff==-1 >1:
+            raise Exception ('choose max one cip choice strategy')
+
+
         if n_samples:
-            self.sampling_interval = int((n_steps - burnin) / (n_samples - 1)) + 1
+            self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1)) + 1
         else:
             self.sampling_interval = 9999
         self.n_steps = n_steps
@@ -147,11 +188,10 @@ class GraphLearnSampler(object):
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
         self.burnin = burnin
+        self.omit_seed=omit_seed
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
         self.score_core_choice = score_core_choice
-        if probabilistic_core_choice and score_core_choice:
-            raise Exception('conflicting cip choice parameters')
 
         self.generator_mode = generator_mode
         self.keep_duplicates = keep_duplicates
@@ -263,7 +303,7 @@ class GraphLearnSampler(object):
 
     def _sample_path_append(self, graph, force=False):
         # conditions meet?
-        if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnin) or force:
+        if (self.step == 0 and self.omit_seed==False) or (self.step % self.sampling_interval == 0 and self.step > self.burnin) or force:
 
             # do we want to omit duplicates?
             if not self.keep_duplicates:
@@ -433,7 +473,9 @@ class GraphLearnSampler(object):
 
         # get values and yield accordingly
         values = self._core_values(cip, core_hashes)
+
         for core_hash in self.probabilistic_choice(values, core_hashes):
+            #print values,'choose:', values[core_hashes.index(core_hash)]
             yield self.lsgg.productions[cip.interface_hash][core_hash]
 
     def _core_values(self, cip, core_hashes):
