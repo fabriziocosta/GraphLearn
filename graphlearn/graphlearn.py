@@ -302,8 +302,12 @@ class GraphLearnSampler(object):
         self._score_list.append(graph._score)
 
     def _sample_path_append(self, graph, force=False):
+
+        step0 = self.step == 0 and self.omit_seed==False
+        normal = self.step % self.sampling_interval == 0 and self.step != 0 and self.step > self.burnin
+
         # conditions meet?
-        if (self.step == 0 and self.omit_seed==False) or (self.step % self.sampling_interval == 0 and self.step > self.burnin) or force:
+        if normal or step0 or force:
 
             # do we want to omit duplicates?
             if not self.keep_duplicates:
