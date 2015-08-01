@@ -165,15 +165,10 @@ class GraphLearnSampler(object):
 
         """
 
-
-
         self.similarity = similarity
 
-
-
-        if probabilistic_core_choice+score_core_choice+max_core_size_diff==-1 >1:
-            raise Exception ('choose max one cip choice strategy')
-
+        if probabilistic_core_choice + score_core_choice + max_core_size_diff == -1 > 1:
+            raise Exception('choose max one cip choice strategy')
 
         if n_samples:
             self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1)) + 1
@@ -188,7 +183,7 @@ class GraphLearnSampler(object):
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
         self.burnin = burnin
-        self.omit_seed=omit_seed
+        self.omit_seed = omit_seed
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
         self.score_core_choice = score_core_choice
@@ -303,12 +298,11 @@ class GraphLearnSampler(object):
 
     def _sample_path_append(self, graph, force=False):
 
-        step0 = self.step == 0 and self.omit_seed==False
+        step0 = (self.step == 0 and self.omit_seed is False)
         normal = self.step % self.sampling_interval == 0 and self.step != 0 and self.step > self.burnin
 
         # conditions meet?
         if normal or step0 or force:
-
             # do we want to omit duplicates?
             if not self.keep_duplicates:
                 # have we seen this before?
@@ -479,7 +473,7 @@ class GraphLearnSampler(object):
         values = self._core_values(cip, core_hashes)
 
         for core_hash in self.probabilistic_choice(values, core_hashes):
-            #print values,'choose:', values[core_hashes.index(core_hash)]
+            # print values,'choose:', values[core_hashes.index(core_hash)]
             yield self.lsgg.productions[cip.interface_hash][core_hash]
 
     def _core_values(self, cip, core_hashes):
