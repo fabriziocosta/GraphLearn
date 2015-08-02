@@ -208,6 +208,9 @@ class GraphLearnSampler(object):
         self.quick_skip_orig_cip = quick_skip_orig_cip
         self.n_jobs = n_jobs
         self.target_orig_cip = target_orig_cip
+
+        # the user doesnt know about edge nodes.. so this needs to be done
+        max_core_size_diff = max_core_size_diff *2
         self.max_core_size_diff = max_core_size_diff
 
         self.improving_threshold = improving_threshold
@@ -508,7 +511,7 @@ class GraphLearnSampler(object):
         values = self._core_values(cip, core_hashes,graph)
 
         for core_hash in self.probabilistic_choice(values, core_hashes):
-            print values,'choose:', values[core_hashes.index(core_hash)]
+            #print values,'choose:', values[core_hashes.index(core_hash)]
             yield self.lsgg.productions[cip.interface_hash][core_hash]
 
     def _core_values(self, cip, core_hashes,graph):
@@ -528,6 +531,7 @@ class GraphLearnSampler(object):
             current_size=len(graph)
 
             for core in core_hashes:
+                #print unit, self.lsgg.core_size[core] , cip.core_nodes_count , current_size , goal_size
                 predicted_size = self.lsgg.core_size[core] - cip.core_nodes_count + current_size
                 value = max(0, 100 - (abs(goal_size - predicted_size) * unit))
                 core_weights.append(value)
