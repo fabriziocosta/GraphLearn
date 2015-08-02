@@ -114,9 +114,6 @@ class GraphLearnSampler(object):
         else:
             self.lsgg = grammar
 
-
-
-
         # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
 
     def save(self, file_name):
@@ -212,6 +209,7 @@ class GraphLearnSampler(object):
         self.n_jobs = n_jobs
         self.target_orig_cip = target_orig_cip
         self.max_core_size_diff = max_core_size_diff
+
         self.improving_threshold = improving_threshold
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
@@ -292,7 +290,7 @@ class GraphLearnSampler(object):
             for self.step in xrange(self.n_steps):
                 self._sample_path_append(graph)
 
-                # check similarity - stop condition..
+                # check stop condition..
                 self._stop_condition(graph)
 
                 # get a proposal for a new graph
@@ -361,8 +359,10 @@ class GraphLearnSampler(object):
         - possibly we are in a multiprocessing process, and this class instance hasnt been used before,
           in this case we need to rebuild the postprocessing function .
         '''
-
         graph = self.vectorizer._edge_to_vertex_transform(graph)
+        if self.max_core_size_diff > -1:
+            self.seed_size= len(graph)
+
         self._score(graph)
         self._sample_notes = ''
         self._sample_path_score_set = set()
@@ -469,9 +469,10 @@ class GraphLearnSampler(object):
         as soon as we found one replacement that works we are good and return.
         """
 
+
         for orig_cip_ctr, original_cip in enumerate(self.select_original_cip(graph)):
             # see which substitution to make
-            candidate_cips = self._select_cips(original_cip)
+            candidate_cips = self._select_cips(original_cip,graph)
 
             for attempt, candidate_cip in enumerate(candidate_cips):
                 choices = len(self.lsgg.productions[candidate_cip.interface_hash].keys()) - 1
@@ -488,7 +489,7 @@ class GraphLearnSampler(object):
                 if self.quick_skip_orig_cip:
                     break
 
-    def _select_cips(self, cip):
+    def _select_cips(self, cip,graph):
         """
         :param cip: the cip we selected from the graph
         :yields: cips found in the grammar that can replace the input cip
@@ -504,13 +505,13 @@ class GraphLearnSampler(object):
             core_hashes.remove(cip.core_hash)
 
         # get values and yield accordingly
-        values = self._core_values(cip, core_hashes)
+        values = self._core_values(cip, core_hashes,graph)
 
         for core_hash in self.probabilistic_choice(values, core_hashes):
-            #print values,'choose:', values[core_hashes.index(core_hash)]
+            print values,'choose:', values[core_hashes.index(core_hash)]
             yield self.lsgg.productions[cip.interface_hash][core_hash]
 
-    def _core_values(self, cip, core_hashes):
+    def _core_values(self, cip, core_hashes,graph):
         core_weights = []
 
         if self.probabilistic_core_choice:
@@ -523,10 +524,12 @@ class GraphLearnSampler(object):
 
         elif self.max_core_size_diff > -1:
             unit = 100 / float(self.max_core_size_diff + 1)
-            goal_size = cip.core_nodes_count
+            goal_size = self.seed_size
+            current_size=len(graph)
+
             for core in core_hashes:
-                size = self.lsgg.core_size[core]
-                value = max(0, 100 - (abs(goal_size - size) * unit))
+                predicted_size = self.lsgg.core_size[core] - cip.core_nodes_count + current_size
+                value = max(0, 100 - (abs(goal_size - predicted_size) * unit))
                 core_weights.append(value)
         else:
             core_weights = [1] * len(core_hashes)
