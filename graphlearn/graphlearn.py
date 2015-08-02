@@ -19,17 +19,42 @@ logger = logging.getLogger(__name__)
 class GraphLearnSampler(object):
 
     def __init__(self,
-                 radius_list=[0, 1],
-                 thickness_list=[1, 2],
                  nbit=20,
                  complexity=3,
                  vectorizer=Vectorizer(complexity=3),
-                 node_entity_check=lambda x, y: True,
                  estimator=estimator.estimator(),
+
+                 radius_list=[0, 1],
+                 thickness_list=[1, 2],
+                 node_entity_check=lambda x, y: True,
+
                  grammar=None,
                  min_cip_count=2,
                  min_interface_count=2):
+        """
 
+        :param nbit: the cip-hashes ( core and interface ) will be this many bit long
+        :param complexity: is currently ignored since its an argument of the vectorizer
+        :param vectorizer: a eden.graph.vectorizer used to turn graphs into vectors. also provides utils
+        :param estimator: is trained on the inout graphs. see implementation
+
+
+        # gramar+sampling options
+        :param radius_list: the cores of a root will have these radii
+        :param thickness_list: the cores will extend this much
+        :param node_entity_check: decides if a cip is used at all. see example implementation
+                check is performed during cip extraction.
+                notice difference to the accept cip :)
+
+
+        # grammar options:
+        :param grammar: a grammar -> see implementation of localsubstututablegrammar
+        :param min_cip_count:  during the grammar training we need to see a cip this many
+            times before adding it to the grammar
+        :param min_interface_count: if we dont find this many different cores for this interface, it gets removed.
+
+        :return:
+        """
         self.complexity = complexity
         self.feasibility_checker = FeasibilityChecker()
         self.postprocessor = postprocessing.PostProcessor()
@@ -88,6 +113,9 @@ class GraphLearnSampler(object):
                                                node_entity_check=self.node_entity_check)
         else:
             self.lsgg = grammar
+
+
+
 
         # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
 
