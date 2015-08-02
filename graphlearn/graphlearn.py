@@ -138,7 +138,8 @@ class GraphLearnSampler(object):
           use input to fit the grammar and fit the estimator
         """
         graphs, graphs_ = itertools.tee(graphs)
-        self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs,seed=self.random_seed)
+        self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs,
+                                                  seed=self.random_seed)
         self.lsgg.fit(graphs, n_jobs, batch_size=batch_size)
 
     def sample(self, graph_iter,
@@ -178,6 +179,7 @@ class GraphLearnSampler(object):
         :param n_jobs: ill start this many threads
         :param n_steps: how many samplesteps are conducted
         :param burnin: do this many steps before collecting samples
+        :param max_cycle_size: max allowed size (slow)
 
         # sampling strategy
         :param target_orig_cip:  we will use the estimator to determine weak regions in the graph that need improvement
@@ -229,7 +231,7 @@ class GraphLearnSampler(object):
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
         self.burnin = burnin
-        self.omit_seed=omit_seed
+        self.omit_seed = omit_seed
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
         self.score_core_choice = score_core_choice
@@ -346,12 +348,11 @@ class GraphLearnSampler(object):
 
     def _sample_path_append(self, graph, force=False):
 
-        step0 = self.step == 0 and self.omit_seed==False
+        step0 = (self.step == 0 and self.omit_seed is False)
         normal = self.step % self.sampling_interval == 0 and self.step != 0 and self.step > self.burnin
 
         # conditions meet?
         if normal or step0 or force:
-
             # do we want to omit duplicates?
             if not self.keep_duplicates:
                 # have we seen this before?
@@ -525,7 +526,7 @@ class GraphLearnSampler(object):
         values = self._core_values(cip, core_hashes,graph)
 
         for core_hash in self.probabilistic_choice(values, core_hashes):
-            #print values,'choose:', values[core_hashes.index(core_hash)]
+            # print values,'choose:', values[core_hashes.index(core_hash)]
             yield self.lsgg.productions[cip.interface_hash][core_hash]
 
     def _core_values(self, cip, core_hashes,graph):
