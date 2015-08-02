@@ -3,7 +3,7 @@ import numpy
 from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier
-
+import random
 
 class EstimatorWrapper:
 
@@ -11,7 +11,11 @@ class EstimatorWrapper:
     graphlearn will expect fit to return an estimator that is used in the graphlearn.. (if you use sampler.fit)
     '''
 
-    def fit(self, graphs, vectorizer=None, nu=.5, cv=2, n_jobs=-1):
+
+
+    def fit(self, graphs, vectorizer=None, nu=.5, cv=2, n_jobs=-1,seed=None):
+        if seed != None:
+            random.seed(seed)
         X = vectorizer.transform(graphs)
         self.estimator = self.fit_estimator(X, n_jobs=n_jobs, cv=cv)
         cal_estimator = self.calibrate_estimator(X, estimator=self.estimator, nu=nu, cv=cv)
