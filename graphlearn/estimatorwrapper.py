@@ -18,6 +18,17 @@ class EstimatorWrapper:
         return cal_estimator
 
     def fit_2(self, ipos, ineg, vectorizer=None, cv=2, n_jobs=-1):
+        """
+        This is used in the discsampler .,., i am not sure why i am not using eden directly.
+        I will fix this when i look into the disk sampler next time.
+        :param ipos:
+        :param ineg:
+        :param vectorizer:
+        :param cv:
+        :param n_jobs:
+        :return:
+        """
+
         X = vectorizer.transform(ipos)
         Y = vectorizer.transform(ineg)
         estimator = eden_fit_estimator(SGDClassifier(loss='log'), positive_data_matrix=X, negative_data_matrix=Y, cv=cv,
