@@ -1,7 +1,7 @@
 import itertools
 import random
 import postprocessing
-import estimator
+import estimatorwrapper
 from graphtools import extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -22,7 +22,7 @@ class GraphLearnSampler(object):
                  nbit=20,
                  complexity=3,
                  vectorizer=Vectorizer(complexity=3),
-                 estimator=estimator.estimator(),
+                 estimator=estimatorwrapper.EstimatorWrapper(),
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],

@@ -5,7 +5,7 @@ from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier
 
 
-class estimator:
+class EstimatorWrapper:
 
     '''
     graphlearn will expect fit to return an estimator that is used in the graphlearn.. (if you use sampler.fit)
