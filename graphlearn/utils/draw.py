@@ -183,9 +183,6 @@ def graphlearn_draw(graphs,
         if show_direction:
             contract = False
 
-        if contract:
-            graph = contract_edges(graph)
-
         if vertex_color is None:
             set_colors(graph)
 
@@ -204,6 +201,13 @@ def graphlearn_draw(graphs,
     if show_direction:
         edge_color = 'color'
         edge_alpha = 1.0
+
+    if contract:
+        tmp=[]
+        for graph in graphs:
+            tmp.append(  contract_edges(graph) )
+        graphs=tmp
+
 
     draw_graph_set(graphs,
                    size=size,
@@ -265,6 +269,7 @@ def draw_grammar(grammar,
                  n_graphs_per_production=10,
                  size=4,
                  **args):
+
     if n_productions is None:
         n_productions = len(grammar)
 
@@ -312,6 +317,7 @@ def get_score_of_graph(graph):
 def remove_colors(g, key='col'):
     for n, d in g.nodes(data=True):
         d[key] = 'white'
+
 
 
 def contract_edges(original_graph):

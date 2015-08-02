@@ -459,9 +459,9 @@ class GraphLearnSampler(object):
         return accept_decision
 
     def _propose(self, graph):
-        '''
+        """
          we wrap the propose single cip, so it may be overwritten some day
-        '''
+        """
         graph = self._propose_graph(graph)
         if graph is not None:
             return graph
