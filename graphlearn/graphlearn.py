@@ -3,7 +3,7 @@ import random
 import postprocessing
 import estimator
 from graphtools import extract_core_and_interface, core_substitution, graph_clean, mark_median
-from feasibility import FeasibilityChecker
+import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool
 import dill
@@ -56,7 +56,7 @@ class GraphLearnSampler(object):
         :return:
         """
         self.complexity = complexity
-        self.feasibility_checker = FeasibilityChecker()
+        self.feasibility_checker = feasibility.FeasibilityChecker()
         self.postprocessor = postprocessing.PostProcessor()
 
         self.vectorizer = vectorizer
@@ -146,6 +146,7 @@ class GraphLearnSampler(object):
                n_samples=None,
                batch_size=10,
                n_jobs=0,
+               max_cycle_size=False,
                target_orig_cip=False,
                n_steps=50,
                quick_skip_orig_cip=False,
@@ -153,6 +154,7 @@ class GraphLearnSampler(object):
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
                burnin=0,
+
                generator_mode=False,
                omit_seed=True,
                keep_duplicates=False):
@@ -195,6 +197,11 @@ class GraphLearnSampler(object):
         self.similarity = similarity
 
 
+        if max_cycle_size:
+
+            max_cycle_size=2*max_cycle_size
+
+            self.feasibility_checker.checklist.append( feasibility.cycles(max_cycle_size) )
 
         if probabilistic_core_choice+score_core_choice+max_core_size_diff==-1 >1:
             raise Exception ('choose max one cip choice strategy')
