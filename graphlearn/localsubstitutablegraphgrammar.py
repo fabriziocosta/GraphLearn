@@ -1,4 +1,5 @@
 from multiprocessing import Pool, Manager
+from itertools import tee
 import graphtools
 import dill
 from eden import grouper
@@ -30,9 +31,14 @@ class LocalSubstitutableGraphGrammar(object):
         self.nbit = nbit
         # checked when extracting grammar. see graphtools
         self.node_entity_check = node_entity_check
-        self.prep_is_outdated=True
+        self.prep_is_outdated = True
 
-    def preprocessing(self, n_jobs=0,calculate_cip_value=False, max_core_size_diff=0, probabilistic_core_choice=False, estimator=None):
+    def preprocessing(self,
+                      n_jobs=0,
+                      calculate_cip_value=False,
+                      max_core_size_diff=0,
+                      probabilistic_core_choice=False,
+                      estimator=None):
         """Preprocess need to be done before sampling.
 
         Args:
@@ -50,30 +56,30 @@ class LocalSubstitutableGraphGrammar(object):
                 self._add_frequency_quicklookup()
 
             if calculate_cip_value:
-                if estimator==None:
-                    raise Exception ('grammar preprocess failed, no estimator given')
+                if estimator is None:
+                    raise Exception('grammar preprocess failed, no estimator given')
                 self.calculate_cip_value(estimator)
             self.prep_is_outdated = False
         if n_jobs > 1:
             self._multicore_transform()
 
-
-    def calculate_cip_value(self,estimator):
-
-        self.scores={}
+    def calculate_cip_value(self, estimator):
+        self.scores = {}
         for interface in self.productions:
             for core in self.productions[interface]:
-                gr=self.productions[interface][core].graph.copy()
+                gr = self.productions[interface][core].graph.copy()
                 transformed_graph = self.vectorizer.transform_single(gr)
                 score = estimator.base_estimator.predict_proba(transformed_graph)[0, 1]
                 self.scores[core] = score
 
     def fit(self, graph_iterator, n_jobs, batch_size=10):
+        graph_iterator, graph_iterator_ = tee(graph_iterator)
+        self.dataset_size = sum(1 for x in graph_iterator_)
         self._read(graph_iterator, n_jobs, batch_size=batch_size)
         self.clean()
-        interface_counts, core_counts, cip_counts = self.size()
-        logger.debug('#interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
-                     (interface_counts, core_counts, cip_counts))
+        dataset_size, interface_counts, core_counts, cip_counts = self.size()
+        logger.debug('#instances: %d  #interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
+                     (dataset_size, interface_counts, core_counts, cip_counts))
 
     def size(self):
         interface_counts = len(self.productions)
@@ -84,7 +90,7 @@ class LocalSubstitutableGraphGrammar(object):
                 core_set.add(core)
             cip_counts += len(self.productions[interface])
         core_counts = len(core_set)
-        return interface_counts, core_counts, cip_counts
+        return self.dataset_size, interface_counts, core_counts, cip_counts
 
     def _multicore_transform(self):
         '''
@@ -147,6 +153,7 @@ class LocalSubstitutableGraphGrammar(object):
             else:
                 self.productions[interface] = other_grammar[interface]
         self.prep_is_outdated = True
+
     def intersect(self, other_grammar):
         """intersection of grammars"""
         for interface in self.productions.keys():
@@ -172,15 +179,12 @@ class LocalSubstitutableGraphGrammar(object):
                 self.productions.pop(interface)
         self.prep_is_outdated = True
 
-
-
-
     def _add_core_size_quicklookup(self):
         """"adds self.core_size{ interface: { core_size:[list of cores] } }"""
         self.core_size = {}
         for interface in self.productions:
             for core in self.productions[interface]:
-                self.core_size[core]=self.productions[interface][core].core_nodes_count
+                self.core_size[core] = self.productions[interface][core].core_nodes_count
 
         '''
         for interface in self.productions:
@@ -194,6 +198,7 @@ class LocalSubstitutableGraphGrammar(object):
                     core_size[nodes_count] = [core]
             self.core_size[interface] = core_size
         '''
+
     def _add_frequency_quicklookup(self):
         """adds self.frequency{ interface: { core_frequency:[list of cores] } }"""
         self.frequency = {}
