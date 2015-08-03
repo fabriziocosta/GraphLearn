@@ -52,7 +52,8 @@ class GraphLearnSampler(object):
         :param grammar: a grammar -> see implementation of localsubstututablegrammar
         :param min_cip_count:  during the grammar training we need to see a cip this many
             times before adding it to the grammar
-        :param min_interface_count: if we dont find this many different cores for this interface, it gets removed.
+        :param min_interface_count: if we dont find this many different cores for this interface,\
+        it gets removed.
 
         :return:
         """
@@ -116,8 +117,7 @@ class GraphLearnSampler(object):
             self.lsgg = grammar
 
         # will be set before fitting and before sampling
-        self.random_seed=randomseed
-
+        self.random_seed = randomseed
 
         # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
 
@@ -170,7 +170,8 @@ class GraphLearnSampler(object):
 
         # strategy for choosing a cip inside the grammar
         :param probabilistic_core_choice:  the more of a cip i have seen, the more likely ill use it
-        :param score_core_choice:   ill use the estimator to determine how likely every cip is. (higher score => higher proba)
+        :param score_core_choice:   ill use the estimator to determine how likely every cip is.
+        (higher score => higher proba)
         :param max_core_size_diff: ill prefer cips that wont change the size of the graph
 
         # sampling
@@ -182,15 +183,18 @@ class GraphLearnSampler(object):
         :param max_cycle_size: max allowed size (slow)
 
         # sampling strategy
-        :param target_orig_cip:  we will use the estimator to determine weak regions in the graph that need improvement
-        :param quick_skip_orig_cip: dont try all the hits in the grammar, if the first fails (due to feasibility) we give up
+        :param target_orig_cip:  we will use the estimator to determine weak regions in the graph that need
+        improvement
+        :param quick_skip_orig_cip: dont try all the hits in the grammar, if the first fails
+        (due to feasibility) we give up
         :param improving_threshold: fraction after which we only accept graphs that improve the score.
         :param accept_static_penalty: so there is a chance to accept a lower scoring grpah,  here we penalize
         :param select_cip_max_tries: how often do we try to get an original cip before declaring the seed done
         :param similarity:  provides the option to kill the sampling  eg if distance to seed is too large.
 
         # output options
-        :param generator_mode: yield every graph on its own   or  put all the n_samples as an argument in the last graph
+        :param generator_mode: yield every graph on its own   or  put all the n_samples as an argument in the
+        last graph
         :param omit_seed: dont record the seed graph
         :param keep_duplicates: duplicates are not recorded
 
@@ -199,20 +203,16 @@ class GraphLearnSampler(object):
 
         """
 
-
-
         self.similarity = similarity
-
 
         if max_cycle_size:
 
-            max_cycle_size=2*max_cycle_size
+            max_cycle_size = 2 * max_cycle_size
 
-            self.feasibility_checker.checklist.append( feasibility.cycles(max_cycle_size) )
+            self.feasibility_checker.checklist.append(feasibility.cycles(max_cycle_size))
 
-        if probabilistic_core_choice+score_core_choice+max_core_size_diff==-1 >1:
-            raise Exception ('choose max one cip choice strategy')
-
+        if probabilistic_core_choice + score_core_choice + max_core_size_diff == -1 > 1:
+            raise Exception('choose max one cip choice strategy')
 
         if n_samples:
             self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1)) + 1
@@ -224,7 +224,7 @@ class GraphLearnSampler(object):
         self.target_orig_cip = target_orig_cip
 
         # the user doesnt know about edge nodes.. so this needs to be done
-        max_core_size_diff = max_core_size_diff *2
+        max_core_size_diff = max_core_size_diff * 2
         self.max_core_size_diff = max_core_size_diff
 
         self.improving_threshold = improving_threshold
@@ -246,7 +246,7 @@ class GraphLearnSampler(object):
                                 self.estimator)
         logger.debug(serialize_dict(self.__dict__))
 
-        if self.random_seed != None:
+        if self.random_seed is not None:
             random.seed(self.random_seed)
         # sampling
         if n_jobs in [0, 1]:
@@ -379,7 +379,7 @@ class GraphLearnSampler(object):
         '''
         graph = self.vectorizer._edge_to_vertex_transform(graph)
         if self.max_core_size_diff > -1:
-            self.seed_size= len(graph)
+            self.seed_size = len(graph)
 
         self._score(graph)
         self._sample_notes = ''
@@ -487,10 +487,9 @@ class GraphLearnSampler(object):
         as soon as we found one replacement that works we are good and return.
         """
 
-
         for orig_cip_ctr, original_cip in enumerate(self.select_original_cip(graph)):
             # see which substitution to make
-            candidate_cips = self._select_cips(original_cip,graph)
+            candidate_cips = self._select_cips(original_cip, graph)
 
             for attempt, candidate_cip in enumerate(candidate_cips):
                 choices = len(self.lsgg.productions[candidate_cip.interface_hash].keys()) - 1
@@ -500,14 +499,14 @@ class GraphLearnSampler(object):
 
                 if self.feasibility_checker.check(graph_new):
                     graph_clean(graph_new)
-                    logger.debug("_propose_graph delivers... iteration %d ; core %d of %d ; original_cips tried  %d" %
+                    logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
                                  (self.step, attempt, choices, orig_cip_ctr))
                     return self.postprocessor.postprocess(graph_new)
 
                 if self.quick_skip_orig_cip:
                     break
 
-    def _select_cips(self, cip,graph):
+    def _select_cips(self, cip, graph):
         """
         :param cip: the cip we selected from the graph
         :yields: cips found in the grammar that can replace the input cip
@@ -523,13 +522,13 @@ class GraphLearnSampler(object):
             core_hashes.remove(cip.core_hash)
 
         # get values and yield accordingly
-        values = self._core_values(cip, core_hashes,graph)
+        values = self._core_values(cip, core_hashes, graph)
 
         for core_hash in self.probabilistic_choice(values, core_hashes):
             # print values,'choose:', values[core_hashes.index(core_hash)]
             yield self.lsgg.productions[cip.interface_hash][core_hash]
 
-    def _core_values(self, cip, core_hashes,graph):
+    def _core_values(self, cip, core_hashes, graph):
         core_weights = []
 
         if self.probabilistic_core_choice:
@@ -543,10 +542,10 @@ class GraphLearnSampler(object):
         elif self.max_core_size_diff > -1:
             unit = 100 / float(self.max_core_size_diff + 1)
             goal_size = self.seed_size
-            current_size=len(graph)
+            current_size = len(graph)
 
             for core in core_hashes:
-                #print unit, self.lsgg.core_size[core] , cip.core_nodes_count , current_size , goal_size
+                # print unit, self.lsgg.core_size[core] , cip.core_nodes_count , current_size , goal_size
                 predicted_size = self.lsgg.core_size[core] - cip.core_nodes_count + current_size
                 value = max(0, 100 - (abs(goal_size - predicted_size) * unit))
                 core_weights.append(value)
