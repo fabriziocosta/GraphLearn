@@ -22,7 +22,7 @@ class GraphLearnSampler(object):
                  nbit=20,
                  complexity=3,
                  vectorizer=Vectorizer(complexity=3),
-                 randomseed=None,
+                 random_state=None,
                  estimator=estimatorwrapper.EstimatorWrapper(),
 
                  radius_list=[0, 1],
@@ -117,7 +117,7 @@ class GraphLearnSampler(object):
             self.lsgg = grammar
 
         # will be set before fitting and before sampling
-        self.random_seed = randomseed
+        self.random_state = random_state
 
         # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
 
@@ -138,8 +138,11 @@ class GraphLearnSampler(object):
           use input to fit the grammar and fit the estimator
         """
         graphs, graphs_ = itertools.tee(graphs)
-        self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu, n_jobs=n_jobs,
-                                                  seed=self.random_seed)
+        self.estimator = self.estimatorobject.fit(graphs_,
+                                                  vectorizer=self.vectorizer,
+                                                  nu=nu,
+                                                  n_jobs=n_jobs,
+                                                  random_state=self.random_state)
         self.lsgg.fit(graphs, n_jobs, batch_size=batch_size)
 
     def sample(self, graph_iter,
@@ -246,8 +249,8 @@ class GraphLearnSampler(object):
                                 self.estimator)
         logger.debug(serialize_dict(self.__dict__))
 
-        if self.random_seed is not None:
-            random.seed(self.random_seed)
+        if self.random_state is not None:
+            random.seed(self.random_state)
         # sampling
         if n_jobs in [0, 1]:
             for graph in graph_iter:
