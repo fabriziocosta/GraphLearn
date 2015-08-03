@@ -2,7 +2,7 @@ import networkx as nx
 import itertools
 import random
 import postprocessing
-import estimator
+import estimator_wrapper
 from graphlearn.graphtools import extract_core_and_interface, core_substitution, graph_clean
 from graphlearn.feasibility import FeasibilityChecker
 from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -52,7 +52,7 @@ class GraphLearnSampler(object):
                  interface_remove_threshold=2,
                  complexity=3,
                  vectorizer=Vectorizer(complexity=3),
-                 estimator=estimator.estimator()):
+                 estimator=estimator_wrapper.estimator_wrapper()):
 
 
         self.complexity = complexity
