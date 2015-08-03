@@ -9,15 +9,15 @@ import random
 class EstimatorWrapper:
 
     '''
-    graphlearn will edata_matrixpect fit to return an estimator that is used in the graphlearn \
+    graphlearn will edata_matrixpect fit to return an estimator that is used in the graphlearn
     (if you use sampler.fit)
     '''
 
-    def fit(self, graphs, vectorizer=None, nu=.5, cv=2, n_jobs=-1, seed=None):
-        if seed is not None:
-            random.seed(seed)
+    def fit(self, graphs, vectorizer=None, nu=.5, cv=2, n_jobs=-1, random_state=None):
+        if random_state is not None:
+            random.seed(random_state)
         data_matrix = vectorizer.transform(graphs)
-        self.estimator = self.fit_estimator(data_matrix, n_jobs=n_jobs, cv=cv)
+        self.estimator = self.fit_estimator(data_matrix, n_jobs=n_jobs, cv=cv, random_state=random_state)
         cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=nu, cv=cv)
         return cal_estimator
 
@@ -45,7 +45,7 @@ class EstimatorWrapper:
         # esti.fit( vstack[ X,Y], numpy.asarray([1]*X.shape[0] + [0]*Y.shape[0]))
         return estimator
 
-    def fit_estimator(self, data_matrix, n_jobs=-1, cv=2):
+    def fit_estimator(self, data_matrix, n_jobs=-1, cv=2, random_state=42):
         '''
         create self.estimator...
         by inversing the data_matrix set to get a negative set
@@ -59,7 +59,8 @@ class EstimatorWrapper:
                                   negative_data_matrix=data_matrix_neg,
                                   cv=cv,
                                   n_jobs=n_jobs,
-                                  n_iter_search=10)
+                                  n_iter_search=10,
+                                  random_state=random_state)
 
     def calibrate_estimator(self, data_matrix, estimator=None, nu=.5, cv=2):
         '''
