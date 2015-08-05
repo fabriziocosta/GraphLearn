@@ -200,6 +200,8 @@ def make_abstract(graph, vectorizer):
     graph2 = arbitrary_graph_abstraction_function(graph2)
     graph2 = vectorizer._edge_to_vertex_transform(graph2)
 
+
+
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this
     getabstr = {contra: node for node, d in graph2.nodes(data=True) for contra in d.get('contracted', [])}
