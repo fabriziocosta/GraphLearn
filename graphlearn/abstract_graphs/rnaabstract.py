@@ -8,7 +8,8 @@ import graphlearn.graphtools as gt
 
 
 '''
-rna_abstractor_mk3
+rna_abstractor_mk2
+extends the self-build abstractor, but only works on fresh graphs
 '''
 
 def get_sequence(digraph):
@@ -21,8 +22,6 @@ def get_sequence(digraph):
         seq+=digraph.node[current]['label']
 
     return seq
-
-
 
 
 
@@ -41,7 +40,6 @@ def direct_abstraction_wrapper(graph,ZZZ):
     """
     abstract_graph= direct_abstractor(graph,None)
 
-
     for n,d in abstract_graph.nodes(data=True):
         if d['label']=='B':
             mergelist=[]
@@ -59,6 +57,7 @@ def direct_abstraction_wrapper(graph,ZZZ):
             for a,b in getpairs(abstract_graph,mergelist,n):
                 abstract_graph.node[a]['contracted'].update(abstract_graph.node[b]['contracted'])
                 gt.merge(abstract_graph,a,b)
+                abstract_graph.node[a]['label']='M'
     return abstract_graph
 
 def getpairs(abstract_graph,mergelist,node):
@@ -66,7 +65,6 @@ def getpairs(abstract_graph,mergelist,node):
     high=[]
     """
     the trick here is to get min and max which are from each backbone of the stem.
-
     """
     stemnodes = list ( abstract_graph.node[node]['contracted'] )
     stemnodes.sort()
@@ -86,8 +84,6 @@ def getpairs(abstract_graph,mergelist,node):
         yield low
     if len(high) == 2:
         yield high
-
-
 
 def r2_neighbors(graph,n):
     dict=nx.single_source_shortest_path_length(graph, n,2)
