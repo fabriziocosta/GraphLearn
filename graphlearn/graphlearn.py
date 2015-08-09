@@ -24,6 +24,8 @@ class GraphLearnSampler(object):
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
                  estimator=estimatorwrapper.EstimatorWrapper(),
+                 postprocessor=postprocessing.PostProcessor(),
+
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -38,7 +40,7 @@ class GraphLearnSampler(object):
         :param complexity: is currently ignored since its an argument of the vectorizer
         :param vectorizer: a eden.graph.vectorizer used to turn graphs into vectors. also provides utils
         :param estimator: is trained on the inout graphs. see implementation
-
+        :param postprocessor: a postprocessor, see _sample init or something
 
         # gramar+sampling options
         :param radius_list: the cores of a root will have these radii
@@ -59,7 +61,7 @@ class GraphLearnSampler(object):
         """
         self.complexity = complexity
         self.feasibility_checker = feasibility.FeasibilityChecker()
-        self.postprocessor = postprocessing.PostProcessor()
+        self.postprocessor = postprocessor
 
         self.vectorizer = vectorizer
 
@@ -387,6 +389,7 @@ class GraphLearnSampler(object):
         self._score(graph)
         self._sample_notes = ''
         self._sample_path_score_set = set()
+        self.postprocessor.fit(self)
 
         return graph
 

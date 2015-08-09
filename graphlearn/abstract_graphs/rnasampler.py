@@ -37,6 +37,7 @@ class RNASampler(UberSampler):
         self._score(graph)
         self._sample_notes = ''
         self._sample_path_score_set = set()
+        self.postprocessor.fit(self)
         return graph
 
 
@@ -83,24 +84,38 @@ def is_rna (graph):
 
 
 
-def rna_worker(digraph=None, seq=None,vectorizer=None):
-    """
-    :param digraph:
-    :param seq:
+class PostProcessor:
 
-    :return: will extract a sequence, RNAfold it and create a abstract graph
-    """
-    # get a sequence no matter what :)
-    if not seq:
-        seq=directedgraphtools.get_sequence(digraph)
 
-    #print 'seq:',seq
+    def __init__(self):
+        pass
 
-    graph = rnafold_to_eden([seq], shape_type=5, energy_range=30, max_num=3).next()
-    graph = vectorizer._edge_to_vertex_transform(graph)
-    graph = expanded_rna_graph_to_digraph(graph)
-    abstract_graph = directedgraphtools.direct_abstraction_wrapper(graph,0)
+    def fit(self, other):
+        print 'OMG i got a vectorizer kthx'
+        self.vectorizer=other.vectorizer
 
+    def postprocess(self, graph):
+        return self.rna_refold( graph )
+
+    def rna_refold(self, digraph=None, seq=None,vectorizer=None):
+        """
+        :param digraph:
+        :param seq:
+
+        :return: will extract a sequence, RNAfold it and create a abstract graph
+        """
+        # get a sequence no matter what :)
+        if not seq:
+            seq= rnaabstract.get_sequence(digraph)
+
+        #print 'seq:',seq
+
+        graph = rnafold_to_eden([('emptyheader',seq)], shape_type=5, energy_range=30, max_num=3).next()
+
+        expanded_graph = self.vectorizer._edge_to_vertex_transform(graph)
+        ex_di_graph = expanded_rna_graph_to_digraph(expanded_graph)
+        #abstract_graph = directedgraphtools.direct_abstraction_wrapper(graph,0)
+        return ex_di_graph
 
 
 
@@ -129,5 +144,7 @@ def get_mod_dict(graph):
     return {s:696969 , e:123123123}
 ubergraphlearn.get_mod_dict=get_mod_dict
 import rnaabstract
+
+
 #ubergraphlearn.make_abstract = rnaabstract.direct_abstractor
-#ubergraphlearn.make_abstract = rnaabstract.direct_abstraction_wrapper
+ubergraphlearn.make_abstract = rnaabstract.direct_abstraction_wrapper
