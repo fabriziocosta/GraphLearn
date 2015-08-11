@@ -108,7 +108,7 @@ class GraphLearnSampler(object):
             self.lsgg = \
                 LocalSubstitutableGraphGrammar(self.radius_list,
                                                self.thickness_list,
-                                               complexity=self.complexity,
+                                               vectorizer=self.vectorizer,
                                                min_cip_count=min_cip_count,
                                                min_interface_count=min_interface_count,
                                                nbit=self.nbit,
