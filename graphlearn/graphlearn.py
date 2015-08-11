@@ -108,7 +108,7 @@ class GraphLearnSampler(object):
             self.lsgg = \
                 LocalSubstitutableGraphGrammar(self.radius_list,
                                                self.thickness_list,
-                                               complexity=self.complexity,
+                                               vectorizer=self.vectorizer,
                                                min_cip_count=min_cip_count,
                                                min_interface_count=min_interface_count,
                                                nbit=self.nbit,
@@ -666,16 +666,7 @@ class GraphLearnSampler(object):
         return in_grammar and score_ok
 
 
-class GraphLearnVectorSampler(GraphLearnSampler):
-
-    pass
-
-
 def _sample_multi(what):
     self = dill.loads(what[0])
     graphlist = dill.loads(what[1])
     return [self._sample(g) for g in graphlist]
-
-
-
-
