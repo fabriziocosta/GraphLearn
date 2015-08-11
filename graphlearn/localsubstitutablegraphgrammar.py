@@ -19,14 +19,15 @@ class LocalSubstitutableGraphGrammar(object):
     """
     # move all the things here that are needed to extract grammar
 
-    def __init__(self, radius_list=None, thickness_list=None, min_cip_count=3, complexity=3,
+    def __init__(self, radius_list=None, thickness_list=None, min_cip_count=3,
+                 vectorizer=Vectorizer(complexity=3),
                  min_interface_count=2, nbit=20, node_entity_check=lambda x, y: True):
         self.productions = {}
         self.min_interface_count = min_interface_count
         self.radius_list = radius_list
         self.thickness_list = thickness_list
         self.min_cip_count = min_cip_count
-        self.vectorizer = Vectorizer(complexity=complexity)
+        self.vectorizer = vectorizer
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
         # checked when extracting grammar. see graphtools
