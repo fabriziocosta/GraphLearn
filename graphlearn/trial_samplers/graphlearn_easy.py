@@ -1,8 +1,8 @@
 import networkx as nx
 import itertools
 import random
-from .. import postprocessing
-from .. import estimator
+import postprocessing
+import estimator_wrapper
 from graphlearn.graphtools import extract_core_and_interface, core_substitution, graph_clean
 from graphlearn.feasibility import FeasibilityChecker
 from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -13,7 +13,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
-from ..utils import draw
+from utils import draw
 logger = logging.getLogger(__name__)
 
 
@@ -47,14 +47,12 @@ class GraphLearnSampler(object):
     def __init__(self,
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
-                 nbit=20,
+                 grammar=None,
+                 core_interface_pair_remove_threshold=2,
+                 interface_remove_threshold=2,
                  complexity=3,
                  vectorizer=Vectorizer(complexity=3),
-                 node_entity_check=lambda x, y: True,
-                 estimator=estimator.estimator(),
-                 grammar=None,
-                 min_cip_count=2,
-                 min_interface_count=2):
+                 estimator=estimator_wrapper.estimator_wrapper()):
 
 
         self.complexity = complexity
@@ -80,18 +78,14 @@ class GraphLearnSampler(object):
         self.select_cip_max_tries = None
         # sample path
         self.sample_path = None
-        self.nbit = nbit
-        self.node_entity_check = node_entity_check
 
-        self.local_substitutable_graph_grammar = \
-            LocalSubstitutableGraphGrammar(self.radius_list,
-                                           self.thickness_list,
-                                           complexity=self.complexity,
-                                           min_cip_count=min_cip_count,
-                                           min_interface_count=min_interface_count,
-                                           nbit=self.nbit,
-                                           node_entity_check=self.node_entity_check)
-    
+        self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
+                                                                                    self.thickness_list,
+                                                                                    complexity=self.complexity,
+                                                                                    cip_remove_threshold=core_interface_pair_remove_threshold,
+                                                                                    interface_remove_threshold=interface_remove_threshold,
+                                                                                    nbit=20)
+        
     def save(self, file_name):
         self.local_substitutable_graph_grammar._revert_multicore_transform()
         dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
