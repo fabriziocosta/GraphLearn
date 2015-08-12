@@ -162,6 +162,7 @@ class GraphLearnSampler(object):
                n_steps=50,
                quick_skip_orig_cip=False,
                improving_threshold=-1,
+               improving_linear_start=0,
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
                burnin=0,
@@ -193,6 +194,7 @@ class GraphLearnSampler(object):
         :param quick_skip_orig_cip: dont try all the hits in the grammar, if the first fails
         (due to feasibility) we give up
         :param improving_threshold: fraction after which we only accept graphs that improve the score.
+        :param improving_linear_start: fraction after which we start linearly penalising bad graphs until we reach impth
         :param accept_static_penalty: so there is a chance to accept a lower scoring grpah,  here we penalize
         :param select_cip_max_tries: how often do we try to get an original cip before declaring the seed done
         :param similarity:  provides the option to kill the sampling  eg if distance to seed is too large.
@@ -223,6 +225,7 @@ class GraphLearnSampler(object):
             self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1)) + 1
         else:
             self.sampling_interval = 9999
+
         self.n_steps = n_steps
         self.quick_skip_orig_cip = quick_skip_orig_cip
         self.n_jobs = n_jobs
@@ -232,7 +235,18 @@ class GraphLearnSampler(object):
         max_core_size_diff = max_core_size_diff * 2
         self.max_core_size_diff = max_core_size_diff
 
+
+
+        #  calculating the actual steps for improving :)
         self.improving_threshold = improving_threshold
+        if improving_threshold > 0:
+            self.improving_threshold = int(self.improving_threshold * self.n_steps)
+        self.improving_linear_start=improving_linear_start
+        if improving_linear_start > 0:
+            self.improving_linear_start = int(improving_linear_start*n_steps)
+        self.improving_penalty_per_step = (1-accept_static_penalty) / float(self.improving_threshold - self.improving_linear_start)
+
+
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
         self.burnin = burnin
@@ -457,10 +471,9 @@ class GraphLearnSampler(object):
             # 2. a static penalty applies a penalty that is always the same.
             #       (-1 ~ always accept ; +1 ~  never accept)
 
-            if self.improving_threshold > 0:
-
-                progress = (float(self.step) / self.n_steps)
-                score_ratio = score_ratio - (progress / self.improving_threshold)
+            if self.improving_threshold >0 and self.step > self.improving_linear_start:
+                penalty = ((self.step-self.improving_linear_start) * float(self.improving_penalty_per_step))
+                score_ratio = score_ratio - penalty
 
             elif self.improving_threshold == 0:
                 return False
