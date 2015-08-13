@@ -12,6 +12,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
+from utils import cycles
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +217,7 @@ class GraphLearnSampler(object):
 
             max_cycle_size = 2 * max_cycle_size
 
-            self.feasibility_checker.checklist.append(feasibility.cycles(max_cycle_size))
+            self.feasibility_checker.checklist.append(cycles.cycles(max_cycle_size))
 
         if probabilistic_core_choice + score_core_choice + max_core_size_diff == -1 > 1:
             raise Exception('choose max one cip choice strategy')
