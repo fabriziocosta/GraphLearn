@@ -11,7 +11,7 @@ from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 import traceback
-
+import itertools
 
 '''
 first we build the new sampler that is able to handle abstract graphs...
@@ -24,6 +24,7 @@ class UberSampler(GraphLearnSampler):
                  min_cip_count=1,
                  min_interface_count=2,
                  grammar=None,
+
                  **kwargs):
         '''
             graphlernsampler with its extensions..
@@ -37,6 +38,8 @@ class UberSampler(GraphLearnSampler):
             assert isinstance(grammar, UberGrammar)
 
         self.base_thickness_list = [int(2 * e) for e in base_thickness_list]
+
+
         super(UberSampler, self).__init__(grammar=grammar,
                                           min_cip_count=min_cip_count,
                                           min_interface_count=min_interface_count,
@@ -52,6 +55,36 @@ class UberSampler(GraphLearnSampler):
                                     min_interface_count=min_interface_count,
                                     nbit=self.nbit,
                                     node_entity_check=self.node_entity_check)
+
+
+    def fit(self, graphs, n_jobs=-1, nu=.5, batch_size=10):
+        """
+          use input to fit the grammar and fit the estimator
+        """
+
+        def appabstr(graphs):
+            for gr in graphs:
+                ab= make_abstract(gr)
+                gr.grpah['abstract'] = ab
+                yield
+
+        def estimodification(graphs):
+            for gr in graphs:
+                ab=gr.graph['abstract']
+
+
+        graphs=appabstr(graphs)
+        graphs, graphs_ = itertools.tee(graphs)
+
+        graphs_= estimodification(graphs_)
+        self.estimator = self.estimatorobject.fit(graphs_,
+                                                  vectorizer=self.vectorizer,
+                                                  nu=nu,
+                                                  n_jobs=n_jobs,
+                                                  random_state=self.random_state)
+        self.lsgg.fit(graphs, n_jobs, batch_size=batch_size)
+
+
 
     def _get_abstract_graph(self, graph):
         try:
@@ -117,7 +150,7 @@ def extract_cores_and_interfaces_mk2(parameters):
         graph, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check, base_thickness_list = parameters
         graph = vectorizer._edge_to_vertex_transform(graph)
         cips = []
-        abstr = make_abstract(graph, vectorizer)
+        abstr = graph.graph['abstract']#make_abstract(graph, vectorizer) ???
         mod_dict=get_mod_dict(graph)
         for node in abstr.nodes_iter():
             if 'edge' in abstr.node[node]:
@@ -199,6 +232,8 @@ def make_abstract(graph, vectorizer):
     graph2 = vectorizer._revert_edge_to_vertex_transform(graph)
     graph2 = arbitrary_graph_abstraction_function(graph2)
     graph2 = vectorizer._edge_to_vertex_transform(graph2)
+
+
 
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this
