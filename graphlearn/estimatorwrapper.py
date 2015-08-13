@@ -16,7 +16,7 @@ class EstimatorWrapper:
     def fit(self, graphs, vectorizer=None, nu=.5, cv=2, n_jobs=-1, random_state=None):
         if random_state is not None:
             random.seed(random_state)
-        data_matrix = vectorizer.transform(graphs)
+        data_matrix = vectorizer.fit_transform(graphs)
         self.estimator = self.fit_estimator(data_matrix, n_jobs=n_jobs, cv=cv, random_state=random_state)
         cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=nu, cv=cv)
         return cal_estimator
@@ -33,7 +33,7 @@ class EstimatorWrapper:
         :return:
         """
 
-        data_matrix = vectorizer.transform(pos_iterator)
+        data_matrix = vectorizer.fit_transform(pos_iterator)
         neagtive_data_matrix = vectorizer.transform(neg_iterator)
         estimator = eden_fit_estimator(SGDClassifier(loss='log'),
                                        positive_data_matrix=data_matrix,
