@@ -2,16 +2,9 @@
 #i took what i needed and removed unnecessary dependencies
 # in this file i try to make a wrapper 
 
-
-'''
-TODO:
--create graph, has abs graph as attribute.
--merge function
--ubersampler muss verstehen dass er die abstrakte form lernen muss
-'''
-
 import networkx as nx
-import graphlearn.abstract_graphs.forgi.bulge_graph as lol
+#import graphlearn.abstract_graphs.forgi.bulge_graph as lol
+import bulge_graph as lol
 
 
 def get_abstr_graph(struct):

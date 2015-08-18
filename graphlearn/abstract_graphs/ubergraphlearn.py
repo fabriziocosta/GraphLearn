@@ -50,39 +50,31 @@ class UberSampler(GraphLearnSampler):
             self.lsgg = UberGrammar(base_thickness_list=self.base_thickness_list,
                                     radius_list=self.radius_list,
                                     thickness_list=self.thickness_list,
-                                    complexity=self.complexity,
+                                    #complexity=self.complexity,
                                     min_cip_count=min_cip_count,
                                     min_interface_count=min_interface_count,
                                     nbit=self.nbit,
                                     node_entity_check=self.node_entity_check)
 
 
-    def fit(self, graphs, n_jobs=-1, nu=.5, batch_size=10):
+    def fit(self, graphmanagers, n_jobs=-1, nu=.5, batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
 
-        def appabstr(graphs):
-            for gr in graphs:
-                ab= make_abstract(gr)
-                gr.grpah['abstract'] = ab
-                yield gr
+        def get_esti_graphs(managers):
+            for manager in managers:
+                yield manager.get_estimateable()
 
-        def estimodification(graphs):
-            for gr in graphs:
-                ab=gr.graph['abstract']
-
-
-        graphs=appabstr(graphs)
-        graphs, graphs_ = itertools.tee(graphs)
-        graphs_= estimodification(graphs_)
-
+        graphs_ = get_esti_graphs(graphmanagers)
+        #draw.graphlearn_draw(graphs_.next(),size=20,node_size=500, show_direction=True, contract = False)
         self.estimator = self.estimatorobject.fit(graphs_,
                                                   vectorizer=self.vectorizer,
                                                   nu=nu,
                                                   n_jobs=n_jobs,
                                                   random_state=self.random_state)
-        self.lsgg.fit(graphs, n_jobs, batch_size=batch_size)
+
+        self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
 
 
 
@@ -147,11 +139,18 @@ def extract_cores_and_interfaces_mk2(parameters):
         return None
     try:
         # unpack arguments, expand the graph
-        graph, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check, base_thickness_list = parameters
-        graph = vectorizer._edge_to_vertex_transform(graph)
+        graphmanager, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check, base_thickness_list = parameters
+
+        #graph = vectorizer._edge_to_vertex_transform(graph)
+        #abstr = graph.graph['abstract']
+
+        graph=graphmanager.get_base_graph()
+        abstr=graphmanager.get_abstract_graph()
+
         cips = []
-        abstr = graph.graph['abstract']#make_abstract(graph, vectorizer) ???
+
         mod_dict=get_mod_dict(graph)
+
         for node in abstr.nodes_iter():
             if 'edge' in abstr.node[node]:
                 continue
