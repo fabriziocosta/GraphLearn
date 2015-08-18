@@ -66,7 +66,7 @@ class UberSampler(GraphLearnSampler):
             for gr in graphs:
                 ab= make_abstract(gr)
                 gr.grpah['abstract'] = ab
-                yield
+                yield gr
 
         def estimodification(graphs):
             for gr in graphs:
@@ -75,8 +75,8 @@ class UberSampler(GraphLearnSampler):
 
         graphs=appabstr(graphs)
         graphs, graphs_ = itertools.tee(graphs)
-
         graphs_= estimodification(graphs_)
+
         self.estimator = self.estimatorobject.fit(graphs_,
                                                   vectorizer=self.vectorizer,
                                                   nu=nu,
