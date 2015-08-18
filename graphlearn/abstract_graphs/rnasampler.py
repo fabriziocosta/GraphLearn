@@ -147,4 +147,4 @@ import rnaabstract
 
 
 #ubergraphlearn.make_abstract = rnaabstract.direct_abstractor
-ubergraphlearn.make_abstract = rnaabstract.direct_abstraction_wrapper
+#ubergraphlearn.make_abstract = rnaabstract.direct_abstraction_wrapper
