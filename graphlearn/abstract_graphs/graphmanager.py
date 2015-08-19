@@ -8,6 +8,7 @@ import subprocess  as sp
 import eden.converter.rna as conv
 import forgi
 import networkx as nx
+from graphlearn.utils import draw
 from eden.graph import Vectorizer
 
 import graphlearn.abstract_graphs.rnasampler as rna
@@ -56,14 +57,24 @@ class GraphManager(object):
         abstract_graph=vectorizer._edge_to_vertex_transform(abstract_graph)
 
         #connect edges to nodes in the abstract graph
-        self.abstract_graph=edge_parent_finder(abstract_graph,base_graph)
+        self.abstract_graph=edge_parent_finder(abstract_graph,self.base_graph)
 
+
+        # we are forced to set a label .. for eden reasons
         def name_edges(graph,what=''):
             for n,d in graph.nodes(data=True):
                 if 'edge' in d:
                     d['label']=what
 
+        # in the abstract graph , all the edge nodes need to have a contracted attribute.
+        # originaly this happens naturally but since we make multiloops into one loop there are some left out
+        def setset(graph):
+            for n,d in graph.nodes(data=True):
+                if 'contracted' not in d:
+                    d['contracted']=set()
+
         name_edges(self.abstract_graph)
+        setset(self.abstract_graph)
 
 
 
@@ -104,6 +115,7 @@ def edge_parent_finder(abstract,graph):
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this
     #draw.graphlearn_draw([abstract,graph],size=10, contract=False,vertex_label='id')
+
     getabstr = {contra: node for node, d in abstract.nodes(data=True) for contra in d.get('contracted', [])}
     #print getabstr
     for n, d in graph.nodes(data=True):
