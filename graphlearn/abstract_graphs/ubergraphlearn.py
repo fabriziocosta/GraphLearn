@@ -11,7 +11,7 @@ from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 import traceback
-import itertools
+
 
 '''
 first we build the new sampler that is able to handle abstract graphs...
@@ -146,9 +146,7 @@ def extract_cores_and_interfaces_mk2(parameters):
 
         graph=graphmanager.get_base_graph()
         abstr=graphmanager.get_abstract_graph()
-
         cips = []
-
         mod_dict=get_mod_dict(graph)
 
         for node in abstr.nodes_iter():
@@ -279,6 +277,7 @@ def extract_cips(node,
     '''
     # if not filter(abstract_graph, node):
     #    return []
+    print 'ok1'
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
         vectorizer._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
@@ -294,6 +293,7 @@ def extract_cips(node,
                                                           **argz)
 
     cips = []
+
     for acip in abstract_cips:
 
             # now we need to calculate the real cips:
@@ -309,6 +309,9 @@ def extract_cips(node,
             graphtools.merge(base_copy, mergeids[0], node)
 
         # do cip extraction and calculate the real core hash
+        draw.graphlearn_draw(base_copy,size=20)
+        draw.draw_center(base_copy,mergeids[0],5,size=20)
+        print base_thickness_list,hash_bitmask
         base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
                                                                 base_copy,
                                                                 radius_list=[0],
@@ -317,7 +320,7 @@ def extract_cips(node,
                                                                 hash_bitmask=hash_bitmask,
                                                                 **argz)
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
-
+        print base_level_cips
         # now we have a bunch of base_level_cips and need to attach info from the abstract cip.
         for base_cip in base_level_cips:
 
@@ -355,7 +358,7 @@ def extract_cips(node,
 
             # i want to see what they look like :)
             base_cip.abstract_view=acip.graph
-
+            print 'ok3'
             cips.append(base_cip)
     return cips
 

@@ -142,7 +142,7 @@ def expanded_rna_graph_to_digraph(graph):
 def get_mod_dict(graph):
     s,e=directedgraphtools.get_start_and_end_node(graph)
     return {s:696969 , e:123123123}
-ubergraphlearn.get_mod_dict=get_mod_dict
+#ubergraphlearn.get_mod_dict=get_mod_dict
 import rnaabstract
 
 
