@@ -62,12 +62,18 @@ class UberSampler(GraphLearnSampler):
           use input to fit the grammar and fit the estimator
         """
 
+
+        graphmanagers=list(graphmanagers)
+
         def get_esti_graphs(managers):
             for manager in managers:
                 yield manager.get_estimateable()
 
         graphs_ = get_esti_graphs(graphmanagers)
+
+
         #draw.graphlearn_draw(graphs_.next(),size=20,node_size=500, show_direction=True, contract = False)
+
         self.estimator = self.estimatorobject.fit(graphs_,
                                                   vectorizer=self.vectorizer,
                                                   nu=nu,
@@ -141,6 +147,7 @@ def extract_cores_and_interfaces_mk2(parameters):
         # unpack arguments, expand the graph
         graphmanager, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check, base_thickness_list = parameters
 
+        #print 'you called me like this',parameters
         #graph = vectorizer._edge_to_vertex_transform(graph)
         #abstr = graph.graph['abstract']
 
@@ -277,7 +284,7 @@ def extract_cips(node,
     '''
     # if not filter(abstract_graph, node):
     #    return []
-    print 'ok1'
+    #print 'ok1'
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
         vectorizer._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
@@ -309,9 +316,11 @@ def extract_cips(node,
             graphtools.merge(base_copy, mergeids[0], node)
 
         # do cip extraction and calculate the real core hash
-        draw.graphlearn_draw(base_copy,size=20)
-        draw.draw_center(base_copy,mergeids[0],5,size=20)
-        print base_thickness_list,hash_bitmask
+        #draw.graphlearn_draw(base_copy,size=20)
+
+        #draw.draw_center(base_copy,mergeids[0],5,size=20)
+        #print base_thickness_list,hash_bitmask
+
         base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
                                                                 base_copy,
                                                                 radius_list=[0],
@@ -319,8 +328,12 @@ def extract_cips(node,
                                                                 vectorizer=vectorizer,
                                                                 hash_bitmask=hash_bitmask,
                                                                 **argz)
+
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
-        print base_level_cips
+
+        #print base_level_cips
+
+
         # now we have a bunch of base_level_cips and need to attach info from the abstract cip.
         for base_cip in base_level_cips:
 
@@ -349,16 +362,12 @@ def extract_cips(node,
                                                        get_mods(mod_dict,mergeids),0,
                                                        hash_bitmask)
 
-
-
-
             base_cip.core_nodes_count = acip.core_nodes_count
             base_cip.radius = acip.radius
             base_cip.abstract_thickness = acip.thickness
 
             # i want to see what they look like :)
             base_cip.abstract_view=acip.graph
-            print 'ok3'
             cips.append(base_cip)
     return cips
 
