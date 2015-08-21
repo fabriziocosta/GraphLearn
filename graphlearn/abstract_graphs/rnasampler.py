@@ -3,9 +3,8 @@ from ubergraphlearn import UberSampler,UberGrammar
 import ubergraphlearn
 import networkx as nx
 import graphlearn.utils.draw as draw
-import random
-from eden.converter.rna.rnafold import rnafold_to_eden
-import directedgraphtools
+
+import directedgraphtools as dgtools
 
 class RNASampler(UberSampler):
 
@@ -32,13 +31,21 @@ class RNASampler(UberSampler):
         turning sample starter graph to digraph
     '''
     def _sample_init(self, graph):
-        graph = self.vectorizer._edge_to_vertex_transform(graph)
-        graph = expanded_rna_graph_to_digraph(graph)
+        #graph = self.vectorizer._edge_to_vertex_transform(graph)
+        #graph = dgtools.expanded_rna_graph_to_digraph(graph)
+        self.postprocessor.fit(self)
+
+        graph=self.postprocessor.postprocess(graph)
         self._score(graph)
         self._sample_notes = ''
         self._sample_path_score_set = set()
-        self.postprocessor.fit(self)
         return graph
+
+    def _score(self,graph):
+        estimateable=graph.graphmanager.get_estimateable()
+        super(RNASampler,self)._score(estimateable)
+        graph._score=estimateable._score
+        return graph._score
 
 
     '''
@@ -66,81 +73,26 @@ class RNASampler(UberSampler):
 '''
 def is_rna (graph):
     graph=graph.copy()
-
     # remove structure
     bonds= [ n for n,d in graph.nodes(data=True) if d['label']=='=' ]
     graph.remove_nodes_from(bonds)
-
     # see if we are cyclic
     for node,degree in graph.in_degree_iter( graph.nodes() ):
         if degree == 0:
             break
     else:
         return False
-
     # check if we are connected.
     graph=nx.Graph(graph)
     return nx.is_connected(graph)
 
 
 
-class PostProcessor:
-
-
-    def __init__(self):
-        pass
-
-    def fit(self, other):
-        print 'OMG i got a vectorizer kthx'
-        self.vectorizer=other.vectorizer
-
-    def postprocess(self, graph):
-        return self.rna_refold( graph )
-
-    def rna_refold(self, digraph=None, seq=None,vectorizer=None):
-        """
-        :param digraph:
-        :param seq:
-
-        :return: will extract a sequence, RNAfold it and create a abstract graph
-        """
-        # get a sequence no matter what :)
-        if not seq:
-            seq= rnaabstract.get_sequence(digraph)
-
-        #print 'seq:',seq
-
-        graph = rnafold_to_eden([('emptyheader',seq)], shape_type=5, energy_range=30, max_num=3).next()
-
-        expanded_graph = self.vectorizer._edge_to_vertex_transform(graph)
-        ex_di_graph = expanded_rna_graph_to_digraph(expanded_graph)
-        #abstract_graph = directedgraphtools.direct_abstraction_wrapper(graph,0)
-        return ex_di_graph
-
-
-
-def expanded_rna_graph_to_digraph(graph):
-    '''
-    :param graph:  an expanded rna representing graph as produced by eden.
-                   properties: backbone edges are replaced by a node labeled '-'.
-                   rna reading direction is reflected by ascending node ids in the graph.
-    :return: a graph, directed edges along the backbone
-    '''
-    digraph=nx.DiGraph(graph)
-    for n,d in digraph.nodes(data=True):
-        if 'edge' in d:
-            if d['label']=='-':
-                ns=digraph.neighbors(n)
-                ns.sort()
-                digraph.remove_edge(ns[1],n)
-                digraph.remove_edge(n,ns[0])
-    return digraph
-
 
 
 # modifying  ubergraphlearn further..
 def get_mod_dict(graph):
-    s,e=directedgraphtools.get_start_and_end_node(graph)
+    s,e=dgtools.get_start_and_end_node(graph)
     return {s:696969 , e:123123123}
 #ubergraphlearn.get_mod_dict=get_mod_dict
 import rnaabstract

@@ -4,11 +4,11 @@ import networkx as nx
 from eden.modifier.graph.structure import contraction
 import subprocess as sp
 import graphlearn.graphtools as gt
-
+import directedgraphtools as dgtools
 
 
 '''
-rna_abstractor_mk2
+direct_abstraction_wrapper
 extends the self-build abstractor, but only works on fresh graphs
 '''
 
@@ -290,3 +290,68 @@ def contract(graph):
     contracted_graph = contraction(
         [graph], contraction_attribute = 'type', modifiers = [], nesting = False).next()
     return contracted_graph
+
+
+
+
+
+
+
+
+from eden.converter.rna.rnafold import rnafold_to_eden
+class PostProcessor:
+    '''
+    postprocessotr to refold with rnafold
+    '''
+    def __init__(self):
+        pass
+
+    def fit(self, other):
+        print 'OMG i got a vectorizer kthx'
+        self.vectorizer=other.vectorizer
+
+    def postprocess(self, graph):
+        return self.rna_refold( graph )
+
+    def rna_refold(self, digraph=None, seq=None,vectorizer=None):
+        """
+        :param digraph:
+        :param seq:
+        :return: will extract a sequence, RNAfold it and create a abstract graph
+        """
+        # get a sequence no matter what :)
+        if not seq:
+            seq= get_sequence(digraph)
+        #print 'seq:',seq
+        graph = rnafold_to_eden([('emptyheader',seq)], shape_type=5, energy_range=30, max_num=3).next()
+        expanded_graph = self.vectorizer._edge_to_vertex_transform(graph)
+        ex_di_graph = dgtools.expanded_rna_graph_to_digraph(expanded_graph)
+        #abstract_graph = directedgraphtools.direct_abstraction_wrapper(graph,0)
+        return ex_di_graph
+
+
+import graphmanager
+
+
+class ForgiPostprocessor:
+    def __init__(self):
+        pass
+
+    def fit(self, other):
+        self.vectorizer=other.vectorizer
+
+    def postprocess(self, graph=None, seq=None):
+        if seq is None:
+            seq= get_sequence(graph)
+        shape = graphmanager.cacallRNAshapes(seq)
+        if shape is None:
+            raise Exception('unfoldable')
+        name='set real name later'
+        grmgr=graphmanager.GraphManager(name,seq,self.vectorizer,shape)
+        graph=grmgr.get_base_graph()
+        graph.graphmanager=grmgr
+
+
+
+
+
