@@ -12,6 +12,7 @@ from graphlearn.utils import draw
 from eden.graph import Vectorizer
 
 import graphlearn.abstract_graphs.rnasampler as rna
+import rnaabstract as rnaa
 
 def fromfasta(file='RF00005.fa',vectorizer=None):
     s=[]
@@ -75,7 +76,6 @@ class GraphManager(object):
 
         name_edges(self.abstract_graph)
         setset(self.abstract_graph)
-
 
 
     def get_estimateable(self):
