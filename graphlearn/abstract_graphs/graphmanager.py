@@ -1,5 +1,3 @@
-
-
 '''
 ubersamplers fit will take a list of graphmanager as input.
 '''
@@ -10,8 +8,9 @@ import forgi
 import networkx as nx
 from graphlearn.utils import draw
 from eden.graph import Vectorizer
+import directedgraphtools as dgtools
 
-import graphlearn.abstract_graphs.rnasampler as rna
+import rnasampler as rna
 import rnaabstract as rnaa
 
 def fromfasta(file='RF00005.fa',vectorizer=None):
@@ -86,7 +85,7 @@ class GraphManager(object):
 
     def get_base_graph(self):
         if 'directed_base_graph' not in self.__dict__:
-            self.directed_base_graph=rna.expanded_rna_graph_to_digraph(self.base_graph)
+            self.directed_base_graph=dgtools.expanded_rna_graph_to_digraph(self.base_graph)
 
         return self.directed_base_graph
 

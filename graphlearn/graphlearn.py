@@ -320,7 +320,11 @@ class GraphLearnSampler(object):
         if graph is None:
             return None
         # prepare variables and graph
-        graph = self._sample_init(graph)
+        try:
+            graph = self._sample_init(graph)
+        except Exception as exc:
+            logger.debug(exc)
+            return None
         self._score_list = [graph._score]
         self.sample_path = []
         accept_counter = 0
