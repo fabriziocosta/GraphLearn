@@ -331,8 +331,6 @@ class PostProcessor:
 
 
 import graphmanager
-
-
 class ForgiPostprocessor:
     def __init__(self):
         pass
@@ -340,16 +338,22 @@ class ForgiPostprocessor:
     def fit(self, other):
         self.vectorizer=other.vectorizer
 
-    def postprocess(self, graph=None, seq=None):
-        if seq is None:
-            seq= get_sequence(graph)
-        shape = graphmanager.cacallRNAshapes(seq)
+    def postprocess(self, seq):
+        # if we get a graph .. transform to sequence
+        if isinstance(seq,nx.Graph):
+            seq= get_sequence(seq)
+
+        # get shape
+        shape = graphmanager.callRNAshapes(seq)
         if shape is None:
             raise Exception('unfoldable')
         name='set real name later'
+        # build graphmanager
         grmgr=graphmanager.GraphManager(name,seq,self.vectorizer,shape)
+        # get graph
         graph=grmgr.get_base_graph()
         graph.graphmanager=grmgr
+        return graph
 
 
 

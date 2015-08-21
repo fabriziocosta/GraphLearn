@@ -36,12 +36,15 @@ class RNASampler(UberSampler):
         self.postprocessor.fit(self)
 
         graph=self.postprocessor.postprocess(graph)
+        if graph is None:
+            raise Exception ('_sample_init failed, cant fold to trna')
         self._score(graph)
         self._sample_notes = ''
         self._sample_path_score_set = set()
         return graph
 
     def _score(self,graph):
+
         estimateable=graph.graphmanager.get_estimateable()
         super(RNASampler,self)._score(estimateable)
         graph._score=estimateable._score
