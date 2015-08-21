@@ -28,7 +28,6 @@ class UberSampler(GraphLearnSampler):
                  **kwargs):
         '''
             graphlernsampler with its extensions..
-
             for now this:
                 is a real_thickness_list
                 and we make sure that the grammar can handle our new corez :)
@@ -103,8 +102,9 @@ class UberSampler(GraphLearnSampler):
         selects the next candidate.
         '''
 
-        graph = self.vectorizer._edge_to_vertex_transform(graph)
-        abstr = self._get_abstract_graph(graph)
+        #graph = self.vectorizer._edge_to_vertex_transform(graph)
+        abstr = graph.graphmanager.get_abstract_graph() #self._get_abstract_graph(graph)
+
         node = random.choice(abstr.nodes())
         if 'edge' in abstr.node[node]:
             node = random.choice(abstr.neighbors(node))
