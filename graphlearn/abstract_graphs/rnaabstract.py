@@ -346,7 +346,8 @@ class ForgiPostprocessor:
         # get shape
         shape = graphmanager.callRNAshapes(seq)
         if shape is None:
-            raise Exception('unfoldable')
+            #raise Exception('unfoldable')
+            return None
         name='set real name later'
         # build graphmanager
         grmgr=graphmanager.GraphManager(name,seq,self.vectorizer,shape)
