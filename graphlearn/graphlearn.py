@@ -523,10 +523,12 @@ class GraphLearnSampler(object):
 
                 if self.feasibility_checker.check(graph_new):
                     graph_clean(graph_new)
-                    logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
+                    # postproc may fail
+                    tmp= self.postprocessor.postprocess(graph_new)
+                    if tmp:
+                        logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
                                  (self.step, attempt, choices, orig_cip_ctr))
-                    return self.postprocessor.postprocess(graph_new)
-
+                        return tmp
                 if self.quick_skip_orig_cip:
                     break
 
