@@ -116,8 +116,68 @@ def make_abstract(extgraph):
     :return: edge to vertex transformed abstract graph
     '''
 
-    pass
+    # annotate
+    for n,d in extgraph.nodes(data=True):
+        d['cycle']=list(node_to_cycle(extgraph,n))
+        d['cycle'].sort()
 
+    # prepare
+    abstract_graph=nx.Graph()
+    import eden
+    eden.fast_hash([1,2],2**20-1)
+    def fhash(stuff):
+        return eden.fast_hash(stuff,2**20-1)
+
+    for n,d in extgraph.nodes(data=True):
+        # make sure abstract node exists
+        cyclash = fhash(d['cycle'])
+        if cyclash not in abstract_graph.node:
+            abstract_graph.add_node(cyclash)
+            abstract_graph.node[cyclash]['contracted']= set(d['cycle'])
+
+        # tell everyone interested about it
+        for e in d['cycle']:
+            node=extgraph.node[e]
+            if 'parent' not in node:
+                node['parent'] = set()
+            node['parent'].add(cyclash)
+
+
+    f=lambda x: list(x)[0]
+    '''
+    connect nodes in the abstract graph
+    '''
+    for n,d in abstract_graph.nodes(data=True):
+        #look at all the children and their neighbors parents
+        d['label']= len(d['contracted'])
+        if len(d['contracted']) ==1 and 'edge' in extgraph.node [ f(d['contracted'])]:
+            d['edge']=True
+            d['label']='edge'
+        # for all nodes
+        for base_node in d['contracted']:
+            base_neighbors = extgraph.neighbors(base_node)
+            # for all the neighbors
+            for neigh in base_neighbors:
+                # find out if we have to build a connector node
+                if len (extgraph.node[neigh]['cycle']) > 1 and len (d['contracted']) > 1:
+
+                    for other in extgraph.node[neigh]['parent']:
+                        if other != n:
+                            l=[other,n]
+                            l.sort()
+                            connector = fhash(l)
+                            if connector not in abstract_graph.node:
+                                # we need to consider making the edge the actual intersect of the two...
+                                abstract_graph.add_node(connector)
+                                abstract_graph.node[connector]['edge']=True
+                                abstract_graph.node[connector]['label']='edge'
+                                abstract_graph.add_edge(other,connector)
+                                abstract_graph.add_edge(connector,n)
+
+                else:
+                    for e in extgraph.node[neigh]['parent']:
+                        abstract_graph.add_edge(n,e)
+    return abstract_graph
 
 
 
@@ -140,8 +200,7 @@ def node_to_cycle(graph,n,min_cycle_size=3):
 
     def close_cycle(collisions,parent,root):
         '''
-            we found a cycle, but that does not say that the root node is part of that cycle..
-
+            we found a cycle, but that does not say that the root node is part of that cycle..S
         '''
         def extend_path_to_root(work_list,parent_dict,root):
             """
@@ -236,12 +295,3 @@ def node_to_cycle(graph,n,min_cycle_size=3):
         visited = visited | frontier
         frontier=next
     return FAILEDVALUE
-
-
-
-
-
-
-
-
-
