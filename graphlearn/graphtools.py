@@ -201,7 +201,9 @@ def merge(graph, node, node2):
 
 def find_all_isomorphisms(home, other):
     if iso.faster_could_be_isomorphic(home, other):
+
         label_matcher = lambda x, y: x['distance_dependent_label'] == y['distance_dependent_label']
+
         graph_label_matcher = iso.GraphMatcher(home, other, node_match=label_matcher)
         for index, mapping in enumerate(graph_label_matcher.isomorphisms_iter()):
             if index == 15:  # give up ..

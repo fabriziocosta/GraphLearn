@@ -6,6 +6,7 @@ import subprocess  as sp
 import eden.converter.rna as conv
 import forgi
 import networkx as nx
+import graphlearn.abstract_graphs.rnaabstract
 from graphlearn.utils import draw
 from eden.graph import Vectorizer
 import directedgraphtools as dgtools
@@ -85,7 +86,7 @@ class GraphManager(object):
 
     def get_base_graph(self):
         if 'directed_base_graph' not in self.__dict__:
-            self.directed_base_graph=dgtools.expanded_rna_graph_to_digraph(self.base_graph)
+            self.directed_base_graph= graphlearn.abstract_graphs.rnaabstract.expanded_rna_graph_to_digraph(self.base_graph)
 
         return self.directed_base_graph
 

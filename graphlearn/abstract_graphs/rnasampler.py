@@ -1,4 +1,4 @@
-
+import graphlearn.abstract_graphs.rnaabstract
 from ubergraphlearn import UberSampler,UberGrammar
 import ubergraphlearn
 import networkx as nx
@@ -95,7 +95,7 @@ def is_rna (graph):
 
 # modifying  ubergraphlearn further..
 def get_mod_dict(graph):
-    s,e=dgtools.get_start_and_end_node(graph)
+    s,e= graphlearn.abstract_graphs.rnaabstract.get_start_and_end_node(graph)
     return {s:696969 , e:123123123}
 #ubergraphlearn.get_mod_dict=get_mod_dict
 import rnaabstract

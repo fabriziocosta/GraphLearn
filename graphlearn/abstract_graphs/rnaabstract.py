@@ -14,7 +14,7 @@ extends the self-build abstractor, but only works on fresh graphs
 
 def get_sequence(digraph):
 
-    current,end= directedgraphtools.get_start_and_end_node(digraph)
+    current,end= graphlearn.abstract_graphs.rnaabstract.get_start_and_end_node(digraph)
     seq=digraph.node[current]['label']
 
     while current != end:
@@ -113,7 +113,7 @@ def direct_abstractor(graph,v):
     :return: contracted graph
     '''
 
-    n,not_used= directedgraphtools.get_start_and_end_node(graph)
+    n,not_used= graphlearn.abstract_graphs.rnaabstract.get_start_and_end_node(graph)
     tasks=[n]
     result = nx.Graph()
 
@@ -325,7 +325,7 @@ class PostProcessor:
         #print 'seq:',seq
         graph = rnafold_to_eden([('emptyheader',seq)], shape_type=5, energy_range=30, max_num=3).next()
         expanded_graph = self.vectorizer._edge_to_vertex_transform(graph)
-        ex_di_graph = dgtools.expanded_rna_graph_to_digraph(expanded_graph)
+        ex_di_graph = graphlearn.abstract_graphs.rnaabstract.expanded_rna_graph_to_digraph(expanded_graph)
         #abstract_graph = directedgraphtools.direct_abstraction_wrapper(graph,0)
         return ex_di_graph
 
@@ -357,6 +357,53 @@ class ForgiPostprocessor:
         return graph
 
 
+def get_start_and_end_node(graph):
+    # make n the first node of the sequence
+    start=-1
+    end=-1
+    for n,d in graph.nodes_iter(data=True):
+
+        # edge nodes cant be start or end
+        if 'edge' in d:
+            continue
+
+        # check for start
+        if start == -1:
+            l= graph.predecessors(n)
+            if len(l)==0:
+                start = n
+            if len(l)==1:
+                if graph.node[ l[0] ]['label']=='=':
+                    start = n
+
+        # check for end:
+        if end == -1:
+            l= graph.neighbors(n)
+            if len(l)==0:
+                end = n
+            if len(l)==1:
+                if graph.node[ l[0] ]['label']=='=':
+                    end = n
+
+    # check and return
+    if start==-1 or end==-1:
+        raise Exception ('your beautiful "rna" has no clear start or end')
+    return start,end
 
 
-
+def expanded_rna_graph_to_digraph(graph):
+    '''
+    :param graph:  an expanded rna representing graph as produced by eden.
+                   properties: backbone edges are replaced by a node labeled '-'.
+                   rna reading direction is reflected by ascending node ids in the graph.
+    :return: a graph, directed edges along the backbone
+    '''
+    digraph=nx.DiGraph(graph)
+    for n,d in digraph.nodes(data=True):
+        if 'edge' in d:
+            if d['label']=='-':
+                ns=digraph.neighbors(n)
+                ns.sort()
+                digraph.remove_edge(ns[1],n)
+                digraph.remove_edge(n,ns[0])
+    return digraph
