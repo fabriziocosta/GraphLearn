@@ -9,7 +9,7 @@ import networkx as nx
 import graphlearn.abstract_graphs.rnaabstract
 from graphlearn.utils import draw
 from eden.graph import Vectorizer
-import directedgraphtools as dgtools
+
 
 import rnasampler as rna
 import rnaabstract as rnaa

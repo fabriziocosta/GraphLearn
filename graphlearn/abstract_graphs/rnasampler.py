@@ -4,7 +4,7 @@ import ubergraphlearn
 import networkx as nx
 import graphlearn.utils.draw as draw
 
-import directedgraphtools as dgtools
+
 
 class RNASampler(UberSampler):
 
