@@ -82,20 +82,20 @@ class UberSampler(GraphLearnSampler):
         self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
 
 
-
+    '''
     def _get_abstract_graph(self, graph):
         try:
             return make_abstract(graph, self.vectorizer)
         except Exception as exc:
             print 'le errer:'
-
             logger.info(exc)
             logger.info(traceback.format_exc(10))
-
             draw.graphlearn_draw(graph,size=20,node_size=500, show_direction=True, contract = False)
             raise Exception('make_abstract died')
+    '''
 
-
+    def _get_abstract_graph(self,graph):
+        return graph.graphmanager.get_abstract_graph()
 
     def _original_cip_extraction(self, graph):
         '''
@@ -103,7 +103,7 @@ class UberSampler(GraphLearnSampler):
         '''
 
         #graph = self.vectorizer._edge_to_vertex_transform(graph)
-        abstr = graph.graphmanager.get_abstract_graph() #self._get_abstract_graph(graph)
+        abstr = self._get_abstract_graph(graph)#self._get_abstract_graph(graph)
 
         node = random.choice(abstr.nodes())
         if 'edge' in abstr.node[node]:

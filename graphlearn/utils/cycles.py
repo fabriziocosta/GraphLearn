@@ -8,7 +8,6 @@ def cycles(max_cycle_size):
     return lambda x:not problem_cycle(x,max_cycle_size)
 
 
-
 def problem_cycle(graph,max_cycle_size):
     '''
     for each node we check if a questionable cycle exists
