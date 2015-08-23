@@ -1,10 +1,10 @@
 
-import directedgraphtools
+
 import networkx as nx
 from eden.modifier.graph.structure import contraction
 import subprocess as sp
 import graphlearn.graphtools as gt
-import directedgraphtools as dgtools
+import graphlearn
 
 
 '''
