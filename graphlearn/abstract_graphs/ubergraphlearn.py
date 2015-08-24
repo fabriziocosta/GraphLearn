@@ -312,6 +312,11 @@ def extract_cips(node,
             acip.radius + 1) for abstract_node_id in acip.distance_dict.get(radius)
             for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
         base_copy = base_graph.copy()
+
+
+        # remove duplicates:
+        mergeids = list(set(mergeids))
+
         for node in mergeids[1:]:
             graphtools.merge(base_copy, mergeids[0], node)
 
