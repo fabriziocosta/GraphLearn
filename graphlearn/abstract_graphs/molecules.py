@@ -4,7 +4,7 @@ import ubergraphlearn
 import networkx as nx
 import graphlearn.utils.draw as draw
 from collections import defaultdict
-
+import eden
 
 
 class MoleculeSampler(UberSampler):
@@ -87,21 +87,23 @@ def make_abstract(extgraph):
     :return: edge to vertex transformed abstract graph
     '''
 
-    # annotate
+    # annotate base graph
     for n,d in extgraph.nodes(data=True):
         d['cycle']=list(node_to_cycle(extgraph,n))
         d['cycle'].sort()
 
     # prepare
     abstract_graph=nx.Graph()
-    import eden
-    eden.fast_hash([1,2],2**20-1)
     def fhash(stuff):
         return eden.fast_hash(stuff,2**20-1)
 
+
+    # make sure most of the abstract nodes are created.
+    # base graph nodes have a list of abstract parents.
     for n,d in extgraph.nodes(data=True):
         # make sure abstract node exists
         cyclash = fhash(d['cycle'])
+
         if cyclash not in abstract_graph.node:
             abstract_graph.add_node(cyclash)
             abstract_graph.node[cyclash]['contracted']= set(d['cycle'])
@@ -113,24 +115,32 @@ def make_abstract(extgraph):
                 node['parent'] = set()
             node['parent'].add(cyclash)
 
-
+    #connect nodes in the abstract graph
     f=lambda x: list(x)[0]
-    '''
-    connect nodes in the abstract graph
-    '''
     for n,d in abstract_graph.nodes(data=True):
         #look at all the children and their neighbors parents
 
 
         if len(d['contracted'])>1:
-            d['label']= str( len(d['contracted']) )
+            # setting label for cycles..
+
+            # this will only use the length..
+            #d['label']= "cycle "+str( len(d['contracted']) )
+            # but i might as well use the hash of labels of all the contracted nodes
+
+
+            labels= [   ord( extgraph.node[childid]['label']) for childid in d['contracted']   ]
+            labels.sort()
+            d['label']="cycle %d" % fhash(labels)
+
+
         else:
             d['label']= extgraph.node[ f(d['contracted']) ]['label']
 
 
         if len(d['contracted']) ==1 and 'edge' in extgraph.node [ f(d['contracted'])]:
             d['edge']=True
-            d['label']='edge'
+            d['label']=d['label']
         # for all nodes
         for base_node in d['contracted']:
             base_neighbors = extgraph.neighbors(base_node)
@@ -146,9 +156,14 @@ def make_abstract(extgraph):
                             connector = fhash(l)
                             if connector not in abstract_graph.node:
                                 # we need to consider making the edge the actual intersect of the two...
+
                                 abstract_graph.add_node(connector)
                                 abstract_graph.node[connector]['edge']=True
-                                abstract_graph.node[connector]['label']='edge'
+
+                                #abstract_graph.node[connector]['label']='edge'
+                                num_shared_nodes = len(abstract_graph.node[other]['contracted'] & d['contracted'])
+                                abstract_graph.node[connector]['label']="shared"+str(num_shared_nodes)
+
                                 abstract_graph.add_edge(other,connector)
                                 abstract_graph.add_edge(connector,n)
 
