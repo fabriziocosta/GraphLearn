@@ -50,6 +50,10 @@ class RNASampler(UberSampler):
         graph._score=estimateable._score
         return graph._score
 
+    def _sample_path_append(self, graph, force=False):
+        if not force:
+            self._sample_notes+=graph.graph.get('sequence',"0")+"n"
+        super(RNASampler,self)._sample_path_append(graph,force=force)
 
     '''
         this is also used sometimes so we make better sure it doesnt fail
@@ -99,7 +103,59 @@ def get_mod_dict(graph):
     return {s:696969 , e:123123123}
 #ubergraphlearn.get_mod_dict=get_mod_dict
 import rnaabstract
-
-
 #ubergraphlearn.make_abstract = rnaabstract.direct_abstractor
 #ubergraphlearn.make_abstract = rnaabstract.direct_abstraction_wrapper
+
+
+
+
+
+
+
+
+import subprocess  as sp
+
+def infernal_checker(sequence_list):
+    '''
+    :param sequences: a bunch of rna sequences
+    :return: get evaluation from cmsearch
+    '''
+    write_fasta(sequence_list,filename='temp.fa')
+    return call_cm_search('temp.fa',len(sequence_list))
+
+
+
+def write_fasta(sequences,filename='asdasd'):
+
+    fasta=''
+    for i,s in enumerate(sequences):
+        if len(s) > 5:
+            fasta+='>HACK%d\n%s\n' % (i,s)
+
+    with open(filename, 'w') as f:
+        f.write(fasta)
+
+
+def call_cm_search(filename, count):
+
+    out = sp.check_output('./cmsearch -g --noali --incT 0  rf00005.cm %s' % filename, shell=True)
+    # -g global
+    # --noali, we dont want to see the alignment, score is enough
+    # --incT 0 we want to see everything with score > 0
+    result={}
+    s = out.strip().split('\n')
+    for line in s:
+        if 'HACK' in line:
+            linez=line.split()
+            score=float(linez[3])/100
+            id = int(linez[5][4:])
+            result[id]=score
+
+
+    return [ result.get(k,0) for k in range(count) ]
+
+
+
+
+
+

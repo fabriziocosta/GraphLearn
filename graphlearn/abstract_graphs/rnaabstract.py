@@ -326,6 +326,7 @@ class PostProcessor:
         graph = rnafold_to_eden([('emptyheader',seq)], shape_type=5, energy_range=30, max_num=3).next()
         expanded_graph = self.vectorizer._edge_to_vertex_transform(graph)
         ex_di_graph = graphlearn.abstract_graphs.rnaabstract.expanded_rna_graph_to_digraph(expanded_graph)
+        ex_di_graph.graph['sequence']= seq
         #abstract_graph = directedgraphtools.direct_abstraction_wrapper(graph,0)
         return ex_di_graph
 
@@ -354,6 +355,7 @@ class ForgiPostprocessor:
         # get graph
         graph=grmgr.get_base_graph()
         graph.graphmanager=grmgr
+        graph.graph['sequence'] = seq
         return graph
 
 
