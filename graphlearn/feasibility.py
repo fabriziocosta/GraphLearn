@@ -13,20 +13,18 @@ def default_check(graph):
     '''
     # check if graph exists
     if len(graph) < 1:
-        logger.log(5,'feasibility got empty graph')
+        logger.log(5, 'feasibility got empty graph')
         return False
 
-
-    if isinstance(graph,nx.DiGraph):
+    if isinstance(graph, nx.DiGraph):
         for node_id in graph.nodes_iter():
             if 'edge' in graph.node[node_id]:
-                n=graph.neighbors(node_id)
-                n+=graph.predecessors(node_id)
-                s=set(n)
+                n = graph.neighbors(node_id)
+                n += graph.predecessors(node_id)
+                s = set(n)
                 if len(s) != 2:
-                    logger.log(5,'feasibility edge check failed')
+                    logger.log(5, 'feasibility edge check failed')
                     return False
-
 
         return True
 
@@ -35,13 +33,14 @@ def default_check(graph):
     for node_id in graph.nodes_iter():
         if 'edge' in graph.node[node_id]:
             if len(graph.neighbors(node_id)) != 2:
-                logger.log(5,'feasibility edge check failed')
+                logger.log(5, 'feasibility edge check failed')
                 return False
 
     return True
 
 
 class FeasibilityChecker():
+
     def __init__(self, draw_problem=False):
 
         self.checklist = []
@@ -61,5 +60,3 @@ class FeasibilityChecker():
                 return False
         # no errors found so we are probably good
         return True
-
-
