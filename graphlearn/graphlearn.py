@@ -12,6 +12,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
+from utils import cycles
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,7 @@ class GraphLearnSampler(object):
 
                similarity=-1,
                n_samples=None,
+                estimate_flowback = False,
                batch_size=10,
                n_jobs=0,
                max_cycle_size=False,
@@ -166,6 +168,7 @@ class GraphLearnSampler(object):
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
                burnin=0,
+
 
                generator_mode=False,
                omit_seed=True,
@@ -187,7 +190,7 @@ class GraphLearnSampler(object):
         :param n_steps: how many samplesteps are conducted
         :param burnin: do this many steps before collecting samples
         :param max_cycle_size: max allowed size (slow)
-
+        :estimate_flowback: True to calculate new and old options
         # sampling strategy
         :param target_orig_cip:  we will use the estimator to determine weak regions in the graph that need
         improvement
@@ -209,6 +212,12 @@ class GraphLearnSampler(object):
         :return:  yield graphs
 
         """
+        self.estimate_backflow = estimate_flowback
+        if self.estimate_backflow:
+            print 'WARNING you set estimate backflow. the implementation is a little sketchy ' \
+                  'so dont try this with weired graphs. '
+
+
 
         self.similarity = similarity
 
@@ -216,7 +225,7 @@ class GraphLearnSampler(object):
 
             max_cycle_size = 2 * max_cycle_size
 
-            self.feasibility_checker.checklist.append(feasibility.cycles(max_cycle_size))
+            self.feasibility_checker.checklist.append(cycles.cycles(max_cycle_size))
 
         if probabilistic_core_choice + score_core_choice + max_core_size_diff == -1 > 1:
             raise Exception('choose max one cip choice strategy')
@@ -319,7 +328,11 @@ class GraphLearnSampler(object):
         if graph is None:
             return None
         # prepare variables and graph
-        graph = self._sample_init(graph)
+        try:
+            graph = self._sample_init(graph)
+        except Exception as exc:
+            logger.debug(exc)
+            return None
         self._score_list = [graph._score]
         self.sample_path = []
         accept_counter = 0
@@ -399,7 +412,6 @@ class GraphLearnSampler(object):
         graph = self.vectorizer._edge_to_vertex_transform(graph)
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
-
         self._score(graph)
         self._sample_notes = ''
         self._sample_path_score_set = set()
@@ -517,13 +529,49 @@ class GraphLearnSampler(object):
                 graph_new = core_substitution(graph, original_cip.graph, candidate_cip.graph)
 
                 if self.feasibility_checker.check(graph_new):
-                    graph_clean(graph_new)
-                    logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
-                                 (self.step, attempt, choices, orig_cip_ctr))
-                    return self.postprocessor.postprocess(graph_new)
 
+
+                    graph_clean(graph_new)
+                    # postproc may fail
+                    tmp= self.postprocessor.postprocess(graph_new)
+                    if tmp:
+                        self.reverse_direction_probability(graph,tmp,original_cip)
+                        logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
+                                 (self.step, attempt, choices, orig_cip_ctr))
+
+
+                        return tmp
                 if self.quick_skip_orig_cip:
                     break
+
+    def reverse_direction_probability(self,graph,graph_new,cip):
+
+        # it is sufficient to look at the old cip, since the interface ids shoud be the same in the new graph..
+
+
+        def ops(g,cip):
+            # possible operations for stuff
+            counter=0
+            for n,d in cip.graph.nodes(data=True):
+                if 'edge' not in d and 'interface' in d:
+                    cip=extract_core_and_interface(n, g, [cip.thickness], [cip.radius], vectorizer=self.vectorizer,
+                                          hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
+                    if cip:
+                        cip=cip[0]
+                        if cip.interface_hash in self.lsgg.productions:
+                            counter+=len(self.lsgg.productions[cip.interface_hash])
+            return counter
+
+        if self.estimate_backflow:
+            value=len(graph) / float(len(graph_new))
+            print 'flow1: %f' % value
+            one=ops(graph, cip)
+            two=ops(graph_new,cip)
+            print one,two
+            value+= one/float(two)
+            graph.graph['flowback'] = value
+            print 'flow: %f' % value
+
 
     def _select_cips(self, cip, graph):
         """

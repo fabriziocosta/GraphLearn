@@ -2,7 +2,13 @@
 
 """bulge_graph.py: A graph representation of RNA secondary structure based
    on its decomposition into primitive structure types: stems, hairpins,
-   interior loops, multiloops, etc..."""
+   interior loops, multiloops, etc...
+   
+   
+   for eden and graphlearn we stripped forgi down to this single file. 
+   
+   forgi: https://github.com/pkerpedjiev/forgi
+   """
 
 __author__ = "Peter Kerpedjiev"
 __copyright__ = "Copyright 2012, 2013, 2014"
@@ -10,16 +16,160 @@ __version__ = "0.2"
 __maintainer__ = "Peter Kerpedjiev"
 __email__ = "pkerp@tbi.univie.ac.at"
 
+
+
+
 import sys
 import collections as col
-import random
 import re
 import itertools as it
-
-import stuff as fus
 import os
-import itertools as it
 import operator as oper
+import contextlib
+import random
+import shutil
+import tempfile as tf
+
+
+bracket_left =  "([{<ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+bracket_right = ")]}>abcdefghijklmnopqrstuvwxyz"
+
+def gen_random_sequence(l):
+    '''
+    Generate a random RNA sequence of length l.
+    '''
+    return "".join([random.choice(['A','C','G','U']) for i in range(l)])
+
+@contextlib.contextmanager
+def make_temp_directory():
+    '''
+    Yanked from:
+
+    http://stackoverflow.com/questions/13379742/right-way-to-clean-up-a-temporary-folder-in-python-class
+    '''
+    temp_dir = tf.mkdtemp()
+    yield temp_dir
+    shutil.rmtree(temp_dir)
+
+def insert_into_stack(stack, i, j):
+	#print "add", i,j
+	k = 0
+	while len(stack[k])>0 and stack[k][len(stack[k])-1] < j:
+		k+=1
+	stack[k].append(j)
+	return k
+
+def delete_from_stack(stack, j):
+	#print "del", j 
+	k = 0
+	while len(stack[k])==0 or stack[k][len(stack[k])-1] != j:
+		k+=1
+	stack[k].pop()
+	return k	
+
+def pairtable_to_dotbracket(pt):
+    """
+    Converts arbitrary pair table array (ViennaRNA format) to structure in dot bracket format.
+    """
+    stack = col.defaultdict(list)
+    seen = set()
+    res = ""
+    for i in range(1, pt[0]+1):
+        if pt[i] != 0 and pt[i] in seen:
+            raise ValueError('Invalid pairtable contains duplicate entries')
+
+        seen.add(pt[i])
+
+        if pt[i]==0: 
+            res += '.'
+        else:
+            if pt[i]>i:						# '(' check if we can stack it...
+                res += bracket_left[insert_into_stack(stack, i, pt[i])]
+            else:									# ')'
+                res += bracket_right[delete_from_stack(stack, i)]
+
+    return res
+
+def inverse_brackets(bracket):
+	res = col.defaultdict(int)
+	for i,a in enumerate(bracket):
+		res[a] = i
+	return res
+
+def dotbracket_to_pairtable(struct):
+	"""
+	Converts arbitrary structure in dot bracket format to pair table (ViennaRNA format).
+	"""	
+	pt = [0] * (len(struct)+1)
+	pt[0] = len(struct)
+
+	stack = col.defaultdict(list)
+	inverse_bracket_left = inverse_brackets(bracket_left)
+	inverse_bracket_right = inverse_brackets(bracket_right)
+
+	for i,a in enumerate(struct):
+		i += 1
+		#print i,a, pt
+		if a == ".": pt[i] = 0
+		else: 
+			if a in inverse_bracket_left: stack[inverse_bracket_left[a]].append(i)
+			else: 
+				if len(stack[inverse_bracket_right[a]]) == 0:
+                                    raise ValueError('Too many closing brackets!')
+                                j = stack[inverse_bracket_right[a]].pop()
+				pt[i] = j
+				pt[j] = i
+        
+        if len(stack[inverse_bracket_left[a]]) != 0:
+            raise ValueError('Too many opening brackets!')
+
+	return pt
+
+def pairtable_to_tuples(pt):
+    '''
+    Convert a pairtable to a list of base pair tuples.
+    i.e. [4,3,4,1,2] -> [(1,3),(2,4),(3,1),(4,2)]
+    :param pt: A pairtable 
+    :return: A list paired tuples
+    '''
+    pt = iter(pt)
+
+    # get rid of the first element which contains the length
+    # of the sequence. We'll figure it out after the traversal
+    pt.next()
+
+    tuples = []
+    for i, p in enumerate(pt):
+        tuples += [(i+1, p)]
+    return tuples
+        
+def tuples_to_pairtable(pair_tuples, seq_length=None):
+    '''
+    Convert a representation of an RNA consisting of a list of tuples
+    to a pair table:
+
+    i.e. [(1,3),(2,4),(3,1),(4,2)] -> [4,3,4,1,2]
+
+    :param tuples: A list of pair tuples
+    :param seq_length: How long is the sequence? Only needs to be passed in when
+                       the unpaired nucleotides aren't passed in as (x,0) tuples.
+    :return: A pair table
+    '''
+    if seq_length is None:
+        max_bp = max([max(x) for x in pair_tuples])
+    else:
+        max_bp = seq_length
+
+    pt = [0] * (max_bp + 1)
+    pt[0] = max_bp
+
+    for tup in pair_tuples:
+        pt[tup[0]] = tup[1]
+
+    return pt
+
+
+
 
 
 def add_bulge(bulges, bulge, context, message):
@@ -37,95 +187,6 @@ def add_bulge(bulges, bulge, context, message):
     bulges[context] = bulges.get(context, []) + [bulge]
     return bulges
 
-
-def from_id_seq_struct(id_str, seq, struct):
-    """
-    Return a new BulgeGraph with the given id, 
-    sequence and structure.
-
-    :param id_str: The id (i.e. >1y26)
-    :param seq: the sequence (i.e. 'ACCGGG')
-    :param struct: The dotplot secondary structure (i.e. '((..))')
-    """
-    bg = BulgeGraph()
-    bg.from_dotbracket(struct)
-    bg.name = id_str
-    bg.seq = seq
-
-    return bg
-
-
-def from_fasta_text(fasta_text):
-    """
-    Create a bulge graph or multiple bulge
-    graphs from some fasta text.
-    """
-    # compile searches for the fasta id, sequence and 
-    # secondary structure respectively
-    id_search = re.compile('>(.+)')
-    seq_search = re.compile('^([acguACGU]+)$')
-
-    prev_id = None
-    prev_seq = None
-    prev_struct = None
-
-    bgs = []
-
-    for line in fasta_text.split('\n'):
-        # newlines suck
-        line = line.strip()
-
-        # find out what this line contains
-        id_match = id_search.match(line)
-        seq_match = seq_search.match(line)
-
-        if id_match is not None:
-            # we found an id, check if there's a previous
-            # sequence and structure, and create a BG
-            prev_id = id_match.group(0).strip('>')
-
-            if prev_seq is None and prev_struct is None:
-                # must be the first sequence/structure
-                continue
-
-            # make sure we have
-            if prev_seq is None:
-                raise Exception("No sequence for id: {}", prev_id)
-            if prev_struct is None:
-                raise Exception("No sequence for id: {}", prev_id)
-            if prev_id is None:
-                raise Exception("No previous id")
-
-            bgs += [from_id_seq_struct(prev_id, prev_seq, prev_struct)]
-
-        if seq_match is not None:
-            prev_seq = seq_match.group(0)
-        if id_match is None and seq_match is None:
-            if len(line) > 0:
-                prev_struct = line
-
-    bgs += [from_id_seq_struct(prev_id, prev_seq, prev_struct)]
-
-    if len(bgs) == 1:
-        return bgs[0]
-    else:
-        return bgs
-
-
-def from_fasta(filename):
-    """
-    Load a bulge graph from a fasta file. The format of the fasta
-    file is roughly:
-
-        >1
-        AACCCAA
-        ((...))
-    """
-    with open(filename, 'r') as f:
-        text = f.read()
-        bg = BulgeGraph()
-        bg.from_fasta(text)
-        return bg
 
 
 def any_difference_of_one(stem, bulge):
@@ -333,8 +394,8 @@ class BulgeGraph(object):
         for i, s in enumerate(seq):
             self.seq_ids += [(' ', str(i + 1), ' ')]
 
-        if bg_file is not None:
-            self.from_bg_file(bg_file)
+        #if bg_file is not None:
+        #    self.from_bg_file(bg_file)
 
     # get an internal index for a named vertex
     # this applies to both stems and edges
@@ -796,36 +857,6 @@ class BulgeGraph(object):
 
         return new_vertex
 
-    def shortest_bg_loop(self, vertex):
-        """
-        Find the shortest loop containing this node. The vertex should
-        be a multiloop.
-
-        :param vertex: The name of the vertex to find the loop.
-        :return: A list containing the elements in the shortest cycle.
-        """
-        G = self.to_networkx()
-
-        # use the nucleotide in the middle of this element as the starting point
-        residues = sorted(list(self.define_residue_num_iterator(vertex, adjacent=True)))
-        mid_res = residues[len(residues) / 2]
-
-        if len(residues) == 2:
-            # no-residue multiloop
-            # find the neighbor which isn't part of the multiloop
-            neighbors = [n for n in G.neighbors(mid_res) if n != residues[0]]
-
-            if len(neighbors) == 2:
-                # break the chain so that we don't get cycles within a stem
-                for n in neighbors:
-                    if abs(n - mid_res) == 1:
-                        G.remove_edge(n, mid_res)
-                        break
-
-        import forgi.utilities.graph as fug
-
-        path = fug.shortest_cycle(G, mid_res)
-        return path
 
     def nucleotides_to_elements(self, nucleotides):
         """
@@ -1247,21 +1278,6 @@ class BulgeGraph(object):
 
         return loop_elems, loops
 
-    def from_fasta(self, fasta_str, dissolve_length_one_stems=False):
-        """
-        Create a bulge graph from a fasta-type file containing the following
-        format:
-
-            > id
-            ACCGGGG
-            ((...))
-        """
-        lines = fasta_str.split('\n')
-        self.from_dotbracket(lines[2].strip(), dissolve_length_one_stems)
-        self.name = lines[0].strip('>')
-        self.seq = lines[1].strip()
-
-        self.seq_ids_from_seq()
 
     def seq_ids_from_seq(self):
         """
@@ -1346,8 +1362,8 @@ class BulgeGraph(object):
         if len(dotbracket_str) == 0:
             return
 
-        pt = fus.dotbracket_to_pairtable(dotbracket_str)
-        tuples = fus.pairtable_to_tuples(pt)
+        pt = dotbracket_to_pairtable(dotbracket_str)
+        tuples = pairtable_to_tuples(pt)
         self.from_tuples(tuples)
 
         if dissolve_length_one_stems:
@@ -1364,7 +1380,7 @@ class BulgeGraph(object):
         """
         pair_tuples = self.to_pair_tuples()
 
-        return fus.tuples_to_pairtable(pair_tuples)
+        return tuples_to_pairtable(pair_tuples)
 
     def to_pair_tuples(self):
         """
@@ -1425,33 +1441,6 @@ class BulgeGraph(object):
         seq = "".join(seq).upper().replace('T', 'U')
 
         return (tuples, seq)
-
-    def from_bpseq_str(self, bpseq_str, dissolve_length_one_stems=False):
-        """
-        Create the graph from a string listing the base pairs.
-
-        The string should be formatted like so:
-
-            1 G 115
-            2 A 0
-            3 A 0
-            4 U 0
-            5 U 112
-            6 G 111
-
-        :param bpseq_str: The string, containing newline characters.
-        :return: Nothing, but fill out this structure.
-        """
-        self.__init__()
-
-        tuples, seq = self.bpseq_to_tuples_and_seq(bpseq_str)
-
-        self.seq = seq
-        self.seq_length = len(seq)
-        self.from_tuples(tuples)
-
-        if dissolve_length_one_stems:
-            self.dissolve_length_one_stems()
 
     def from_tuples(self, tuples):
         """
@@ -1540,65 +1529,8 @@ class BulgeGraph(object):
         :return: A dot-bracket representation of this BulgeGraph
         """
         pt = self.to_pair_table()
-        return fus.pairtable_to_dotbracket(pt)
-
-    def to_fasta_string(self):
-        """
-        Output the BulgeGraph representation as a fast string of the
-        format:
-
-            >id
-            AACCCAA
-            ((...))
-        """
-        output_string = ''
-
-        output_string += ">%s\n" % (self.name)
-        output_string += "%s\n" % (self.seq)
-        output_string += "%s" % (self.to_dotbracket_string())
-
-        return output_string
-
-    def from_bg_file(self, bg_file):
-        """
-        Load from a file containing a text-based representation
-        of this BulgeGraph.
-
-        :param bg_file: The filename.
-        :return: No return value since the current structure is the one
-                 being loaded.
-        """
-        with open(bg_file, 'r') as f:
-            bg_string = "".join(f.readlines())
-            self.from_bg_string(bg_string)
-
-    def from_bg_string(self, bg_str):
-        """
-        Populate this BulgeGraph from the string created by the method
-        to_bg_string.
-
-        :param bg_str: The string representation of this BugleGraph.
-        """
-        lines = bg_str.split('\n')
-        for line in lines:
-            line = line.strip()
-            parts = line.split()
-            if len(parts) == 0:
-                # blank line
-                continue
-            if parts[0] == 'length':
-                self.seq_length = int(parts[1])
-            elif parts[0] == 'define':
-                self.defines[parts[1]] = map(int, parts[2:])
-            elif parts[0] == 'connect':
-                for p in parts[2:]:
-                    self.edges[parts[1]].add(p)
-                    self.edges[p].add(parts[1])
-            elif parts[0] == 'seq':
-                self.seq = parts[1]
-            elif parts[0] == 'name':
-                self.name = parts[1].strip()
-
+        return pairtable_to_dotbracket(pt)
+  
     def sorted_stem_iterator(self):
         """
         Iterate over a list of the stems sorted by the lowest numbered
@@ -2519,7 +2451,7 @@ class BulgeGraph(object):
                 return True
 
         return False
-
+    '''
     def to_networkx(self):
         """
         Convert this graph to a networkx representation. This representation
@@ -2550,7 +2482,7 @@ class BulgeGraph(object):
                 G.add_edge(f, t)
 
         return G
-
+    '''
 
 
     def ss_distance(self, e1, e2):
@@ -2605,6 +2537,7 @@ class BulgeGraph(object):
                 return min(path_lengths) + 1
 
         return min(path_lengths) + 2
+    
 
     def get_position_in_element(self, resnum):
         node = self.get_node_from_residue_num(resnum)
