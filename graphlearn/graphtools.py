@@ -90,9 +90,10 @@ def extract_core_and_interface(root_node=None,
     :param hash_bitmask:
     :return: radius_list*thicknes_list long list of cips
     """
-    DEBUG=False
+    DEBUG = False
     if not filter(graph, root_node):
-        if DEBUG:print 'filta'
+        if DEBUG:
+            print 'filta'
         return []
     if 'hlabel' not in graph.node[graph.nodes()[0]]:
         vectorizer._label_preprocessing(graph)
@@ -114,15 +115,18 @@ def extract_core_and_interface(root_node=None,
     cip_list = []
     for thickness_ in thickness_list:
         for radius_ in radius_list:
-            if DEBUG:print 'thickrad',thickness_,radius_
+            if DEBUG:
+                print 'thickrad', thickness_, radius_
             # see if it is feasable to extract
             if radius_ + thickness_ not in node_dict:
-                if DEBUG:print 'jump1',node_dict
+                if DEBUG:
+                    print 'jump1', node_dict
                 continue
 
             core_graph_nodes = [item for x in range(radius_ + 1) for item in node_dict.get(x, [])]
             if not filter(master_cip_graph, core_graph_nodes):
-                if DEBUG:print 'jump2'
+                if DEBUG:
+                    print 'jump2'
                 continue
 
             core_hash = graph_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
@@ -233,13 +237,13 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
     undate 29.07.15: with thickness .5 things go wrong when directed because the interfacenode just has no direction indicator
     '''
     if isinstance(home, nx.DiGraph):
-        #for mapping in find_all_isomorphisms(home, other):
+        # for mapping in find_all_isomorphisms(home, other):
         #    return mapping
 
         # for all the mappings home-> other
-        for i,mapping in enumerate( find_all_isomorphisms(home, other)):
+        for i, mapping in enumerate(find_all_isomorphisms(home, other)):
             for home_node in mapping.keys():
-                #check if all the edge nodes are not violating anything
+                # check if all the edge nodes are not violating anything
                 if 'edge' in graph.node[home_node]:
 
                     # neighbors onthe outside
@@ -253,11 +257,11 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
                     new_pre = len([e for e in new_cip_graph.predecessors(mapping[home_node])])
 
                     # an edge node should have at least one outging and one incoming edge...
-                    if old_neigh+new_neigh==0 or old_pre+new_pre ==0:
+                    if old_neigh + new_neigh == 0 or old_pre + new_pre == 0:
                         break
             else:
                 if i > 0:
-                    logger.log(5,'isomorphism #%d accepted' % i)
+                    logger.log(5, 'isomorphism #%d accepted' % i)
 
                 return mapping
 
@@ -433,32 +437,24 @@ def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_li
 '''
 
 
-
-
-def mark_median( graph,inp='importance',out='is_good'):
+def mark_median(graph, inp='importance', out='is_good'):
     # get median
-    values=[]
-    for n,d in graph.nodes(data=True):
+    values = []
+    for n, d in graph.nodes(data=True):
         if 'edge' not in d:
-            values.append(  d[inp]   )
-
+            values.append(d[inp])
 
     # determine cutoff
     values.sort()
     values.append(9999)
-    index = len(values)/2 -1
-    while values[index+1]==values[index]:
-        index+=1
-    cutoff=values[index]
+    index = len(values) / 2 - 1
+    while values[index + 1] == values[index]:
+        index += 1
+    cutoff = values[index]
 
-
-    for n,d in graph.nodes(data=True):
+    for n, d in graph.nodes(data=True):
         if 'edge' not in d:
             if d[inp] <= cutoff:
                 d[out] = 0
             else:
-                d[out]=1
-
-
-
-
+                d[out] = 1

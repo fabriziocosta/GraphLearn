@@ -156,7 +156,7 @@ class GraphLearnSampler(object):
 
                similarity=-1,
                n_samples=None,
-                estimate_flowback = False,
+               estimate_flowback=False,
                batch_size=10,
                n_jobs=0,
                max_cycle_size=False,
@@ -217,8 +217,6 @@ class GraphLearnSampler(object):
             print 'WARNING you set estimate backflow. the implementation is a little sketchy ' \
                   'so dont try this with weired graphs. '
 
-
-
         self.similarity = similarity
 
         if max_cycle_size:
@@ -244,17 +242,14 @@ class GraphLearnSampler(object):
         max_core_size_diff = max_core_size_diff * 2
         self.max_core_size_diff = max_core_size_diff
 
-
-
         #  calculating the actual steps for improving :)
         self.improving_threshold = improving_threshold
         if improving_threshold > 0:
             self.improving_threshold = int(self.improving_threshold * self.n_steps)
-        self.improving_linear_start=improving_linear_start
+        self.improving_linear_start = improving_linear_start
         if improving_linear_start > 0:
-            self.improving_linear_start = int(improving_linear_start*n_steps)
-        self.improving_penalty_per_step = (1-accept_static_penalty) / float(self.improving_threshold - self.improving_linear_start)
-
+            self.improving_linear_start = int(improving_linear_start * n_steps)
+        self.improving_penalty_per_step = (1 - accept_static_penalty) / float(self.improving_threshold - self.improving_linear_start)
 
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
@@ -483,8 +478,8 @@ class GraphLearnSampler(object):
             # 2. a static penalty applies a penalty that is always the same.
             #       (-1 ~ always accept ; +1 ~  never accept)
 
-            if self.improving_threshold >0 and self.step > self.improving_linear_start:
-                penalty = ((self.step-self.improving_linear_start) * float(self.improving_penalty_per_step))
+            if self.improving_threshold > 0 and self.step > self.improving_linear_start:
+                penalty = ((self.step - self.improving_linear_start) * float(self.improving_penalty_per_step))
                 score_ratio = score_ratio - penalty
 
             elif self.improving_threshold == 0:
@@ -530,48 +525,44 @@ class GraphLearnSampler(object):
 
                 if self.feasibility_checker.check(graph_new):
 
-
                     graph_clean(graph_new)
                     # postproc may fail
-                    tmp= self.postprocessor.postprocess(graph_new)
+                    tmp = self.postprocessor.postprocess(graph_new)
                     if tmp:
-                        self.reverse_direction_probability(graph,tmp,original_cip)
+                        self.reverse_direction_probability(graph, tmp, original_cip)
                         logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
-                                 (self.step, attempt, choices, orig_cip_ctr))
-
+                                     (self.step, attempt, choices, orig_cip_ctr))
 
                         return tmp
                 if self.quick_skip_orig_cip:
                     break
 
-    def reverse_direction_probability(self,graph,graph_new,cip):
+    def reverse_direction_probability(self, graph, graph_new, cip):
 
         # it is sufficient to look at the old cip, since the interface ids shoud be the same in the new graph..
 
-
-        def ops(g,cip):
+        def ops(g, cip):
             # possible operations for stuff
-            counter=0
-            for n,d in cip.graph.nodes(data=True):
+            counter = 0
+            for n, d in cip.graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
-                    cip=extract_core_and_interface(n, g, [cip.thickness], [cip.radius], vectorizer=self.vectorizer,
-                                          hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
+                    cip = extract_core_and_interface(n, g, [cip.thickness], [cip.radius], vectorizer=self.vectorizer,
+                                                     hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
                     if cip:
-                        cip=cip[0]
+                        cip = cip[0]
                         if cip.interface_hash in self.lsgg.productions:
-                            counter+=len(self.lsgg.productions[cip.interface_hash])
+                            counter += len(self.lsgg.productions[cip.interface_hash])
             return counter
 
         if self.estimate_backflow:
-            value=len(graph) / float(len(graph_new))
+            value = len(graph) / float(len(graph_new))
             print 'flow1: %f' % value
-            one=ops(graph, cip)
-            two=ops(graph_new,cip)
-            print one,two
-            value+= one/float(two)
+            one = ops(graph, cip)
+            two = ops(graph_new, cip)
+            print one, two
+            value += one / float(two)
             graph.graph['flowback'] = value
             print 'flow: %f' % value
-
 
     def _select_cips(self, cip, graph):
         """
