@@ -5,7 +5,6 @@ from coreinterfacepair import CoreInterfacePair
 import logging
 import traceback
 from eden.graph import Vectorizer
-
 logger = logging.getLogger(__name__)
 
 
@@ -91,8 +90,9 @@ def extract_core_and_interface(root_node=None,
     :param hash_bitmask:
     :return: radius_list*thicknes_list long list of cips
     """
-
+    DEBUG=False
     if not filter(graph, root_node):
+        if DEBUG:print 'filta'
         return []
     if 'hlabel' not in graph.node[graph.nodes()[0]]:
         vectorizer._label_preprocessing(graph)
@@ -114,13 +114,15 @@ def extract_core_and_interface(root_node=None,
     cip_list = []
     for thickness_ in thickness_list:
         for radius_ in radius_list:
-
+            if DEBUG:print 'thickrad',thickness_,radius_
             # see if it is feasable to extract
             if radius_ + thickness_ not in node_dict:
+                if DEBUG:print 'jump1',node_dict
                 continue
 
             core_graph_nodes = [item for x in range(radius_ + 1) for item in node_dict.get(x, [])]
             if not filter(master_cip_graph, core_graph_nodes):
+                if DEBUG:print 'jump2'
                 continue
 
             core_hash = graph_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
@@ -199,7 +201,9 @@ def merge(graph, node, node2):
 
 def find_all_isomorphisms(home, other):
     if iso.faster_could_be_isomorphic(home, other):
+
         label_matcher = lambda x, y: x['distance_dependent_label'] == y['distance_dependent_label']
+
         graph_label_matcher = iso.GraphMatcher(home, other, node_match=label_matcher)
         for index, mapping in enumerate(graph_label_matcher.isomorphisms_iter()):
             if index == 15:  # give up ..

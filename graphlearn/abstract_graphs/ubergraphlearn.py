@@ -11,7 +11,7 @@ from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 import traceback
-import itertools
+
 
 '''
 first we build the new sampler that is able to handle abstract graphs...
@@ -28,7 +28,6 @@ class UberSampler(GraphLearnSampler):
                  **kwargs):
         '''
             graphlernsampler with its extensions..
-
             for now this:
                 is a real_thickness_list
                 and we make sure that the grammar can handle our new corez :)
@@ -50,63 +49,62 @@ class UberSampler(GraphLearnSampler):
             self.lsgg = UberGrammar(base_thickness_list=self.base_thickness_list,
                                     radius_list=self.radius_list,
                                     thickness_list=self.thickness_list,
-                                    complexity=self.complexity,
+                                    #complexity=self.complexity,
                                     min_cip_count=min_cip_count,
                                     min_interface_count=min_interface_count,
                                     nbit=self.nbit,
                                     node_entity_check=self.node_entity_check)
 
 
-    def fit(self, graphs, n_jobs=-1, nu=.5, batch_size=10):
+    def fit(self, graphmanagers, n_jobs=-1, nu=.5, batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
 
-        def appabstr(graphs):
-            for gr in graphs:
-                ab= make_abstract(gr)
-                gr.grpah['abstract'] = ab
-                yield
 
-        def estimodification(graphs):
-            for gr in graphs:
-                ab=gr.graph['abstract']
+        graphmanagers=list(graphmanagers)
+
+        def get_esti_graphs(managers):
+            for manager in managers:
+                yield manager.get_estimateable()
+
+        graphs_ = get_esti_graphs(graphmanagers)
 
 
-        graphs=appabstr(graphs)
-        graphs, graphs_ = itertools.tee(graphs)
+        #draw.graphlearn_draw(graphs_.next(),size=20,node_size=500, show_direction=True, contract = False)
 
-        graphs_= estimodification(graphs_)
         self.estimator = self.estimatorobject.fit(graphs_,
                                                   vectorizer=self.vectorizer,
                                                   nu=nu,
                                                   n_jobs=n_jobs,
                                                   random_state=self.random_state)
-        self.lsgg.fit(graphs, n_jobs, batch_size=batch_size)
+
+        self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
 
 
-
+    '''
     def _get_abstract_graph(self, graph):
         try:
             return make_abstract(graph, self.vectorizer)
         except Exception as exc:
             print 'le errer:'
-
             logger.info(exc)
             logger.info(traceback.format_exc(10))
-
             draw.graphlearn_draw(graph,size=20,node_size=500, show_direction=True, contract = False)
             raise Exception('make_abstract died')
+    '''
 
-
+    def _get_abstract_graph(self,graph):
+        return graph.graphmanager.get_abstract_graph()
 
     def _original_cip_extraction(self, graph):
         '''
         selects the next candidate.
         '''
 
-        graph = self.vectorizer._edge_to_vertex_transform(graph)
-        abstr = self._get_abstract_graph(graph)
+        #graph = self.vectorizer._edge_to_vertex_transform(graph)
+        abstr = self._get_abstract_graph(graph)#self._get_abstract_graph(graph)
+
         node = random.choice(abstr.nodes())
         if 'edge' in abstr.node[node]:
             node = random.choice(abstr.neighbors(node))
@@ -147,11 +145,17 @@ def extract_cores_and_interfaces_mk2(parameters):
         return None
     try:
         # unpack arguments, expand the graph
-        graph, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check, base_thickness_list = parameters
-        graph = vectorizer._edge_to_vertex_transform(graph)
+        graphmanager, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check, base_thickness_list = parameters
+
+        #print 'you called me like this',parameters
+        #graph = vectorizer._edge_to_vertex_transform(graph)
+        #abstr = graph.graph['abstract']
+
+        graph=graphmanager.get_base_graph()
+        abstr=graphmanager.get_abstract_graph()
         cips = []
-        abstr = graph.graph['abstract']#make_abstract(graph, vectorizer) ???
         mod_dict=get_mod_dict(graph)
+
         for node in abstr.nodes_iter():
             if 'edge' in abstr.node[node]:
                 continue
@@ -280,6 +284,7 @@ def extract_cips(node,
     '''
     # if not filter(abstract_graph, node):
     #    return []
+    #print 'ok1'
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
         vectorizer._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
@@ -295,6 +300,7 @@ def extract_cips(node,
                                                           **argz)
 
     cips = []
+
     for acip in abstract_cips:
 
             # now we need to calculate the real cips:
@@ -306,10 +312,20 @@ def extract_cips(node,
             acip.radius + 1) for abstract_node_id in acip.distance_dict.get(radius)
             for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
         base_copy = base_graph.copy()
+
+
+        # remove duplicates:
+        mergeids = list(set(mergeids))
+
         for node in mergeids[1:]:
             graphtools.merge(base_copy, mergeids[0], node)
 
         # do cip extraction and calculate the real core hash
+        #draw.graphlearn_draw(base_copy,size=20)
+
+        #draw.draw_center(base_copy,mergeids[0],5,size=20)
+        #print base_thickness_list,hash_bitmask
+
         base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
                                                                 base_copy,
                                                                 radius_list=[0],
@@ -317,7 +333,11 @@ def extract_cips(node,
                                                                 vectorizer=vectorizer,
                                                                 hash_bitmask=hash_bitmask,
                                                                 **argz)
+
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
+
+        #print base_level_cips
+
 
         # now we have a bunch of base_level_cips and need to attach info from the abstract cip.
         for base_cip in base_level_cips:
@@ -347,16 +367,12 @@ def extract_cips(node,
                                                        get_mods(mod_dict,mergeids),0,
                                                        hash_bitmask)
 
-
-
-
             base_cip.core_nodes_count = acip.core_nodes_count
             base_cip.radius = acip.radius
             base_cip.abstract_thickness = acip.thickness
 
             # i want to see what they look like :)
             base_cip.abstract_view=acip.graph
-
             cips.append(base_cip)
     return cips
 

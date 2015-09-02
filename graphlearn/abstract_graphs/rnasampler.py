@@ -1,11 +1,10 @@
-
+import graphlearn.abstract_graphs.rnaabstract
 from ubergraphlearn import UberSampler,UberGrammar
 import ubergraphlearn
 import networkx as nx
 import graphlearn.utils.draw as draw
-import random
-from eden.converter.rna.rnafold import rnafold_to_eden
-import directedgraphtools
+
+
 
 class RNASampler(UberSampler):
 
@@ -32,14 +31,29 @@ class RNASampler(UberSampler):
         turning sample starter graph to digraph
     '''
     def _sample_init(self, graph):
-        graph = self.vectorizer._edge_to_vertex_transform(graph)
-        graph = expanded_rna_graph_to_digraph(graph)
+        #graph = self.vectorizer._edge_to_vertex_transform(graph)
+        #graph = dgtools.expanded_rna_graph_to_digraph(graph)
+        self.postprocessor.fit(self)
+
+        graph=self.postprocessor.postprocess(graph)
+        if graph is None:
+            raise Exception ('_sample_init failed, cant fold to trna')
         self._score(graph)
         self._sample_notes = ''
         self._sample_path_score_set = set()
-        self.postprocessor.fit(self)
         return graph
 
+    def _score(self,graph):
+
+        estimateable=graph.graphmanager.get_estimateable()
+        super(RNASampler,self)._score(estimateable)
+        graph._score=estimateable._score
+        return graph._score
+
+    def _sample_path_append(self, graph, force=False):
+        if not force:
+            self._sample_notes+=graph.graph.get('sequence',"0")+"n"
+        super(RNASampler,self)._sample_path_append(graph,force=force)
 
     '''
         this is also used sometimes so we make better sure it doesnt fail
@@ -66,85 +80,82 @@ class RNASampler(UberSampler):
 '''
 def is_rna (graph):
     graph=graph.copy()
-
     # remove structure
     bonds= [ n for n,d in graph.nodes(data=True) if d['label']=='=' ]
     graph.remove_nodes_from(bonds)
-
     # see if we are cyclic
     for node,degree in graph.in_degree_iter( graph.nodes() ):
         if degree == 0:
             break
     else:
         return False
-
     # check if we are connected.
     graph=nx.Graph(graph)
     return nx.is_connected(graph)
 
 
 
-class PostProcessor:
-
-
-    def __init__(self):
-        pass
-
-    def fit(self, other):
-        print 'OMG i got a vectorizer kthx'
-        self.vectorizer=other.vectorizer
-
-    def postprocess(self, graph):
-        return self.rna_refold( graph )
-
-    def rna_refold(self, digraph=None, seq=None,vectorizer=None):
-        """
-        :param digraph:
-        :param seq:
-
-        :return: will extract a sequence, RNAfold it and create a abstract graph
-        """
-        # get a sequence no matter what :)
-        if not seq:
-            seq= rnaabstract.get_sequence(digraph)
-
-        #print 'seq:',seq
-
-        graph = rnafold_to_eden([('emptyheader',seq)], shape_type=5, energy_range=30, max_num=3).next()
-
-        expanded_graph = self.vectorizer._edge_to_vertex_transform(graph)
-        ex_di_graph = expanded_rna_graph_to_digraph(expanded_graph)
-        #abstract_graph = directedgraphtools.direct_abstraction_wrapper(graph,0)
-        return ex_di_graph
-
-
-
-def expanded_rna_graph_to_digraph(graph):
-    '''
-    :param graph:  an expanded rna representing graph as produced by eden.
-                   properties: backbone edges are replaced by a node labeled '-'.
-                   rna reading direction is reflected by ascending node ids in the graph.
-    :return: a graph, directed edges along the backbone
-    '''
-    digraph=nx.DiGraph(graph)
-    for n,d in digraph.nodes(data=True):
-        if 'edge' in d:
-            if d['label']=='-':
-                ns=digraph.neighbors(n)
-                ns.sort()
-                digraph.remove_edge(ns[1],n)
-                digraph.remove_edge(n,ns[0])
-    return digraph
-
 
 
 # modifying  ubergraphlearn further..
 def get_mod_dict(graph):
-    s,e=directedgraphtools.get_start_and_end_node(graph)
+    s,e= graphlearn.abstract_graphs.rnaabstract.get_start_and_end_node(graph)
     return {s:696969 , e:123123123}
-ubergraphlearn.get_mod_dict=get_mod_dict
+#ubergraphlearn.get_mod_dict=get_mod_dict
 import rnaabstract
-
-
 #ubergraphlearn.make_abstract = rnaabstract.direct_abstractor
-ubergraphlearn.make_abstract = rnaabstract.direct_abstraction_wrapper
+#ubergraphlearn.make_abstract = rnaabstract.direct_abstraction_wrapper
+
+
+
+
+
+
+
+
+import subprocess  as sp
+
+def infernal_checker(sequence_list):
+    '''
+    :param sequences: a bunch of rna sequences
+    :return: get evaluation from cmsearch
+    '''
+    write_fasta(sequence_list,filename='temp.fa')
+    return call_cm_search('temp.fa',len(sequence_list))
+
+
+
+def write_fasta(sequences,filename='asdasd'):
+
+    fasta=''
+    for i,s in enumerate(sequences):
+        if len(s) > 5:
+            fasta+='>HACK%d\n%s\n' % (i,s)
+
+    with open(filename, 'w') as f:
+        f.write(fasta)
+
+
+def call_cm_search(filename, count):
+
+    out = sp.check_output('./cmsearch -g --noali --incT 0  rf00005.cm %s' % filename, shell=True)
+    # -g global
+    # --noali, we dont want to see the alignment, score is enough
+    # --incT 0 we want to see everything with score > 0
+    result={}
+    s = out.strip().split('\n')
+    for line in s:
+        if 'HACK' in line:
+            linez=line.split()
+            score=float(linez[3])/100
+            id = int(linez[5][4:])
+            result[id]=score
+
+
+    return [ result.get(k,0) for k in range(count) ]
+
+
+
+
+
+
