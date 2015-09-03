@@ -26,7 +26,7 @@ class GraphLearnSampler(object):
                  random_state=None,
                  estimator=estimatorwrapper.EstimatorWrapper(),
                  postprocessor=postprocessing.PostProcessor(),
-
+                feasibility_checker = feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -60,7 +60,7 @@ class GraphLearnSampler(object):
 
         :return:
         """
-        self.feasibility_checker = feasibility.FeasibilityChecker()
+        self.feasibility_checker = feasibility_checker
         self.postprocessor = postprocessor
 
         self.vectorizer = vectorizer
