@@ -21,7 +21,7 @@ class GraphLearnSampler(object):
 
     def __init__(self,
                  nbit=20,
-                 complexity=3,
+
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
                  estimator=estimatorwrapper.EstimatorWrapper(),
@@ -60,7 +60,6 @@ class GraphLearnSampler(object):
 
         :return:
         """
-        self.complexity = complexity
         self.feasibility_checker = feasibility.FeasibilityChecker()
         self.postprocessor = postprocessor
 
