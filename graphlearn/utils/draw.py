@@ -268,7 +268,11 @@ def draw_grammar(grammar,
                  n_graphs_per_line=5,
                  n_graphs_per_production=10,
                  size=4,
+                 abstract_interface=False,
                  **args):
+
+    if abstract_interface:
+        n_graphs_per_production -=1
 
     if n_productions is None:
         n_productions = len(grammar)
@@ -300,8 +304,9 @@ def draw_grammar(grammar,
         freq = lambda graph: graph.graph.get('frequency', 'no freqency data')
 
         # uebersampler gets to do this because he is the uebersampler
-        if 'abstract_view' in cips[0].__dict__:
-            graphs.append(cips[0].abstract_view)
+        if abstract_interface:
+            if 'abstract_view' in cips[0].__dict__:
+                graphs= [most_frequent_cips[0][1].abstract_view]+graphs
 
         graphlearn_draw(graphs,
                         n_graphs_per_line=n_graphs_per_line,
