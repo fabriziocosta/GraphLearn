@@ -1,29 +1,14 @@
-
-
 import networkx as nx
 from eden.modifier.graph.structure import contraction
-import subprocess as sp
+
+from graphlearn.abstract_graphs.rna_graphmanager import get_sequence
 import graphlearn.graphtools as gt
 import graphlearn
-
 
 '''
 direct_abstraction_wrapper
 extends the self-build abstractor, but only works on fresh graphs
 '''
-
-def get_sequence(digraph):
-
-    current,end= graphlearn.abstract_graphs.rnaabstract.get_start_and_end_node(digraph)
-    seq=digraph.node[current]['label']
-
-    while current != end:
-        current = getsucc(digraph,current)[0][1]
-        seq+=digraph.node[current]['label']
-
-    return seq
-
-
 
 
 def direct_abstraction_wrapper(graph,ZZZ):

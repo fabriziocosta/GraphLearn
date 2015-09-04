@@ -6,7 +6,9 @@ import subprocess as sp
 import eden.converter.rna as conv
 import forgi
 import networkx as nx
+import graphlearn
 import graphlearn.abstract_graphs.rnaabstract
+from graphlearn.abstract_graphs.rnaabstract import getsucc
 from graphlearn.utils import draw
 from eden.graph import Vectorizer
 
@@ -154,3 +156,15 @@ def edge_parent_finder(abstract, graph):
                         abstract.node[ai_node]['contracted'] = set([n])
 
     return abstract
+
+
+def get_sequence(digraph):
+
+    current,end= graphlearn.abstract_graphs.rnaabstract.get_start_and_end_node(digraph)
+    seq=digraph.node[current]['label']
+
+    while current != end:
+        current = getsucc(digraph,current)[0][1]
+        seq+=digraph.node[current]['label']
+
+    return seq
