@@ -24,7 +24,6 @@ class UberSampler(GraphLearnSampler):
                  min_cip_count=1,
                  min_interface_count=2,
                  grammar=None,
-
                  **kwargs):
         '''
             graphlernsampler with its extensions..
@@ -330,6 +329,7 @@ def extract_cips(node,
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
 
         # print base_level_cips
+        acip.core_nodes_count= len(mergeids)
 
         # now we have a bunch of base_level_cips and need to attach info from the abstract cip.
         for base_cip in base_level_cips:
