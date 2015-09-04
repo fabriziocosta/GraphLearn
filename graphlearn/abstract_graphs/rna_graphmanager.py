@@ -32,11 +32,11 @@ def fromfasta(fname=None, vectorizer=None):
 
         shape = callRNAshapes(seq)
         if shape:
-            yield GraphManager(seqname, seq, vectorizer, shape)
+            yield RnaGraphManager(seqname, seq, vectorizer, shape)
         s = s[i + 1:]
 
 
-class GraphManager(object):
+class RnaGraphManager(object):
 
     '''
     these are the basis for creating a fitting an ubersampler

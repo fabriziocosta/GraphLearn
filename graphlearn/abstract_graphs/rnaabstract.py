@@ -331,7 +331,7 @@ class PostProcessor:
         return ex_di_graph
 
 
-import graphmanager
+import rna_graphmanager
 class ForgiPostprocessor:
     def __init__(self):
         pass
@@ -345,13 +345,13 @@ class ForgiPostprocessor:
             seq= get_sequence(seq)
 
         # get shape
-        shape = graphmanager.callRNAshapes(seq)
+        shape = rna_graphmanager.callRNAshapes(seq)
         if shape is None:
             #raise Exception('unfoldable')
             return None
         name='set real name later'
         # build graphmanager
-        grmgr=graphmanager.GraphManager(name,seq,self.vectorizer,shape)
+        grmgr=rna_graphmanager.RnaGraphManager(name,seq,self.vectorizer,shape)
         # get graph
         graph=grmgr.get_base_graph()
         graph.graphmanager=grmgr
