@@ -1,4 +1,4 @@
-import graphlearn.abstract_graphs.rnaabstract
+import graphlearn.abstract_graphs.rna_my_abstract
 from ubergraphlearn import UberSampler, UberGrammar
 import ubergraphlearn
 import networkx as nx
@@ -12,6 +12,8 @@ class MoleculeSampler(UberSampler):
     def _sample_init(self, graph):
         self.postprocessor.fit(self)
         graph = self.postprocessor.postprocess(graph)
+        if self.max_core_size_diff > -1:
+            self.seed_size = len(graph)
         self._score(graph)
         self._sample_notes = ''
         self._sample_path_score_set = set()
@@ -160,8 +162,14 @@ def make_abstract(extgraph):
                                 abstract_graph.node[connector]['edge'] = True
 
                                 # abstract_graph.node[connector]['label']='edge'
-                                num_shared_nodes = len(abstract_graph.node[other]['contracted'] & d['contracted'])
-                                abstract_graph.node[connector]['label'] = "shared" + str(num_shared_nodes)
+                                shared_nodes = abstract_graph.node[other]['contracted'] & d['contracted']
+
+                                labels = [ord(extgraph.node[sid]['label']) for sid in shared_nodes]
+                                labels.sort()
+                                share_hash = fhash(labels)
+
+
+                                abstract_graph.node[connector]['label'] = "shared" + str(share_hash)
 
                                 abstract_graph.add_edge(other, connector)
                                 abstract_graph.add_edge(connector, n)
