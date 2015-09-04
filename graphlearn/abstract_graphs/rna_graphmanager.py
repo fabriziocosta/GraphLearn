@@ -7,13 +7,13 @@ import eden.converter.rna as conv
 import forgi
 import networkx as nx
 import graphlearn
-import graphlearn.abstract_graphs.my_rnaabstract
+import graphlearn.abstract_graphs.rna_my_abstract
 from graphlearn.utils import draw
 from eden.graph import Vectorizer
 
 
 import rnasampler as rna
-import my_rnaabstract as rnaa
+import rna_my_abstract as rnaa
 
 
 def fromfasta(fname=None, vectorizer=None):
