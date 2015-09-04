@@ -8,7 +8,6 @@ import forgi
 import networkx as nx
 import graphlearn
 import graphlearn.abstract_graphs.my_rnaabstract
-from graphlearn.abstract_graphs.my_rnaabstract import getsucc
 from graphlearn.utils import draw
 from eden.graph import Vectorizer
 
@@ -220,3 +219,33 @@ def expanded_rna_graph_to_digraph(graph):
                 digraph.remove_edge(ns[1],n)
                 digraph.remove_edge(n,ns[0])
     return digraph
+
+
+def getsucc(graph,root):
+    '''
+    :param graph:
+    :param root:
+    :return: [ edge node , nodenode ] along the 'right' path   [edge node, nodenode  ] along the wroong path
+    '''
+    neighbors=post(graph,root)
+    retb=[]
+    reta=[]
+
+    for node,dict in neighbors:
+        if dict['label'] == '-':
+            reta.append(node)
+            reta+=graph[node].keys()
+
+        if dict['label'] == '=':
+            retb.append(node)
+            retb+=graph[node].keys()
+            retb.remove(root)
+
+    #print 'getsuc',reta, retb,root
+    return reta, retb
+
+
+def post(graph,root):
+    p=graph.neighbors(root)
+    for e in p:
+        yield e, graph.node[e]
