@@ -319,11 +319,14 @@ def core_substitution(graph, orig_cip_graph, new_cip_graph):
     # removing old core
     # original_graph_core_nodes = [n for n, d in orig_cip_graph.nodes(data=True) if 'core' in d]
     original_graph_core_nodes = [n for n, d in orig_cip_graph.nodes(data=True) if 'core' in d]
+
+
     for n in original_graph_core_nodes:
         graph.remove_node(str(n))
 
     # merge interfaces
     for k, v in iso.iteritems():
+        graph.node[str(k)]['interface']=True  # i am marking the interface only for the backflow probability calculation in graphlearn
         merge(graph, str(k), '-' + str(v))
     # unionizing killed my labels so we need to relabel
     return nx.convert_node_labels_to_integers(graph)
