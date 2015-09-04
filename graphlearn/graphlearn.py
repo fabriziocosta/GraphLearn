@@ -21,12 +21,12 @@ class GraphLearnSampler(object):
 
     def __init__(self,
                  nbit=20,
-                 complexity=3,
+
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
                  estimator=estimatorwrapper.EstimatorWrapper(),
                  postprocessor=postprocessing.PostProcessor(),
-
+                feasibility_checker = feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -60,8 +60,7 @@ class GraphLearnSampler(object):
 
         :return:
         """
-        self.complexity = complexity
-        self.feasibility_checker = feasibility.FeasibilityChecker()
+        self.feasibility_checker = feasibility_checker
         self.postprocessor = postprocessor
 
         self.vectorizer = vectorizer
@@ -212,8 +211,8 @@ class GraphLearnSampler(object):
         :return:  yield graphs
 
         """
-        self.estimate_backflow = estimate_flowback
-        if self.estimate_backflow:
+        self.estimate_flowback = estimate_flowback
+        if self.estimate_flowback:
             print 'WARNING you set estimate backflow. the implementation is a little sketchy ' \
                   'so dont try this with weired graphs. '
 
@@ -466,6 +465,9 @@ class GraphLearnSampler(object):
         score_graph_new = self._score(graph_new)
         score_ratio = score_graph_new / score_graph_old
 
+        if self.estimate_flowback:
+            score_ratio *= self.estimate_flowback_value
+
         # if the new graph scores higher, the ratio is > 1 and we accept
         if score_ratio > 1.0:
             accept_decision = True
@@ -525,43 +527,58 @@ class GraphLearnSampler(object):
 
                 if self.feasibility_checker.check(graph_new):
 
-                    graph_clean(graph_new)
+
                     # postproc may fail
                     tmp = self.postprocessor.postprocess(graph_new)
                     if tmp:
                         self.reverse_direction_probability(graph, tmp, original_cip)
                         logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
                                      (self.step, attempt, choices, orig_cip_ctr))
-
+                        graph_clean(tmp) # i clean only here because i need the interface mark for reverse_dir_prob
                         return tmp
                 if self.quick_skip_orig_cip:
                     break
 
     def reverse_direction_probability(self, graph, graph_new, cip):
+        '''
 
-        # it is sufficient to look at the old cip, since the interface ids shoud be the same in the new graph..
+        :param graph:  the old graph
+        :param graph_new: the new graph
+        :param cip: the old cip is enough since we mainly need the ids of the interface
+        :return: options(interface,newgraph)+newgraphlength*average /  options(interface,graph)+oldgraphlen*average
 
-        def ops(g, cip):
-            # possible operations for stuff
+        '''
+
+
+        def ops(g, cip_graph):
             counter = 0
-            for n, d in cip.graph.nodes(data=True):
+            interfacesize=0
+            for n, d in cip_graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
-                    cip = extract_core_and_interface(n, g, [cip.thickness], [cip.radius], vectorizer=self.vectorizer,
-                                                     hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
-                    if cip:
-                        cip = cip[0]
+                    cips = extract_core_and_interface(n, g, self.radius_list, self.thickness_list, vectorizer=self.vectorizer,
+                                             hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
+                    for cip in cips:
                         if cip.interface_hash in self.lsgg.productions:
                             counter += len(self.lsgg.productions[cip.interface_hash])
-            return counter
+                    interfacesize+=1
+            return counter, interfacesize
 
-        if self.estimate_backflow:
-            value = len(graph) / float(len(graph_new))
-            print 'flow1: %f' % value
-            one = ops(graph, cip)
-            two = ops(graph_new, cip)
-            print one, two
-            value += one / float(two)
-            graph.graph['flowback'] = value
+
+        if self.estimate_flowback:
+            old_opts,interfacesize = ops(graph, cip.graph)
+            new_opts,unused = ops(graph_new, graph_new)
+
+            average_opts=float(old_opts+new_opts)/2
+
+            old_opts=max(1,old_opts)
+            new_opts=max(1,new_opts)
+
+            v1 = new_opts + average_opts* ( len(graph_new)-interfacesize)
+            v2 = old_opts + average_opts* ( len(graph)-interfacesize)
+            value = float(v1)/v2
+
+            print old_opts, new_opts
+            self.estimate_flowback_value= value
             print 'flow: %f' % value
 
     def _select_cips(self, cip, graph):

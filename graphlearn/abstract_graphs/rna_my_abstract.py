@@ -1,29 +1,14 @@
-
-
 import networkx as nx
 from eden.modifier.graph.structure import contraction
-import subprocess as sp
+
+from graphlearn.abstract_graphs.rna_graphmanager import get_sequence, getsucc, post
 import graphlearn.graphtools as gt
 import graphlearn
-
 
 '''
 direct_abstraction_wrapper
 extends the self-build abstractor, but only works on fresh graphs
 '''
-
-def get_sequence(digraph):
-
-    current,end= graphlearn.abstract_graphs.rnaabstract.get_start_and_end_node(digraph)
-    seq=digraph.node[current]['label']
-
-    while current != end:
-        current = getsucc(digraph,current)[0][1]
-        seq+=digraph.node[current]['label']
-
-    return seq
-
-
 
 
 def direct_abstraction_wrapper(graph,ZZZ):
@@ -173,10 +158,6 @@ def predec(graph,root):
     for e in p:
         yield e, graph.node[e]
 
-def post(graph,root):
-    p=graph.neighbors(root)
-    for e in p:
-        yield e, graph.node[e]
 
 def get_substruct(graph, root):
     '''
@@ -243,30 +224,6 @@ def get_substruct(graph, root):
         raise Exception('something is wrong with this node')
 
 
-
-def getsucc(graph,root):
-    '''
-    :param graph:
-    :param root:
-    :return: [ edge node , nodenode ] along the 'right' path   [edge node, nodenode  ] along the wroong path
-    '''
-    neighbors=post(graph,root)
-    retb=[]
-    reta=[]
-
-    for node,dict in neighbors:
-        if dict['label'] == '-':
-            reta.append(node)
-            reta+=graph[node].keys()
-
-        if dict['label'] == '=':
-            retb.append(node)
-            retb+=graph[node].keys()
-            retb.remove(root)
-
-    #print 'getsuc',reta, retb,root
-    return reta, retb
-
 '''
 this is the original abstractor.. it is slow and it makes mistakes.
 '''
@@ -331,81 +288,4 @@ class PostProcessor:
         return ex_di_graph
 
 
-import graphmanager
-class ForgiPostprocessor:
-    def __init__(self):
-        pass
 
-    def fit(self, other):
-        self.vectorizer=other.vectorizer
-
-    def postprocess(self, seq):
-        # if we get a graph .. transform to sequence
-        if isinstance(seq,nx.Graph):
-            seq= get_sequence(seq)
-
-        # get shape
-        shape = graphmanager.callRNAshapes(seq)
-        if shape is None:
-            #raise Exception('unfoldable')
-            return None
-        name='set real name later'
-        # build graphmanager
-        grmgr=graphmanager.GraphManager(name,seq,self.vectorizer,shape)
-        # get graph
-        graph=grmgr.get_base_graph()
-        graph.graphmanager=grmgr
-        graph.graph['sequence'] = seq
-        return graph
-
-
-def get_start_and_end_node(graph):
-    # make n the first node of the sequence
-    start=-1
-    end=-1
-    for n,d in graph.nodes_iter(data=True):
-
-        # edge nodes cant be start or end
-        if 'edge' in d:
-            continue
-
-        # check for start
-        if start == -1:
-            l= graph.predecessors(n)
-            if len(l)==0:
-                start = n
-            if len(l)==1:
-                if graph.node[ l[0] ]['label']=='=':
-                    start = n
-
-        # check for end:
-        if end == -1:
-            l= graph.neighbors(n)
-            if len(l)==0:
-                end = n
-            if len(l)==1:
-                if graph.node[ l[0] ]['label']=='=':
-                    end = n
-
-    # check and return
-    if start==-1 or end==-1:
-        raise Exception ('your beautiful "rna" has no clear start or end')
-    return start,end
-
-
-def expanded_rna_graph_to_digraph(graph):
-    '''
-    :param graph:  an expanded rna representing graph as produced by eden.
-                   properties: backbone edges are replaced by a node labeled '-'.
-                   rna reading direction is reflected by ascending node ids in the graph.
-    :return: a graph, directed edges along the backbone
-    '''
-    digraph=nx.DiGraph(graph)
-    for n,d in digraph.nodes(data=True):
-        if 'edge' in d:
-            if d['label']=='-':
-                ns=digraph.neighbors(n)
-                ns.sort()
-                digraph.remove_edge(ns[1],n)
-                digraph.remove_edge(n,ns[0])
-    return digraph
