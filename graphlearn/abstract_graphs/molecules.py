@@ -12,6 +12,8 @@ class MoleculeSampler(UberSampler):
     def _sample_init(self, graph):
         self.postprocessor.fit(self)
         graph = self.postprocessor.postprocess(graph)
+        if self.max_core_size_diff > -1:
+            self.seed_size = len(graph)
         self._score(graph)
         self._sample_notes = ''
         self._sample_path_score_set = set()

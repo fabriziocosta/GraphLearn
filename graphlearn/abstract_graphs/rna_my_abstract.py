@@ -288,31 +288,4 @@ class PostProcessor:
         return ex_di_graph
 
 
-import rna_graphmanager
-class ForgiPostprocessor:
-    def __init__(self):
-        pass
-
-    def fit(self, other):
-        self.vectorizer=other.vectorizer
-
-    def postprocess(self, seq):
-        # if we get a graph .. transform to sequence
-        if isinstance(seq,nx.Graph):
-            seq= get_sequence(seq)
-
-        # get shape
-        shape = rna_graphmanager.callRNAshapes(seq)
-        if shape is None:
-            #raise Exception('unfoldable')
-            return None
-        name='set real name later'
-        # build graphmanager
-        grmgr=rna_graphmanager.RnaGraphManager(name,seq,self.vectorizer,shape)
-        # get graph
-        graph=grmgr.get_base_graph()
-        graph.graphmanager=grmgr
-        graph.graph['sequence'] = seq
-        return graph
-
 
