@@ -1,7 +1,7 @@
 import networkx as nx
 from eden.modifier.graph.structure import contraction
 
-from graphlearn.abstract_graphs.rna_graphmanager import get_sequence
+from graphlearn.abstract_graphs.rna_graphmanager import get_sequence, getsucc, post
 import graphlearn.graphtools as gt
 import graphlearn
 
@@ -158,10 +158,6 @@ def predec(graph,root):
     for e in p:
         yield e, graph.node[e]
 
-def post(graph,root):
-    p=graph.neighbors(root)
-    for e in p:
-        yield e, graph.node[e]
 
 def get_substruct(graph, root):
     '''
@@ -227,30 +223,6 @@ def get_substruct(graph, root):
         print 'nei+root',nei,root
         raise Exception('something is wrong with this node')
 
-
-
-def getsucc(graph,root):
-    '''
-    :param graph:
-    :param root:
-    :return: [ edge node , nodenode ] along the 'right' path   [edge node, nodenode  ] along the wroong path
-    '''
-    neighbors=post(graph,root)
-    retb=[]
-    reta=[]
-
-    for node,dict in neighbors:
-        if dict['label'] == '-':
-            reta.append(node)
-            reta+=graph[node].keys()
-
-        if dict['label'] == '=':
-            retb.append(node)
-            retb+=graph[node].keys()
-            retb.remove(root)
-
-    #print 'getsuc',reta, retb,root
-    return reta, retb
 
 '''
 this is the original abstractor.. it is slow and it makes mistakes.
