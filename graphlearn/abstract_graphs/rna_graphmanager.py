@@ -7,13 +7,10 @@ import eden.converter.rna as conv
 import forgi
 import networkx as nx
 import graphlearn
-import graphlearn.abstract_graphs.rna_my_abstract
 from graphlearn.utils import draw
 from eden.graph import Vectorizer
 
 
-import rnasampler as rna
-import rna_my_abstract as rnaa
 
 
 def fromfasta(fname=None, vectorizer=None):
@@ -249,3 +246,30 @@ def post(graph,root):
     p=graph.neighbors(root)
     for e in p:
         yield e, graph.node[e]
+
+
+class ForgiPostprocessor:
+    def __init__(self):
+        pass
+
+    def fit(self, other):
+        self.vectorizer=other.vectorizer
+
+    def postprocess(self, seq):
+        # if we get a graph .. transform to sequence
+        if isinstance(seq,nx.Graph):
+            seq= get_sequence(seq)
+
+        # get shape
+        shape = callRNAshapes(seq)
+        if shape is None:
+            #raise Exception('unfoldable')
+            return None
+        name='set real name later'
+        # build graphmanager
+        grmgr=RnaGraphManager(name,seq,self.vectorizer,shape)
+        # get graph
+        graph=grmgr.get_base_graph()
+        graph.graphmanager=grmgr
+        graph.graph['sequence'] = seq
+        return graph
