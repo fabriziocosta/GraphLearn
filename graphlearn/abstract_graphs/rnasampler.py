@@ -1,4 +1,4 @@
-import graphlearn.abstract_graphs.my_rnaabstract
+import graphlearn.abstract_graphs.rna_my_abstract
 import graphlearn.abstract_graphs.rna_graphmanager
 from ubergraphlearn import UberSampler,UberGrammar
 import ubergraphlearn
@@ -103,7 +103,7 @@ def get_mod_dict(graph):
     s,e= graphlearn.abstract_graphs.rna_graphmanager.get_start_and_end_node(graph)
     return {s:696969 , e:123123123}
 #ubergraphlearn.get_mod_dict=get_mod_dict
-import my_rnaabstract
+import rna_my_abstract
 #ubergraphlearn.make_abstract = rnaabstract.direct_abstractor
 #ubergraphlearn.make_abstract = rnaabstract.direct_abstraction_wrapper
 

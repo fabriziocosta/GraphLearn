@@ -1,4 +1,4 @@
-import graphlearn.abstract_graphs.my_rnaabstract
+import graphlearn.abstract_graphs.rna_my_abstract
 from ubergraphlearn import UberSampler, UberGrammar
 import ubergraphlearn
 import networkx as nx
