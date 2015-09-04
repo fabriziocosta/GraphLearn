@@ -330,6 +330,7 @@ def extract_cips(node,
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
 
         # print base_level_cips
+        acip.core_nodes_count= set(mergeids)
 
         # now we have a bunch of base_level_cips and need to attach info from the abstract cip.
         for base_cip in base_level_cips:
