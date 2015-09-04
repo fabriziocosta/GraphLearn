@@ -1,4 +1,4 @@
-import graphlearn.abstract_graphs.rnaabstract
+import graphlearn.abstract_graphs.my_rnaabstract
 from ubergraphlearn import UberSampler, UberGrammar
 import ubergraphlearn
 import networkx as nx
@@ -160,8 +160,14 @@ def make_abstract(extgraph):
                                 abstract_graph.node[connector]['edge'] = True
 
                                 # abstract_graph.node[connector]['label']='edge'
-                                num_shared_nodes = len(abstract_graph.node[other]['contracted'] & d['contracted'])
-                                abstract_graph.node[connector]['label'] = "shared" + str(num_shared_nodes)
+                                shared_nodes = abstract_graph.node[other]['contracted'] & d['contracted']
+
+                                labels = [ord(extgraph.node[sid]['label']) for sid in shared_nodes]
+                                labels.sort()
+                                share_hash = fhash(labels)
+
+
+                                abstract_graph.node[connector]['label'] = "shared" + str(share_hash)
 
                                 abstract_graph.add_edge(other, connector)
                                 abstract_graph.add_edge(connector, n)
