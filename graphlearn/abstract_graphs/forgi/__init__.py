@@ -4,12 +4,11 @@
 
 import networkx as nx
 #import graphlearn.abstract_graphs.forgi.bulge_graph as lol
-import bulge_graph as lol
-
+import eden.modifier.rna.lib_forgi as lib_forgi
 
 def get_abstr_graph(struct):
     # get forgi string
-    bg = lol.BulgeGraph()
+    bg = lib_forgi.BulgeGraph()
     bg.from_dotbracket(struct, None)
     forgi = bg.to_bg_string()
 
