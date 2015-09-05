@@ -577,9 +577,9 @@ class GraphLearnSampler(object):
             v2 = old_opts + average_opts* ( len(graph)-interfacesize)
             value = float(v1)/v2
 
-            print old_opts, new_opts
+
             self.estimate_flowback_value= value
-            print 'flow: %f' % value
+            logger.debug(  'reverse_direction_modifier: %f' % value )
 
     def _select_cips(self, cip, graph):
         """
