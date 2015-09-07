@@ -19,11 +19,11 @@ class MoleculeSampler(UberSampler):
         self._sample_path_score_set = set()
         return graph
 
-    def _score(self, graph):
-        estimateable = graph.graphmanager.get_estimateable()
+    def _score(self, graphmanager):
+        estimateable = graphmanager.graphmanager.get_estimateable()
         super(MoleculeSampler, self)._score(estimateable)
-        graph._score = estimateable._score
-        return graph._score
+        graphmanager._score = estimateable._score
+        return graphmanager._score
 
 
 class PostProcessor:

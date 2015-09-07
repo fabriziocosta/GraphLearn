@@ -8,6 +8,85 @@ from eden.graph import Vectorizer
 logger = logging.getLogger(__name__)
 
 
+
+
+
+
+
+class AbstractGraphmanager(object):
+
+    def extract_core_and_interface(self, root, **args):
+        raise NotImplementedError("Should have implemented this")
+
+    def core_substitution(self, orig_cip_graph, new_cip_graph):
+        raise NotImplementedError("Should have implemented this")
+
+    def base_graph(self):
+        raise NotImplementedError("Should have implemented this")
+
+    def graph_clean(self):
+        raise NotImplementedError("Should have implemented this")
+
+    def estimateable(self):
+        raise NotImplementedError("Should have implemented this")
+
+    def mark_median(self, inp='importance', out='is_good'):
+        logger.log(__debug__,'you may want to implement mark_median')
+
+    def printable(self):
+        raise NotImplementedError("Should have implemented this")
+
+    def postprocess(self,postprocessor):
+        raise NotImplementedError("Should have implemented this")
+
+class GraphManager(AbstractGraphmanager):
+
+    def postprocess(self,postprocessor):
+        self._base_graph = postprocessor.postprocess(self._base_graph)
+        if self._base_graph:
+            return True
+        return False
+
+
+    def __init__(self,graph,vectorizer):
+        self._base_graph=vectorizer._edge_to_vertex_transform(graph)
+        self.vectorizer=vectorizer
+
+    def base_graph(self):
+        return self._base_graph
+
+    def extract_core_and_interface(self, root, **args):
+        return extract_core_and_interface(root, self._base_graph,**args)
+
+    def core_substitution(self, orig_cip_graph, new_cip_graph):
+        return core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
+
+    def mark_median(self, inp='importance', out='is_good'):
+        return mark_median(self._base_graph,inp=inp,out=out)
+
+
+    def graph_clean(self):
+        graph_clean(self._base_graph)
+
+    def estimateable(self):
+        return self._base_graph
+
+
+    def printable(self):
+        graph=self._base_graph.copy()
+        return self.vectorizer._revert_edge_to_vertex_transform(graph)
+
+
+
+class AbstractAbstractGraphmanager(GraphManager):
+    def disjoint_graph(self):
+        raise NotImplementedError("Should have implemented this")
+    def abstract_graph(self):
+        raise NotImplementedError("Should have implemented this")
+
+
+
+
 def invert_dict(d):
     """
     so input is usualy a distance dictionaty so
@@ -346,98 +425,8 @@ def graph_clean(graph):
         d.pop('root', None)
 
 
-'''
-  this is just a test to see if we can use an the estimator stuff to calculate the interface hash.
-    the experiment failed.
-'''
-'''
-def extract_core_and_interface2(root_node, graph, radius_list=None, thickness_list=None, vectorizer=None,
-                                hash_bitmask=2 ** 20 - 1, filter=lambda x, y: True, estimator=None):
-    """
 
 
-    this is just a test to see if we can use an the estimator stuff to calculate the interface hash.
-    the experiment failed.
-
-    :param root_node: root root_node
-    :param graph: graph
-    :param radius_list:
-    :param thickness_list:
-    :param vectorizer: a vectorizer
-    :param hash_bitmask:
-    :return: radius_list*thicknes_list long list of cips
-    """
-    try:
-        if not filter(graph, root_node):
-            return []
-        if 'hlabel' not in graph.node[graph.nodes()[0]]:
-            vectorizer._label_preprocessing(graph)
-
-        # which nodes are in the relevant radius
-        # print root_node,max(radius_list) + max(thickness_list)
-        # myutils.display(graph,vertex_label='id',size=15)
-
-        dist = nx.single_source_shortest_path_length(graph, root_node, max(radius_list) + max(thickness_list))
-        # we want the relevant subgraph and we want to work on a copy
-        master_cip_graph = graph.subgraph(dist).copy()
-
-        # we want to inverse the dictionary.
-        # so now we see {distance:[list of nodes at that distance]}
-        node_dict = invert_dict(dist)
-
-        cip_list = []
-        for thickness_ in thickness_list:
-            for radius_ in radius_list:
-
-                # see if it is feasable to extract
-                if radius_ + thickness_ not in node_dict:
-                    continue
-
-                core_graph_nodes = [item for x in range(radius_ + 1) for item in node_dict.get(x, [])]
-                if not filter(master_cip_graph, core_graph_nodes):
-                    continue
-
-                core_hash = graph_hash(master_cip_graph.subgraph(core_graph_nodes), hash_bitmask)
-
-                interface_graph_nodes = [item for x in range(radius_ + 1, radius_ + thickness_ + 1)
-                                         for item in node_dict.get(x, [])]
-
-                interface_hash = graph_hash(master_cip_graph.subgraph(interface_graph_nodes), hash_bitmask)
-                # subgraph = master_cip_graph.subgraph(interface_graph_nodes).copy()
-                # prob = estimator.predict_proba(vectorizer.transform_single(subgraph))[0, 0]
-                # interface_hash = round(prob, 7)
-
-                # get relevant subgraph
-                nodes = [node for i in range(radius_ + thickness_ + 1) for node in node_dict[i]]
-                cip_graph = master_cip_graph.subgraph(nodes).copy()
-
-                # marking cores and interfaces in subgraphs
-                for i in range(radius_ + 1):
-                    for no in node_dict[i]:
-                        cip_graph.node[no]['core'] = True
-                        if 'interface' in cip_graph.node[no]:
-                            cip_graph.node[no].pop('interface')
-                for i in range(radius_ + 1, radius_ + thickness_ + 1):
-                    if i in node_dict:
-                        for no in node_dict[i]:
-                            cip_graph.node[no]['interface'] = True
-                            if 'core' in cip_graph.node[no]:
-                                cip_graph.node[no].pop('core')
-
-                core_nodes_count = sum([len(node_dict[x]) for x in range(radius_ + 1)])
-
-                cip_list.append(CoreInterfacePair(interface_hash,
-                                                  core_hash,
-                                                  cip_graph,
-                                                  radius_,
-                                                  thickness_,
-                                                  core_nodes_count,
-                                                  distance_dict=node_dict))
-        return cip_list
-
-    except Exception:
-        logger.debug(traceback.format_exc(10))
-'''
 
 
 def mark_median(graph, inp='importance', out='is_good'):
