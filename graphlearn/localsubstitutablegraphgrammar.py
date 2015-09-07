@@ -73,10 +73,11 @@ class LocalSubstitutableGraphGrammar(object):
                 score = estimator.base_estimator.predict_proba(transformed_graph)[0, 1]
                 self.scores[core] = score
 
-    def fit(self, graph_iterator, n_jobs, batch_size=10):
-        graph_iterator, graph_iterator_ = tee(graph_iterator)
-        self.dataset_size = sum(1 for x in graph_iterator_)
-        self._read(graph_iterator, n_jobs, batch_size=batch_size)
+    def fit(self, graphmanagerlist, n_jobs, batch_size=10):
+
+        self.dataset_size = len(graphmanagerlist)
+
+        self._read(graphmanagerlist, n_jobs, batch_size=batch_size)
         self.clean()
         dataset_size, interface_counts, core_counts, cip_counts = self.size()
         logger.debug('#instances: %d  #interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
@@ -307,14 +308,14 @@ def extract_cores_and_interfaces(parameters):
         return None
     try:
         # unpack arguments, expand the graph
-        graph, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check = parameters
-        graph = vectorizer._edge_to_vertex_transform(graph)
+        graphmanager, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check = parameters
+
+        graph=graphmanager.base_graph()
         cips = []
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = graphtools.extract_core_and_interface(root_node=root_node,
-                                                             graph=graph,
+            cip_list = graphmanager.extract_core_and_interface(root_node,
                                                              radius_list=radius_list,
                                                              thickness_list=thickness_list,
                                                              vectorizer=vectorizer,
@@ -326,7 +327,9 @@ def extract_cores_and_interfaces(parameters):
         return cips
 
     except Exception:
+
         logger.debug(traceback.format_exc(10))
+        print type(graphmanager)
         # as far as i remember this should almost never happen,
         # if it does you may have a bigger problem.
         # so i put this in info

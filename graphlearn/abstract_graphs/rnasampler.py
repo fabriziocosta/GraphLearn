@@ -44,12 +44,12 @@ class RNASampler(UberSampler):
         self._sample_path_score_set = set()
         return graph
 
-    def _score(self,graph):
+    def _score(self,graphmanager):
 
-        estimateable=graph.graphmanager.get_estimateable()
+        estimateable=graphmanager.graphmanager.get_estimateable()
         super(RNASampler,self)._score(estimateable)
-        graph._score=estimateable._score
-        return graph._score
+        graphmanager._score=estimateable._score
+        return graphmanager._score
 
     def _sample_path_append(self, graph, force=False):
         if not force:

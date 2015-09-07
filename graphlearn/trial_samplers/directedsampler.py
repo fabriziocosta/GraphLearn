@@ -150,18 +150,18 @@ class directedSampler(GraphLearnSampler):
         #self.goal_size = len(self.vectorizer._edge_to_vertex_transform(self.goal_graph))
         return super(directedSampler, self)._sample(g_pair[0])
 
-    def _score(self, graph):
-        if '_score' not in graph.__dict__:
-            transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
+    def _score(self, graphmanager):
+        if '_score' not in graphmanager.__dict__:
+            transformed_graph = self.vectorizer.transform_single(nx.Graph(graphmanager))
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
 
             #print self.goal.shape
             #print transformed_graph.shape
 
-            graph._score = transformed_graph.dot(self.goal.T)[0,0]
+            graphmanager._score = transformed_graph.dot(self.goal.T)[0,0]
             #graph._score=  (1 - distance(transformed_graph,self.goal))[0,0]
 
             # print graph._score
             # graph.score -= .007*abs( self.goal_size - len(graph) )
-        return graph._score
+        return graphmanager._score
