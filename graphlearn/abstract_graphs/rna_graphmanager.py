@@ -110,8 +110,8 @@ def callRNAshapes(sequence):
     for li in s[2:]:
         # print li.split()
         energy, shape, abstr = li.split()
-        if abstr == '[[][][]]':
-            return shape
+        #if abstr == '[[][][]]':
+        return shape
 
 
 def edge_parent_finder(abstract, graph):
