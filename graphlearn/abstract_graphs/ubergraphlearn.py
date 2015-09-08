@@ -53,6 +53,12 @@ class UberSampler(GraphLearnSampler):
                                     nbit=self.nbit,
                                     node_entity_check=self.node_entity_check)
 
+
+
+    def fit_to_graphmanager(self, input):
+        pass
+
+    '''
     def fit(self, graphmanagers, n_jobs=-1, nu=.5, batch_size=10):
         """
           use input to fit the grammar and fit the estimator
@@ -65,9 +71,7 @@ class UberSampler(GraphLearnSampler):
                 yield manager.get_estimateable()
 
         graphs_ = get_esti_graphs(graphmanagers)
-
         #draw.graphlearn_draw(graphs_.next(),size=20,node_size=500, show_direction=True, contract = False)
-
         self.estimator = self.estimatorobject.fit(graphs_,
                                                   vectorizer=self.vectorizer,
                                                   nu=nu,
@@ -75,29 +79,16 @@ class UberSampler(GraphLearnSampler):
                                                   random_state=self.random_state)
 
         self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
-
-    '''
-    def _get_abstract_graph(self, graph):
-        try:
-            return make_abstract(graph, self.vectorizer)
-        except Exception as exc:
-            print 'le errer:'
-            logger.info(exc)
-            logger.info(traceback.format_exc(10))
-            draw.graphlearn_draw(graph,size=20,node_size=500, show_direction=True, contract = False)
-            raise Exception('make_abstract died')
     '''
 
-    def _get_abstract_graph(self, graph):
-        return graph.graphmanager.get_abstract_graph()
 
-    def _original_cip_extraction(self, graph):
+    def _original_cip_extraction(self, graphmanager):
         '''
         selects the next candidate.
         '''
 
         #graph = self.vectorizer._edge_to_vertex_transform(graph)
-        abstr = self._get_abstract_graph(graph)  # self._get_abstract_graph(graph)
+        abstr = graphmanager.abstract_graph()  # self._get_abstract_graph(graph)
 
         node = random.choice(abstr.nodes())
         if 'edge' in abstr.node[node]:
@@ -107,8 +98,8 @@ class UberSampler(GraphLearnSampler):
         thickness = random.choice(self.thickness_list)
         base_thickness = random.choice(self.base_thickness_list)
 
-        mod_dict = get_mod_dict(graph)
-        g = extract_cips(node, abstr, graph, [radius], [thickness], [base_thickness],
+        mod_dict = {}#get_mod_dict(graph)
+        g = extract_cips(node, abstr, graphmanager.base_graph(), [radius], [thickness], [base_thickness],
                          vectorizer=self.vectorizer,
                          hash_bitmask=self.hash_bitmask,
                          filter=self.node_entity_check, mod_dict=mod_dict)
@@ -146,8 +137,8 @@ def extract_cores_and_interfaces_mk2(parameters):
         #graph = vectorizer._edge_to_vertex_transform(graph)
         #abstr = graph.graph['abstract']
 
-        graph = graphmanager.get_base_graph()
-        abstr = graphmanager.get_abstract_graph()
+        graph = graphmanager.base_graph()
+        abstr = graphmanager.abstract_graph()
         cips = []
         mod_dict = get_mod_dict(graph)
 
@@ -380,9 +371,7 @@ def get_mods(mod_dict, nodes):
         if n in mod_dict:
             su += mod_dict[n]
     return su
-
 # here we create the mod dict once we have a graph..
-
 
 def get_mod_dict(graph):
     return {}

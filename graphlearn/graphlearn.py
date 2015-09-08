@@ -135,12 +135,16 @@ class GraphLearnSampler(object):
     def grammar(self):
         return self.lsgg
 
+
+    def fit_to_graphmanager(self, input):
+        return [ GraphManager(x,self.vectorizer) for x in input ]
+
     def fit(self, input, n_jobs=-1, nu=.5, batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
 
-        graphmanagers = [ GraphManager(x,self.vectorizer) for x in input ]
+        graphmanagers = self.fit_to_graphmanager(input)
 
         def get_esti_graphs(managers):
             for manager in managers:

@@ -3,12 +3,15 @@ from ubergraphlearn import UberSampler, UberGrammar
 import ubergraphlearn
 import networkx as nx
 import graphlearn.utils.draw as draw
+import graphlearn.graphtools as gt
 from collections import defaultdict
 import eden
 
 
 class MoleculeSampler(UberSampler):
 
+
+    '''
     def _sample_init(self, graph):
         self.postprocessor.fit(self)
         graph = self.postprocessor.postprocess(graph)
@@ -18,16 +21,14 @@ class MoleculeSampler(UberSampler):
         self._sample_notes = ''
         self._sample_path_score_set = set()
         return graph
+    '''
 
-    def _score(self, graphmanager):
-        estimateable = graphmanager.graphmanager.get_estimateable()
-        super(MoleculeSampler, self)._score(estimateable)
-        graphmanager._score = estimateable._score
-        return graphmanager._score
+    def fit_to_graphmanager(self, input):
+        return [ GraphManager(x,self.vectorizer) for x in input ]
+
 
 
 class PostProcessor:
-
     def __init__(self):
         pass
 
@@ -35,13 +36,11 @@ class PostProcessor:
         self.vectorizer = other.vectorizer
 
     def postprocess(self, graph):
-        grmgr = GraphManager(graph, self.vectorizer)
-        graph = grmgr.get_base_graph()
-        graph.graphmanager = grmgr
-        return graph
+        return GraphManager(graph, self.vectorizer)
 
 
-class GraphManager(object):
+
+class GraphManager(gt.GraphManager):
 
     '''
     these are the basis for creating a fitting an ubersampler
@@ -62,7 +61,7 @@ class GraphManager(object):
                     d['contracted'] = set()
         setset(self.abstract_graph)
 
-    def get_estimateable(self):
+    def estimateable(self):
         # returns an expanded, undirected graph
         # that the eden machine learning can compute
         return nx.disjoint_union(self.base_graph, self.abstract_graph)
