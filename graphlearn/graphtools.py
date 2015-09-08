@@ -78,11 +78,6 @@ class GraphManager(AbstractGraphmanager):
 
 
 
-class AbstractAbstractGraphmanager(GraphManager):
-    def disjoint_graph(self):
-        raise NotImplementedError("Should have implemented this")
-    def abstract_graph(self):
-        raise NotImplementedError("Should have implemented this")
 
 
 
