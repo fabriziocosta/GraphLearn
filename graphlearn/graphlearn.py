@@ -148,7 +148,7 @@ class GraphLearnSampler(object):
 
         def get_esti_graphs(managers):
             for manager in managers:
-                yield manager.estimateable()
+                yield manager.graph()
 
         graphs_ = get_esti_graphs(graphmanagers)
 
@@ -372,7 +372,7 @@ class GraphLearnSampler(object):
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph_manager, force=True)
-        sampled_graph = graph_manager.printable()
+        sampled_graph = graph_manager.out()
 
         sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
                                                 'score_history': self._score_list,
@@ -402,7 +402,7 @@ class GraphLearnSampler(object):
 
             # append :) .. rescuing score
             #graph.graph['score'] = graph._score # is never used?
-            self.sample_path.append(graphmanager.printable())
+            self.sample_path.append(graphmanager.out())
 
     def _sample_init(self, graph):
         '''
@@ -458,7 +458,7 @@ class GraphLearnSampler(object):
         """
         if '_score' not in graphmanager.__dict__:
             # moved to graphman
-            transformed_graph = self.vectorizer.transform_single(graphmanager.estimateable().copy())
+            transformed_graph = self.vectorizer.transform_single(graphmanager.graph().copy())
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
             graphmanager._score = self.estimator.predict_proba(transformed_graph)[0, 1]
@@ -547,7 +547,7 @@ class GraphLearnSampler(object):
                         self.reverse_direction_probability(graphman, tmp, original_cip)
                         logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
                                      (self.step, attempt, choices, orig_cip_ctr))
-                        tmp.graph_clean() # i clean only here because i need the interface mark for reverse_dir_prob
+                        tmp.clean() # i clean only here because i need the interface mark for reverse_dir_prob
                         return tmp
                 if self.quick_skip_orig_cip:
                     break
