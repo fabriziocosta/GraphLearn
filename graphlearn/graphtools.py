@@ -6,7 +6,7 @@ import logging
 import traceback
 from eden.graph import Vectorizer
 logger = logging.getLogger(__name__)
-
+import random
 
 
 
@@ -84,6 +84,15 @@ class AbstractGraphmanager(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
+    def random_cip(self,radius_list=None,thickness_list=None, **args):
+        '''
+        :param radius_list:
+        :param thickness_list:
+        :param args: args for the extraction ...
+        :return: a random cip from our graph
+        '''
+
+
 class GraphManager(AbstractGraphmanager):
 
     def postprocess(self,postprocessor):
@@ -101,13 +110,23 @@ class GraphManager(AbstractGraphmanager):
         return self._base_graph
 
     def extract_core_and_interface(self, root, **args):
-        return extract_core_and_interface(root, self._base_graph,**args)
+        return extract_core_and_interface(root,self._base_graph,vectorizer=self.vectorizer,**args)
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
         return core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
 
-    def mark_median(self, inp='importance', out='is_good'):
-        return mark_median(self._base_graph,inp=inp,out=out)
+
+    def mark_median(self, inp='importance', out='is_good', estimator=None):
+
+        graph2 = self.base_graph().copy()  # annotate kills the graph i assume
+        graph2 = self.vectorizer.annotate([graph2], estimator=estimator).next()
+
+        for n, d in graph2.nodes(data=True):
+            if 'edge' not in d:
+                self._base_graph.node[n][inp] = d['importance']
+
+        mark_median( inp=inp, out=out)
+
 
 
     def clean(self):
@@ -121,8 +140,16 @@ class GraphManager(AbstractGraphmanager):
         graph=self._base_graph.copy()
         return self.vectorizer._revert_edge_to_vertex_transform(graph)
 
+    def random_cip(self,radius_list=None,thickness_list=None, **args):
 
+        node = random.choice(self._base_graph.nodes())
+        if 'edge' in self._base_graph.node[node]:
+            node = random.choice(self._base_graph.neighbors(node))
+            # random radius and thickness
+        radius = random.choice(self.lsgg.radius_list)
+        thickness = random.choice(self.lsgg.thickness_list)
 
+        return self.extract_core_and_interface(node, [radius], [thickness],vectorizer=self.vectorizer,**args)
 
 
 

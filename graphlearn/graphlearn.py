@@ -563,7 +563,7 @@ class GraphLearnSampler(object):
             interfacesize=0
             for n, d in cip_graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
-                    cips = gman.extract_core_and_interface(n, self.radius_list, self.thickness_list, vectorizer=self.vectorizer,
+                    cips = gman.extract_core_and_interface(n, self.radius_list, self.thickness_list,
                                              hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
                     for cip in cips:
                         if cip.interface_hash in self.lsgg.productions:
@@ -695,29 +695,13 @@ class GraphLearnSampler(object):
         '''
         selects the next candidate.
         '''
-
         if self.target_orig_cip:
-            graph2 = graphman.base_graph().copy()  # annotate kills the graph i assume
-            graph2 = self.vectorizer.annotate([graph2], estimator=self.estimatorobject.estimator).next()
-            graph=graphman.base_graph()
-            for n, d in graph2.nodes(data=True):
-                if 'edge' not in d:
-                    graph.node[n]['importance'] = d['importance']
+            graphman.mark_median( inp='importance', out='is_good', estimator= self.estimatorobject.estimator )
 
-            graphman.mark_median( inp='importance', out='is_good')
-            # from eden.modifier.graph.vertex_attributes import colorize_binary
-            # graph = colorize_binary(graph_list = [graph], output_attribute = 'color_value',
-            #    input_attribute = 'importance', level = 0).next()
+        return graphman.random_cip( radius_list=self.radius_list, thickness_list=self.thickness_list,
+                                    hash_bitmask=self.hash_bitmask, filter=self.node_entity_check  )
 
-        node = random.choice(graph.nodes())
-        if 'edge' in graph.node[node]:
-            node = random.choice(graph.neighbors(node))
-            # random radius and thickness
-        radius = random.choice(self.lsgg.radius_list)
-        thickness = random.choice(self.lsgg.thickness_list)
 
-        return graphman.extract_core_and_interface(node, [radius], [thickness], vectorizer=self.vectorizer,
-                                          hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
 
     def _accept_original_cip(self, cip):
         '''
