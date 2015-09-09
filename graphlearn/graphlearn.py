@@ -153,7 +153,7 @@ class GraphLearnSampler(object):
         graphs_ = get_esti_graphs(graphmanagers)
 
 
-        self.estimator = self.estimatorobject.fit(graphs_,
+        self.estimatorobject.fit(graphs_,
                                                   vectorizer=self.vectorizer,
                                                   nu=nu,
                                                   n_jobs=n_jobs,
@@ -457,7 +457,7 @@ class GraphLearnSampler(object):
         we also set graph.score_nonlog and graph.score
         """
         if '_score' not in graphmanager.__dict__:
-            graphmanager._score= estimatorwrapper.score(graphmanager)
+            graphmanager._score= self.estimatorobject.score(graphmanager)
         return graphmanager._score
 
     def _accept(self, graphman_old, graphman_new):
