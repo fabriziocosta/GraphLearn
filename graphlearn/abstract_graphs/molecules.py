@@ -61,7 +61,7 @@ class GraphManager(gt.GraphManager):
                     d['contracted'] = set()
         setset(self.abstract_graph)
 
-    def estimateable(self):
+    def graph(self):
         # returns an expanded, undirected graph
         # that the eden machine learning can compute
         return nx.disjoint_union(self.base_graph, self.abstract_graph)

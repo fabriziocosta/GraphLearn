@@ -16,27 +16,72 @@ logger = logging.getLogger(__name__)
 class AbstractGraphmanager(object):
 
     def extract_core_and_interface(self, root, **args):
+        '''
+        :param root: root node of the cips we want to have
+        :param args: specifies radius, thickness and stuff, depends a on implementation
+        :return: a list of cips
+        '''
         raise NotImplementedError("Should have implemented this")
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
+        '''
+        :param orig_cip_graph: cip (see extract_core_and_interface)
+        :param new_cip_graph: cip  ( probably from graphlearn.lsgg )
+        :return: graph?  (currently its a graph but graphmanager may be better) 
+        '''
         raise NotImplementedError("Should have implemented this")
 
     def base_graph(self):
+        '''
+        :return: the graph that we want to manipulate
+        '''
         raise NotImplementedError("Should have implemented this")
 
-    def graph_clean(self):
+    def clean(self):
+        '''
+        removes marks on the graph that were made during the core_substitution process.
+        this is not done after the substitution because it may be interesting to identify the interface
+        that was used :)
+        :return: None
+        '''
         raise NotImplementedError("Should have implemented this")
 
-    def estimateable(self):
+    def graph(self):
+        '''
+        :return: the graph that will be vectorized to work with the estimator
+        '''
         raise NotImplementedError("Should have implemented this")
 
     def mark_median(self, inp='importance', out='is_good'):
+        '''
+        for each node we look at
+        :param inp:
+        and decide if
+        :param out:
+        is marked with 0 or 1 such that half or less of all nodes are marked 1
+
+        :return: Nothing
+        '''
         logger.log(__debug__,'you may want to implement mark_median')
 
-    def printable(self):
+    def out(self):
+        '''
+        :return: the sampling process of graphlearn outputs a result.
+                here we create this result. this result may be anything
+                eg graph, string
+        '''
         raise NotImplementedError("Should have implemented this")
 
     def postprocess(self,postprocessor):
+        '''
+        :param postprocessor: a postprocessor
+        :return: a GraphManager maybe?
+
+        here we execute the postprocessing.
+        by calling postprocess here, the graphman is aware of the postprocessing
+        and the postprocessing can concentrate on its task and operate on graphs only,
+        not knowing about graphmanagers.
+        '''
         raise NotImplementedError("Should have implemented this")
 
 class GraphManager(AbstractGraphmanager):
@@ -65,14 +110,14 @@ class GraphManager(AbstractGraphmanager):
         return mark_median(self._base_graph,inp=inp,out=out)
 
 
-    def graph_clean(self):
+    def clean(self):
         graph_clean(self._base_graph)
 
-    def estimateable(self):
+    def graph(self):
         return self._base_graph
 
 
-    def printable(self):
+    def out(self):
         graph=self._base_graph.copy()
         return self.vectorizer._revert_edge_to_vertex_transform(graph)
 
