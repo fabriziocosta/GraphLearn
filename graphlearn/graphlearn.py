@@ -168,7 +168,7 @@ class GraphLearnSampler(object):
 
                similarity=-1,
                n_samples=None,
-               estimate_flowback=False,
+               proposal_probability=False,
                batch_size=10,
                n_jobs=0,
                max_cycle_size=False,
@@ -202,7 +202,7 @@ class GraphLearnSampler(object):
         :param n_steps: how many samplesteps are conducted
         :param burnin: do this many steps before collecting samples
         :param max_cycle_size: max allowed size (slow)
-        :estimate_flowback: True to calculate new and old options
+        :proposal_probability: True to calculate new and old options
         # sampling strategy
         :param target_orig_cip:  we will use the estimator to determine weak regions in the graph that need
         improvement
@@ -224,8 +224,8 @@ class GraphLearnSampler(object):
         :return:  yield graphs
 
         """
-        self.estimate_flowback = estimate_flowback
-        if self.estimate_flowback:
+        self.proposal_probability = proposal_probability
+        if self.proposal_probability:
             print 'WARNING you set estimate backflow. the implementation is a little sketchy ' \
                   'so dont try this with weired graphs. '
 
@@ -474,8 +474,8 @@ class GraphLearnSampler(object):
         score_graph_new = self._score(graphman_new)
         score_ratio = score_graph_new / score_graph_old
 
-        if self.estimate_flowback:
-            score_ratio *= self.estimate_flowback_value
+        if self.proposal_probability:
+            score_ratio *= self.proposal_probability_value
 
         # if the new graph scores higher, the ratio is > 1 and we accept
         if score_ratio > 1.0:
@@ -539,7 +539,7 @@ class GraphLearnSampler(object):
                     # postproc may fail
                     tmp = self.postprocessor.postprocess(graph_new)
                     if tmp:
-                        self.reverse_direction_probability(graphman, tmp, original_cip)
+                        self.calc_proposal_probability(graphman, tmp, original_cip)
                         logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
                                      (self.step, attempt, choices, orig_cip_ctr))
                         tmp.clean() # i clean only here because i need the interface mark for reverse_dir_prob
@@ -547,7 +547,7 @@ class GraphLearnSampler(object):
                 if self.quick_skip_orig_cip:
                     break
 
-    def reverse_direction_probability(self, graphman, graphman_new, cip):
+    def calc_proposal_probability(self, graphman, graphman_new, cip):
         '''
 
         :param graph:  the old graph
@@ -572,21 +572,16 @@ class GraphLearnSampler(object):
             return counter, interfacesize
 
 
-        if self.estimate_flowback:
+        if self.proposal_probability:
             old_opts,interfacesize = ops(graphman, cip.graph)
             new_opts,unused = ops(graphman_new, graphman_new.base_graph())
-
             average_opts=float(old_opts+new_opts)/2
-
             old_opts=max(1,old_opts)
             new_opts=max(1,new_opts)
-
             v1 = new_opts + average_opts* ( len(graphman_new.base_graph())-interfacesize)
             v2 = old_opts + average_opts* ( len(graphman.base_graph())-interfacesize)
             value = float(v1)/v2
-
-
-            self.estimate_flowback_value= value
+            self.proposal_probability_value= value
             logger.debug(  'reverse_direction_modifier: %f' % value )
 
     def _select_cips(self, cip, graphman):
