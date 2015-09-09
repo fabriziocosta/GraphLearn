@@ -285,7 +285,6 @@ class LocalSubstitutableGraphGrammar(object):
     def _get_args(self):
         return [self.radius_list,
                 self.thickness_list,
-                self.vectorizer,
                 self.hash_bitmask,
                 self.node_entity_check]
 
@@ -308,27 +307,18 @@ def extract_cores_and_interfaces(parameters):
         return None
     try:
         # unpack arguments, expand the graph
-        graphmanager, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check = parameters
+        graphmanager, radius_list, thickness_list,  hash_bitmask, node_entity_check = parameters
+        d={'radius_list':radius_list,
+        'thickness_list':thickness_list,
+        'hash_bitmask':hash_bitmask,
+        'filter':node_entity_check}
 
-        graph=graphmanager.base_graph()
-        cips = []
-        for root_node in graph.nodes_iter():
-            if 'edge' in graph.node[root_node]:
-                continue
-            cip_list = graphmanager.extract_core_and_interface(root_node,
-                                                             radius_list=radius_list,
-                                                             thickness_list=thickness_list,
-                                                             hash_bitmask=hash_bitmask,
-                                                             filter=node_entity_check)
-
-            if cip_list:
-                cips.append(cip_list)
-        return cips
+        return graphmanager.all_cips(**d)
 
     except Exception:
 
         logger.debug(traceback.format_exc(10))
-        print type(graphmanager)
+
         # as far as i remember this should almost never happen,
         # if it does you may have a bigger problem.
         # so i put this in info

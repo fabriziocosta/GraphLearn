@@ -91,6 +91,11 @@ class AbstractGraphmanager(object):
         :param args: args for the extraction ...
         :return: will atempt only once, returns a random cip from our graph or []
         '''
+        raise NotImplementedError("Should have implemented this")
+
+    def all_cips(self,**args):
+        raise NotImplementedError("Should have implemented this")
+
 
 
 class GraphManager(AbstractGraphmanager):
@@ -141,7 +146,6 @@ class GraphManager(AbstractGraphmanager):
     def graph(self):
         return self._base_graph
 
-
     def out(self):
         graph=self._base_graph.copy()
         return self.vectorizer._revert_edge_to_vertex_transform(graph)
@@ -156,6 +160,19 @@ class GraphManager(AbstractGraphmanager):
         args['thickness_list'] = [random.choice(thickness_list)]
 
         return self.extract_core_and_interface(node, **args)
+
+
+    def all_cips(self,**args):
+
+        graph=self._base_graph
+        cips = []
+        for root_node in graph.nodes_iter():
+            if 'edge' in graph.node[root_node]:
+                continue
+            cip_list = self.extract_core_and_interface(root_node,**args)
+            if cip_list:
+                cips.append(cip_list)
+        return cips
 
 
 
