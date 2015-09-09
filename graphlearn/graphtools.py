@@ -89,7 +89,7 @@ class AbstractGraphmanager(object):
         :param radius_list:
         :param thickness_list:
         :param args: args for the extraction ...
-        :return: a random cip from our graph
+        :return: will atempt only once, returns a random cip from our graph or []
         '''
 
 

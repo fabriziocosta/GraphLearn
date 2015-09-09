@@ -658,6 +658,8 @@ class GraphLearnSampler(object):
         - original_cip_extraction  takes care of extracting a cip
         - accept_original_cip makes sure that the cip we got is indeed in the grammar
         """
+        if self.target_orig_cip:
+            graphman.mark_median( inp='importance', out='is_good', estimator= self.estimatorobject.estimator )
 
         failcount = 0
         nocip = 0
@@ -666,7 +668,8 @@ class GraphLearnSampler(object):
             # we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible
             # to extract at the desired radius/thicknes
-            cip = self._original_cip_extraction(graphman)
+            cip = graphman.random_cip( radius_list=self.radius_list, thickness_list=self.thickness_list,
+                                    hash_bitmask=self.hash_bitmask, filter=self.node_entity_check )
             if not cip:
                 nocip += 1
                 continue
@@ -682,15 +685,7 @@ class GraphLearnSampler(object):
             'select_cip_for_substitution failed because no suiting interface was found, \
             extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount))
 
-    def _original_cip_extraction(self, graphman):
-        '''
-        selects the next candidate.
-        '''
-        if self.target_orig_cip:
-            graphman.mark_median( inp='importance', out='is_good', estimator= self.estimatorobject.estimator )
 
-        return graphman.random_cip( radius_list=self.radius_list, thickness_list=self.thickness_list,
-                                    hash_bitmask=self.hash_bitmask, filter=self.node_entity_check  )
 
 
 
