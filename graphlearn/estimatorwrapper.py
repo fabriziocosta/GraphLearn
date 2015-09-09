@@ -23,8 +23,8 @@ class EstimatorWrapper:
         data_matrix = vectorizer.fit_transform(graphs)
 
         self.estimator = self.fit_estimator(data_matrix, n_jobs=n_jobs, cv=cv, random_state=random_state)
-        cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=nu, cv=cv)
-        return cal_estimator
+        self.cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=nu, cv=cv)
+
 
     def fit_2(self, pos_iterator, neg_iterator, vectorizer=None, cv=2, n_jobs=-1):
         """
@@ -91,4 +91,4 @@ class EstimatorWrapper:
             transformed_graph = self.vectorizer.transform_single(graphmanager.graph().copy())
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-            return self.estimator.predict_proba(transformed_graph)[0, 1]
+            return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
