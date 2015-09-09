@@ -103,7 +103,12 @@ class GraphManager(AbstractGraphmanager):
 
 
     def __init__(self,graph,vectorizer):
-        self._base_graph=vectorizer._edge_to_vertex_transform(graph)
+
+        self._base_graph=graph
+
+        if len(graph) > 0:
+            self._base_graph=vectorizer._edge_to_vertex_transform(self._base_graph)
+
         self.vectorizer=vectorizer
 
     def base_graph(self):
@@ -113,7 +118,8 @@ class GraphManager(AbstractGraphmanager):
         return extract_core_and_interface(root,self._base_graph,vectorizer=self.vectorizer,**args)
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
-        return core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
+        graph=core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
+        return GraphManager( graph, self.vectorizer)
 
 
     def mark_median(self, inp='importance', out='is_good', estimator=None):
@@ -146,10 +152,10 @@ class GraphManager(AbstractGraphmanager):
         if 'edge' in self._base_graph.node[node]:
             node = random.choice(self._base_graph.neighbors(node))
             # random radius and thickness
-        radius = random.choice(self.lsgg.radius_list)
-        thickness = random.choice(self.lsgg.thickness_list)
+        args['radius_list'] = [random.choice(radius_list)]
+        args['thickness_list'] = [random.choice(thickness_list)]
 
-        return self.extract_core_and_interface(node, [radius], [thickness],vectorizer=self.vectorizer,**args)
+        return self.extract_core_and_interface(node, **args)
 
 
 

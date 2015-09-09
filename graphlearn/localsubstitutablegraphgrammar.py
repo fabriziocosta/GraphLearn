@@ -318,7 +318,6 @@ def extract_cores_and_interfaces(parameters):
             cip_list = graphmanager.extract_core_and_interface(root_node,
                                                              radius_list=radius_list,
                                                              thickness_list=thickness_list,
-                                                             vectorizer=vectorizer,
                                                              hash_bitmask=hash_bitmask,
                                                              filter=node_entity_check)
 

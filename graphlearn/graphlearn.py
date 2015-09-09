@@ -274,7 +274,7 @@ class GraphLearnSampler(object):
                                 score_core_choice,
                                 max_core_size_diff,
                                 probabilistic_core_choice,
-                                self.estimator)
+                                self.estimatorobject.estimator)
         logger.debug(serialize_dict(self.__dict__))
 
         if self.random_state is not None:
@@ -533,13 +533,14 @@ class GraphLearnSampler(object):
                 if self.feasibility_checker.check(graph_new.base_graph()):
 
                     # postproc may fail
-                    tmp = self.postprocessor.postprocess(graph_new)
+                    #tmp = self.postprocessor.postprocess(graph_new)
+                    tmp = graph_new.postprocess(self.postprocessor)
                     if tmp:
                         self.calc_proposal_probability(graphman, tmp, original_cip)
                         logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
                                      (self.step, attempt, choices, orig_cip_ctr))
-                        tmp.clean() # i clean only here because i need the interface mark for reverse_dir_prob
-                        return tmp
+                        graph_new.clean() # i clean only here because i need the interface mark for reverse_dir_prob
+                        return graph_new
                 if self.quick_skip_orig_cip:
                     break
 
