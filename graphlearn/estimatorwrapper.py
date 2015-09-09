@@ -13,7 +13,10 @@ class EstimatorWrapper:
     (if you use sampler.fit)
     '''
 
+
     def fit(self, graphs, vectorizer=None, nu=.5, cv=2, n_jobs=-1, random_state=None):
+
+        self.vectorizer=vectorizer
 
         if random_state is not None:
             random.seed(random_state)
@@ -34,7 +37,7 @@ class EstimatorWrapper:
         :param n_jobs:
         :return:
         """
-
+        self.vectorizer=vectorizer
         data_matrix = vectorizer.fit_transform(pos_iterator)
         neagtive_data_matrix = vectorizer.transform(neg_iterator)
         estimator = eden_fit_estimator(SGDClassifier(loss='log'),
@@ -82,3 +85,10 @@ class EstimatorWrapper:
         estimator.fit(data_matrix_binary, data_y)
 
         return estimator
+
+    def score(self,graphmanager):
+            # moved to graphman
+            transformed_graph = self.vectorizer.transform_single(graphmanager.graph().copy())
+            # slow so dont do it..
+            # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
+            return self.estimator.predict_proba(transformed_graph)[0, 1]

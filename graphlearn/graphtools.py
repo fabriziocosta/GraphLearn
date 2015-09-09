@@ -27,7 +27,7 @@ class AbstractGraphmanager(object):
         '''
         :param orig_cip_graph: cip (see extract_core_and_interface)
         :param new_cip_graph: cip  ( probably from graphlearn.lsgg )
-        :return: graph?  (currently its a graph but graphmanager may be better) 
+        :return: graph?  (currently its a graph but graphmanager may be better)
         '''
         raise NotImplementedError("Should have implemented this")
 
@@ -75,7 +75,7 @@ class AbstractGraphmanager(object):
     def postprocess(self,postprocessor):
         '''
         :param postprocessor: a postprocessor
-        :return: a GraphManager maybe?
+        :return: success? true:false
 
         here we execute the postprocessing.
         by calling postprocess here, the graphman is aware of the postprocessing
