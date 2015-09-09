@@ -4,7 +4,6 @@ import networkx as nx
 from collections import defaultdict
 logger = logging.getLogger(__name__)
 
-
 def default_check(graph):
     '''
     this is the default feasibility check...
@@ -41,10 +40,9 @@ def default_check(graph):
 
 class FeasibilityChecker():
 
-    def __init__(self, draw_problem=False):
+    def __init__(self,checklist=[default_check], draw_problem=False):
 
-        self.checklist = []
-        self.checklist.append(default_check)
+        self.checklist = checklist
         self.draw_problem = draw_problem
 
     def check(self, graph):
@@ -60,3 +58,15 @@ class FeasibilityChecker():
                 return False
         # no errors found so we are probably good
         return True
+
+
+
+
+def cycle_feasibility_checker(max_cycle_size):
+    max_cycle_size *=2
+    from utils import cycles
+    return FeasibilityChecker(checklist=[default_check, cycles.cycles(max_cycle_size)])
+
+
+
+

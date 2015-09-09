@@ -12,7 +12,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
-from utils import cycles
+
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +171,7 @@ class GraphLearnSampler(object):
                proposal_probability=False,
                batch_size=10,
                n_jobs=0,
-               max_cycle_size=False,
+
                target_orig_cip=False,
                n_steps=50,
                quick_skip_orig_cip=False,
@@ -201,7 +201,7 @@ class GraphLearnSampler(object):
         :param n_jobs: ill start this many threads
         :param n_steps: how many samplesteps are conducted
         :param burnin: do this many steps before collecting samples
-        :param max_cycle_size: max allowed size (slow)
+
         :proposal_probability: True to calculate new and old options
         # sampling strategy
         :param target_orig_cip:  we will use the estimator to determine weak regions in the graph that need
@@ -231,11 +231,7 @@ class GraphLearnSampler(object):
 
         self.similarity = similarity
 
-        if max_cycle_size:
 
-            max_cycle_size = 2 * max_cycle_size
-
-            self.feasibility_checker.checklist.append(cycles.cycles(max_cycle_size))
 
         if probabilistic_core_choice + score_core_choice + max_core_size_diff == -1 > 1:
             raise Exception('choose max one cip choice strategy')
