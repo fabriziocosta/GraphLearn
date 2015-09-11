@@ -137,6 +137,7 @@ class GraphLearnSampler(object):
 
 
     def fit_to_graphmanager(self, input):
+        GraphManager = self.get_graphmanager()
         return [ GraphManager(x,self.vectorizer) for x in input ]
 
     def fit(self, input, n_jobs=-1, nu=.5, batch_size=10):
@@ -400,6 +401,11 @@ class GraphLearnSampler(object):
             #graph.graph['score'] = graph._score # is never used?
             self.sample_path.append(graphmanager.out())
 
+
+
+    def get_graphmanager(self):
+        return GraphManager
+
     def _sample_init(self, graph):
         '''
         we prepare the sampling process
@@ -413,6 +419,8 @@ class GraphLearnSampler(object):
         graph = self.vectorizer._edge_to_vertex_transform(graph)
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
+
+        GraphManager= self.get_graphmanager()
         graphman=GraphManager(graph,self.vectorizer)
         self._score(graphman)
         self._sample_notes = ''
@@ -436,7 +444,7 @@ class GraphLearnSampler(object):
             if similarity meassure smaller than the limit, we stop
             because we dont want to drift further
         '''
-        graph=graphmanager.base_graph
+        graph=graphmanager.base_graph()
         if self.similarity > 0:
             if self.step == 0:
                 self.vectorizer._reference_vec = self.vectorizer._convert_dict_to_sparse_matrix(
@@ -560,7 +568,7 @@ class GraphLearnSampler(object):
             interfacesize=0
             for n, d in cip_graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
-                    cips = gman.extract_core_and_interface(n, self.radius_list, self.thickness_list,
+                    cips = gman.extract_core_and_interface(n, radius_list= self.radius_list, thickness_list=self.thickness_list,
                                              hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
                     for cip in cips:
                         if cip.interface_hash in self.lsgg.productions:

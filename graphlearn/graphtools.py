@@ -129,15 +129,14 @@ class GraphManager(AbstractGraphmanager):
 
     def mark_median(self, inp='importance', out='is_good', estimator=None):
 
-        graph2 = self.base_graph().copy()  # annotate kills the graph i assume
+        graph2 = self._base_graph.copy()  # annotate kills the graph i assume
         graph2 = self.vectorizer.annotate([graph2], estimator=estimator).next()
 
         for n, d in graph2.nodes(data=True):
             if 'edge' not in d:
                 self._base_graph.node[n][inp] = d['importance']
 
-        mark_median( inp=inp, out=out)
-
+        mark_median(self._base_graph, inp=inp, out=out)
 
 
     def clean(self):
