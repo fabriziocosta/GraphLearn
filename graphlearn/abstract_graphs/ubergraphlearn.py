@@ -21,7 +21,7 @@ class UberSampler(GraphLearnSampler):
         return lambda x,y: UberGraphManager(x,y,[2])
 
 
-class UberGraphManager(graphtools.Graphmanager):
+class UberGraphManager(graphtools.GraphManager):
     '''
      since i should not repeat myself, i will just use as much as possible
      from the Graphmanager implementation.
@@ -29,7 +29,7 @@ class UberGraphManager(graphtools.Graphmanager):
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
         graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
-        return UberGraphManager( graph, self.vectorizer)
+        return UberGraphManager( graph, self.vectorizer , self.some_thickness_list)
     # ok
 
     #def mark_median(self, inp='importance', out='is_good', estimator=None):
@@ -49,11 +49,14 @@ class UberGraphManager(graphtools.Graphmanager):
 
 
     def graph(self):
+        #draw.graphlearn_draw([self._base_graph, self._abstract_graph],size=20)
         g= nx.disjoint_union(self._base_graph, self._abstract_graph)
-        for n,d in g:
-            if 'contracted' in d:
-                for e in d['contracted']:
-                    g.add_edge( n, e, nesting=True)
+
+        #for n,d in g.nodes(data=True):
+        #    if 'contracted' in d:
+        #        for e in d['contracted']:
+        #            g.add_edge( n, e, nesting=True)
+
         return g
 
 
@@ -73,7 +76,7 @@ class UberGraphManager(graphtools.Graphmanager):
 
     def all_cips(self,**args):
 
-        graph=self._base_graph
+        graph=self._abstract_graph
         cips = []
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
@@ -86,9 +89,9 @@ class UberGraphManager(graphtools.Graphmanager):
 
     def random_cip(self,radius_list=None,thickness_list=None, **args):
 
-        node = random.choice(self._base_graph.nodes())
-        if 'edge' in self._base_graph.node[node]:
-            node = random.choice(self._base_graph.neighbors(node))
+        node = random.choice(self._abstract_graph.nodes())
+        if 'edge' in self._abstract_graph.node[node]:
+            node = random.choice(self._abstract_graph.neighbors(node))
             # random radius and thickness
         args['radius_list'] = [random.choice(radius_list)]
         args['thickness_list'] = [random.choice(thickness_list)]
@@ -180,13 +183,17 @@ def edge_type_in_radius_abstraction(graph):
 
 def score_kmeans_abstraction(graph,score_attribute='importance',group='class'):
     '''
+    :graph: nonexpanded graphs
+    :score_attribute: see below, importance is default output of eden
+    :group: take something that i can overwrite :)
+    :returns: contracted graph
+
     this is not used currently, but i thought the idea was good...
 
     i need an annotated graph.. this may look like this:
     graph2 = self._base_graph.copy()  # annotate kills the graph i assume
     graph2 = self.vectorizer.annotate([graph2], estimator=estimator).next()
     '''
-
 
     # get values
     # ill need a list of lists for kmeans input
@@ -231,7 +238,7 @@ def extract_cips(node,
     #    return []
     # print 'ok1'
 
-    abstract_graph=graphmanager.abstract_graph()
+    abstract_graph=graphmanager._abstract_graph
     base_graph=graphmanager.base_graph()
     vectorizer=graphmanager.vectorizer
 
@@ -278,13 +285,21 @@ def extract_cips(node,
         # draw.draw_center(base_copy,mergeids[0],5,size=20)
         # print base_thickness_list,hash_bitmask
 
+
+
+        #call extract_core_and_interface
+        #
+        argz['thickness_list'] = base_thickness_list
+        argz['radius_list'] = [0]
         base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
                                                                 base_copy,
-                                                                radius_list=[0],
-                                                                thickness_list=base_thickness_list,
                                                                 vectorizer=vectorizer,
                                                                 hash_bitmask=hash_bitmask,
                                                                 **argz)
+
+
+
+
 
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
 
