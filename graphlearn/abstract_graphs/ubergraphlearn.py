@@ -44,8 +44,8 @@ class UberGraphManager(graphtools.Graphmanager):
     #def postprocess(self,postprocessor):
     # fine, we just dont do postproc :)
 
-    def base_graph(self):
-        return self._base_graph
+    #def base_graph(self):
+    # fine
 
 
     def graph(self):
@@ -65,7 +65,9 @@ class UberGraphManager(graphtools.Graphmanager):
         self.vectorizer=vectorizer
         self._abstract_graph= make_abstract(self._base_graph,self.vectorizer)
 
-    def extract_core_and_interface(self, root,thickness, **args):
+    def extract_core_and_interface(self, root,thickness = None , **args):
+        if thickness==None:
+            thickness=self.some_thickness_list
         return extract_cips(root,self, base_thickness_list= thickness,**args)
 
 
@@ -76,7 +78,7 @@ class UberGraphManager(graphtools.Graphmanager):
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = self.extract_core_and_interface(root_node,thickness=self.some_thickness_list,**args)
+            cip_list = self.extract_core_and_interface(root_node,**args)
             if cip_list:
                 cips.append(cip_list)
         return cips
