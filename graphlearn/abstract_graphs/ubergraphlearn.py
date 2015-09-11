@@ -135,7 +135,7 @@ def make_abstract(graph, vectorizer):
         graph = graph.to_undirected()
 
     graph2 = vectorizer._revert_edge_to_vertex_transform(graph)
-    graph2 = arbitrary_graph_abstraction_function(graph2)
+    graph2 = edge_type_in_radius_abstraction(graph2)
     graph2 = vectorizer._edge_to_vertex_transform(graph2)
 
     # find out to which abstract node the edges belong
@@ -161,7 +161,7 @@ def make_abstract(graph, vectorizer):
                         graph2.node[blob]['contracted'] = set([n])
     return graph2
 
-def arbitrary_graph_abstraction_function(graph):
+def edge_type_in_radius_abstraction(graph):
     '''
     # the function needs to set a 'contracted' attribute to each node with a set of vertices that
     # are contracted.
@@ -178,6 +178,38 @@ def arbitrary_graph_abstraction_function(graph):
 
 
 
+def score_kmeans_abstraction(graph,score_attribute='importance',group='class'):
+    '''
+    this is not used currently, but i thought the idea was good...
+
+    i need an annotated graph.. this may look like this:
+    graph2 = self._base_graph.copy()  # annotate kills the graph i assume
+    graph2 = self.vectorizer.annotate([graph2], estimator=estimator).next()
+    '''
+
+
+    # get values
+    # ill need a list of lists for kmeans input
+    values = []
+    for n, d in graph.nodes(data=True):
+        if 'edge' not in d:
+            values.append( [d[score_attribute]])
+
+    #3 means oO
+    from sklearn.cluster import KMeans
+    est=KMeans(n_clusters=3)
+    est.fit(values)
+
+    # mark class
+    # again we need to make the attribute to a list for kmeans
+    # result of predict is some numpy stuff, we want python ints
+    for n, d in graph.nodes(data=True):
+        if 'edge' not in d:
+            d[group]= int(est.predict( [d[score_attribute]]))
+
+    # contract and return
+    return contraction(
+        [graph], contraction_attribute=group, modifiers=[], nesting=False).next()
 
 
 def extract_cips(node,
