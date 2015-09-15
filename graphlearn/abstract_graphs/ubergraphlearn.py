@@ -234,68 +234,33 @@ def extract_cips(node,
                  **argz):
     '''
     :param node: node in the abstract graph
-    :param abstract_graph:  the abstract graph expanded
-    :param base_graph:  the underlying real graph
-    :param abstract_radius: radius in abstract graph
-    :param abstract_thickness: thickness in abstr
-    :param base_thickness:  thickness for the base graph
+    ::
     :return:  a  list of cips
     '''
     # if not filter(abstract_graph, node):
     #    return []
-    # print 'ok1'
 
+    #PREPARE
     abstract_graph=graphmanager.abstract_graph()
     base_graph=graphmanager.base_graph()
     vectorizer=graphmanager.vectorizer
-
-    #abstract_thickness_list=thickness_list
-    #abstract_radius_list=radius_list
-
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
         vectorizer._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
         vectorizer._label_preprocessing(base_graph)
 
-    # on the abstract graph we use the normal extract cip stuff:
+    # EXTRACT CIPS NORMALY ON ABSTRACT GRAPH
     abstract_cips = graphtools.extract_core_and_interface(node,
                                                           abstract_graph,
-                                                          #radius_list=abstract_radius_list,
-                                                          #thickness_list=abstract_thickness_list,
                                                           vectorizer=vectorizer,
                                                           hash_bitmask=hash_bitmask,
                                                           **argz)
 
+
+    # VOR EVERY ABSTRACT CIP: MERGE CORE IN BASE GRAPH AND APPLY CIP EXTRACTON
     cips = []
-
-    for acip in abstract_cips:
-
-            # now we need to calculate the real cips:
-            # the trick is to also use the normal extractor, but in order to do that we need
-            # to collapse the 'core'
-
-            # MERGE THE CORE OF THE ABSTRACT GRAPH IN THE BASE GRAPH
-        mergeids = [base_graph_id for radius in range(
-            acip.radius + 1) for abstract_node_id in acip.distance_dict.get(radius)
-            for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
-        base_copy = base_graph.copy()
-
-        # remove duplicates:
-        mergeids = list(set(mergeids))
-
-        for node_id in mergeids[1:]:
-            graphtools.merge(base_copy, mergeids[0], node_id)
-
-        # do cip extraction and calculate the real core hash
-        # draw.graphlearn_draw(base_copy,size=20)
-
-        # draw.draw_center(base_copy,mergeids[0],5,size=20)
-        # print base_thickness_list,hash_bitmask
-
-
-
-        #call extract_core_and_interface
-        #
+    for abstract_cip in abstract_cips:
+        base_copy, mergeids = merge_core(base_graph.copy(),abstract_graph,abstract_cip)
         argz['thickness_list'] = base_thickness_list
         argz['radius_list'] = [0]
         base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
@@ -305,47 +270,78 @@ def extract_cips(node,
                                                                 **argz)
 
 
-
-
-
+        # VOR EVERY BASE CIP: RESTORE CORE  AND  MERGE INFORMATION WITH ABSTRACT CIP
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
-
-        # print base_level_cips
-        acip.core_nodes_count= len(mergeids)
-
-        # now we have a bunch of base_level_cips and need to attach info from the abstract cip.
+        abstract_cip.core_nodes_count= len(mergeids)
         for base_cip in base_level_cips:
+            cips.append(enhance_base_cip(base_cip, abstract_cip,mergeids,base_graph,hash_bitmask,mod_dict,core_hash))
 
-            # we cheated a little with the core, so we need to undo our cheating
-            whatever = base_cip.graph.copy()
-            base_cip.graph = base_graph.subgraph(base_cip.graph.nodes() + mergeids).copy()
 
-            for n in mergeids:
-                base_cip.graph.node[n]['core'] = True
-
-            for n, d in base_cip.graph.nodes(data=True):
-                if 'core' not in d:
-                    d['interface'] = True
-
-                    d['distance_dependent_label'] = whatever.node[n]['distance_dependent_label']
-
-            base_cip.core_hash = core_hash
-
-            # merging cip info with the abstract graph
-            base_cip.interface_hash = eden.fast_hash_4(base_cip.interface_hash,
-                                                       acip.interface_hash,
-                                                       get_mods(mod_dict, mergeids), 0,
-                                                       hash_bitmask)
-
-            base_cip.core_nodes_count = acip.core_nodes_count
-            base_cip.radius = acip.radius
-            base_cip.abstract_thickness = acip.thickness
-
-            # i want to see what they look like :)
-            base_cip.abstract_view = acip.graph
-            base_cip.root=node
-            cips.append(base_cip)
     return cips
+
+
+def enhance_base_cip(base_cip, abstract_cip,mergeids,base_graph,hash_bitmask,mod_dict,core_hash):
+        # we cheated a little with the core, so we need to undo our cheating
+        whatever = base_cip.graph.copy()
+        base_cip.graph = base_graph.subgraph(base_cip.graph.nodes() + mergeids).copy()
+
+        for n in mergeids:
+            base_cip.graph.node[n]['core'] = True
+
+        for n, d in base_cip.graph.nodes(data=True):
+            if 'core' not in d:
+                d['interface'] = True
+                d['distance_dependent_label'] = whatever.node[n]['distance_dependent_label']
+
+        base_cip.core_hash = core_hash
+        # merging cip info with the abstract graph
+        base_cip.interface_hash = eden.fast_hash_4(base_cip.interface_hash,
+                                                   abstract_cip.interface_hash,
+                                                   get_mods(mod_dict, mergeids), 0,
+                                                   hash_bitmask)
+
+        base_cip.core_nodes_count = abstract_cip.core_nodes_count
+        base_cip.radius = abstract_cip.radius
+        base_cip.abstract_thickness = abstract_cip.thickness
+
+        # i want to see what they look like :)
+        base_cip.abstract_view = abstract_cip.graph
+
+        return base_cip
+
+
+
+
+
+
+def merge_core(base_graph,abstract_graph,abstract_cip):
+    """
+
+    :param base_graph: base graph. will be consumed
+    :param abstract_graph:  we want the contracted info.. maybe we also find this in the cip.. not sure
+    :param abstract_cip: the abstract cip
+    :return: we merge all the nodes in the base_graph, that belong to the core of the abstract_cip
+    """
+
+    mergeids = [base_graph_id for radius in range(
+        abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
+        for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
+    base_copy = base_graph.copy()
+
+    # remove duplicates:
+    mergeids = list(set(mergeids))
+
+    for node_id in mergeids[1:]:
+        graphtools.merge(base_copy, mergeids[0], node_id)
+
+    return base_graph,mergeids
+
+
+
+
+
+
+
 
 
 '''
