@@ -674,9 +674,9 @@ class GraphLearnSampler(object):
             graphman.mark_median( inp='importance', out='is_good', estimator= self.estimatorobject.estimator )
 
 
-        draw.graphlearn(graphman.abstract_graph(), size=10)
-        draw.graphlearn(graphman._abstract_graph, size=10)
-        print graphman
+        #draw.graphlearn(graphman.abstract_graph(), size=10)
+        #draw.graphlearn(graphman._abstract_graph, size=10)
+        #print graphman
 
         failcount = 0
         nocip = 0
