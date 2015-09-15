@@ -97,7 +97,6 @@ def make_abstract(extgraph):
     for n, d in extgraph.nodes(data=True):
         d['cycle'] = list(node_to_cycle(extgraph, n))
         d['cycle'].sort()
-
         if 'parent'in d:
             d.pop('parent')
 
@@ -124,14 +123,20 @@ def make_abstract(extgraph):
                 node['parent'] = set()
             node['parent'].add(cyclash)
 
+
+
+    #  HERE THE ACTUAL ABSTRACTION BEGINS
+
     # connect nodes in the abstract graph
-    f = lambda x: list(x)[0]
+    get_element = lambda x: list(x)[0]
+
+
+
+    # FOR ALL ABSTRACT NODES, FIND A LABEL
     for n, d in abstract_graph.nodes(data=True):
         # look at all the children and their neighbors parents
-
         if len(d['contracted']) > 1:
             # setting label for cycles..
-
             # this will only use the length..
             #d['label']= "cycle "+str( len(d['contracted']) )
             # but i might as well use the hash of labels of all the contracted nodes
@@ -141,12 +146,14 @@ def make_abstract(extgraph):
             d['label'] = "cycle %d" % len(labels) #fhash(labels)
 
         else:
-            d['label'] = extgraph.node[f(d['contracted'])]['label']
+            d['label'] = extgraph.node[get_element(d['contracted'])]['label']
 
-        if len(d['contracted']) == 1 and 'edge' in extgraph.node[f(d['contracted'])]:
+        if len(d['contracted']) == 1 and 'edge' in extgraph.node[get_element(d['contracted'])]:
             d['edge'] = True
             d['label'] = d['label']
-        # for all nodes
+
+
+        # THEN LOOK AT ALL CONTRACTED NODES TO FIND OUT WHAT CONNECTION WE HAVE TO OUR NEIGHBORS
         for base_node in d['contracted']:
             base_neighbors = extgraph.neighbors(base_node)
             # for all the neighbors
@@ -245,6 +252,9 @@ def node_to_cycle(graph, n, min_cycle_size=3):
             return paths
         return False
 
+
+
+    # START OF ACTUAL FUNCTION
     FAILEDVALUE = set([n])
     frontier = set([n])
     step = 0

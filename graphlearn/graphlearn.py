@@ -426,7 +426,7 @@ class GraphLearnSampler(object):
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
 
-        
+
         graphman=self.get_graphwrapper(graph,self.vectorizer)
         self._score(graphman)
         self._sample_notes = ''
