@@ -1,5 +1,5 @@
 import graphlearn.abstract_graphs.rna_my_abstract
-from ubergraphlearn import UberSampler
+from ubergraphlearn import UberGraphWrapper
 import ubergraphlearn
 import networkx as nx
 import graphlearn.utils.draw as draw
@@ -9,12 +9,12 @@ from collections import defaultdict
 import eden
 
 
-class MolecularSampler(GraphLearnSampler):
-    def get_graphmanager(self):
-        return lambda x,y: MolecularGraphManager(x,y,[2])
+
+def GraphWrapper(base_thickness_list=[2]):
+    return lambda x,y:MolecularGraphWrapper(x,y,base_thickness_list=base_thickness_list)
 
 
-class MolecularGraphManager(ubergraphlearn.UberGraphManager):
+class MolecularGraphWrapper(UberGraphWrapper):
 
     def abstract_graph(self):
         if self._abstract_graph== None:

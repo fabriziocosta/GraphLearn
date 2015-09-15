@@ -1,6 +1,7 @@
 from eden.modifier.graph import vertex_attributes
 from eden.modifier.graph.structure import contraction
 import graphlearn.graphtools as graphtools
+from graphlearn.graphtools import GraphWrapper
 import random
 from graphlearn.graphlearn import GraphLearnSampler
 from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -16,11 +17,11 @@ import traceback
 '''
 1. tell the sampler to use new GraphManager
 '''
-class UberSampler(GraphLearnSampler):
-    def get_graphmanager(self):
-        return lambda x,y: UberGraphManager(x,y,[2])
 
-class UberGraphManager(graphtools.GraphManager):
+
+
+
+class UberGraphWrapper(GraphWrapper):
     '''
      since i should not repeat myself, i will just use as much as possible
      from the Graphmanager implementation.
@@ -79,25 +80,25 @@ class UberGraphManager(graphtools.GraphManager):
         self.vectorizer=vectorizer
         self._abstract_graph= None
 
-    def extract_core_and_interface(self, root,thickness = None , **args):
+    def rooted_core_interface_pairs(self, root,thickness = None , **args):
         if thickness==None:
             thickness=self.some_thickness_list
         return extract_cips(root,self, base_thickness_list= thickness,**args)
 
 
-    def all_cips(self,**args):
+    def all_core_interface_pairs(self,**args):
         graph=self.abstract_graph()
         cips = []
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = self.extract_core_and_interface(root_node,**args)
+            cip_list = self.rooted_core_interface_pairs(root_node,**args)
             if cip_list:
                 cips.append(cip_list)
         return cips
 
 
-    def random_cip(self,radius_list=None,thickness_list=None, **args):
+    def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
         node = random.choice(self.abstract_graph().nodes())
         if 'edge' in self._abstract_graph.node[node]:
             node = random.choice(self._abstract_graph.neighbors(node))
@@ -105,7 +106,7 @@ class UberGraphManager(graphtools.GraphManager):
         args['radius_list'] = [random.choice(radius_list)]
         args['thickness_list'] = [random.choice(thickness_list)]
         random_something= [random.choice(self.some_thickness_list)]
-        return self.extract_core_and_interface(node,thickness=random_something, **args)
+        return self.rooted_core_interface_pairs(node,thickness=random_something, **args)
 
 
 

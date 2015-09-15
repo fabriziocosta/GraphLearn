@@ -313,7 +313,7 @@ def extract_cores_and_interfaces(parameters):
         'hash_bitmask':hash_bitmask,
         'filter':node_entity_check}
 
-        return graphmanager.all_cips(**d)
+        return graphmanager.all_core_interface_pairs(**d)
 
     except Exception:
 

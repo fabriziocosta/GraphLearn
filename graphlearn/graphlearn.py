@@ -2,7 +2,7 @@ import itertools
 import random
 import postprocessing
 import estimatorwrapper
-from graphtools import GraphManager #extract_core_and_interface, core_substitution, graph_clean, mark_median
+from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool
@@ -17,6 +17,9 @@ from utils import draw
 logger = logging.getLogger(__name__)
 
 
+
+
+
 class GraphLearnSampler(object):
 
     def __init__(self,
@@ -24,6 +27,7 @@ class GraphLearnSampler(object):
 
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
+                 graphwrapper=GraphWrapper,
                  estimator=estimatorwrapper.EstimatorWrapper(),
                  postprocessor=postprocessing.PostProcessor(),
                  feasibility_checker = feasibility.FeasibilityChecker(),
@@ -60,6 +64,9 @@ class GraphLearnSampler(object):
 
         :return:
         """
+
+        self.get_graphwrapper= lambda x,y: graphwrapper(x,y)
+
         self.feasibility_checker = feasibility_checker
         self.postprocessor = postprocessor
 
@@ -137,8 +144,8 @@ class GraphLearnSampler(object):
 
 
     def fit_to_graphmanager(self, input):
-        GraphManager = self.get_graphmanager()
-        return [ GraphManager(x,self.vectorizer) for x in input ]
+
+        return [ self.get_graphwrapper(x,self.vectorizer) for x in input ]
 
     def fit(self, input, n_jobs=-1, nu=.5, batch_size=10):
         """
@@ -403,8 +410,7 @@ class GraphLearnSampler(object):
 
 
 
-    def get_graphmanager(self):
-        return GraphManager
+
 
     def _sample_init(self, graph):
         '''
@@ -420,8 +426,8 @@ class GraphLearnSampler(object):
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
 
-        GraphManager= self.get_graphmanager()
-        graphman=GraphManager(graph,self.vectorizer)
+        
+        graphman=self.get_graphwrapper(graph,self.vectorizer)
         self._score(graphman)
         self._sample_notes = ''
         self._sample_path_score_set = set()
@@ -571,7 +577,7 @@ class GraphLearnSampler(object):
             interfacesize=0
             for n, d in cip_graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
-                    cips = gman.extract_core_and_interface(n, radius_list= self.radius_list, thickness_list=self.thickness_list,
+                    cips = gman.rooted_core_interface_pairs(n, radius_list= self.radius_list, thickness_list=self.thickness_list,
                                              hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
                     for cip in cips:
                         if cip.interface_hash in self.lsgg.productions:
@@ -685,7 +691,7 @@ class GraphLearnSampler(object):
             # we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible
             # to extract at the desired radius/thicknes
-            cip = graphman.random_cip( radius_list=self.radius_list, thickness_list=self.thickness_list,
+            cip = graphman.random_core_interface_pair( radius_list=self.radius_list, thickness_list=self.thickness_list,
                                     hash_bitmask=self.hash_bitmask, filter=self.node_entity_check )
             if not cip:
                 nocip += 1
