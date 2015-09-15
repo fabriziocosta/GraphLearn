@@ -1,32 +1,31 @@
 import graphlearn.abstract_graphs.rna_my_abstract
-from ubergraphlearn import UberSampler, UberGrammar
+from ubergraphlearn import UberSampler
 import ubergraphlearn
 import networkx as nx
 import graphlearn.utils.draw as draw
+from graphlearn.graphlearn import GraphLearnSampler
 import graphlearn.graphtools as gt
 from collections import defaultdict
 import eden
 
 
-class MoleculeSampler(UberSampler):
+class MolecularSampler(GraphLearnSampler):
+    def get_graphmanager(self):
+        return lambda x,y: MolecularGraphManager(x,y,[2])
 
 
-    '''
-    def _sample_init(self, graph):
-        self.postprocessor.fit(self)
-        graph = self.postprocessor.postprocess(graph)
-        if self.max_core_size_diff > -1:
-            self.seed_size = len(graph)
-        self._score(graph)
-        self._sample_notes = ''
-        self._sample_path_score_set = set()
-        return graph
-    '''
+class MolecularGraphManager(ubergraphlearn.UberGraphManager):
 
-    def fit_to_graphmanager(self, input):
-        return [ GraphManager(x,self.vectorizer) for x in input ]
+    def abstract_graph(self):
+        if self._abstract_graph== None:
+            self._abstract_graph = make_abstract(self._base_graph)
+            for n, d in self._abstract_graph.nodes(data=True):
+                if 'contracted' not in d:
+                    d['contracted'] = set()
+        return self._abstract_graph
 
 
+"""
 
 class PostProcessor:
     def __init__(self):
@@ -72,6 +71,9 @@ class GraphManager(gt.GraphManager):
     def get_abstract_graph(self):
         return self.abstract_graph
 
+"""
+
+
 
 '''
 here we invent the abstractor function
@@ -95,6 +97,9 @@ def make_abstract(extgraph):
     for n, d in extgraph.nodes(data=True):
         d['cycle'] = list(node_to_cycle(extgraph, n))
         d['cycle'].sort()
+
+        if 'parent'in d:
+            d.pop('parent')
 
     # prepare
     abstract_graph = nx.Graph()
@@ -133,7 +138,7 @@ def make_abstract(extgraph):
 
             labels = [ord(extgraph.node[childid]['label']) for childid in d['contracted']]
             labels.sort()
-            d['label'] = "cycle %d" % fhash(labels)
+            d['label'] = "cycle %d" % len(labels) #fhash(labels)
 
         else:
             d['label'] = extgraph.node[f(d['contracted'])]['label']
