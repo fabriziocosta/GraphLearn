@@ -13,9 +13,13 @@ import random
 
 
 
-class AbstractGraphmanager(object):
+class AbstractGraphWrapper(object):
 
-    def extract_core_and_interface(self, root, **args):
+
+
+
+
+    def rooted_core_interface_pairs(self, root, **args):
         '''
         :param root: root node of the cips we want to have
         :param args: specifies radius, thickness and stuff, depends a on implementation
@@ -84,7 +88,7 @@ class AbstractGraphmanager(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-    def random_cip(self,radius_list=None,thickness_list=None, **args):
+    def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
         '''
         :param radius_list:
         :param thickness_list:
@@ -93,12 +97,16 @@ class AbstractGraphmanager(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-    def all_cips(self,**args):
+    def all_core_interface_pairs(self,**args):
         raise NotImplementedError("Should have implemented this")
 
 
 
-class GraphManager(AbstractGraphmanager):
+
+
+
+
+class GraphWrapper(AbstractGraphWrapper):
 
     def postprocess(self,postprocessor):
         self._base_graph = postprocessor.postprocess(self._base_graph)
@@ -119,12 +127,12 @@ class GraphManager(AbstractGraphmanager):
     def base_graph(self):
         return self._base_graph
 
-    def extract_core_and_interface(self, root, **args):
+    def rooted_core_interface_pairs(self, root, **args):
         return extract_core_and_interface(root,self._base_graph,vectorizer=self.vectorizer,**args)
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
         graph=core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
-        return GraphManager( graph, self.vectorizer)
+        return GraphWrapper( graph, self.vectorizer)
 
 
     def mark_median(self, inp='importance', out='is_good', estimator=None):
@@ -149,7 +157,7 @@ class GraphManager(AbstractGraphmanager):
         graph=self._base_graph.copy()
         return self.vectorizer._revert_edge_to_vertex_transform(graph)
 
-    def random_cip(self,radius_list=None,thickness_list=None, **args):
+    def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
 
         node = random.choice(self._base_graph.nodes())
         if 'edge' in self._base_graph.node[node]:
@@ -158,17 +166,17 @@ class GraphManager(AbstractGraphmanager):
         args['radius_list'] = [random.choice(radius_list)]
         args['thickness_list'] = [random.choice(thickness_list)]
 
-        return self.extract_core_and_interface(node, **args)
+        return self.rooted_core_interface_pairs(node, **args)
 
 
-    def all_cips(self,**args):
+    def all_core_interface_pairs(self,**args):
 
         graph=self._base_graph
         cips = []
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = self.extract_core_and_interface(root_node,**args)
+            cip_list = self.rooted_core_interface_pairs(root_node,**args)
             if cip_list:
                 cips.append(cip_list)
         return cips
