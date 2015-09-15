@@ -12,7 +12,7 @@ from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
-
+from utils import draw
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class GraphLearnSampler(object):
                  random_state=None,
                  estimator=estimatorwrapper.EstimatorWrapper(),
                  postprocessor=postprocessing.PostProcessor(),
-                feasibility_checker = feasibility.FeasibilityChecker(),
+                 feasibility_checker = feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -427,6 +427,10 @@ class GraphLearnSampler(object):
         self._sample_path_score_set = set()
         self.postprocessor.fit(self)
 
+
+        #print 'sample init:',graphman
+        #draw.graphlearn_draw(graphman.graph())
+
         return graphman
 
     def _stop_condition(self, graphmanager):
@@ -544,7 +548,7 @@ class GraphLearnSampler(object):
                     #tmp = self.postprocessor.postprocess(graph_new)
                     tmp = graph_new.postprocess(self.postprocessor)
                     if tmp:
-                        self.calc_proposal_probability(graphman, tmp, original_cip)
+                        self.calc_proposal_probability(graphman, graph_new, original_cip)
                         logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
                                      (self.step, attempt, choices, orig_cip_ctr))
                         graph_new.clean() # i clean only here because i need the interface mark for reverse_dir_prob
@@ -561,7 +565,6 @@ class GraphLearnSampler(object):
         :return: options(interface,newgraph)+newgraphlength*average /  options(interface,graph)+oldgraphlen*average
 
         '''
-
 
         def ops(gman, cip_graph):
             counter = 0
@@ -670,6 +673,11 @@ class GraphLearnSampler(object):
         if self.target_orig_cip:
             graphman.mark_median( inp='importance', out='is_good', estimator= self.estimatorobject.estimator )
 
+
+        draw.graphlearn(graphman.abstract_graph(), size=10)
+        draw.graphlearn(graphman._abstract_graph, size=10)
+        print graphman
+
         failcount = 0
         nocip = 0
         for x in range(self.select_cip_max_tries):
@@ -683,12 +691,15 @@ class GraphLearnSampler(object):
                 nocip += 1
                 continue
             cip = cip[0]
-            # print node,radius,cip.interface_hash
+
+            #print cip
+
 
             if self._accept_original_cip(cip):
                 yield cip
             else:
                 failcount += 1
+
 
         raise Exception(
             'select_cip_for_substitution failed because no suiting interface was found, \
