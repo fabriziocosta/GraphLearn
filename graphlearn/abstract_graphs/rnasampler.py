@@ -67,7 +67,7 @@ class RNASampler(UberSampler):
             return graph
         except:
             print 'rnasampler: revert edge to vertex transform failed'
-            draw.graphlearn_draw(graph,contract=False, size=20)
+            draw.graphlearn(graph,contract=False, size=20)
 
 
 

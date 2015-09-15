@@ -20,23 +20,28 @@ class UberSampler(GraphLearnSampler):
     def get_graphmanager(self):
         return lambda x,y: UberGraphManager(x,y,[2])
 
-
 class UberGraphManager(graphtools.GraphManager):
     '''
      since i should not repeat myself, i will just use as much as possible
      from the Graphmanager implementation.
     '''
+    def __str__(self):
+        #return 'Ubermanager: base_nodes: %d abstract_nodes: %d' % (len(self._base_graph),len(self._abstract_graph))
+        return '\n'.join (['%s:%s'% (str(k),v) for k,v in self.__dict__.items()]+[str(len(self._base_graph)),str(len(self._abstract_graph))])
+
+
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
         graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
-        return UberGraphManager( graph, self.vectorizer , self.some_thickness_list)
+        return self.__class__( graph, self.vectorizer , self.some_thickness_list)
     # ok
 
     #def mark_median(self, inp='importance', out='is_good', estimator=None):
     # fine
 
     #def clean(self):
-    # fine
+    #    graphtools.graph_clean(self._base_graph)
+    #    graphtools.graph_clean(self._abstract_graph)
 
     #def out(self):
     # fine
@@ -48,25 +53,31 @@ class UberGraphManager(graphtools.GraphManager):
     # fine
 
 
-    def graph(self):
+    def graph(self, nested=False):
         #draw.graphlearn_draw([self._base_graph, self._abstract_graph],size=20)
-        g= nx.disjoint_union(self._base_graph, self._abstract_graph)
+        g= nx.disjoint_union(self._base_graph, self.abstract_graph())
 
-        #for n,d in g.nodes(data=True):
-        #    if 'contracted' in d:
-        #        for e in d['contracted']:
-        #            g.add_edge( n, e, nesting=True)
-
+        if nested:
+            for n,d in g.nodes(data=True):
+                if 'contracted' in d:
+                    for e in d['contracted']:
+                        g.add_edge( n, e, nesting=True)
         return g
 
 
-    def __init__(self,graph,vectorizer, some_thickness_list):
-        self.some_thickness_list=some_thickness_list
+
+    def abstract_graph(self):
+        if self._abstract_graph== None:
+            self._abstract_graph = make_abstract(self._base_graph,self.vectorizer)
+        return self._abstract_graph
+
+    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None):
+        self.some_thickness_list=base_thickness_list
         self._base_graph=graph
         if len(graph) > 0:
             self._base_graph=vectorizer._edge_to_vertex_transform(self._base_graph)
         self.vectorizer=vectorizer
-        self._abstract_graph= make_abstract(self._base_graph,self.vectorizer)
+        self._abstract_graph= None
 
     def extract_core_and_interface(self, root,thickness = None , **args):
         if thickness==None:
@@ -75,8 +86,7 @@ class UberGraphManager(graphtools.GraphManager):
 
 
     def all_cips(self,**args):
-
-        graph=self._abstract_graph
+        graph=self.abstract_graph()
         cips = []
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
@@ -88,8 +98,7 @@ class UberGraphManager(graphtools.GraphManager):
 
 
     def random_cip(self,radius_list=None,thickness_list=None, **args):
-
-        node = random.choice(self._abstract_graph.nodes())
+        node = random.choice(self.abstract_graph().nodes())
         if 'edge' in self._abstract_graph.node[node]:
             node = random.choice(self._abstract_graph.neighbors(node))
             # random radius and thickness
@@ -97,9 +106,6 @@ class UberGraphManager(graphtools.GraphManager):
         args['thickness_list'] = [random.choice(thickness_list)]
         random_something= [random.choice(self.some_thickness_list)]
         return self.extract_core_and_interface(node,thickness=random_something, **args)
-
-
-
 
 
 
@@ -238,7 +244,7 @@ def extract_cips(node,
     #    return []
     # print 'ok1'
 
-    abstract_graph=graphmanager._abstract_graph
+    abstract_graph=graphmanager.abstract_graph()
     base_graph=graphmanager.base_graph()
     vectorizer=graphmanager.vectorizer
 
@@ -276,8 +282,8 @@ def extract_cips(node,
         # remove duplicates:
         mergeids = list(set(mergeids))
 
-        for node in mergeids[1:]:
-            graphtools.merge(base_copy, mergeids[0], node)
+        for node_id in mergeids[1:]:
+            graphtools.merge(base_copy, mergeids[0], node_id)
 
         # do cip extraction and calculate the real core hash
         # draw.graphlearn_draw(base_copy,size=20)
@@ -336,6 +342,7 @@ def extract_cips(node,
 
             # i want to see what they look like :)
             base_cip.abstract_view = acip.graph
+            base_cip.root=node
             cips.append(base_cip)
     return cips
 
