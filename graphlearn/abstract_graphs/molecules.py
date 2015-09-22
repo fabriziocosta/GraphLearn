@@ -115,6 +115,7 @@ def make_abstract(extgraph):
         if cyclash not in abstract_graph.node:
             abstract_graph.add_node(cyclash)
             abstract_graph.node[cyclash]['contracted'] = set(d['cycle'])
+            abstract_graph.node[cyclash]['node'] = True
 
         # tell everyone interested about it
         for e in d['cycle']:
@@ -143,7 +144,7 @@ def make_abstract(extgraph):
 
             labels = [ord(extgraph.node[childid]['label']) for childid in d['contracted']]
             labels.sort()
-            d['label'] = "cycle %d" % len(labels) #fhash(labels)
+            d['label'] = "cycle" #fhash(labels)
 
         else:
             d['label'] = extgraph.node[get_element(d['contracted'])]['label']

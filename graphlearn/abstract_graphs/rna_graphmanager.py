@@ -57,9 +57,9 @@ class RnaGraphManager(object):
         # get an expanded abstract graph
         abstract_graph = forgi.get_abstr_graph(structure)
         abstract_graph = vectorizer._edge_to_vertex_transform(abstract_graph)
-
         # connect edges to nodes in the abstract graph
         self.abstract_graph = edge_parent_finder(abstract_graph, self.base_graph)
+
 
         # we are forced to set a label .. for eden reasons
         def name_edges(graph, what=''):
@@ -125,7 +125,7 @@ def edge_parent_finder(abstract, graph):
         if 'edge' in d:
             # if we have found an edge node...
             # lets see whos left and right of it:
-            zomg = graph.neighbors(n)
+            zomg = graph.neighbors(n)+graph.predecessors(n)
             # print zomg
             # draw.draw_center(graph,1,20,contract=False,size=20)
             n1, n2 = zomg
