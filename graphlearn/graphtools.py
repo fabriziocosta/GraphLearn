@@ -3,11 +3,10 @@ from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
 from coreinterfacepair import CoreInterfacePair
 import logging
-import traceback
 from eden.graph import Vectorizer
 logger = logging.getLogger(__name__)
 import random
-
+import utils.draw as draw
 
 
 
@@ -154,8 +153,10 @@ class GraphWrapper(AbstractGraphWrapper):
         return self._base_graph
 
     def out(self):
-        graph=self._base_graph.copy()
-        return self.vectorizer._revert_edge_to_vertex_transform(graph)
+        # copy and  if digraph make graph
+        graph=nx.Graph(self._base_graph)
+        graph= self.vectorizer._revert_edge_to_vertex_transform(graph)
+        return graph
 
     def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
 
@@ -281,6 +282,7 @@ def extract_core_and_interface(root_node=None,
     undir_graph = nx.Graph(graph)
     horizon = max(radius_list) + max(thickness_list)
     dist = nx.single_source_shortest_path_length(undir_graph, root_node, horizon)
+
     # we want the relevant subgraph and we want to work on a copy
     master_cip_graph = graph.subgraph(dist).copy()
 

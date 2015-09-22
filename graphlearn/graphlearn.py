@@ -154,14 +154,8 @@ class GraphLearnSampler(object):
 
         graphmanagers = self.fit_to_graphmanager(input)
 
-        def get_esti_graphs(managers):
-            for manager in managers:
-                yield manager.graph()
 
-        graphs_ = get_esti_graphs(graphmanagers)
-
-
-        self.estimatorobject.fit(graphs_,
+        self.estimatorobject.fit(graphmanagers,
                                                   vectorizer=self.vectorizer,
                                                   nu=nu,
                                                   n_jobs=n_jobs,
@@ -422,12 +416,15 @@ class GraphLearnSampler(object):
         - possibly we are in a multiprocessing process, and this class instance hasnt been used before,
           in this case we need to rebuild the postprocessing function .
         '''
-        graph = self.vectorizer._edge_to_vertex_transform(graph)
+
+        graphman=self.get_graphwrapper(graph,self.vectorizer)
+
+        graph = graphman.base_graph()
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
 
 
-        graphman=self.get_graphwrapper(graph,self.vectorizer)
+
         self._score(graphman)
         self._sample_notes = ''
         self._sample_path_score_set = set()

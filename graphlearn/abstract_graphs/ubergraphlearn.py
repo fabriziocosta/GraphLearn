@@ -55,14 +55,27 @@ class UberGraphWrapper(GraphWrapper):
 
 
     def graph(self, nested=False):
-        #draw.graphlearn_draw([self._base_graph, self._abstract_graph],size=20)
+
+
+
         g= nx.disjoint_union(self._base_graph, self.abstract_graph())
+
+
+        node_id= len(g)
 
         if nested:
             for n,d in g.nodes(data=True):
-                if 'contracted' in d:
+                if 'contracted' in d and 'edge' not in d:
                     for e in d['contracted']:
-                        g.add_edge( n, e, nesting=True)
+                        if 'edge' not in g.node[e]:
+                            # we want an edge from n to e
+                            g.add_node(node_id,edge=True,label='')
+                            g.add_edge( n, node_id, nesting=True)
+                            g.add_edge( node_id, e, nesting=True)
+                            #g.add_edge( n, e, nesting=True)
+
+                            node_id+=1
+
         return g
 
 
@@ -79,11 +92,12 @@ class UberGraphWrapper(GraphWrapper):
             self._base_graph=vectorizer._edge_to_vertex_transform(self._base_graph)
         self.vectorizer=vectorizer
         self._abstract_graph= None
+        self._mod_dict={} # this is the default.
 
     def rooted_core_interface_pairs(self, root,thickness = None , **args):
         if thickness==None:
             thickness=self.some_thickness_list
-        return extract_cips(root,self, base_thickness_list= thickness,**args)
+        return extract_cips(root,self, base_thickness_list= thickness,mod_dict=self._mod_dict,**args)
 
 
     def all_core_interface_pairs(self,**args):
@@ -326,21 +340,17 @@ def merge_core(base_graph,abstract_graph,abstract_cip):
     mergeids = [base_graph_id for radius in range(
         abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
         for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
-    base_copy = base_graph.copy()
+
+
+
 
     # remove duplicates:
     mergeids = list(set(mergeids))
 
     for node_id in mergeids[1:]:
-        graphtools.merge(base_copy, mergeids[0], node_id)
+        graphtools.merge(base_graph, mergeids[0], node_id)
 
     return base_graph,mergeids
-
-
-
-
-
-
 
 
 
