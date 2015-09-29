@@ -78,15 +78,35 @@ class RnaGraphWrapper(UberGraphWrapper):
         '''
         we will name the SHARDS of the cip grpahs are not connected
         '''
-        ciplist=super(self.__class__, self).rooted_core_interface_pairs(self, root,thickness, **args)
+        ciplist=super(self.__class__, self).rooted_core_interface_pairs( root,thickness, **args)
 
+        '''
+        numbering shards if cip graphs not connected
+        '''
         for cip in ciplist:
             if not nx.is_weakly_connected(cip.graph):
-                comps=[nx.weakly_connected_components(cip.Graph)]
+                comps=[ list(node_list) for node_list in  nx.weakly_connected_components(cip.graph)  ]
                 comps.sort()
+
                 for i,nodes in enumerate(comps):
+
                     for node in nodes:
                         cip.graph.node[node]['shard']=i
+
+
+        '''
+        solve problem of single-ede-nodes in the core
+        this may replace the need for fix_structure thing
+        this is a little hard.. may fix later
+
+        for cip in ciplist:
+            for n,d in cip.graph.nodes(data=True):
+                if 'edge' in d and 'interface' not in d:
+                    if 'interface' in cip.graph.node[ cip.graph.successors(n)[0]]:
+                        #problem found
+        '''
+
+
 
         return ciplist
 
