@@ -42,14 +42,10 @@ class RnaGraphWrapper(UberGraphWrapper):
         '''
         we need to do some folding here
         '''
-
-
-
         self.some_thickness_list=base_thickness_list
         self.vectorizer=vectorizer
         self._abstract_graph= None
         self._base_graph=graph
-
 
         if len(graph) > 0:
             try:
@@ -58,7 +54,14 @@ class RnaGraphWrapper(UberGraphWrapper):
                 from graphlearn.utils import draw
                 print 'sequenceproblem:'
                 draw.graphlearn(graph, size=20)
+
+
+
+            self.sequence= self.sequence.replace("F",'')
             self.structure = callRNAshapes(self.sequence)
+            self.structure,self.sequence= fix_structure(self.structure,self.sequence)
+            #self.structure_and_sequence_edge_workaround()
+
             self._base_graph = converter.sequence_dotbracket_to_graph(seq_info=self.sequence, seq_struct=self.structure)
             self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
             self._base_graph = expanded_rna_graph_to_digraph(self._base_graph)
@@ -69,7 +72,6 @@ class RnaGraphWrapper(UberGraphWrapper):
             # we dont want start and end nodes to disappear, so we mark them :)
             s,e= get_start_and_end_node(self.base_graph())
             self._mod_dict= {s:696969 , e:123123123}
-
 
 
 def edge_parent_finder(abstract, graph):
@@ -124,7 +126,6 @@ def get_sequence(digraph):
     seq=digraph.node[current]['label']
     while current != end:
         current = _getsucc(digraph,current)[0][1]
-
         seq+=digraph.node[current]['label']
     return seq
 
@@ -243,3 +244,64 @@ def callRNAshapes(sequence):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def pairs(s):
+    "give me a bond dict"
+    unpaired=[]
+    pairs={}
+    for i,c in enumerate(s):
+        if c=='(':
+            unpaired.append(i)
+        if c==')':
+            partner=unpaired.pop()
+            pairs[i]=partner
+            pairs[partner]=i
+    return pairs
+
+
+
+def fix_structure( stru,stri ):
+    '''
+    the problem is to check every (( and )) .
+    if the bonding partners are not next to each other we know that we need to act.
+    '''
+    p=pairs(stru)
+    lastchar="."
+    problems=[]
+    for i,c in enumerate(stru):
+        # checking for )) and ((
+        if c==lastchar and c!='.':
+            if abs(p[i]-p[i-1])!=1: #the partners are not next to each other
+                problems.append(i)
+        # )( provlem
+        elif c=='(':
+            if lastchar==')':
+                problems.append(i)
+        lastchar=c
+
+    problems.sort(reverse=True)
+    for i in problems:
+        stru=stru[:i]+'.'+stru[i:]
+        stri=stri[:i]+'F'+stri[i:]
+
+    return stru,stri
