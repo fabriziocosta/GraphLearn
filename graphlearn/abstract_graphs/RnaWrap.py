@@ -245,26 +245,6 @@ def callRNAshapes(sequence):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def pairs(s):
     "give me a bond dict"
     unpaired=[]
@@ -277,8 +257,6 @@ def pairs(s):
             pairs[i]=partner
             pairs[partner]=i
     return pairs
-
-
 
 def fix_structure( stru,stri ):
     '''
