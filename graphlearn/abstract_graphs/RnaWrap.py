@@ -74,6 +74,24 @@ class RnaGraphWrapper(UberGraphWrapper):
             self._mod_dict= {s:696969 , e:123123123}
 
 
+    def rooted_core_interface_pairs(self, root,thickness = None , **args):
+        '''
+        we will name the SHARDS of the cip grpahs are not connected
+        '''
+        ciplist=super(self.__class__, self).rooted_core_interface_pairs(self, root,thickness, **args)
+
+        for cip in ciplist:
+            if not nx.is_weakly_connected(cip.graph):
+                comps=[nx.weakly_connected_components(cip.Graph)]
+                comps.sort()
+                for i,nodes in enumerate(comps):
+                    for node in nodes:
+                        cip.graph.node[node]['shard']=i
+
+        return ciplist
+
+
+
 def edge_parent_finder(abstract, graph):
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this

@@ -410,10 +410,11 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
     :param other: the interface of a new cip
     :return: a dictionary that is either empty or a good isomorphism
 
-
     update 23.7.15: not sure if this is a problem anymore//
     undate 29.07.15: with thickness .5 things go wrong when directed because the interfacenode just has no direction indicator
     '''
+
+
     if isinstance(home, nx.DiGraph):
         # for mapping in find_all_isomorphisms(home, other):
         #    return mapping
