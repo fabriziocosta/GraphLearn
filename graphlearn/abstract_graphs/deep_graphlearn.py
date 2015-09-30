@@ -31,3 +31,15 @@ class deepsample(GraphLearnSampler):
 
 
 
+
+
+'''
+a wrapper that uses base_graph()
+'''
+from graphlearn.estimatorwrapper import EstimatorWrapper
+class esti(EstimatorWrapper):
+    def unwrap(self,graphmanager):
+        graph = graphmanager.base_graph().copy()
+        if type(graph) == nx.DiGraph:
+            graph=nx.Graph(graph)
+        return graph
