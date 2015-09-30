@@ -405,7 +405,7 @@ import subprocess  as sp
 class UberLearnSampler(GraphLearnSampler):
     def _sample_path_append(self, graph, force=False):
         if not force:
-            self._sample_notes+=graph.graph.sequence+"n"
+            self._sample_notes+=graph.sequence+"n"
         super(self.__class__,self)._sample_path_append(graph,force=force)
 
 
