@@ -4,12 +4,20 @@ import networkx as nx
 import subprocess as sp
 import forgi
 import eden.converter.rna as converter
+from eden import path
+from sklearn.neighbors import LSHForest
+import graphlearn.graphtools as graphtools
 
-def GraphWrapper(base_thickness_list=[2]):
-    return lambda x,y:RnaGraphWrapper(x,y,base_thickness_list=base_thickness_list)
+def GraphWrapper(base_thickness_list=[2], folder=None):
+    return lambda x,y:RnaGraphWrapper(x,y,base_thickness_list=base_thickness_list, folder=folder)
 
 
 class RnaGraphWrapper(UberGraphWrapper):
+
+
+    def core_substitution(self, orig_cip_graph, new_cip_graph):
+        graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
+        return self.__class__( graph, self.vectorizer , self.some_thickness_list,folder=self.folder)
 
     def abstract_graph(self):
         '''
@@ -38,10 +46,11 @@ class RnaGraphWrapper(UberGraphWrapper):
 
 
 
-    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None):
+    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None, folder=None):
         '''
         we need to do some folding here
         '''
+        self.folder=folder
         self.some_thickness_list=base_thickness_list
         self.vectorizer=vectorizer
         self._abstract_graph= None
@@ -56,9 +65,14 @@ class RnaGraphWrapper(UberGraphWrapper):
                 draw.graphlearn(graph, size=20)
 
 
-
             self.sequence= self.sequence.replace("F",'')
-            self.structure = callRNAshapes(self.sequence)
+            if self.folder==None:
+                self.structure = callRNAshapes(self.sequence)
+            else:
+                self.structure = self.folder.fold(self.sequence)
+
+
+
             self.structure,self.sequence= fix_structure(self.structure,self.sequence)
             #self.structure_and_sequence_edge_workaround()
 
@@ -99,6 +113,8 @@ class RnaGraphWrapper(UberGraphWrapper):
         this may replace the need for fix_structure thing
         this is a little hard.. may fix later
 
+        it isnt hard if i write this code in merge_core in ubergraphlearn
+
         for cip in ciplist:
             for n,d in cip.graph.nodes(data=True):
                 if 'edge' in d and 'interface' not in d:
@@ -106,9 +122,9 @@ class RnaGraphWrapper(UberGraphWrapper):
                         #problem found
         '''
 
-
-
         return ciplist
+
+
 
 
 
@@ -268,6 +284,66 @@ def is_rna (graph):
 
 
 
+class NearestNeighborFolding(object):
+
+
+    def __init__(self,sequencelist, n_neighbors):
+
+
+        self.n_neighbors=n_neighbors
+        self.sequencelist = sequencelist
+        self.vectorizer=path.Vectorizer(nbits=10)
+        X=self.vectorizer.transform(self.sequencelist)
+        self.neigh =LSHForest()
+        self.neigh.fit(X)
+
+    def write_fasta(self,sequences,filename='NNTMP'):
+        fasta=''
+        for i,s in enumerate(sequences):
+            if len(s) > 5:
+                fasta+='>HACK%d\n%s\n' % (i,s)
+        with open(filename, 'w') as f:
+            f.write(fasta)
+
+
+    def get_nearest_sequences(self,sequence):
+        needle=self.vectorizer.transform([sequence])
+        neighbors=self.neigh.kneighbors(needle,n_neighbors=self.n_neighbors)[1][0].tolist()
+        return [ self.sequencelist[i] for i in neighbors  ]
+
+
+    def fold(self,sequence):
+        seqs= self.get_nearest_sequences(sequence)
+        seqs.append(sequence)
+        self.write_fasta(seqs)
+        return self.call_folder(filename='NNTMP')
+
+
+    def call_folder(self,filename='NNTMP'):
+        out = sp.check_output('mlocarna %s | grep "HACK%d\|alifold"' % (filename, self.n_neighbors), shell=True)
+        out=out.split('\n')
+        seq=out[0].split()[1]
+        stru=out[1].split()[1]
+        stru2=str(stru)
+        ids=[]
+        for i,c in enumerate(seq):
+            if c=='-':
+                ids.append(i)
+        #seq.replace('-','')
+        ids.reverse()
+        for i in ids:
+            stru=stru[:i]+stru[i+1:]
+
+
+        print seq
+        print stru2
+        print stru
+
+
+        return stru
+
+
+
 def callRNAshapes(sequence):
 
     cmd = 'RNAshapes %s' % sequence
@@ -283,7 +359,7 @@ def callRNAshapes(sequence):
 
 
 
-def pairs(s):
+def _pairs(s):
     "give me a bond dict"
     unpaired=[]
     pairs={}
@@ -301,7 +377,7 @@ def fix_structure( stru,stri ):
     the problem is to check every (( and )) .
     if the bonding partners are not next to each other we know that we need to act.
     '''
-    p=pairs(stru)
+    p=_pairs(stru)
     lastchar="."
     problems=[]
     for i,c in enumerate(stru):
