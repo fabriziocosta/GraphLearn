@@ -26,9 +26,22 @@ class deepsample(GraphLearnSampler):
                                                   nu=nu,
                                                   n_jobs=n_jobs,
                                                   random_state=self.random_state)
+        tempest= esti()
+        tempest.fit(graphmanagers,
+                                                  vectorizer=self.vectorizer,
+                                                  nu=nu,
+                                                  n_jobs=n_jobs,
+                                                  random_state=self.random_state)
+
+
         self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
 
 
+        '''
+        now we trained another estimator that can be used for:
+        1.  train new cores
+        2.  do abstractions based on importance
+        '''
 
 
 
