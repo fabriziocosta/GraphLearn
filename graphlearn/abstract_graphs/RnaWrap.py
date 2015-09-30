@@ -12,6 +12,20 @@ def GraphWrapper(base_thickness_list=[2], folder=None):
     return lambda x,y:RnaGraphWrapper(x,y,base_thickness_list=base_thickness_list, folder=folder)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class RnaGraphWrapper(UberGraphWrapper):
 
 
@@ -28,7 +42,7 @@ class RnaGraphWrapper(UberGraphWrapper):
             # create the abstract graph and populate the contracted set
             abstract_graph = forgi.get_abstr_graph(self.structure)
             abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
-            self._abstract_graph = edge_parent_finder(abstract_graph, self._base_graph)
+            self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph)
 
 
             #eden is forcing us to set a label and a contracted attribute.. lets do this
@@ -128,50 +142,11 @@ class RnaGraphWrapper(UberGraphWrapper):
 
 
 
-def edge_parent_finder(abstract, graph):
-    # find out to which abstract node the edges belong
-    # finding out where the edge-nodes belong, because the contractor cant possibly do this
-    #draw.graphlearn_draw([abstract,graph],size=10, contract=False,vertex_label='id')
-
-    getabstr = {contra: node for node, d in abstract.nodes(data=True) for contra in d.get('contracted', [])}
-    # print getabstr
-    for n, d in graph.nodes(data=True):
-        if 'edge' in d:
-            # if we have found an edge node...
-
-            # lets see whos left and right of it:
-            # if len is 2 then we hit a basepair, in that case we already have both neighbors
-            zomg = graph.neighbors(n)
-            if len(zomg)==1:
-                zomg+=graph.predecessors(n)
-
-            n1, n2 = zomg
 
 
-            # case1: ok those belong to the same gang so we most likely also belong there.
-            if getabstr[n1] == getabstr[n2]:
-                abstract.node[getabstr[n1]]['contracted'].add(n)
-
-            # case2: neighbors belong to different gangs...
-            else:
-                abstract_intersect = set(abstract.neighbors(getabstr[n1])) & set(abstract.neighbors(getabstr[n2]))
-
-                # case 3: abstract intersect in radius 1 failed, so lets try radius 2
-                if not abstract_intersect:
-                    abstract_intersect = set(nx.single_source_shortest_path(abstract, getabstr[n1], 2)) & set(
-                        nx.single_source_shortest_path(abstract, getabstr[n2], 2))
-                    if len(abstract_intersect) > 1:
-                        print "weired abs intersect..."
-
-                for ai_node in abstract_intersect:
-                    if 'contracted' in abstract.node[ai_node]:
-                        abstract.node[ai_node]['contracted'].add(n)
-                    else:
-                        abstract.node[ai_node]['contracted'] = set([n])
-
-    return abstract
-
-
+'''
+a few handy graph tools :)
+'''
 
 def get_sequence(digraph):
     if type(digraph)==str:
@@ -266,7 +241,9 @@ def expanded_rna_graph_to_digraph(graph):
     return digraph
 
 
-
+'''
+rna feasibility checker
+'''
 def is_rna (graph):
     graph=graph.copy()
     # remove structure
@@ -284,6 +261,9 @@ def is_rna (graph):
 
 
 
+'''
+looks for nearest neighbors of a sequence then does multiple alignment
+'''
 class NearestNeighborFolding(object):
 
 
@@ -343,6 +323,9 @@ class NearestNeighborFolding(object):
         return stru
 
 
+'''
+default method if no nearest neighbor folding class is provided
+'''
 
 def callRNAshapes(sequence):
 
@@ -358,7 +341,9 @@ def callRNAshapes(sequence):
 
 
 
-
+'''
+these things are used  to  introduce   fake nodes  in graphs... so that we dont see edges in cores anymore
+'''
 def _pairs(s):
     "give me a bond dict"
     unpaired=[]
@@ -397,3 +382,83 @@ def fix_structure( stru,stri ):
         stri=stri[:i]+'F'+stri[i:]
 
     return stru,stri
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+Here we see stuff that we use for INFERNAL scores
+'''
+from graphlearn.graphlearn import GraphLearnSampler
+import subprocess  as sp
+
+
+class UberLearnSampler(GraphLearnSampler):
+    def _sample_path_append(self, graph, force=False):
+        if not force:
+            self._sample_notes+=graph.graph.sequence+"n"
+        super(self.__class__,self)._sample_path_append(graph,force=force)
+
+
+def infernal_checker(sequence_list):
+    '''
+    :param sequences: a bunch of rna sequences
+    :return: get evaluation from cmsearch
+    '''
+    write_fasta(sequence_list,filename='temp.fa')
+    return call_cm_search('temp.fa',len(sequence_list))
+
+
+
+def write_fasta(sequences,filename='asdasd'):
+
+    fasta=''
+    for i,s in enumerate(sequences):
+        if len(s) > 5:
+            fasta+='>HACK%d\n%s\n' % (i,s)
+
+    with open(filename, 'w') as f:
+        f.write(fasta)
+
+
+def call_cm_search(filename, count):
+
+    out = sp.check_output('./cmsearch -g --noali --incT 0  rf00005.cm %s' % filename, shell=True)
+    # -g global
+    # --noali, we dont want to see the alignment, score is enough
+    # --incT 0 we want to see everything with score > 0
+    result={}
+    s = out.strip().split('\n')
+    for line in s:
+        if 'HACK' in line:
+            linez=line.split()
+            score=float(linez[3])/100
+            id = int(linez[5][4:])
+            result[id]=score
+
+
+    return [ result.get(k,0) for k in range(count) ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
