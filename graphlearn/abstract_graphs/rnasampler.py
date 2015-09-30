@@ -1,3 +1,20 @@
+
+
+
+
+
+
+'''
+OBSOLETE... I LET THIS HERE BECAUSE I NEED TO COPY THE INFERNAL STUFF OVER TO THE RNA WRAPPER
+'''
+
+
+
+
+
+
+
+
 import graphlearn.abstract_graphs.rna_my_abstract
 import graphlearn.abstract_graphs.rna_graphmanager
 from ubergraphlearn import UberSampler,UberGrammar
