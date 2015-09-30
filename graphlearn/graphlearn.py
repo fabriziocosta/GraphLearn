@@ -162,6 +162,8 @@ class GraphLearnSampler(object):
                                                   random_state=self.random_state)
         self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
 
+
+
     def sample(self, graph_iter,
 
                probabilistic_core_choice=True,
