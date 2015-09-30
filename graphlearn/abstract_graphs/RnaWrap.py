@@ -23,9 +23,6 @@ def GraphWrapper(base_thickness_list=[2], folder=None):
 
 
 
-
-
-
 class RnaGraphWrapper(UberGraphWrapper):
 
 
@@ -60,13 +57,20 @@ class RnaGraphWrapper(UberGraphWrapper):
 
 
 
-    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None, folder=None):
+    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None, folder=None, other=None):
         '''
         we need to do some folding here
         '''
-        self.folder=folder
-        self.some_thickness_list=base_thickness_list
-        self.vectorizer=vectorizer
+        if other:
+            self.folder=other.folder
+            self.some_thickness_list=other.base_thickness_list
+            self.vectorizer=other.vectorizer
+        else:
+            self.folder=folder
+            self.some_thickness_list=base_thickness_list
+            self.vectorizer=vectorizer
+
+
         self._abstract_graph= None
         self._base_graph=graph
 
