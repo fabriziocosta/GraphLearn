@@ -114,7 +114,7 @@ class GraphWrapper(AbstractGraphWrapper):
         return False
 
 
-    def __init__(self,graph,vectorizer):
+    def __init__(self,graph,vectorizer,other=None):
 
         self._base_graph=graph
 
@@ -131,7 +131,7 @@ class GraphWrapper(AbstractGraphWrapper):
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
         graph=core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
-        return GraphWrapper( graph, self.vectorizer)
+        return self.__class__( graph, self.vectorizer,self)
 
 
     def mark_median(self, inp='importance', out='is_good', estimator=None):
