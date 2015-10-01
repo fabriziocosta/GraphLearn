@@ -292,6 +292,12 @@ class LocalSubstitutableGraphGrammar(object):
         return extract_cores_and_interfaces
 
 
+
+
+
+'''
+these are external  for multiprocessing reasons.
+'''
 def extract_cips(what):
     '''
     :param what: unpacks and runs jobs that were packed by the _multi_process_argbuilder
@@ -316,9 +322,7 @@ def extract_cores_and_interfaces(parameters):
         return graphmanager.all_core_interface_pairs(**d)
 
     except Exception:
-
         logger.debug(traceback.format_exc(10))
-
         # as far as i remember this should almost never happen,
         # if it does you may have a bigger problem.
         # so i put this in info
@@ -326,5 +330,5 @@ def extract_cores_and_interfaces(parameters):
         # logger.info( parameters )
 
 
-def extract_core_and_interface_single_root(**kwargs):
-    return graphtools.extract_core_and_interface(**kwargs)
+#def extract_core_and_interface_single_root(**kwargs):
+#    return graphtools.extract_core_and_interface(**kwargs)

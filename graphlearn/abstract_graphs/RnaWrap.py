@@ -288,7 +288,6 @@ class NearestNeighborFolding(object):
 
     def __init__(self,sequencelist, n_neighbors):
 
-
         self.n_neighbors=n_neighbors
         self.sequencelist = sequencelist
         self.vectorizer=path.Vectorizer(nbits=10)
@@ -323,23 +322,38 @@ class NearestNeighborFolding(object):
         out=out.split('\n')
         seq=out[0].split()[1]
         stru=out[1].split()[1]
-        stru2=str(stru)
+        stru=list(stru)
+        #stru2=''.join(stru)
+
+
+        # find  deletions
         ids=[]
         for i,c in enumerate(seq):
             if c=='-':
                 ids.append(i)
-        #seq.replace('-','')
+
+
+
+        # take care of deletions
+
+        # remove brackets that dont have a partner anymore
+        pairdict=_pairs(stru)
+        for i in ids:
+            if stru[i]!='.':
+                stru[pairdict[i]]='.'
+
+        # delete
         ids.reverse()
         for i in ids:
-            stru=stru[:i]+stru[i+1:]
+            del stru[i]
+            #stru=stru[:i]+stru[i+1:]
+
+        #print seq
+        #print stru2
+        #print ''.join(stru)
 
 
-        print seq
-        print stru2
-        print stru
-
-
-        return stru
+        return ''.join(stru)
 
 
 '''
