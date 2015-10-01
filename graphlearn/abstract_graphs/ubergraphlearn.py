@@ -57,7 +57,7 @@ class UberGraphWrapper(GraphWrapper):
     # fine
 
 
-    def graph(self, nested=False):
+    def graph(self, nested=True):
 
 
 
@@ -72,7 +72,7 @@ class UberGraphWrapper(GraphWrapper):
                     for e in d['contracted']:
                         if 'edge' not in g.node[e]:
                             # we want an edge from n to e
-                            g.add_node(node_id,edge=True,label='')
+                            g.add_node(node_id,edge=True,label='e')
                             g.add_edge( n, node_id, nesting=True)
                             g.add_edge( node_id, e, nesting=True)
                             #g.add_edge( n, e, nesting=True)
