@@ -546,6 +546,7 @@ class GraphLearnSampler(object):
                 if self.feasibility_checker.check(new_graph.base_graph()):
                     tmp = self.preprocessor.re_transform_single(new_graph)
                     if tmp:
+                        tmp.clean()
                         return tmp
                         '''
                         deactivating the proposal probability. we need a better solution for this
