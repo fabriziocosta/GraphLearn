@@ -32,38 +32,8 @@ class UberGraphWrapper(GraphWrapper):
 
 
 
-    # should work without
-    #def core_substitution(self, orig_cip_graph, new_cip_graph):
-    #    graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
-    #    return self.__class__( graph, self.vectorizer , self.some_thickness_list)
-
-
-    # ok
-
-    #def mark_median(self, inp='importance', out='is_good', estimator=None):
-    # fine
-
-    #def clean(self):
-    #    graphtools.graph_clean(self._base_graph)
-    #    graphtools.graph_clean(self._abstract_graph)
-
-    #def out(self):
-    # fine
-
-    #def postprocess(self,postprocessor):
-    # fine, we just dont do postproc :)
-
-    #def base_graph(self):
-    # fine
-
-
     def graph(self, nested=True):
-
-
-
         g= nx.disjoint_union(self._base_graph, self.abstract_graph())
-
-
         node_id= len(g)
 
         if nested:

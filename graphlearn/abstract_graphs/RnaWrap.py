@@ -16,8 +16,57 @@ def GraphWrapper(base_thickness_list=[2], folder=None):
 
 
 
+import graphtools as gt
 
+class RnaPreProcessor(object):
 
+    def __inti__(self,base_thickness_list):
+        self.base_thickness_list= base_thickness_list
+
+    def fit(self, inputs,vectorizer):
+        self.vectorizer=vectorizer
+        self.NNmodel=NearestNeighborFolding(inputs,4)
+
+    def fit_transform(self,inputs,vectorizer):
+        '''
+
+        Parameters
+        ----------
+        input : many inputs
+
+        Returns
+        -------
+        graphwrapper iterator
+        '''
+        self.fit(inputs,vectorizer)
+        return self.transform(inputs)
+
+    def re_transform_single(self, graphwrapper):
+        '''
+
+        Parameters
+        ----------
+        graphwrapper
+
+        Returns
+        -------
+        a postprocessed graphwrapper
+        '''
+        # mabe a copy?
+        return graphwrapper
+
+    def transform(self,inputs):
+        '''
+
+        Parameters
+        ----------
+        inputs : list of things
+
+        Returns
+        -------
+        graphwrapper : iterator
+        '''
+        return [ RnaGraphWrapper(self.vectorizer._edge_to_vertex_transform(i),self.vectorizer, self.base_thickness_list) for i in inputs]
 
 
 
@@ -28,7 +77,7 @@ class RnaGraphWrapper(UberGraphWrapper):
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
         graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
-        return self.__class__( graph, self.vectorizer , self.some_thickness_list,folder=self.folder)
+        return self.__class__( graph, self.vectorizer , self.some_thickness_list)
 
     def abstract_graph(self):
         '''
@@ -57,7 +106,7 @@ class RnaGraphWrapper(UberGraphWrapper):
 
 
 
-    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None, folder=None, other=None):
+    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,other=None):
         """
 
         Parameters
@@ -67,13 +116,9 @@ class RnaGraphWrapper(UberGraphWrapper):
         base_thickness_list : list or None
         folder : object with .fold() or None
         other: same type as self or None
-
         Returns
         -------
         """
-
-
-
 
 
         if other:
@@ -81,7 +126,6 @@ class RnaGraphWrapper(UberGraphWrapper):
             self.some_thickness_list=other.base_thickness_list
             self.vectorizer=other.vectorizer
         else:
-            self.folder=folder
             self.some_thickness_list=base_thickness_list
             self.vectorizer=vectorizer
 
@@ -352,7 +396,6 @@ class NearestNeighborFolding(object):
         #print stru2
         #print ''.join(stru)
 
-
         return ''.join(stru)
 
 
@@ -415,15 +458,6 @@ def fix_structure( stru,stri ):
         stri=stri[:i]+'F'+stri[i:]
 
     return stru,stri
-
-
-
-
-
-
-
-
-
 
 
 
