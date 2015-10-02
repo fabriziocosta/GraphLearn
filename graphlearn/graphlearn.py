@@ -543,7 +543,7 @@ class GraphLearnSampler(object):
                 # substitute and return
                 new_graph = graphman.core_substitution( original_cip.graph, candidate_cip.graph)
 
-                if self.feasibility_checker.check(new_graph.base_graph()):
+                if self.feasibility_checker.check(new_graph):
                     tmp = self.preprocessor.re_transform_single(new_graph)
                     if tmp:
                         tmp.clean()

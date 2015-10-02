@@ -31,7 +31,7 @@ class PreProcessor(object):
         a postprocessed graphwrapper
         '''
         # mabe a copy?
-        return graphwrapper
+        return gt.GraphWrapper(graphwrapper,self.vectorizer)
 
     def transform(self,inputs):
         '''

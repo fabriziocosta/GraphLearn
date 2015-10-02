@@ -12,7 +12,7 @@ import graphlearn.graphtools as graphtools
 
 class RnaPreProcessor(object):
 
-    def __inti__(self,base_thickness_list):
+    def __init__(self,base_thickness_list=[2]):
         self.base_thickness_list= base_thickness_list
 
     def fit(self, inputs,vectorizer):
@@ -29,6 +29,8 @@ class RnaPreProcessor(object):
         -------
         graphwrapper iterator
         '''
+        inputs=[i for i in inputs]
+
         self.fit(inputs,vectorizer)
         return self.transform(inputs)
 
@@ -69,7 +71,7 @@ class RnaPreProcessor(object):
         for sequence in sequences:
             structure = self.NNmodel.fold(sequence)
             structure,sequence= fix_structure(structure,sequence)
-            result.append(RnaGraphWrapper,sequence,structure,self.vectorizer,self.base_thickness_list)
+            result.append(RnaGraphWrapper(sequence,structure,self.vectorizer,self.base_thickness_list))
         return result
 
 
