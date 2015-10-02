@@ -75,17 +75,7 @@ class AbstractGraphWrapper(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-    def postprocess(self,postprocessor):
-        '''
-        :param postprocessor: a postprocessor
-        :return: success? true:false
 
-        here we execute the postprocessing.
-        by calling postprocess here, the graphman is aware of the postprocessing
-        and the postprocessing can concentrate on its task and operate on graphs only,
-        not knowing about graphmanagers.
-        '''
-        raise NotImplementedError("Should have implemented this")
 
     def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
         '''
@@ -102,26 +92,62 @@ class AbstractGraphWrapper(object):
 
 
 
+class PreProcessor(object):
+
+    def fit(self, inputs,vectorizer):
+        self.vectorizer=vectorizer
+
+    def fit_transform(self,inputs,vectorizer):
+        '''
+
+        Parameters
+        ----------
+        input : many inputs
+
+        Returns
+        -------
+        graphwrapper iterator
+        '''
+        self.fit(inputs,vectorizer)
+        return self.transform(inputs)
+
+    def re_transform_single(self, graphwrapper):
+        '''
+
+        Parameters
+        ----------
+        graphwrapper
+
+        Returns
+        -------
+        a postprocessed graphwrapper
+        '''
+        # mabe a copy?
+        return graphwrapper
+
+    def transform(self,inputs):
+        '''
+
+        Parameters
+        ----------
+        inputs : list of things
+
+        Returns
+        -------
+        graphwrapper : iterator
+        '''
+        for i in input:
+            yield GraphWrapper(self.vectorizer._edge_to_vertex_transform(i),self.vectorizer)
+
+
 
 
 
 class GraphWrapper(AbstractGraphWrapper):
 
-    def postprocess(self,postprocessor):
-        self._base_graph = postprocessor.postprocess(self._base_graph)
-        if self._base_graph:
-            return True
-        return False
-
-
     def __init__(self,graph,vectorizer,other=None):
-
         self.vectorizer=vectorizer
-
         self._base_graph=graph
-
-        if len(graph) > 0:
-            self._base_graph=vectorizer._edge_to_vertex_transform(self._base_graph)
 
 
 

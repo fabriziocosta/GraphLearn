@@ -1,6 +1,5 @@
 import itertools
 import random
-import postprocessing
 import estimatorwrapper
 from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
@@ -13,6 +12,7 @@ from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
 from utils import draw
+import graphtools
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +27,9 @@ class GraphLearnSampler(object):
 
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
-                 graphwrapper=GraphWrapper,
+
                  estimator=estimatorwrapper.EstimatorWrapper(),
-                 postprocessor=postprocessing.PostProcessor(),
+                 preprocessor=graphtools.PreProcessor(),
                  feasibility_checker = feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],
@@ -45,7 +45,7 @@ class GraphLearnSampler(object):
         :param complexity: is currently ignored since its an argument of the vectorizer
         :param vectorizer: a eden.graph.vectorizer used to turn graphs into vectors. also provides utils
         :param estimator: is trained on the inout graphs. see implementation
-        :param postprocessor: a postprocessor, see _sample init or something
+
 
         # gramar+sampling options
         :param radius_list: the cores of a root will have these radii
@@ -65,10 +65,10 @@ class GraphLearnSampler(object):
         :return:
         """
 
-        self.get_graphwrapper= lambda x,y: graphwrapper(x,y)
 
+        self.preprocessor=preprocessor
         self.feasibility_checker = feasibility_checker
-        self.postprocessor = postprocessor
+
 
         self.vectorizer = vectorizer
 
@@ -143,17 +143,12 @@ class GraphLearnSampler(object):
         return self.lsgg
 
 
-    def fit_to_graphmanager(self, input):
-
-        return [ self.get_graphwrapper(x,self.vectorizer) for x in input ]
-
     def fit(self, input, n_jobs=-1, nu=.5, batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
 
-        graphmanagers = self.fit_to_graphmanager(input)
-
+        graphmanagers = self.preprocessor.fit_transform(input, self.vectorizer)
 
         self.estimatorobject.fit(graphmanagers,
                                                   vectorizer=self.vectorizer,
@@ -430,7 +425,6 @@ class GraphLearnSampler(object):
         self._score(graphman)
         self._sample_notes = ''
         self._sample_path_score_set = set()
-        self.postprocessor.fit(self)
 
 
         #print 'sample init:',graphman
@@ -551,7 +545,7 @@ class GraphLearnSampler(object):
 
                     # postproc may fail
                     #tmp = self.postprocessor.postprocess(graph_new)
-                    tmp = graph_new.postprocess(self.postprocessor)
+                    tmp = self.preprocessor.re_transform_single(graph_new)
                     if tmp:
                         self.calc_proposal_probability(graphman, graph_new, original_cip)
                         logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
