@@ -1,7 +1,7 @@
 import itertools
 import random
 import estimatorwrapper
-from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
+#from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool
@@ -12,7 +12,7 @@ from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
 from utils import draw
-import graphtools
+import preprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class GraphLearnSampler(object):
                  random_state=None,
 
                  estimator=estimatorwrapper.EstimatorWrapper(),
-                 preprocessor=graphtools.PreProcessor(),
+                 preprocessor=preprocessing.PreProcessor(),
                  feasibility_checker = feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],
@@ -414,7 +414,7 @@ class GraphLearnSampler(object):
           in this case we need to rebuild the postprocessing function .
         '''
 
-        graphman=self.get_graphwrapper(graph,self.vectorizer)
+        graphman=self.preprocessor.transform([graph])[0]
 
         graph = graphman.base_graph()
         if self.max_core_size_diff > -1:
