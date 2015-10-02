@@ -8,15 +8,7 @@ from eden import path
 from sklearn.neighbors import LSHForest
 import graphlearn.graphtools as graphtools
 
-def GraphWrapper(base_thickness_list=[2], folder=None):
-    return lambda x,y:RnaGraphWrapper(x,y,base_thickness_list=base_thickness_list, folder=folder)
 
-
-
-
-
-
-import graphtools as gt
 
 class RnaPreProcessor(object):
 
@@ -29,7 +21,6 @@ class RnaPreProcessor(object):
 
     def fit_transform(self,inputs,vectorizer):
         '''
-
         Parameters
         ----------
         input : many inputs
@@ -41,7 +32,7 @@ class RnaPreProcessor(object):
         self.fit(inputs,vectorizer)
         return self.transform(inputs)
 
-    def re_transform_single(self, graphwrapper):
+    def re_transform_single(self, graph):
         '''
 
         Parameters
@@ -52,21 +43,35 @@ class RnaPreProcessor(object):
         -------
         a postprocessed graphwrapper
         '''
-        # mabe a copy?
-        return graphwrapper
+        try:
+            sequence = get_sequence(graph)
+        except:
+            from graphlearn.utils import draw
+            print 'sequenceproblem:'
+            draw.graphlearn(graph, size=20)
+            return None
 
-    def transform(self,inputs):
-        '''
+        sequence= sequence.replace("F",'')
+        return self.transform([sequence])[0]
+
+    def transform(self,sequences):
+        """
 
         Parameters
         ----------
-        inputs : list of things
+        sequences : iterable over rna sequences
 
         Returns
         -------
-        graphwrapper : iterator
-        '''
-        return [ RnaGraphWrapper(self.vectorizer._edge_to_vertex_transform(i),self.vectorizer, self.base_thickness_list) for i in inputs]
+        list of RnaGraphWrappers
+        """
+        result=[]
+        for sequence in sequences:
+            structure = self.NNmodel.fold(sequence)
+            structure,sequence= fix_structure(structure,sequence)
+            result.append(RnaGraphWrapper,sequence,structure,self.vectorizer,self.base_thickness_list)
+        return result
+
 
 
 
@@ -75,9 +80,9 @@ class RnaPreProcessor(object):
 class RnaGraphWrapper(UberGraphWrapper):
 
 
-    def core_substitution(self, orig_cip_graph, new_cip_graph):
-        graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
-        return self.__class__( graph, self.vectorizer , self.some_thickness_list)
+    #def core_substitution(self, orig_cip_graph, new_cip_graph):
+    #    graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
+    #    return self.__class__( graph, self.vectorizer , self.some_thickness_list)
 
     def abstract_graph(self):
         '''
@@ -106,63 +111,29 @@ class RnaGraphWrapper(UberGraphWrapper):
 
 
 
-    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,other=None):
-        """
-
-        Parameters
-        ----------
-        graph : graph or string
-        vectorizer : vectorizer or None
-        base_thickness_list : list or None
-        folder : object with .fold() or None
-        other: same type as self or None
-        Returns
-        -------
-        """
+    def __init__(self,sequence,structure,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None):
 
 
-        if other:
-            self.folder=other.folder
-            self.some_thickness_list=other.base_thickness_list
-            self.vectorizer=other.vectorizer
-        else:
-            self.some_thickness_list=base_thickness_list
-            self.vectorizer=vectorizer
-
-
+        self.some_thickness_list=base_thickness_list
+        self.vectorizer=vectorizer
         self._abstract_graph= None
-        self._base_graph=graph
 
-        if len(graph) > 0:
-            try:
-                self.sequence = get_sequence(graph)
-            except:
-                from graphlearn.utils import draw
-                print 'sequenceproblem:'
-                draw.graphlearn(graph, size=20)
+        self.sequence=sequence
+        self.structure=structure
 
+        self._base_graph = converter.sequence_dotbracket_to_graph(seq_info=self.sequence, seq_struct=self.structure)
+        self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
+        self._base_graph = expanded_rna_graph_to_digraph(self._base_graph)
 
-            self.sequence= self.sequence.replace("F",'')
-            if self.folder==None:
-                self.structure = callRNAshapes(self.sequence)
-            else:
-                self.structure = self.folder.fold(self.sequence)
+        # normaly anything in the core can be replaced,
+        # the mod dict is a way arrounf that rule.. it allows to mark special nodes that can only
+        # be replaced by something having the same marker.
+        # we dont want start and end nodes to disappear, so we mark them :)
+        s,e= get_start_and_end_node(self.base_graph())
+        self._mod_dict= {s:696969 , e:123123123}
 
 
 
-            self.structure,self.sequence= fix_structure(self.structure,self.sequence)
-            #self.structure_and_sequence_edge_workaround()
-
-            self._base_graph = converter.sequence_dotbracket_to_graph(seq_info=self.sequence, seq_struct=self.structure)
-            self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
-            self._base_graph = expanded_rna_graph_to_digraph(self._base_graph)
-
-            # normaly anything in the core can be replaced,
-            # the mod dict is a way arrounf that rule.. it allows to mark special nodes that can only
-            # be replaced by something having the same marker.
-            # we dont want start and end nodes to disappear, so we mark them :)
-            s,e= get_start_and_end_node(self.base_graph())
-            self._mod_dict= {s:696969 , e:123123123}
 
 
     def rooted_core_interface_pairs(self, root,thickness = None , **args):
@@ -183,7 +154,6 @@ class RnaGraphWrapper(UberGraphWrapper):
 
                     for node in nodes:
                         cip.graph.node[node]['shard']=i
-
 
         '''
         solve problem of single-ede-nodes in the core

@@ -58,16 +58,11 @@ class UberGraphWrapper(GraphWrapper):
             self._abstract_graph = make_abstract(self._base_graph,self.vectorizer)
         return self._abstract_graph
 
-    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None, other=None):
-
-        if other:
-            self.some_thickness_list=other.base_thickness_list
-            self.vectorizer=other.vectorizer
-        else:
-            self.some_thickness_list=base_thickness_list
-            self.vectorizer=vectorizer
+    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None):
 
 
+        self.some_thickness_list=base_thickness_list
+        self.vectorizer=vectorizer
         self._base_graph=graph
         if len(graph) > 0:
             self._base_graph=vectorizer._edge_to_vertex_transform(self._base_graph)
