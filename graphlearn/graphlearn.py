@@ -224,9 +224,11 @@ class GraphLearnSampler(object):
 
         """
         self.proposal_probability = proposal_probability
+
         if self.proposal_probability:
-            print 'WARNING you set estimate backflow. the implementation is a little sketchy ' \
-                  'so dont try this with weired graphs. '
+            raise NotImplementedError("deactivated because its implementation was too ugly")
+            #print 'WARNING you set estimate backflow. the implementation is a little sketchy ' \
+            #      'so dont try this with weired graphs. '
 
         self.similarity = similarity
 
@@ -539,19 +541,22 @@ class GraphLearnSampler(object):
                 choices = len(self.lsgg.productions[candidate_cip.interface_hash].keys()) - 1
 
                 # substitute and return
-                graph_new = graphman.core_substitution( original_cip.graph, candidate_cip.graph)
+                new_graph = graphman.core_substitution( original_cip.graph, candidate_cip.graph)
 
-                if self.feasibility_checker.check(graph_new.base_graph()):
-
-                    # postproc may fail
-                    #tmp = self.postprocessor.postprocess(graph_new)
-                    tmp = self.preprocessor.re_transform_single(graph_new)
+                if self.feasibility_checker.check(new_graph.base_graph()):
+                    tmp = self.preprocessor.re_transform_single(new_graph)
                     if tmp:
-                        self.calc_proposal_probability(graphman, graph_new, original_cip)
+                        return tmp
+                        '''
+                        deactivating the proposal probability. we need a better solution for this
+                        '''
+                        self.calc_proposal_probability(graphman, new_graph, original_cip)
                         logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
                                      (self.step, attempt, choices, orig_cip_ctr))
-                        graph_new.clean() # i clean only here because i need the interface mark for reverse_dir_prob
-                        return graph_new
+                        new_graph.clean() # i clean only here because i need the interface mark for reverse_dir_prob
+                        return new_graph
+
+
                 if self.quick_skip_orig_cip:
                     break
 

@@ -1,10 +1,5 @@
-import graphlearn.abstract_graphs.rna_my_abstract
+
 from ubergraphlearn import UberGraphWrapper
-import ubergraphlearn
-import networkx as nx
-import graphlearn.utils.draw as draw
-from graphlearn.graphlearn import GraphLearnSampler
-import graphlearn.graphtools as gt
 from collections import defaultdict
 import eden
 
@@ -95,6 +90,7 @@ def make_abstract(extgraph):
 
     # annotate base graph
     for n, d in extgraph.nodes(data=True):
+
         d['cycle'] = list(node_to_cycle(extgraph, n))
         d['cycle'].sort()
         if 'parent'in d:
@@ -113,9 +109,10 @@ def make_abstract(extgraph):
         cyclash = fhash(d['cycle'])
 
         if cyclash not in abstract_graph.node:
-            abstract_graph.add_node(cyclash)
-            abstract_graph.node[cyclash]['contracted'] = set(d['cycle'])
-            abstract_graph.node[cyclash]['node'] = True
+
+                abstract_graph.add_node(cyclash)
+                abstract_graph.node[cyclash]['contracted'] = set(d['cycle'])
+                abstract_graph.node[cyclash]['node'] = True
 
         # tell everyone interested about it
         for e in d['cycle']:
