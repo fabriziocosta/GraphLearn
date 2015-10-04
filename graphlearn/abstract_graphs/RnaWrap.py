@@ -329,7 +329,7 @@ class NearestNeighborFolding(object):
     def fold(self,sequence):
         seqs= self.get_nearest_sequences(sequence)
         seqs.append(sequence)
-        filename ='fold'+str(os.getpid())
+        filename ='./tmp/fold'+str(os.getpid())
         self.write_fasta(seqs,filename=filename)
         return self.call_folder(filename=filename)
 

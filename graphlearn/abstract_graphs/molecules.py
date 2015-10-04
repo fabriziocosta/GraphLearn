@@ -4,19 +4,94 @@ from collections import defaultdict
 import eden
 
 
+class PreProcessor(object):
 
-def GraphWrapper(base_thickness_list=[2]):
-    return lambda x,y:MolecularGraphWrapper(x,y,base_thickness_list=base_thickness_list)
+    def __init__(self,base_thickness_list=[2]):
+        self.base_thickness_list= base_thickness_list
+
+
+    def fit(self,inputs,vectorizer):
+        self.vectorizer=vectorizer
+
+    def fit_transform(self,inputs,vectorizer):
+        '''
+
+        Parameters
+        ----------
+        input : many inputs
+
+        Returns
+        -------
+        graphwrapper iterator
+        '''
+        self.fit(inputs,vectorizer)
+        return self.transform(inputs)
+
+    def re_transform_single(self, graph):
+        '''
+
+        Parameters
+        ----------
+        graphwrapper
+
+        Returns
+        -------
+        a postprocessed graphwrapper
+        '''
+        # mabe a copy?
+        return MolecularGraphWrapper(graph,self.vectorizer,self.base_thickness_list)
+
+    def transform(self,inputs):
+        '''
+
+        Parameters
+        ----------
+        inputs : list of things
+
+        Returns
+        -------
+        graphwrapper : iterator
+        '''
+        return [ MolecularGraphWrapper(self.vectorizer._edge_to_vertex_transform(i),self.vectorizer,self.base_thickness_list) for i in inputs]
+
+
 
 
 class MolecularGraphWrapper(UberGraphWrapper):
 
     def abstract_graph(self):
         if self._abstract_graph== None:
-            self._abstract_graph = make_abstract(self._base_graph)
+            graph=self.vectorizer._revert_edge_to_vertex_transform(self._base_graph)
+            abstract_graph = make_abstract(graph)
+            self._abstract_graph= self.vectorizer._edge_to_vertex_transform(abstract_graph)
+
             for n, d in self._abstract_graph.nodes(data=True):
                 if 'contracted' not in d:
                     d['contracted'] = set()
+
+
+            getabstr = {contra: node for node, d in self._abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
+    
+            for n, d in self._base_graph.nodes(data=True):
+                if 'edge' in d:
+                    # if we have found an edge node...
+                    # lets see whos left and right of it:
+                    n1, n2 = self._base_graph.neighbors(n)
+                    # case1: ok those belong to the same gang so we most likely also belong there.
+                    if getabstr[n1] == getabstr[n2]:
+                        self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
+
+                    # case2: neighbors belong to different gangs...
+                    else:
+                        blub = set(self._abstract_graph.neighbors(getabstr[n1])) & set(self._abstract_graph.neighbors(getabstr[n2]))
+                        for blob in blub:
+                            if 'contracted' in self._abstract_graph.node[blob]:
+                                self._abstract_graph.node[blob]['contracted'].add(n)
+                            else:
+                                self._abstract_graph.node[blob]['contracted'] = set([n])
+
+
+
         return self._abstract_graph
 
 
@@ -77,49 +152,39 @@ import networkx as nx
 import graphlearn.utils.draw as draw
 
 
-def make_abstract(extgraph):
+def make_abstract(graph):
     '''
-    ok the plan:
-    build abstract graph by
-        - get abstractnodes
-        - save abs parents in each node of base graph
-        - look at all the edge nodes in the base graph to connect the abs graph nodes
-    :param graph: an edge to vertex transformed graph
-    :return: edge to vertex transformed abstract graph
+    make sure this is not expanded
     '''
-
-    # annotate base graph
-    for n, d in extgraph.nodes(data=True):
-
-        d['cycle'] = list(node_to_cycle(extgraph, n))
-        d['cycle'].sort()
-        if 'parent'in d:
-            d.pop('parent')
-
-    # prepare
-    abstract_graph = nx.Graph()
-
+    # prepare fast hash function
     def fhash(stuff):
         return eden.fast_hash(stuff, 2 ** 20 - 1)
 
+
+    # all nodes get their cycle calculated
+    for n, d in graph.nodes(data=True):
+        d['cycle'] = list(node_to_cycle(graph, n))
+        d['cycle'].sort()
+        #if 'parent'in d:
+        #    d.pop('parent')
+
+
+
     # make sure most of the abstract nodes are created.
-    # base graph nodes have a list of abstract parents.
-    for n, d in extgraph.nodes(data=True):
-        # make sure abstract node exists
+    abstract_graph = nx.Graph()
+    for n, d in graph.nodes(data=True):
         cyclash = fhash(d['cycle'])
-
         if cyclash not in abstract_graph.node:
-
-                abstract_graph.add_node(cyclash)
-                abstract_graph.node[cyclash]['contracted'] = set(d['cycle'])
-                abstract_graph.node[cyclash]['node'] = True
-
-        # tell everyone interested about it
-        for e in d['cycle']:
-            node = extgraph.node[e]
-            if 'parent' not in node:
-                node['parent'] = set()
-            node['parent'].add(cyclash)
+            abstract_graph.add_node(cyclash)
+            abstract_graph.node[cyclash]['contracted'] = set(d['cycle'])
+            abstract_graph.node[cyclash]['node'] = True
+            # it is possible that a node belongs to more than 1 cycle, so...
+            # each node gets parents
+            for e in d['cycle']:
+                node = graph.node[e]
+                if 'parent' not in node:
+                    node['parent'] = set()
+                node['parent'].add(cyclash)
 
 
 
@@ -130,40 +195,42 @@ def make_abstract(extgraph):
 
 
 
-    # FOR ALL ABSTRACT NODES, FIND A LABEL
+    # FOR ALL ABSTRACT NODES
     for n, d in abstract_graph.nodes(data=True):
-        # look at all the children and their neighbors parents
+        # FIND A LABEL
         if len(d['contracted']) > 1:
-            # setting label for cycles..
-            # this will only use the length..
-            #d['label']= "cycle "+str( len(d['contracted']) )
-            # but i might as well use the hash of labels of all the contracted nodes
-
-            labels = [ord(extgraph.node[childid]['label']) for childid in d['contracted']]
+            labels = [ord(graph.node[childid]['label']) for childid in d['contracted']]
             labels.sort()
             d['label'] = "cycle" #fhash(labels)
 
         else:
-            d['label'] = extgraph.node[get_element(d['contracted'])]['label']
+            d['label'] = graph.node[get_element(d['contracted'])]['label']
 
-        if len(d['contracted']) == 1 and 'edge' in extgraph.node[get_element(d['contracted'])]:
-            d['edge'] = True
-            d['label'] = d['label']
 
 
         # THEN LOOK AT ALL CONTRACTED NODES TO FIND OUT WHAT CONNECTION WE HAVE TO OUR NEIGHBORS
         for base_node in d['contracted']:
-            base_neighbors = extgraph.neighbors(base_node)
+            base_neighbors = graph.neighbors(base_node)
             # for all the neighbors
             for neigh in base_neighbors:
                 # find out if we have to build a connector node
-                if len(extgraph.node[neigh]['cycle']) > 1 and len(d['contracted']) > 1:
+                if len(graph.node[neigh]['cycle']) > 1 and len(d['contracted']) > 1:
 
-                    for other in extgraph.node[neigh]['parent']:
+                    for other in graph.node[neigh]['parent']:
                         if other != n:
-                            l = [other, n]
-                            l.sort()
-                            connector = fhash(l)
+                            #l = [other, n]
+                            #l.sort()
+                            #connector = fhash(l)
+                            shared_nodes = abstract_graph.node[other]['contracted'] & d['contracted']
+                            if len(shared_nodes)==0:
+                                label='e'
+                            else:
+                                labels = [ord(graph.node[sid]['label']) for sid in shared_nodes]
+                                labels.sort()
+                                share_hash = fhash(labels)
+                                label='share:'+str(share_hash)
+                            abstract_graph.add_edge(other,n,label=label)
+                            '''
                             if connector not in abstract_graph.node:
                                 # we need to consider making the edge the actual intersect of the two...
 
@@ -173,7 +240,7 @@ def make_abstract(extgraph):
                                 # abstract_graph.node[connector]['label']='edge'
                                 shared_nodes = abstract_graph.node[other]['contracted'] & d['contracted']
 
-                                labels = [ord(extgraph.node[sid]['label']) for sid in shared_nodes]
+                                labels = [ord(graph.node[sid]['label']) for sid in shared_nodes]
                                 labels.sort()
                                 share_hash = fhash(labels)
 
@@ -182,11 +249,12 @@ def make_abstract(extgraph):
 
                                 abstract_graph.add_edge(other, connector)
                                 abstract_graph.add_edge(connector, n)
-
+                            '''
                 else:
-                    for e in extgraph.node[neigh]['parent']:
-                        abstract_graph.add_edge(n, e)
+                    for e in graph.node[neigh]['parent']:
+                        abstract_graph.add_edge(n, e, label='e')
     return abstract_graph
+
 
 
 def node_to_cycle(graph, n, min_cycle_size=3):
@@ -253,7 +321,7 @@ def node_to_cycle(graph, n, min_cycle_size=3):
 
 
     # START OF ACTUAL FUNCTION
-    FAILEDVALUE = set([n])
+    no_cycle_default = set([n])
     frontier = set([n])
     step = 0
     visited = set()
@@ -285,7 +353,7 @@ def node_to_cycle(graph, n, min_cycle_size=3):
                 if cycle:
                     if step * 2 > min_cycle_size:
                         return cycle
-                    return FAILEDVALUE
+                    return no_cycle_default
 
             # delete from list
             next[0] = merge
@@ -299,9 +367,9 @@ def node_to_cycle(graph, n, min_cycle_size=3):
             if cycle:
                 if step * 2 - 1 > min_cycle_size:
                     return cycle
-                return FAILEDVALUE
+                return no_cycle_default
 
         # we know that the current frontier didntclose cycles so we dont need to look at them again
         visited = visited | frontier
         frontier = next
-    return FAILEDVALUE
+    return no_cycle_default
