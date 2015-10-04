@@ -71,7 +71,7 @@ class MolecularGraphWrapper(UberGraphWrapper):
 
 
             getabstr = {contra: node for node, d in self._abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
-    
+
             for n, d in self._base_graph.nodes(data=True):
                 if 'edge' in d:
                     # if we have found an edge node...
