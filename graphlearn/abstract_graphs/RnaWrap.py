@@ -7,7 +7,7 @@ import eden.converter.rna as converter
 from eden import path
 from sklearn.neighbors import LSHForest
 import graphlearn.graphtools as graphtools
-
+import os
 
 
 class RnaPreProcessor(object):
@@ -329,9 +329,9 @@ class NearestNeighborFolding(object):
     def fold(self,sequence):
         seqs= self.get_nearest_sequences(sequence)
         seqs.append(sequence)
-        self.write_fasta(seqs)
-        return self.call_folder(filename='NNTMP')
-
+        filename ='fold'+str(os.getpid())
+        self.write_fasta(seqs,filename=filename)
+        return self.call_folder(filename=filename)
 
     def call_folder(self,filename='NNTMP'):
         out = sp.check_output('mlocarna %s | grep "HACK%d\|alifold"' % (filename, self.n_neighbors), shell=True)
