@@ -272,10 +272,21 @@ class GraphLearnSampler(object):
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
         self.lsgg.preprocessing(n_jobs,
-                                score_core_choice,
+
                                 max_core_size_diff,
                                 probabilistic_core_choice,
-                                self.estimatorobject.estimator)
+                                )
+
+        if score_core_choice:
+            self.score_core_choice_dict = {}
+            for interface in self.lsgg.productions:
+                for core in self.lsgg.productions[interface]:
+                    gr = self.lsgg.productions[interface][core].graph.copy()
+                    transformed_graph = self.vectorizer.transform_single(gr)
+                    score = self.estimatorobject.cal_estimator.predict_proba(transformed_graph)[0, 1]
+                    self.score_core_choice_dict[core] = score
+
+
         logger.debug(serialize_dict(self.__dict__))
 
         if self.random_state is not None:
@@ -628,7 +639,7 @@ class GraphLearnSampler(object):
 
         elif self.score_core_choice:
             for core_hash in core_hashes:
-                core_weights.append(self.lsgg.scores[core_hash])
+                core_weights.append(self.score_core_choice_dict[core_hash])
 
         elif self.max_core_size_diff > -1:
             unit = 100 / float(self.max_core_size_diff + 1)
