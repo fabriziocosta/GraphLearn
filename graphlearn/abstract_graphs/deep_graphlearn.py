@@ -18,8 +18,7 @@ class deepsample(GraphLearnSampler):
           use input to fit the grammar and fit the estimator
         """
 
-        graphmanagers = self.fit_to_graphmanager(input)
-
+        graphmanagers = self.preprocessor.fit_transform(input)
 
         self.estimatorobject.fit(graphmanagers,
                                                   vectorizer=self.vectorizer,
@@ -36,12 +35,17 @@ class deepsample(GraphLearnSampler):
 
         self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
 
+        '''
+        HOW TO TRAIN NEW CORES?
+        make a sampler
+        with: estimator as estimator, interface-groups as input, dat filter for cip choosing
+        '''
 
-        '''
-        now we trained another estimator that can be used for:
-        1.  train new cores
-        2.  do abstractions based on importance
-        '''
+        prod=self.lsgg.productions
+        for k in prod.keys():
+            pass
+
+
 
 
 
