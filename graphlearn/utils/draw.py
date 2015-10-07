@@ -151,7 +151,7 @@ def draw_grammar_stats(grammar, size=(10, 4)):
 def draw_center(graph, root_node, radius, **args):
     dist = nx.single_source_shortest_path_length(graph, root_node, radius)
     graph.node[root_node]['color'] = 0.5
-    graphlearn_draw(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color', **args)
+    graphlearn(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color', **args)
 
 
 def set_ids(graph):
@@ -159,7 +159,7 @@ def set_ids(graph):
         d['id'] = str(n)
 
 
-def graphlearn_draw(graphs,
+def graphlearn(graphs,
                     size=6,
                     font_size=15,
                     node_size=200,
@@ -308,7 +308,7 @@ def draw_grammar(grammar,
             if 'abstract_view' in cips[0].__dict__:
                 graphs= [most_frequent_cips[0][1].abstract_view]+graphs
 
-        graphlearn_draw(graphs,
+        graphlearn(graphs,
                         n_graphs_per_line=n_graphs_per_line,
                         size=size,
                         headlinehook=freq,

@@ -1,3 +1,20 @@
+
+
+
+
+
+
+'''
+OBSOLETE... I LET THIS HERE BECAUSE I NEED TO COPY THE INFERNAL STUFF OVER TO THE RNA WRAPPER
+'''
+
+
+
+
+
+
+
+
 import graphlearn.abstract_graphs.rna_my_abstract
 import graphlearn.abstract_graphs.rna_graphmanager
 from ubergraphlearn import UberSampler,UberGrammar
@@ -44,17 +61,14 @@ class RNASampler(UberSampler):
         self._sample_path_score_set = set()
         return graph
 
-    def _score(self,graph):
+    def _score(self,graphmanager):
 
-        estimateable=graph.graphmanager.get_estimateable()
+        estimateable=graphmanager.graphmanager.get_estimateable()
         super(RNASampler,self)._score(estimateable)
-        graph._score=estimateable._score
-        return graph._score
+        graphmanager._score=estimateable._score
+        return graphmanager._score
 
-    def _sample_path_append(self, graph, force=False):
-        if not force:
-            self._sample_notes+=graph.graph.get('sequence',"0")+"n"
-        super(RNASampler,self)._sample_path_append(graph,force=force)
+
 
     '''
         this is also used sometimes so we make better sure it doesnt fail
@@ -67,7 +81,7 @@ class RNASampler(UberSampler):
             return graph
         except:
             print 'rnasampler: revert edge to vertex transform failed'
-            draw.graphlearn_draw(graph,contract=False, size=20)
+            draw.graphlearn(graph,contract=False, size=20)
 
 
 
@@ -103,7 +117,7 @@ def get_mod_dict(graph):
     s,e= graphlearn.abstract_graphs.rna_graphmanager.get_start_and_end_node(graph)
     return {s:696969 , e:123123123}
 #ubergraphlearn.get_mod_dict=get_mod_dict
-import rna_my_abstract
+
 #ubergraphlearn.make_abstract = rnaabstract.direct_abstractor
 #ubergraphlearn.make_abstract = rnaabstract.direct_abstraction_wrapper
 
@@ -111,6 +125,8 @@ import rna_my_abstract
 
 
 
+
+# in sampeler do this::
 
 
 

@@ -4,23 +4,38 @@ from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier
 import random
+import networkx as nx
 
 
 class EstimatorWrapper:
-
-    '''
-    graphlearn will edata_matrixpect fit to return an estimator that is used in the graphlearn
-    (if you use sampler.fit)
     '''
 
-    def fit(self, graphs, vectorizer=None, nu=.5, cv=2, n_jobs=-1, random_state=None):
+    this is the interface between graphmanagers and edens machine learning
+
+    you just fit() with graphmanagers
+    and then you score() graphmanagers.
+
+
+    '''
+
+
+    def fit(self, graphmanagers, vectorizer=None, nu=.5, cv=2, n_jobs=-1, random_state=None):
+        self.vectorizer=vectorizer
         if random_state is not None:
             random.seed(random_state)
-        data_matrix = vectorizer.fit_transform(graphs)
-        self.estimator = self.fit_estimator(data_matrix, n_jobs=n_jobs, cv=cv, random_state=random_state)
-        cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=nu, cv=cv)
-        return cal_estimator
 
+
+        # convert to sklearn compatible format
+        data_matrix = vectorizer.fit_transform(self.mass_unwrap(graphmanagers))
+
+        # fit
+        self.estimator = self.fit_estimator(data_matrix, n_jobs=n_jobs, cv=cv, random_state=random_state)
+
+        # calibrate
+        self.cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=nu, cv=cv)
+
+    '''
+    disabled for now.. since the discsampler is not expected to work
     def fit_2(self, pos_iterator, neg_iterator, vectorizer=None, cv=2, n_jobs=-1):
         """
         This is used in the discsampler .,., i am not sure why i am not using eden directly.
@@ -32,7 +47,7 @@ class EstimatorWrapper:
         :param n_jobs:
         :return:
         """
-
+        self.vectorizer=vectorizer
         data_matrix = vectorizer.fit_transform(pos_iterator)
         neagtive_data_matrix = vectorizer.transform(neg_iterator)
         estimator = eden_fit_estimator(SGDClassifier(loss='log'),
@@ -44,6 +59,8 @@ class EstimatorWrapper:
         # esti= CalibratedClassifierCV(estimator,cv=cv,method='sigmoid')
         # esti.fit( vstack[ X,Y], numpy.asarray([1]*X.shape[0] + [0]*Y.shape[0]))
         return estimator
+    '''
+
 
     def fit_estimator(self, data_matrix, n_jobs=-1, cv=2, random_state=42):
         '''
@@ -80,3 +97,28 @@ class EstimatorWrapper:
         estimator.fit(data_matrix_binary, data_y)
 
         return estimator
+
+    def score(self,graphmanager):
+
+        transformed_graph = self.vectorizer.transform_single(self.unwrap(graphmanager))
+        # slow so dont do it..
+        # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
+        return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
+
+
+    '''
+    unwrappers do:
+    1. unwrap graphmanagers into eden understandable format
+    2. while doing so work around edens problems
+        - eden destroys graphs it uses, so we copy
+        - eden cant handle directed graphs, so we make graphs undirected
+    '''
+    def mass_unwrap(self,graphmanagers):
+        for gm in graphmanagers:
+            yield self.unwrap(gm)
+
+    def unwrap(self,graphmanager):
+        graph = graphmanager.graph().copy()
+        if type(graph) == nx.DiGraph:
+            graph=nx.Graph(graph)
+        return graph

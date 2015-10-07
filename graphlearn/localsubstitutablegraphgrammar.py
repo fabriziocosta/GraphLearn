@@ -36,10 +36,8 @@ class LocalSubstitutableGraphGrammar(object):
 
     def preprocessing(self,
                       n_jobs=0,
-                      calculate_cip_value=False,
                       max_core_size_diff=0,
-                      probabilistic_core_choice=False,
-                      estimator=None):
+                      probabilistic_core_choice=False):
         """Preprocess need to be done before sampling.
 
         Args:
@@ -56,27 +54,17 @@ class LocalSubstitutableGraphGrammar(object):
             if probabilistic_core_choice:
                 self._add_frequency_quicklookup()
 
-            if calculate_cip_value:
-                if estimator is None:
-                    raise Exception('grammar preprocess failed, no estimator given')
-                self.calculate_cip_value(estimator)
             self.prep_is_outdated = False
         if n_jobs > 1:
             self._multicore_transform()
 
-    def calculate_cip_value(self, estimator):
-        self.scores = {}
-        for interface in self.productions:
-            for core in self.productions[interface]:
-                gr = self.productions[interface][core].graph.copy()
-                transformed_graph = self.vectorizer.transform_single(gr)
-                score = estimator.base_estimator.predict_proba(transformed_graph)[0, 1]
-                self.scores[core] = score
 
-    def fit(self, graph_iterator, n_jobs, batch_size=10):
-        graph_iterator, graph_iterator_ = tee(graph_iterator)
-        self.dataset_size = sum(1 for x in graph_iterator_)
-        self._read(graph_iterator, n_jobs, batch_size=batch_size)
+
+    def fit(self, graphmanagerlist, n_jobs, batch_size=10):
+
+        self.dataset_size = len(graphmanagerlist)
+
+        self._read(graphmanagerlist, n_jobs, batch_size=batch_size)
         self.clean()
         dataset_size, interface_counts, core_counts, cip_counts = self.size()
         logger.debug('#instances: %d  #interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
@@ -284,7 +272,6 @@ class LocalSubstitutableGraphGrammar(object):
     def _get_args(self):
         return [self.radius_list,
                 self.thickness_list,
-                self.vectorizer,
                 self.hash_bitmask,
                 self.node_entity_check]
 
@@ -292,6 +279,12 @@ class LocalSubstitutableGraphGrammar(object):
         return extract_cores_and_interfaces
 
 
+
+
+
+'''
+these are external  for multiprocessing reasons.
+'''
 def extract_cips(what):
     '''
     :param what: unpacks and runs jobs that were packed by the _multi_process_argbuilder
@@ -307,23 +300,13 @@ def extract_cores_and_interfaces(parameters):
         return None
     try:
         # unpack arguments, expand the graph
-        graph, radius_list, thickness_list, vectorizer, hash_bitmask, node_entity_check = parameters
-        graph = vectorizer._edge_to_vertex_transform(graph)
-        cips = []
-        for root_node in graph.nodes_iter():
-            if 'edge' in graph.node[root_node]:
-                continue
-            cip_list = graphtools.extract_core_and_interface(root_node=root_node,
-                                                             graph=graph,
-                                                             radius_list=radius_list,
-                                                             thickness_list=thickness_list,
-                                                             vectorizer=vectorizer,
-                                                             hash_bitmask=hash_bitmask,
-                                                             filter=node_entity_check)
+        graphmanager, radius_list, thickness_list,  hash_bitmask, node_entity_check = parameters
+        d={'radius_list':radius_list,
+        'thickness_list':thickness_list,
+        'hash_bitmask':hash_bitmask,
+        'filter':node_entity_check}
 
-            if cip_list:
-                cips.append(cip_list)
-        return cips
+        return graphmanager.all_core_interface_pairs(**d)
 
     except Exception:
         logger.debug(traceback.format_exc(10))
@@ -334,5 +317,5 @@ def extract_cores_and_interfaces(parameters):
         # logger.info( parameters )
 
 
-def extract_core_and_interface_single_root(**kwargs):
-    return graphtools.extract_core_and_interface(**kwargs)
+#def extract_core_and_interface_single_root(**kwargs):
+#    return graphtools.extract_core_and_interface(**kwargs)
