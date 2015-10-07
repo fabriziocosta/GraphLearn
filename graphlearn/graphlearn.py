@@ -150,11 +150,12 @@ class GraphLearnSampler(object):
 
         graphmanagers = self.preprocessor.fit_transform(input, self.vectorizer)
 
-        self.estimatorobject.fit(graphmanagers,
-                                                  vectorizer=self.vectorizer,
-                                                  nu=nu,
-                                                  n_jobs=n_jobs,
-                                                  random_state=self.random_state)
+        if self.estimatorobject.status != 'trained':
+            self.estimatorobject.fit(graphmanagers,
+                                                      vectorizer=self.vectorizer,
+                                                      nu=nu,
+                                                      n_jobs=n_jobs,
+                                                      random_state=self.random_state)
         self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
 
 

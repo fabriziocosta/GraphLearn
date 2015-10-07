@@ -4,13 +4,12 @@
 
 
 
-
+from graphlearn.graphtools import GraphWrapper
 from graphlearn.graphlearn import GraphLearnSampler
 
 
 
 class deepsample(GraphLearnSampler):
-
 
 
     def fit(self, input, n_jobs=-1, nu=.5, batch_size=10):
@@ -25,7 +24,7 @@ class deepsample(GraphLearnSampler):
                                                   nu=nu,
                                                   n_jobs=n_jobs,
                                                   random_state=self.random_state)
-        tempest= esti()
+        tempest= EstimatorWrapper()
         tempest.fit(graphmanagers,
                                                   vectorizer=self.vectorizer,
                                                   nu=nu,
@@ -41,22 +40,23 @@ class deepsample(GraphLearnSampler):
         with: estimator as estimator, interface-groups as input, dat filter for cip choosing
         '''
 
+
+        def entitycheck(g,nodes):
+            if type(nodes) is not list:
+                nodes=[nodes]
+            for e in nodes:
+                if 'interface' in g.node[e]:
+                    return False
+            return True
+
+
         prod=self.lsgg.productions
         for k in prod.keys():
-            pass
+            graphs=prod[k].values()
+            sampler=GraphLearnSampler(estimator=tempest,node_entity_check=entitycheck)
+            graphs=[ GraphWrapper(graph, self.vectorizer) for graph in graphs ]
+            sampler.lsgg.fit(graphs)
+            sampler.sample
 
 
 
-
-
-
-'''
-a wrapper that uses base_graph()
-'''
-from graphlearn.estimatorwrapper import EstimatorWrapper
-class esti(EstimatorWrapper):
-    def unwrap(self,graphmanager):
-        graph = graphmanager.base_graph().copy()
-        if type(graph) == nx.DiGraph:
-            graph=nx.Graph(graph)
-        return graph
