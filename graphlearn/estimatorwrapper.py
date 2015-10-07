@@ -17,6 +17,8 @@ class EstimatorWrapper:
 
 
     '''
+    def __init__(self):
+        self.status='new'
 
 
     def fit(self, graphmanagers, vectorizer=None, nu=.5, cv=2, n_jobs=-1, random_state=None):
@@ -33,6 +35,8 @@ class EstimatorWrapper:
 
         # calibrate
         self.cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=nu, cv=cv)
+
+        self.status='trained'
 
     '''
     disabled for now.. since the discsampler is not expected to work
@@ -118,7 +122,13 @@ class EstimatorWrapper:
             yield self.unwrap(gm)
 
     def unwrap(self,graphmanager):
-        graph = graphmanager.graph().copy()
+
+        if type(graphmanager)==nx.Graph or type(graphmanager)==nx.DiGraph:
+            graph=graphmanager.copy()
+
+        else:
+            graph = graphmanager.graph().copy()
+
         if type(graph) == nx.DiGraph:
             graph=nx.Graph(graph)
         return graph
