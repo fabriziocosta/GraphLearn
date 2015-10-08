@@ -165,6 +165,7 @@ def graphlearn(graphs,
                     node_size=200,
                     node_border=False,
                     show_direction=False,
+                    abstract_color=None,
                     edge_color=None,
                     contract=False,
                     vertex_color=None,
@@ -192,13 +193,21 @@ def graphlearn(graphs,
                     ne = graph.neighbors(n)
                     for e in ne:
                         graph[n][e]['color'] = 1
+        if abstract_color!=None:
+            for a,b,d in graph.edges(data=True):
+                if 'contracted' in graph.node[a] and 'contracted' in graph.node[b]:
+                    d['color']=abstract_color
+                else:
+                    d['color']='gray'
 
         if vertex_label == 'id':
             set_ids(graph)
 
+
     if vertex_color is None:
         vertex_color = 'col'
-    if show_direction:
+
+    if show_direction or abstract_color:
         edge_color = 'color'
         edge_alpha = 1.0
 
@@ -345,7 +354,11 @@ def contract_edges(original_graph):
             u = endpoints[0]
             v = endpoints[1]
             # add the corresponding edge
-            graph.add_edge(u, v, d)
+            nd={}
+            nd.update(d)
+            nd.update( original_graph[n][u] )
+            graph.add_edge(u, v, nd)
+
             # remove the edge-vertex
             graph.remove_node(n)
         if d.get('node', False) is True:
