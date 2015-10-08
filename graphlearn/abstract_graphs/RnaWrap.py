@@ -30,7 +30,7 @@ class RnaPreProcessor(object):
         -------
         graphwrapper iterator
         '''
-        inputs=[i for i in inputs]
+        inputs=list(inputs)
 
         self.fit(inputs,vectorizer)
         return self.transform(inputs)
