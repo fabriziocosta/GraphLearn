@@ -1,4 +1,4 @@
-from ubergraphlearn import UberGraphWrapper
+from ubergraphlearn import UberWrapper
 import eden
 import networkx as nx
 import subprocess as sp
@@ -74,7 +74,7 @@ class RnaPreProcessor(object):
             if type(sequence)==str:
                 structure = self.NNmodel.transform_single(sequence)
                 structure,sequence= fix_structure(structure,sequence)
-                result.append(RnaGraphWrapper(sequence,structure,self.vectorizer,self.base_thickness_list))
+                result.append(RnaWrapper(sequence, structure, self.vectorizer, self.base_thickness_list))
 
             # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
             else:
@@ -87,7 +87,7 @@ class RnaPreProcessor(object):
 
 
 
-class RnaGraphWrapper(UberGraphWrapper):
+class RnaWrapper(UberWrapper):
 
 
     #def core_substitution(self, orig_cip_graph, new_cip_graph):

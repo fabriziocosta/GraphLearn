@@ -135,8 +135,8 @@ class PreProcessor(object):
 
 
 
-from graphlearn.abstract_graphs.ubergraphlearn import UberGraphWrapper
-class ScoreGraphWrapper(UberGraphWrapper):
+from graphlearn.abstract_graphs.ubergraphlearn import UberWrapper
+class ScoreGraphWrapper(UberWrapper):
     def abstract_graph(self):
         return self._abstract_graph
 

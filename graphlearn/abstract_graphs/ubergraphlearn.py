@@ -21,7 +21,7 @@ import traceback
 
 
 
-class UberGraphWrapper(Wrapper):
+class UberWrapper(Wrapper):
     '''
      since i should not repeat myself, i will just use as much as possible
      from the Graphmanager implementation.
