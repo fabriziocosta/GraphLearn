@@ -157,7 +157,7 @@ class GraphLearnSampler(object):
                                                       n_jobs=n_jobs,
                                                       random_state=self.random_state)
         self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
-
+        return self
 
 
     def sample(self, graph_iter,

@@ -69,6 +69,7 @@ class LocalSubstitutableGraphGrammar(object):
         dataset_size, interface_counts, core_counts, cip_counts = self.size()
         logger.debug('#instances: %d  #interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
                      (dataset_size, interface_counts, core_counts, cip_counts))
+        return self
 
     def size(self):
         interface_counts = len(self.productions)
