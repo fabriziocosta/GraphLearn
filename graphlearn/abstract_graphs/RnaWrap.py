@@ -17,7 +17,8 @@ class RnaPreProcessor(object):
 
     def fit(self, inputs,vectorizer):
         self.vectorizer=vectorizer
-        self.NNmodel=NearestNeighborFolding(inputs,4)
+        self.NNmodel=NearestNeighborFolding()
+        self.NNmodel.fit(inputs,4)
         return self
 
     def fit_transform(self,inputs,vectorizer):
@@ -70,7 +71,7 @@ class RnaPreProcessor(object):
         """
         result=[]
         for sequence in sequences:
-            structure = self.NNmodel.fold(sequence)
+            structure = self.NNmodel.transform_single(sequence)
             structure,sequence= fix_structure(structure,sequence)
             result.append(RnaGraphWrapper(sequence,structure,self.vectorizer,self.base_thickness_list))
         return result
@@ -303,14 +304,14 @@ looks for nearest neighbors of a sequence then does multiple alignment
 class NearestNeighborFolding(object):
 
 
-    def __init__(self,sequencelist, n_neighbors):
-
+    def fit(self,sequencelist, n_neighbors):
         self.n_neighbors=n_neighbors
         self.sequencelist = sequencelist
         self.vectorizer=path.Vectorizer(nbits=10)
         X=self.vectorizer.transform(self.sequencelist)
         self.neigh =LSHForest()
         self.neigh.fit(X)
+        return self
 
     def write_fasta(self,sequences,filename='NNTMP'):
         fasta=''
@@ -327,7 +328,7 @@ class NearestNeighborFolding(object):
         return [ self.sequencelist[i] for i in neighbors  ]
 
 
-    def fold(self,sequence):
+    def transform_single(self, sequence):
         seqs= self.get_nearest_sequences(sequence)
         seqs.append(sequence)
         filename ='./tmp/fold'+str(os.getpid())
