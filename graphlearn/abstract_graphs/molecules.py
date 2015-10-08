@@ -40,7 +40,7 @@ class PreProcessor(object):
         a postprocessed graphwrapper
         '''
         # mabe a copy?
-        return MolecularGraphWrapper(graph,self.vectorizer,self.base_thickness_list)
+        return MolecularWrapper(graph, self.vectorizer, self.base_thickness_list)
 
     def transform(self,inputs):
         '''
@@ -53,12 +53,12 @@ class PreProcessor(object):
         -------
         graphwrapper : iterator
         '''
-        return [ MolecularGraphWrapper(self.vectorizer._edge_to_vertex_transform(i),self.vectorizer,self.base_thickness_list) for i in inputs]
+        return [MolecularWrapper(self.vectorizer._edge_to_vertex_transform(i), self.vectorizer, self.base_thickness_list) for i in inputs]
 
 
 
 
-class MolecularGraphWrapper(UberWrapper):
+class MolecularWrapper(UberWrapper):
 
     def abstract_graph(self):
         if self._abstract_graph== None:

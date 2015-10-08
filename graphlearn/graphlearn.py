@@ -69,7 +69,7 @@ class GraphLearnSampler(object):
 
         self.preprocessor=preprocessor
         self.feasibility_checker = feasibility_checker
-
+        self.postprocessor=postprocessor
 
         self.vectorizer = vectorizer
 

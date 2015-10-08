@@ -10,7 +10,7 @@ import graphlearn.graph as graphtools
 import os
 
 
-class RnaPreProcessor(object):
+class PreProcessor(object):
 
     def __init__(self,base_thickness_list=[2]):
         self.base_thickness_list= base_thickness_list
