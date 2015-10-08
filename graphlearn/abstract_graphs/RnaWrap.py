@@ -71,9 +71,15 @@ class RnaPreProcessor(object):
         """
         result=[]
         for sequence in sequences:
-            structure = self.NNmodel.transform_single(sequence)
-            structure,sequence= fix_structure(structure,sequence)
-            result.append(RnaGraphWrapper(sequence,structure,self.vectorizer,self.base_thickness_list))
+            if type(sequence)==str:
+                structure = self.NNmodel.transform_single(sequence)
+                structure,sequence= fix_structure(structure,sequence)
+                result.append(RnaGraphWrapper(sequence,structure,self.vectorizer,self.base_thickness_list))
+
+            # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
+            else:
+                result.append(self.re_transform_single(sequence))
+
         return result
 
 

@@ -12,7 +12,7 @@ from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
 from utils import draw
-import preprocessing
+import processing
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,8 @@ class GraphLearnSampler(object):
                  random_state=None,
 
                  estimator=estimator.Wrapper(),
-                 preprocessor=preprocessing.PreProcessor(),
+                 preprocessor=processing.PreProcessor(),
+                 postprocessor=processing.PostProcessor(),
                  feasibility_checker = feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],
@@ -150,6 +151,7 @@ class GraphLearnSampler(object):
 
         graphmanagers = self.preprocessor.fit_transform(input, self.vectorizer)
 
+        self.postprocessor.fit(self.preprocessor)
         if self.estimatorobject.status != 'trained':
             self.estimatorobject.fit(graphmanagers,
                                                       vectorizer=self.vectorizer,
@@ -556,7 +558,7 @@ class GraphLearnSampler(object):
                 new_graph = graphman.core_substitution( original_cip.graph, candidate_cip.graph)
 
                 if self.feasibility_checker.check(new_graph):
-                    tmp = self.preprocessor.re_transform_single(new_graph)
+                    tmp = self.postprocessor.re_transform_single(new_graph)
                     if tmp:
                         tmp.clean()
                         return tmp
