@@ -201,7 +201,7 @@ def make_abstract(graph):
         if len(d['contracted']) > 1:
             labels = [ord(graph.node[childid]['label']) for childid in d['contracted']]
             labels.sort()
-            d['label'] = "cycle" #fhash(labels)
+            d['label'] = "cycle%d" % fhash(labels)
 
         else:
             d['label'] = graph.node[get_element(d['contracted'])]['label']
