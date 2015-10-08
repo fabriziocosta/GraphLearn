@@ -18,6 +18,7 @@ class RnaPreProcessor(object):
     def fit(self, inputs,vectorizer):
         self.vectorizer=vectorizer
         self.NNmodel=NearestNeighborFolding(inputs,4)
+        return self
 
     def fit_transform(self,inputs,vectorizer):
         '''

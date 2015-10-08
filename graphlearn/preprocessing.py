@@ -4,6 +4,7 @@ class PreProcessor(object):
 
     def fit(self, inputs,vectorizer):
         self.vectorizer=vectorizer
+        return self
 
     def fit_transform(self,inputs,vectorizer):
         '''
