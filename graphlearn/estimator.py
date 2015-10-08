@@ -37,6 +37,7 @@ class Wrapper:
         self.cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=nu, cv=cv)
 
         self.status='trained'
+        return self
 
     '''
     disabled for now.. since the discsampler is not expected to work
