@@ -4,9 +4,9 @@
 
 
 
-from graphlearn.graphtools import GraphWrapper
+from graphlearn.graph import Wrapper
 from graphlearn.graphlearn import GraphLearnSampler
-
+from graphlearn.estimator import Wrapper
 
 
 class deepsample(GraphLearnSampler):
@@ -24,7 +24,7 @@ class deepsample(GraphLearnSampler):
                                                   nu=nu,
                                                   n_jobs=n_jobs,
                                                   random_state=self.random_state)
-        tempest= EstimatorWrapper()
+        tempest= Wrapper()
         tempest.fit(graphmanagers,
                                                   vectorizer=self.vectorizer,
                                                   nu=nu,
@@ -54,7 +54,7 @@ class deepsample(GraphLearnSampler):
         for k in prod.keys():
             graphs=prod[k].values()
             sampler=GraphLearnSampler(estimator=tempest,node_entity_check=entitycheck)
-            graphs=[ GraphWrapper(graph, self.vectorizer) for graph in graphs ]
+            graphs=[Wrapper(graph, self.vectorizer) for graph in graphs]
             sampler.lsgg.fit(graphs)
             sampler.sample
 

@@ -1,7 +1,7 @@
 import math
 from eden.modifier.graph.structure import contraction
-from graphlearn.estimatorwrapper import EstimatorWrapper
-class esti(EstimatorWrapper):
+from graphlearn.estimator import Wrapper
+class esti(Wrapper):
     def unwrap(self,graphmanager):
         graph = graphmanager.copy()
         return graph

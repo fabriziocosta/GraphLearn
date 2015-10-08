@@ -1,4 +1,4 @@
-import graphtools as gt
+import graph as gt
 
 class PreProcessor(object):
 
@@ -31,7 +31,7 @@ class PreProcessor(object):
         a postprocessed graphwrapper
         '''
         # mabe a copy?
-        return gt.GraphWrapper(graphwrapper,self.vectorizer)
+        return gt.Wrapper(graphwrapper, self.vectorizer)
 
     def transform(self,inputs):
         '''
@@ -44,6 +44,6 @@ class PreProcessor(object):
         -------
         graphwrapper : iterator
         '''
-        return [ gt.GraphWrapper(self.vectorizer._edge_to_vertex_transform(i),self.vectorizer) for i in inputs]
+        return [gt.Wrapper(self.vectorizer._edge_to_vertex_transform(i), self.vectorizer) for i in inputs]
 
 
