@@ -48,3 +48,23 @@ class PreProcessor(object):
         return [gt.Wrapper(self.vectorizer._edge_to_vertex_transform(i), self.vectorizer) for i in inputs]
 
 
+
+
+
+class PostProcessor(object):
+
+    def fit(self, preprocessor):
+        self.pp=preprocessor
+        return self
+
+    def fit_transform(self,preprocessor,inputs):
+        self.fit(preprocessor)
+        return self.transform(inputs)
+
+    def re_transform_single(self, input):
+        return self.transform([input])[0]
+
+    def transform(self,inputs):
+        return self.pp.transform(inputs)
+
+
