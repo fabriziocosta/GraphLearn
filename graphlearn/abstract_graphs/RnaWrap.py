@@ -6,7 +6,7 @@ import forgi
 import eden.converter.rna as converter
 from eden import path
 from sklearn.neighbors import LSHForest
-import graphlearn.graphtools as graphtools
+import graphlearn.graph as graphtools
 import os
 
 

@@ -1,6 +1,6 @@
 from multiprocessing import Pool, Manager
 from itertools import tee
-import graphtools
+import graph
 import dill
 from eden import grouper
 from eden.graph import Vectorizer

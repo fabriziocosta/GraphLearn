@@ -7,7 +7,7 @@ import random
 import networkx as nx
 
 
-class EstimatorWrapper:
+class Wrapper:
     '''
 
     this is the interface between graphmanagers and edens machine learning

@@ -3,7 +3,7 @@ import itertools
 import random
 import preprocessing
 import estimator_wrapper
-from graphlearn.graphtools import extract_core_and_interface, core_substitution, graph_clean
+from graphlearn.graph import extract_core_and_interface, core_substitution, graph_clean
 from graphlearn.feasibility import FeasibilityChecker
 from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool

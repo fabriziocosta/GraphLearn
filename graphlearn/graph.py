@@ -12,7 +12,7 @@ import utils.draw as draw
 
 
 
-class AbstractGraphWrapper(object):
+class AbstractWrapper(object):
 
 
 
@@ -94,7 +94,7 @@ class AbstractGraphWrapper(object):
 
 
 
-class GraphWrapper(AbstractGraphWrapper):
+class Wrapper(AbstractWrapper):
 
     def __init__(self,graph,vectorizer):
         self.vectorizer=vectorizer

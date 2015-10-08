@@ -1,7 +1,7 @@
 from eden.modifier.graph import vertex_attributes
 from eden.modifier.graph.structure import contraction
-import graphlearn.graphtools as graphtools
-from graphlearn.graphtools import GraphWrapper
+import graphlearn.graph as graphtools
+from graphlearn.graph import Wrapper
 import random
 from graphlearn.graphlearn import GraphLearnSampler
 from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -21,7 +21,7 @@ import traceback
 
 
 
-class UberGraphWrapper(GraphWrapper):
+class UberGraphWrapper(Wrapper):
     '''
      since i should not repeat myself, i will just use as much as possible
      from the Graphmanager implementation.
