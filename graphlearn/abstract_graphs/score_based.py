@@ -1,14 +1,10 @@
 import math
 from eden.modifier.graph.structure import contraction
-from graphlearn.estimator import Wrapper
-class esti(Wrapper):
-    def unwrap(self,graphmanager):
-        graph = graphmanager.copy()
-        return graph
+from graphlearn.estimator import Wrapper as estimartorwrapper
+from graphlearn.utils import draw
 
-
-
-'''  probably we wont overwrite this.. .,., delete if forgotten
+'''
+  probably we wont overwrite this.. .,., delete if forgotten
 from graphlearn.graphlearn import GraphLearnSampler
 class Sampler(GraphLearnSampler):
 
@@ -39,7 +35,7 @@ class PreProcessor(object):
 
     def fit(self,inputs,vectorizer):
         self.vectorizer=vectorizer
-        self.raw_estimator= esti()
+        self.raw_estimator= estimartorwrapper()
         self.raw_estimator.fit(inputs,vectorizer=self.vectorizer, nu=.3, n_jobs=4 )
 
 
@@ -69,12 +65,16 @@ class PreProcessor(object):
         a postprocessed graphwrapper
         '''
 
-        return ScoreGraphWrapper(self.abstract(graph),graph,self.vectorizer,self.base_thickness_list)
+        draw.graphlearn(graph)
+        print len(graph)
+        abstract=self.abstract(graph,debug=False)
+        draw.graphlearn([graph,abstract])
+        return ScoreGraphWrapper(abstract,graph,self.vectorizer,self.base_thickness_list)
 
 
 
 
-    def abstract(self,graph, score_attribute='importance', group='class'):
+    def abstract(self,graph, score_attribute='importance', group='class', debug=False):
         '''
         Parameters
         ----------
@@ -87,11 +87,19 @@ class PreProcessor(object):
 
         graph = self.vectorizer._edge_to_vertex_transform(graph)
         graph2 = self.vectorizer._revert_edge_to_vertex_transform(graph)
+
+        if debug:
+            print 'abstr here1'
+            draw.graphlearn(graph2)
+
         graph2 = self.vectorizer.annotate([graph2], estimator=self.raw_estimator.estimator).next()
 
         for n,d in graph2.nodes(data=True):
-            d[group]=math.floor(d[score_attribute])
+            d[group]=str(math.floor(d[score_attribute]))
 
+        if debug:
+            print 'abstr here'
+            draw.graphlearn(graph2, vertex_label='class')
 
         graph2 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
         graph2 = self.vectorizer._edge_to_vertex_transform(graph2)
@@ -146,3 +154,4 @@ class ScoreGraphWrapper(UberWrapper):
         self.vectorizer=vectorizer
         self._base_graph=graph
         self._abstract_graph=abstr
+        self._mod_dict={}
