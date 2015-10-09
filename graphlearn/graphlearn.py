@@ -25,7 +25,7 @@ class GraphLearnSampler(object):
     def __init__(self,
                  nbit=20,
 
-                 vectorizer=Vectorizer(complexity=3),
+                 vectorizer=Vectorizer(complexity=3, triangular_decomposition=False),
                  random_state=None,
 
                  estimator=estimator.Wrapper(),
