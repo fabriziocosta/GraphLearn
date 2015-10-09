@@ -2,7 +2,7 @@ import math
 from eden.modifier.graph.structure import contraction
 from graphlearn.estimator import Wrapper as estimartorwrapper
 from graphlearn.utils import draw
-
+from sklearn.cluster import KMeans
 '''
   probably we wont overwrite this.. .,., delete if forgotten
 from graphlearn.graphlearn import GraphLearnSampler
@@ -29,14 +29,27 @@ class Sampler(GraphLearnSampler):
 
 class PreProcessor(object):
 
-    def __init__(self,base_thickness_list=[2]):
+    def __init__(self,base_thickness_list=[2],kmeans_clusters=4):
         self.base_thickness_list= base_thickness_list
-
+        self.kmeans_clusters=kmeans_clusters
 
     def fit(self,inputs,vectorizer):
         self.vectorizer=vectorizer
         self.raw_estimator= estimartorwrapper()
         self.raw_estimator.fit(inputs,vectorizer=self.vectorizer, nu=.3, n_jobs=4 )
+        self.make_kmeans(inputs)
+
+
+    def make_kmeans(self, inputs):
+        li=[]
+        for graph in inputs:
+            g=self.vectorizer.annotate([graph], estimator=self.raw_estimator.estimator).next()
+            for n,d in g.nodes(data=True):
+                li.append([d['importance']])
+
+
+        self.kmeans = KMeans(n_clusters=self.kmeans_clusters)
+        self.kmeans.fit(li)
 
 
     def fit_transform(self,inputs,vectorizer):
@@ -95,7 +108,8 @@ class PreProcessor(object):
         graph2 = self.vectorizer.annotate([graph2], estimator=self.raw_estimator.estimator).next()
 
         for n,d in graph2.nodes(data=True):
-            d[group]=str(math.floor(d[score_attribute]))
+            #d[group]=str(math.floor(d[score_attribute]))
+            d[group]=str(self.kmeans.predict(d[score_attribute])[0])
 
         if debug:
             print 'abstr here'
