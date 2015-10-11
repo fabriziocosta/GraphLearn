@@ -60,7 +60,7 @@ class LocalSubstitutableGraphGrammar(object):
 
 
 
-    def fit(self, graphmanagerlist, n_jobs, batch_size=10):
+    def fit(self, graphmanagerlist, n_jobs=4, batch_size=10):
 
         self.dataset_size = len(graphmanagerlist)
 

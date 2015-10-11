@@ -342,6 +342,7 @@ class GraphLearnSampler(object):
             graph_manager = self._sample_init(graph)
         except Exception as exc:
             logger.debug(exc)
+            logger.debug(traceback.format_exc(10))
             return None
 
         self._score_list = [graph_manager._score]
@@ -722,14 +723,11 @@ class GraphLearnSampler(object):
 
 
 
-
-
     def _accept_original_cip(self, cip):
         '''
         :param cip: the cip we need to judge
         :return: good or nogood (bool)
         '''
-
         score_ok = True
         if self.target_orig_cip:
             imp = []
