@@ -85,8 +85,6 @@ class PreProcessor(object):
         return ScoreGraphWrapper(abstract,graph,self.vectorizer,self.base_thickness_list)
 
 
-
-
     def abstract(self,graph, score_attribute='importance', group='class', debug=False):
         '''
         Parameters
