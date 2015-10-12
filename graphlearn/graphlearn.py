@@ -352,7 +352,6 @@ class GraphLearnSampler(object):
         try:
             for self.step in xrange(self.n_steps):
 
-
                 self._sample_path_append(graph_manager)
                 # check stop condition..
                 self._stop_condition(graph_manager)
@@ -374,7 +373,7 @@ class GraphLearnSampler(object):
             self._sample_notes += "\n" + str(exc)
             self._sample_notes += '\nstopped at step %d' % self.step
 
-        self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
+        self._score_list += [self._score_list[-1]] * (self.n_steps +1 - len(self._score_list))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph_manager, force=True)

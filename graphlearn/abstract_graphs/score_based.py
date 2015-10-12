@@ -1,31 +1,125 @@
-import math
+
 from eden.modifier.graph.structure import contraction
 from graphlearn.estimator import Wrapper as estimartorwrapper
 from graphlearn.utils import draw
 from sklearn.cluster import KMeans
-'''
-  probably we wont overwrite this.. .,., delete if forgotten
-from graphlearn.graphlearn import GraphLearnSampler
-class Sampler(GraphLearnSampler):
+import RNA as rna
 
-    def fit(self, input, n_jobs=-1, nu=.5, batch_size=10):
+
+
+
+class RnaPreProcessor(object):
+
+    def __init__(self,base_thickness_list=[2], kmeans_clusters=2):
+        self.base_thickness_list= base_thickness_list
+        self.kmeans_clusters=kmeans_clusters
+
+    def fit(self, inputs,vectorizer):
+        self.vectorizer=vectorizer
+        self.NNmodel=rna.NearestNeighborFolding()
+        self.NNmodel.fit(inputs,4)
+        abstr_input = [self._sequence_to_base_graph(seq) for seq in inputs ]
+        self.make_abstract = PreProcessor(self.base_thickness_list,self.kmeans_clusters)
+        self.make_abstract.fit(abstr_input,vectorizer)
+
+        return self
+
+    def fit_transform(self,inputs,vectorizer):
+        '''
+        Parameters
+        ----------
+        input : many inputs
+
+        Returns
+        -------
+        graphwrapper iterator
+        '''
+        inputs=list(inputs)
+
+        self.fit(inputs,vectorizer)
+        return self.transform(inputs)
+
+    def re_transform_single(self, graph):
+        '''
+
+        Parameters
+        ----------
+        graphwrapper
+
+        Returns
+        -------
+        a postprocessed graphwrapper
+        '''
+        try:
+            sequence = rna.get_sequence(graph)
+        except:
+            from graphlearn.utils import draw
+            print 'sequenceproblem:'
+            draw.graphlearn(graph, size=20)
+            return None
+
+        sequence= sequence.replace("F",'')
+        return self.transform([sequence])[0]
+
+
+
+    def _sequence_to_base_graph(self,sequence):
+        structure = self.NNmodel.transform_single(sequence)
+        structure,sequence= rna.fix_structure(structure,sequence)
+        base_graph = rna.converter.sequence_dotbracket_to_graph(seq_info=sequence, \
+                                                                seq_struct=structure)
+        return base_graph
+
+
+    def transform(self,sequences):
         """
-          use input to fit the grammar and fit the estimator
+
+        Parameters
+        ----------
+        sequences : iterable over rna sequences
+
+        Returns
+        -------
+        list of RnaGraphWrappers
         """
+        result=[]
+        for sequence in sequences:
+            if type(sequence)==str:
+                structure = self.NNmodel.transform_single(sequence)
+                structure,sequence= rna.fix_structure(structure,sequence)
+                base_graph = rna.converter.sequence_dotbracket_to_graph(seq_info=sequence, \
+                                                                        seq_struct=structure)
+                abstract_graph=self.make_abstract.abstract(base_graph.copy())
 
-        graphmanagers = self.preprocessor.fit_transform(input, self.vectorizer)
+                base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
+                base_graph = rna.expanded_rna_graph_to_digraph(base_graph)
 
-        self.estimatorobject.fit(graphmanagers,
-                                                  vectorizer=self.vectorizer,
-                                                  nu=nu,
-                                                  n_jobs=n_jobs,
-                                                  random_state=self.random_state)
-        self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
-'''
+                result.append(rna.RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,\
+                                             abstract_graph=abstract_graph))
 
 
 
+            # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
+            else:
+                result.append(self.re_transform_single(sequence))
+        return result
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+below: mole version
+"""
 
 class PreProcessor(object):
 
@@ -79,7 +173,7 @@ class PreProcessor(object):
         '''
 
         draw.graphlearn(graph)
-        print len(graph)
+        #print len(graph)
         abstract=self.abstract(graph,debug=False)
         draw.graphlearn([graph,abstract])
         return ScoreGraphWrapper(abstract,graph,self.vectorizer,self.base_thickness_list)
