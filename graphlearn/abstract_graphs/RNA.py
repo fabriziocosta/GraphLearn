@@ -8,7 +8,7 @@ from eden import path
 from sklearn.neighbors import LSHForest
 import graphlearn.graph as graphtools
 import os
-
+import textwrap
 
 class PreProcessor(object):
 
@@ -74,12 +74,18 @@ class PreProcessor(object):
             if type(sequence)==str:
                 structure = self.NNmodel.transform_single(sequence)
                 structure,sequence= fix_structure(structure,sequence)
-                result.append(RnaWrapper(sequence, structure, self.vectorizer, self.base_thickness_list))
+                base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
+                base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
+                base_graph = expanded_rna_graph_to_digraph(base_graph)
+
+
+                result.append(RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list))
+
+
 
             # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
             else:
                 result.append(self.re_transform_single(sequence))
-
         return result
 
 
@@ -121,19 +127,20 @@ class RnaWrapper(UberWrapper):
 
 
 
-    def __init__(self,sequence,structure,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None):
+    def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,\
+                 abstract_graph=None):
 
 
         self.some_thickness_list=base_thickness_list
         self.vectorizer=vectorizer
-        self._abstract_graph= None
-
+        self._abstract_graph= abstract_graph
+        self._base_graph= base_graph
         self.sequence=sequence
         self.structure=structure
 
-        self._base_graph = converter.sequence_dotbracket_to_graph(seq_info=self.sequence, seq_struct=self.structure)
-        self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
-        self._base_graph = expanded_rna_graph_to_digraph(self._base_graph)
+        #self._base_graph = converter.sequence_dotbracket_to_graph(seq_info=self.sequence, seq_struct=self.structure)
+        #self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
+        #self._base_graph = expanded_rna_graph_to_digraph(self._base_graph)
 
         # normaly anything in the core can be replaced,
         # the mod dict is a way arrounf that rule.. it allows to mark special nodes that can only
@@ -180,10 +187,6 @@ class RnaWrapper(UberWrapper):
         '''
 
         return ciplist
-
-
-
-
 
 
 
@@ -319,13 +322,6 @@ class NearestNeighborFolding(object):
         self.neigh.fit(X)
         return self
 
-    def write_fasta(self,sequences,filename='NNTMP'):
-        fasta=''
-        for i,s in enumerate(sequences):
-            if len(s) > 5:
-                fasta+='>HACK%d\n%s\n' % (i,s)
-        with open(filename, 'w') as f:
-            f.write(fasta)
 
 
     def get_nearest_sequences(self,sequence):
@@ -334,11 +330,16 @@ class NearestNeighborFolding(object):
         return [ self.sequencelist[i] for i in neighbors  ]
 
 
+
+    def transform(self,sequences):
+        for seq in sequences:
+            yield self.transform_single(seq)
+
     def transform_single(self, sequence):
         seqs= self.get_nearest_sequences(sequence)
         seqs.append(sequence)
         filename ='./tmp/fold'+str(os.getpid())
-        self.write_fasta(seqs,filename=filename)
+        write_fasta(seqs,filename=filename)
         return self.call_folder(filename=filename)
 
     def call_folder(self,filename='NNTMP'):
@@ -451,8 +452,7 @@ import subprocess  as sp
 
 class UberLearnSampler(GraphLearnSampler):
     def _sample_path_append(self, graph, force=False):
-        if not force:
-            self._sample_notes+=graph.sequence+"n"
+        self._sample_notes+=graph.sequence+"n"
         super(self.__class__,self)._sample_path_append(graph,force=force)
 
 
@@ -462,17 +462,29 @@ def infernal_checker(sequence_list):
     :return: get evaluation from cmsearch
     '''
     write_fasta(sequence_list,filename='temp.fa')
+    sequence_list = [ s for s in sequence_list if is_sequence(s.replace('F',''))  ]
+    print sequence_list
     return call_cm_search('temp.fa',len(sequence_list))
 
 
 
-def write_fasta(sequences,filename='asdasd'):
+def is_sequence(seq):
+    nuc=["A","U","C","G"] #  :)
+    for e in seq:
+        if e not in nuc:
+            return False
+    return len(seq)>5
 
+
+def write_fasta(sequences,filename='asdasd'):
     fasta=''
     for i,s in enumerate(sequences):
         if len(s) > 5:
-            fasta+='>HACK%d\n%s\n' % (i,s)
-
+            seq=s.replace("F","")
+            if not is_sequence(seq):
+                continue
+            seq='\n'.join(textwrap.wrap(seq, width=60))
+            fasta+='>HACK%d\n%s\n\n' % (i,seq)
     with open(filename, 'w') as f:
         f.write(fasta)
 
