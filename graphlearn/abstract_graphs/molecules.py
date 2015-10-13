@@ -1,5 +1,5 @@
 
-from ubergraphlearn import UberGraphWrapper
+from ubergraphlearn import UberWrapper
 from collections import defaultdict
 import eden
 
@@ -12,6 +12,7 @@ class PreProcessor(object):
 
     def fit(self,inputs,vectorizer):
         self.vectorizer=vectorizer
+        return self
 
     def fit_transform(self,inputs,vectorizer):
         '''
@@ -39,7 +40,7 @@ class PreProcessor(object):
         a postprocessed graphwrapper
         '''
         # mabe a copy?
-        return MolecularGraphWrapper(graph,self.vectorizer,self.base_thickness_list)
+        return MolecularWrapper(graph, self.vectorizer, self.base_thickness_list)
 
     def transform(self,inputs):
         '''
@@ -52,12 +53,12 @@ class PreProcessor(object):
         -------
         graphwrapper : iterator
         '''
-        return [ MolecularGraphWrapper(self.vectorizer._edge_to_vertex_transform(i),self.vectorizer,self.base_thickness_list) for i in inputs]
+        return [MolecularWrapper(self.vectorizer._edge_to_vertex_transform(i), self.vectorizer, self.base_thickness_list) for i in inputs]
 
 
 
 
-class MolecularGraphWrapper(UberGraphWrapper):
+class MolecularWrapper(UberWrapper):
 
     def abstract_graph(self):
         if self._abstract_graph== None:
@@ -201,7 +202,7 @@ def make_abstract(graph):
         if len(d['contracted']) > 1:
             labels = [ord(graph.node[childid]['label']) for childid in d['contracted']]
             labels.sort()
-            d['label'] = "cycle" #fhash(labels)
+            d['label'] = "cycle%d" % fhash(labels)
 
         else:
             d['label'] = graph.node[get_element(d['contracted'])]['label']

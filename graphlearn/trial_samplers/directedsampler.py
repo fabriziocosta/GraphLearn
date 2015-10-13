@@ -51,12 +51,12 @@ class directedSampler(GraphLearnSampler):
         # vectorize all
         graphlist= list(graphlist)
         graphlist_ = copy.deepcopy(graphlist)
-        X = self.vectorizer.transform(graphlist_)
+        X = self.vectorizer.transform_single(graphlist_)
 
 
         start_graphs= list(start_graphs)
         graphlist_= copy.deepcopy(start_graphs)
-        Y = self.vectorizer.transform(graphlist_)
+        Y = self.vectorizer.transform_single(graphlist_)
         
         
         forest = LSHForest()
@@ -112,7 +112,7 @@ class directedSampler(GraphLearnSampler):
 
 
     def get_average_vector(self,graphiter):
-        all = self.vectorizer.transform(graphiter)
+        all = self.vectorizer.transform_single(graphiter)
         return all.mean(axis=0)
 
 

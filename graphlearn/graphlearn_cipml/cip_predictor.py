@@ -27,7 +27,7 @@ class CipPredictor(CipDatabase):
         self.X = []
         self.y = []
         
-        self.cip_fvs = self.vectorizer.transform(self.cip_graphs)
+        self.cip_fvs = self.vectorizer.transform_single(self.cip_graphs)
         
         for interface, core_start, core_end, scores in self.get_items():
             pos_start = self.graph2position[interface][core_start]
@@ -61,7 +61,7 @@ class CipPredictor(CipDatabase):
         original_fv = original_fv[0]
             
         candidate_graphs = [candidate_cip.graph for candidate_cip in candidate_cips]
-        candidate_fvs = self.vectorizer.transform(candidate_graphs)
+        candidate_fvs = self.vectorizer.transform_single(candidate_graphs)
             
         pairwise_fvs = [original_fv - candidate_fv for candidate_fv in candidate_fvs]
         pairwise_fvs = vstack(pairwise_fvs)

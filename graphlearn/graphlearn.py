@@ -1,6 +1,6 @@
 import itertools
 import random
-import estimatorwrapper
+import estimator
 #from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -12,7 +12,7 @@ from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
 from utils import draw
-import preprocessing
+import processing
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +25,12 @@ class GraphLearnSampler(object):
     def __init__(self,
                  nbit=20,
 
-                 vectorizer=Vectorizer(complexity=3),
+                 vectorizer=Vectorizer(complexity=3, triangular_decomposition=False),
                  random_state=None,
 
-                 estimator=estimatorwrapper.EstimatorWrapper(),
-                 preprocessor=preprocessing.PreProcessor(),
+                 estimator=estimator.Wrapper(),
+                 preprocessor=processing.PreProcessor(),
+                 postprocessor=processing.PostProcessor(),
                  feasibility_checker = feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],
@@ -68,7 +69,7 @@ class GraphLearnSampler(object):
 
         self.preprocessor=preprocessor
         self.feasibility_checker = feasibility_checker
-
+        self.postprocessor=postprocessor
 
         self.vectorizer = vectorizer
 
@@ -150,13 +151,15 @@ class GraphLearnSampler(object):
 
         graphmanagers = self.preprocessor.fit_transform(input, self.vectorizer)
 
-        self.estimatorobject.fit(graphmanagers,
-                                                  vectorizer=self.vectorizer,
-                                                  nu=nu,
-                                                  n_jobs=n_jobs,
-                                                  random_state=self.random_state)
+        self.postprocessor.fit(self.preprocessor)
+        if self.estimatorobject.status != 'trained':
+            self.estimatorobject.fit(graphmanagers,
+                                                      vectorizer=self.vectorizer,
+                                                      nu=nu,
+                                                      n_jobs=n_jobs,
+                                                      random_state=self.random_state)
         self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
-
+        return self
 
 
     def sample(self, graph_iter,
@@ -225,11 +228,6 @@ class GraphLearnSampler(object):
         """
         self.proposal_probability = proposal_probability
 
-        if self.proposal_probability:
-            raise NotImplementedError("deactivated because its implementation was too ugly")
-            #print 'WARNING you set estimate backflow. the implementation is a little sketchy ' \
-            #      'so dont try this with weired graphs. '
-
         self.similarity = similarity
 
 
@@ -238,7 +236,7 @@ class GraphLearnSampler(object):
             raise Exception('choose max one cip choice strategy')
 
         if n_samples:
-            self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1)) + 1
+            self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1))
         else:
             self.sampling_interval = 9999
 
@@ -272,10 +270,8 @@ class GraphLearnSampler(object):
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
         self.lsgg.preprocessing(n_jobs,
-
                                 max_core_size_diff,
-                                probabilistic_core_choice,
-                                )
+                                probabilistic_core_choice )
 
         if score_core_choice:
             self.score_core_choice_dict = {}
@@ -335,7 +331,6 @@ class GraphLearnSampler(object):
     def _sample(self, graph):
         '''
             we sample a single graph.
-
             input: a graph
             output: (sampled_graph,{info dictionary})
         '''
@@ -347,6 +342,7 @@ class GraphLearnSampler(object):
             graph_manager = self._sample_init(graph)
         except Exception as exc:
             logger.debug(exc)
+            logger.debug(traceback.format_exc(10))
             return None
 
         self._score_list = [graph_manager._score]
@@ -355,14 +351,15 @@ class GraphLearnSampler(object):
 
         try:
             for self.step in xrange(self.n_steps):
-                self._sample_path_append(graph_manager)
 
+                self._sample_path_append(graph_manager)
                 # check stop condition..
                 self._stop_condition(graph_manager)
 
                 # get a proposal for a new graph
                 # keep it if we like it
                 candidate_graph_manager = self._propose(graph_manager)
+
                 if self._accept(graph_manager, candidate_graph_manager):
                     accept_counter += 1
                     graph_manager = candidate_graph_manager
@@ -376,7 +373,7 @@ class GraphLearnSampler(object):
             self._sample_notes += "\n" + str(exc)
             self._sample_notes += '\nstopped at step %d' % self.step
 
-        self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
+        self._score_list += [self._score_list[-1]] * (self.n_steps +1 - len(self._score_list))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph_manager, force=True)
@@ -432,8 +429,6 @@ class GraphLearnSampler(object):
         graph = graphman.base_graph()
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
-
-
 
         self._score(graphman)
         self._sample_notes = ''
@@ -531,7 +526,7 @@ class GraphLearnSampler(object):
         if graph is not None:
             return graph
 
-        raise Exception("propose failed.. reason is that propose_single_cip failed.")
+        raise Exception("propose failed.. usualy the problem is propose_single_cip")
 
     def _propose_graph(self, graphman):
         """
@@ -545,43 +540,44 @@ class GraphLearnSampler(object):
         """
 
         for orig_cip_ctr, original_cip in enumerate(self.select_original_cip(graphman)):
-            # see which substitution to make
+            # for all cips we are allowed to find in the original graph:
+
             candidate_cips = self._select_cips(original_cip, graphman)
-
             for attempt, candidate_cip in enumerate(candidate_cips):
+                # look at all possible replacements
+
                 choices = len(self.lsgg.productions[candidate_cip.interface_hash].keys()) - 1
+                # count possible replacements for debug output
 
-                # substitute and return
+
                 new_graph = graphman.core_substitution( original_cip.graph, candidate_cip.graph)
-
                 if self.feasibility_checker.check(new_graph):
-                    tmp = self.preprocessor.re_transform_single(new_graph)
-                    if tmp:
-                        tmp.clean()
-                        return tmp
-                        '''
-                        deactivating the proposal probability. we need a better solution for this
-                        '''
-                        self.calc_proposal_probability(graphman, new_graph, original_cip)
+                    new_graphmanager = self.postprocessor.re_transform_single(new_graph)
+                    if new_graphmanager:
+                        self.calc_proposal_probability(graphman, new_graphmanager, original_cip)
+
                         logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
                                      (self.step, attempt, choices, orig_cip_ctr))
-                        new_graph.clean() # i clean only here because i need the interface mark for reverse_dir_prob
-                        return new_graph
+
+                        new_graphmanager.clean() # i clean only here because i need the interface mark for reverse_dir_prob
+                        return new_graphmanager
+                        #this codeblock successfuly susbstituted a cip, and create a new graphmanager w/o problems
 
 
                 if self.quick_skip_orig_cip:
                     break
+                # we only try one substitution on each original cip.
+                # reason: if the first hit was not replaceable, due to a hash collision, it is faster to
+                # try the next orig cip, than to risk another collision
+
 
     def calc_proposal_probability(self, graphman, graphman_new, cip):
         '''
-
         :param graph:  the old graph
         :param graph_new: the new graph
         :param cip: the old cip is enough since we mainly need the ids of the interface
         :return: options(interface,newgraph)+newgraphlength*average /  options(interface,graph)+oldgraphlen*average
-
         '''
-
         def ops(gman, cip_graph):
             counter = 0
             interfacesize=0
@@ -593,6 +589,9 @@ class GraphLearnSampler(object):
                         if cip.interface_hash in self.lsgg.productions:
                             counter += len(self.lsgg.productions[cip.interface_hash])
                     interfacesize+=1
+            if interfacesize == 0:
+                raise Exception ('calc_proposal_probability: the proposed graph doesn\'t \
+                    know which nodes were interfaces before; sampler parameters let you deactivate this operation')
             return counter, interfacesize
 
 
@@ -723,14 +722,11 @@ class GraphLearnSampler(object):
 
 
 
-
-
     def _accept_original_cip(self, cip):
         '''
         :param cip: the cip we need to judge
         :return: good or nogood (bool)
         '''
-
         score_ok = True
         if self.target_orig_cip:
             imp = []

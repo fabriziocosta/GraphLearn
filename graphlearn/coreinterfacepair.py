@@ -6,16 +6,16 @@ class CoreInterfacePair:
     """
 
     def __init__(self,
-                 ihash=0,
-                 chash=0,
+                 interface_hash=0,
+                 core_hash=0,
                  graph=None,
                  radius=0,
                  thickness=0,
                  core_nodes_count=0,
                  count=0,
                  distance_dict={}):
-        self.interface_hash = ihash
-        self.core_hash = chash
+        self.interface_hash = interface_hash
+        self.core_hash = core_hash
         self.graph = graph
         self.radius = radius
         self.thickness = thickness

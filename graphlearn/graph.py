@@ -12,7 +12,7 @@ import utils.draw as draw
 
 
 
-class AbstractGraphWrapper(object):
+class AbstractWrapper(object):
 
 
 
@@ -94,7 +94,7 @@ class AbstractGraphWrapper(object):
 
 
 
-class GraphWrapper(AbstractGraphWrapper):
+class Wrapper(AbstractWrapper):
 
     def __init__(self,graph,vectorizer):
         self.vectorizer=vectorizer
@@ -361,7 +361,8 @@ def merge(graph, node, node2):
 def find_all_isomorphisms(home, other):
     if iso.faster_could_be_isomorphic(home, other):
 
-        label_matcher = lambda x, y: x['distance_dependent_label'] == y['distance_dependent_label'] and x.get('shard',1)==y.get('shard',1)
+        label_matcher = lambda x, y: x['distance_dependent_label'] == y['distance_dependent_label'] and \
+                                     x.get('shard',1)==y.get('shard',1)
 
         graph_label_matcher = iso.GraphMatcher(home, other, node_match=label_matcher)
         for index, mapping in enumerate(graph_label_matcher.isomorphisms_iter()):
@@ -388,7 +389,8 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
     :return: a dictionary that is either empty or a good isomorphism
 
     update 23.7.15: not sure if this is a problem anymore//
-    undate 29.07.15: with thickness .5 things go wrong when directed because the interfacenode just has no direction indicator
+    undate 29.07.15: with thickness .5 things go wrong when directed because the interfacenode
+    just has no direction indicator
     '''
 
 
@@ -482,7 +484,7 @@ def core_substitution(graph, orig_cip_graph, new_cip_graph):
 
     # merge interfaces
     for k, v in iso.iteritems():
-        graph.node[str(k)]['interface']=True  # i am marking the interface only for the backflow probability calculation in graphlearn
+        graph.node[str(k)]['interface']=True  # i am marking the interface only for the backflow probability calculation in graphlearn, this is probably deleteable because we also do this in merge, also this line is superlong Ooo
         merge(graph, str(k), '-' + str(v))
     # unionizing killed my labels so we need to relabel
     return nx.convert_node_labels_to_integers(graph)

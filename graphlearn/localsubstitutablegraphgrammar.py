@@ -1,6 +1,6 @@
 from multiprocessing import Pool, Manager
 from itertools import tee
-import graphtools
+import graph
 import dill
 from eden import grouper
 from eden.graph import Vectorizer
@@ -60,7 +60,7 @@ class LocalSubstitutableGraphGrammar(object):
 
 
 
-    def fit(self, graphmanagerlist, n_jobs, batch_size=10):
+    def fit(self, graphmanagerlist, n_jobs=4, batch_size=10):
 
         self.dataset_size = len(graphmanagerlist)
 
@@ -69,6 +69,7 @@ class LocalSubstitutableGraphGrammar(object):
         dataset_size, interface_counts, core_counts, cip_counts = self.size()
         logger.debug('#instances: %d  #interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
                      (dataset_size, interface_counts, core_counts, cip_counts))
+        return self
 
     def size(self):
         interface_counts = len(self.productions)
