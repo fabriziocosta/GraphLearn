@@ -236,7 +236,7 @@ class GraphLearnSampler(object):
             raise Exception('choose max one cip choice strategy')
 
         if n_samples:
-            self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1)) + 1
+            self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1))
         else:
             self.sampling_interval = 9999
 

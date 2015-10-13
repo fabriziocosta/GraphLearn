@@ -463,7 +463,7 @@ def infernal_checker(sequence_list):
     '''
     write_fasta(sequence_list,filename='temp.fa')
     sequence_list = [ s for s in sequence_list if is_sequence(s.replace('F',''))  ]
-    print sequence_list
+    #print sequence_list
     return call_cm_search('temp.fa',len(sequence_list))
 
 
