@@ -13,7 +13,7 @@ from graphlearn.utils import draw
 class DeepSampler(GraphLearnSampler):
 
 
-    def fit(self, input, grammar_n_jobs=-1, grammar_batch_size=10):
+    def fit(self, input, grammar_n_jobs=-1, grammar_batch_size=10, train_min_size=None):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -57,9 +57,11 @@ class DeepSampler(GraphLearnSampler):
         prod=self.lsgg.productions
 
         for i, interface_hash in enumerate(prod.keys()):
+
+            if prod[interface_hash] < train_min_size:
+                continue
             print "################################# new ihash"
             # for all the interface buckets
-
             cips=prod[interface_hash].values()
             sampler=GraphLearnSampler(estimator=tempest,node_entity_check=entitycheck)
             graphs_wrapped=[ GraphWrap(cip.graph, self.vectorizer) for cip in cips ]
