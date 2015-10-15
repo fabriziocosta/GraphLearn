@@ -7,7 +7,6 @@ import RNA as rna
 
 
 
-
 class RnaPreProcessor(object):
 
     def __init__(self,base_thickness_list=[2], kmeans_clusters=2):
@@ -103,18 +102,6 @@ class RnaPreProcessor(object):
             else:
                 result.append(self.re_transform_single(sequence))
         return result
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 """

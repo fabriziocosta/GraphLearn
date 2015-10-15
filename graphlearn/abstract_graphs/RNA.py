@@ -506,18 +506,3 @@ def call_cm_search(filename, count):
 
 
     return [ result.get(k,0) for k in range(count) ]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
