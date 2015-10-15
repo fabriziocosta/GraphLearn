@@ -41,7 +41,7 @@ def test_fit():
     gr=itertools.islice(gr,50)
 
     sampler=gl.GraphLearnSampler()
-    sampler.fit(gr,n_jobs=-1)
+    sampler.fit(gr, grammar_n_jobs=-1)
     sampler.save('../example/tmp/demo_50.ge')
     #graphlearn_utils.draw_grammar(sampler.local_substitutable_graph_grammar,5)
     print 'fitting done'

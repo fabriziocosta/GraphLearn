@@ -34,7 +34,7 @@ class directedSampler(GraphLearnSampler):
     def fit(self, G_pos,
             core_interface_pair_remove_threshold=3,
             interface_remove_threshold=2,
-            n_jobs=-1):
+            grammar_n_jobs=-1):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -44,7 +44,7 @@ class directedSampler(GraphLearnSampler):
                                                                                 interface_remove_threshold,
                                                                                 nbit=self.nbit,
                                                                                 node_entity_check=self.node_entity_check)
-        self.local_substitutable_graph_grammar.fit(G_pos, n_jobs)
+        self.local_substitutable_graph_grammar.fit(G_pos, grammar_n_jobs)
 
     def get_nearest_neighbor_iterable(self, graphlist, start_graphs, start_is_subset=True):
 

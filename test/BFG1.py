@@ -82,7 +82,7 @@ for perc in percentages:
 
 
     # do sampling
-    sampler.fit(graphs_pos__,n_jobs=4)
+    sampler.fit(graphs_pos__, grammar_n_jobs=4)
 
     improved_graphs = sampler.sample( graphs_pos_,
                         same_radius=False,

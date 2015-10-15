@@ -28,7 +28,7 @@ class GraphLearnSampler(object):
                  vectorizer=Vectorizer(complexity=3, triangular_decomposition=False),
                  random_state=None,
 
-                 estimator=estimator.Wrapper(),
+                 estimator=estimator.Wrapper( nu=.5, cv=2, n_jobs=-1),
                  preprocessor=processing.PreProcessor(),
                  postprocessor=processing.PostProcessor(),
                  feasibility_checker = feasibility.FeasibilityChecker(),
@@ -144,7 +144,7 @@ class GraphLearnSampler(object):
         return self.lsgg
 
 
-    def fit(self, input, n_jobs=-1, nu=.5, batch_size=10):
+    def fit(self, input, grammar_n_jobs=-1, grammar_batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -155,10 +155,8 @@ class GraphLearnSampler(object):
         if self.estimatorobject.status != 'trained':
             self.estimatorobject.fit(graphmanagers,
                                                       vectorizer=self.vectorizer,
-                                                      nu=nu,
-                                                      n_jobs=n_jobs,
                                                       random_state=self.random_state)
-        self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
+        self.lsgg.fit(graphmanagers, grammar_n_jobs, grammar_batch_size=grammar_batch_size)
         return self
 
 

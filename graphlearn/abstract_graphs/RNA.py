@@ -9,6 +9,9 @@ from sklearn.neighbors import LSHForest
 import graphlearn.graph as graphtools
 import os
 import textwrap
+from graphlearn.graphlearn import GraphLearnSampler
+import subprocess  as sp
+from graphlearn.utils import draw
 
 class PreProcessor(object):
 
@@ -50,7 +53,7 @@ class PreProcessor(object):
         try:
             sequence = get_sequence(graph)
         except:
-            from graphlearn.utils import draw
+
             print 'sequenceproblem:'
             draw.graphlearn(graph, size=20)
             return None
@@ -383,7 +386,6 @@ class NearestNeighborFolding(object):
 '''
 default method if no nearest neighbor folding class is provided
 '''
-
 def callRNAshapes(sequence):
 
     cmd = 'RNAshapes %s' % sequence
@@ -446,8 +448,6 @@ def fix_structure( stru,stri ):
 '''
 Here we see stuff that we use for INFERNAL scores
 '''
-from graphlearn.graphlearn import GraphLearnSampler
-import subprocess  as sp
 
 
 class UberLearnSampler(GraphLearnSampler):

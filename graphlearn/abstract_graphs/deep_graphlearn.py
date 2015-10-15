@@ -1,9 +1,4 @@
 
-
-
-
-
-
 from graphlearn.graph import Wrapper as GraphWrap
 from graphlearn.graphlearn import GraphLearnSampler
 from graphlearn.estimator import Wrapper as EstiWrap
@@ -13,7 +8,7 @@ from graphlearn.utils import draw
 class DeepSampler(GraphLearnSampler):
 
 
-    def fit(self, input, n_jobs=-1, nu=.5, batch_size=10):
+    def fit(self, input, grammar_n_jobs=-1,  grammar_batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -22,20 +17,16 @@ class DeepSampler(GraphLearnSampler):
         graphmanagers = self.preprocessor.fit_transform(input,self.vectorizer)
 
         self.estimatorobject.fit(graphmanagers,
-                                                  vectorizer=self.vectorizer,
-                                                  nu=nu,
-                                                  n_jobs=n_jobs,
-                                                  random_state=self.random_state)
+                                 vectorizer=self.vectorizer,
+                    random_state=self.random_state)
 
-        self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
+        self.lsgg.fit(graphmanagers, grammar_n_jobs, grammar_batch_size=grammar_batch_size)
 
 
         tempest= EstiWrap()
         tempest.fit(graphmanagers,
-                                                  vectorizer=self.vectorizer,
-                                                  nu=nu,
-                                                  n_jobs=n_jobs,
-                                                  random_state=self.random_state)
+                    vectorizer=self.vectorizer,
+                    random_state=self.random_state)
 
 
 

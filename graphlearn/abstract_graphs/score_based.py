@@ -1,10 +1,10 @@
 
 from eden.modifier.graph.structure import contraction
-from graphlearn.estimator import Wrapper as estimartorwrapper
+from graphlearn.estimator import Wrapper as EstiWrap
 from graphlearn.utils import draw
 from sklearn.cluster import KMeans
 import RNA as rna
-
+from graphlearn.abstract_graphs.ubergraphlearn import UberWrapper
 
 
 
@@ -129,15 +129,15 @@ class PreProcessor(object):
 
     def fit(self,inputs,vectorizer):
         self.vectorizer=vectorizer
-        self.raw_estimator= estimartorwrapper()
-        self.raw_estimator.fit(inputs,vectorizer=self.vectorizer, nu=.3, n_jobs=4 )
+        self.rawgraph_estimator= EstiWrap(nu=.3, n_jobs=4)
+        self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
         self.make_kmeans(inputs)
 
 
     def make_kmeans(self, inputs):
         li=[]
         for graph in inputs:
-            g=self.vectorizer.annotate([graph], estimator=self.raw_estimator.estimator).next()
+            g=self.vectorizer.annotate([graph], estimator=self.rawgraph_estimator.estimator).next()
             for n,d in g.nodes(data=True):
                 li.append([d['importance']])
 
@@ -197,7 +197,7 @@ class PreProcessor(object):
             print 'abstr here1'
             draw.graphlearn(graph2)
 
-        graph2 = self.vectorizer.annotate([graph2], estimator=self.raw_estimator.estimator).next()
+        graph2 = self.vectorizer.annotate([graph2], estimator=self.rawgraph_estimator.estimator).next()
 
         for n,d in graph2.nodes(data=True):
             #d[group]=str(math.floor(d[score_attribute]))
@@ -249,7 +249,7 @@ class PreProcessor(object):
 
 
 
-from graphlearn.abstract_graphs.ubergraphlearn import UberWrapper
+
 class ScoreGraphWrapper(UberWrapper):
     def abstract_graph(self):
         return self._abstract_graph
