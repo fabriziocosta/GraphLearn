@@ -1,4 +1,4 @@
-from ubergraphlearn import UberWrapper
+from abstract import AbstractWrapper
 import eden
 import networkx as nx
 import subprocess as sp
@@ -96,7 +96,7 @@ class PreProcessor(object):
 
 
 
-class RnaWrapper(UberWrapper):
+class RnaWrapper(AbstractWrapper):
 
 
     #def core_substitution(self, orig_cip_graph, new_cip_graph):

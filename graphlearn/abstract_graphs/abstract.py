@@ -17,7 +17,7 @@ import traceback
 '''
 1. tell the sampler to use new GraphManager
 '''
-class UberWrapper(Wrapper):
+class AbstractWrapper(Wrapper):
     '''
      since i should not repeat myself, i will just use as much as possible
      from the Graphmanager implementation.

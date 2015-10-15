@@ -1,5 +1,5 @@
 
-from ubergraphlearn import UberWrapper
+from abstract import AbstractWrapper
 from collections import defaultdict
 import eden
 
@@ -58,7 +58,7 @@ class PreProcessor(object):
 
 
 
-class MolecularWrapper(UberWrapper):
+class MolecularWrapper(AbstractWrapper):
 
     def abstract_graph(self):
         if self._abstract_graph== None:
