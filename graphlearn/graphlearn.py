@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 
-class GraphLearnSampler(object):
+class Sampler(object):
 
     def __init__(self,
                  nbit=20,
@@ -151,14 +151,14 @@ class GraphLearnSampler(object):
           use input to fit the grammar and fit the estimator
         """
         self.preprocessor.set_param(self.vectorizer)
-        graphmanagers = self.preprocessor.fit_transform(input, self.vectorizer)
+        graphmanagers = self.preprocessor.fit_transform(input)
 
         self.postprocessor.fit(self.preprocessor)
         if self.estimatorobject.status != 'trained':
             self.estimatorobject.fit(graphmanagers,
                                                       vectorizer=self.vectorizer,
                                                       random_state=self.random_state)
-        self.lsgg.fit(graphmanagers, grammar_n_jobs, grammar_batch_size=grammar_batch_size)
+        self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 
 
@@ -605,7 +605,7 @@ class GraphLearnSampler(object):
             v2 = old_opts + average_opts* ( len(graphman.base_graph())-interfacesize)
             value = float(v1)/v2
             self.proposal_probability_value= value
-            logger.debug(  'reverse_direction_modifier: %f' % value )
+            logger.log( 5, 'reverse_direction_modifier: %f' % value )
 
     def _select_cips(self, cip, graphman):
         """

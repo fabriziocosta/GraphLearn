@@ -20,7 +20,7 @@ class PreProcessor(object):
         -------
         graphwrapper iterator
         '''
-        self.fit(inputs,vectorizer)
+        self.fit(inputs)
         return self.transform(inputs)
 
     def re_transform_single(self, graphwrapper):

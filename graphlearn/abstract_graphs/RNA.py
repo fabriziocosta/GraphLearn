@@ -9,7 +9,7 @@ from sklearn.neighbors import LSHForest
 import graphlearn.graph as graphtools
 import os
 import textwrap
-from graphlearn.graphlearn import GraphLearnSampler
+from graphlearn.graphlearn import Sampler
 import subprocess  as sp
 from graphlearn.utils import draw
 from graphlearn.processing import PreProcessor
@@ -452,7 +452,7 @@ Here we see stuff that we use for INFERNAL scores
 '''
 
 
-class UberLearnSampler(GraphLearnSampler):
+class AbstractSampler(Sampler):
     def _sample_path_append(self, graph, force=False):
         self._sample_notes+=graph.sequence+"n"
         super(self.__class__,self)._sample_path_append(graph,force=force)

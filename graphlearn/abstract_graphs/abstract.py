@@ -3,7 +3,7 @@ from eden.modifier.graph.structure import contraction
 import graphlearn.graph as graphtools
 from graphlearn.graph import Wrapper
 import random
-from graphlearn.graphlearn import GraphLearnSampler
+from graphlearn.graphlearn import Sampler
 from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 import logging
 logger = logging.getLogger(__name__)
