@@ -2,19 +2,20 @@
 from abstract import AbstractWrapper
 from collections import defaultdict
 import eden
+from graphlearn.processing import PreProcessor
+import networkx as nx
+import graphlearn.utils.draw as draw
 
-
-class PreProcessor(object):
+class PreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2]):
         self.base_thickness_list= base_thickness_list
 
 
-    def fit(self,inputs,vectorizer):
-        self.vectorizer=vectorizer
+    def fit(self,inputs):
         return self
 
-    def fit_transform(self,inputs,vectorizer):
+    def fit_transform(self,inputs):
         '''
 
         Parameters
@@ -25,7 +26,7 @@ class PreProcessor(object):
         -------
         graphwrapper iterator
         '''
-        self.fit(inputs,vectorizer)
+        self.fit(inputs,self.vectorizer)
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
@@ -149,8 +150,7 @@ class GraphManager(gt.GraphManager):
 '''
 here we invent the abstractor function
 '''
-import networkx as nx
-import graphlearn.utils.draw as draw
+
 
 
 def make_abstract(graph):

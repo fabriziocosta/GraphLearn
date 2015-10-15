@@ -129,6 +129,8 @@ class GraphLearnSampler(object):
         # will be set before fitting and before sampling
         self.random_state = random_state
 
+
+
         # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
 
     def save(self, file_name):
@@ -148,7 +150,7 @@ class GraphLearnSampler(object):
         """
           use input to fit the grammar and fit the estimator
         """
-
+        self.preprocessor.set_param(self.vectorizer)
         graphmanagers = self.preprocessor.fit_transform(input, self.vectorizer)
 
         self.postprocessor.fit(self.preprocessor)

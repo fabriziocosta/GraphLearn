@@ -12,8 +12,10 @@ import textwrap
 from graphlearn.graphlearn import GraphLearnSampler
 import subprocess  as sp
 from graphlearn.utils import draw
+from graphlearn.processing import PreProcessor
 
-class PreProcessor(object):
+
+class PreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2]):
         self.base_thickness_list= base_thickness_list

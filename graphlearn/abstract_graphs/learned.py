@@ -4,26 +4,25 @@ from graphlearn.estimator import Wrapper as estimartorwrapper
 from graphlearn.utils import draw
 from sklearn.cluster import KMeans
 import RNA as rna
+from graphlearn.processing import PreProcessor
+from graphlearn.abstract_graphs.abstract import AbstractWrapper
 
-
-
-class RnaPreProcessor(object):
+class RnaPreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2], kmeans_clusters=2):
         self.base_thickness_list= base_thickness_list
         self.kmeans_clusters=kmeans_clusters
 
-    def fit(self, inputs,vectorizer):
-        self.vectorizer=vectorizer
+    def fit(self, inputs):
         self.NNmodel=rna.NearestNeighborFolding()
         self.NNmodel.fit(inputs,4)
         abstr_input = [self._sequence_to_base_graph(seq) for seq in inputs ]
         self.make_abstract = PreProcessor(self.base_thickness_list,self.kmeans_clusters)
-        self.make_abstract.fit(abstr_input,vectorizer)
+        self.make_abstract.fit(abstr_input)
 
         return self
 
-    def fit_transform(self,inputs,vectorizer):
+    def fit_transform(self,inputs):
         '''
         Parameters
         ----------
@@ -35,7 +34,7 @@ class RnaPreProcessor(object):
         '''
         inputs=list(inputs)
 
-        self.fit(inputs,vectorizer)
+        self.fit(inputs,self.vectorizer)
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
@@ -108,23 +107,23 @@ class RnaPreProcessor(object):
 below: mole version
 """
 
-class PreProcessor(object):
+class PreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2],kmeans_clusters=4):
         self.base_thickness_list= base_thickness_list
         self.kmeans_clusters=kmeans_clusters
 
-    def fit(self,inputs,vectorizer):
-        self.vectorizer=vectorizer
-        self.raw_estimator= estimartorwrapper()
-        self.raw_estimator.fit(inputs,vectorizer=self.vectorizer, nu=.3, n_jobs=4 )
+    def fit(self,inputs):
+
+        self.rawgraph_estimator= estimartorwrapper(nu=.3, n_jobs=4)
+        self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
         self.make_kmeans(inputs)
 
 
     def make_kmeans(self, inputs):
         li=[]
         for graph in inputs:
-            g=self.vectorizer.annotate([graph], estimator=self.raw_estimator.estimator).next()
+            g=self.vectorizer.annotate([graph], estimator=self.rawgraph_estimator.estimator).next()
             for n,d in g.nodes(data=True):
                 li.append([d['importance']])
 
@@ -133,7 +132,7 @@ class PreProcessor(object):
         self.kmeans.fit(li)
 
 
-    def fit_transform(self,inputs,vectorizer):
+    def fit_transform(self,inputs):
         '''
         Parameters
         ----------
@@ -145,7 +144,7 @@ class PreProcessor(object):
         '''
 
         inputs=list(inputs)
-        self.fit(inputs,vectorizer)
+        self.fit(inputs,self.vectorizer)
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
@@ -184,7 +183,7 @@ class PreProcessor(object):
             print 'abstr here1'
             draw.graphlearn(graph2)
 
-        graph2 = self.vectorizer.annotate([graph2], estimator=self.raw_estimator.estimator).next()
+        graph2 = self.vectorizer.annotate([graph2], estimator=self.rawgraph_estimator.estimator).next()
 
         for n,d in graph2.nodes(data=True):
             #d[group]=str(math.floor(d[score_attribute]))
@@ -236,7 +235,7 @@ class PreProcessor(object):
 
 
 
-from graphlearn.abstract_graphs.abstract import AbstractWrapper
+
 class ScoreGraphWrapper(AbstractWrapper):
     def abstract_graph(self):
         return self._abstract_graph

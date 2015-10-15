@@ -2,8 +2,11 @@ import graph as gt
 
 class PreProcessor(object):
 
-    def fit(self, inputs,vectorizer):
+
+    def set_param(self,vectorizer):
         self.vectorizer=vectorizer
+
+    def fit(self, inputs):
         return self
 
     def fit_transform(self,inputs,vectorizer):
