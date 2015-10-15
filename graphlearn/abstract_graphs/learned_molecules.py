@@ -1,7 +1,6 @@
 from eden.modifier.graph.structure import contraction
 from sklearn.cluster import KMeans
-
-from graphlearn.abstract_graphs.learned_RNA import ScoreGraphWrapper
+from graphlearn.abstract_graphs.abstract import AbstractWrapper
 from graphlearn.estimator import Wrapper as estimartorwrapper
 from graphlearn.processing import PreProcessor
 from graphlearn.utils import draw
@@ -132,3 +131,20 @@ class PreProcessor(PreProcessor):
         graphwrapper : iterator
         '''
         return [ ScoreGraphWrapper(self.abstract(i),self.vectorizer._edge_to_vertex_transform(i),self.vectorizer,self.base_thickness_list) for i in inputs]
+
+
+
+    """
+below: mole version
+"""
+class ScoreGraphWrapper(AbstractWrapper):
+    def abstract_graph(self):
+        return self._abstract_graph
+
+    #def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None):
+    def __init__(self, abstr,graph,vectorizer=None, base_thickness_list=None):
+        self.some_thickness_list=base_thickness_list
+        self.vectorizer=vectorizer
+        self._base_graph=graph
+        self._abstract_graph=abstr
+        self._mod_dict={}

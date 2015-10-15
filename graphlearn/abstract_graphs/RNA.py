@@ -17,8 +17,19 @@ from graphlearn.processing import PreProcessor
 
 class PreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2]):
+    def __init__(self,base_thickness_list=[2],structure_mod=True):
+        '''
+        Parameters
+        ----------
+        base_thickness_list thickness for base graph
+        structure_mod should we introduce the Fs
+
+        Returns
+        -------
+
+        '''
         self.base_thickness_list= base_thickness_list
+        self.structure_mod= structure_mod
 
     def fit(self, inputs,vectorizer):
         self.vectorizer=vectorizer
@@ -55,7 +66,6 @@ class PreProcessor(PreProcessor):
         try:
             sequence = get_sequence(graph)
         except:
-
             print 'sequenceproblem:'
             draw.graphlearn(graph, size=20)
             return None
@@ -78,11 +88,12 @@ class PreProcessor(PreProcessor):
         for sequence in sequences:
             if type(sequence)==str:
                 structure = self.NNmodel.transform_single(sequence)
-                structure,sequence= fix_structure(structure,sequence)
+                if self.structure_mod:
+                    structure,sequence= fix_structure(structure,sequence)
+
                 base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
                 base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
                 base_graph = expanded_rna_graph_to_digraph(base_graph)
-
 
                 result.append(RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list))
 
@@ -317,9 +328,10 @@ looks for nearest neighbors of a sequence then does multiple alignment
 '''
 class NearestNeighborFolding(object):
 
+    def __init__(self,NN=4):
+        self.n_neighbors=NN
 
-    def fit(self,sequencelist, n_neighbors):
-        self.n_neighbors=n_neighbors
+    def fit(self,sequencelist):
         self.sequencelist = sequencelist
         self.vectorizer=path.Vectorizer(nbits=10)
         X=self.vectorizer.transform(self.sequencelist)
