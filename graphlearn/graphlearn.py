@@ -520,8 +520,14 @@ class Sampler(object):
 
     def _propose(self, graphman):
         """
-         we wrap the propose single cip, so it may be overwritten some day
+         we wrap , so it may be overwritten some day
         """
+
+        #if self.backtrack:
+        #    if self.backtrack_graphman==None:
+        #        self.backtrack_graphman=graphman
+
+
         graph = self._propose_graph(graphman)
         if graph is not None:
             return graph

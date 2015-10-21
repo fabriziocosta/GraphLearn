@@ -12,15 +12,27 @@ class RnaPreProcessor(PreProcessor):
         self.structure_mod=structure_mod
 
     def fit(self, inputs):
+        '''
+        Parameters
+        ----------
+        inputs list of inputs
 
-        self.NNmodel=rna.NearestNeighborFolding(4)
+        Returns
+        -------
+        self
+        '''
+        #self.NNmodel=rna.NearestNeighborFolding(4)  takes 2 min for 25 graphs
+        self.NNmodel=rna.EdenNNF(NN=4)
         self.NNmodel.fit(inputs)
+        print "fitting nn done"
 
-        abstr_input = [ self._sequence_to_base_graph(seq) for seq in inputs ]
+        #abstr_input = [ self._sequence_to_base_graph(seq) for seq in inputs ]
+
+        abstr_input = list( self.NNmodel.eden_rna_vectorizer.graphs(inputs) )
         self.make_abstract = default_preprocessor(self.base_thickness_list,self.kmeans_clusters)
         self.make_abstract.set_param(self.vectorizer)
         self.make_abstract.fit(abstr_input)
-
+        print "fit pp done"
         return self
 
     def fit_transform(self,inputs):
@@ -36,6 +48,7 @@ class RnaPreProcessor(PreProcessor):
 
         inputs=list(inputs)
         self.fit(inputs)
+        inputs= [b for a,b in inputs]
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
@@ -83,10 +96,11 @@ class RnaPreProcessor(PreProcessor):
         -------
         list of RnaGraphWrappers
         """
+
         result=[]
         for sequence in sequences:
             if type(sequence)==str:
-                structure = self.NNmodel.transform_single(sequence)
+                structure = self.NNmodel.transform_single(('FACE',sequence))
 
                 if self.structure_mod:
                     structure,sequence= rna.fix_structure(structure,sequence)

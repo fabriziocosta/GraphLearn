@@ -9,7 +9,7 @@ class PreProcessor(object):
     def fit(self, inputs):
         return self
 
-    def fit_transform(self,inputs,vectorizer):
+    def fit_transform(self,inputs):
         '''
 
         Parameters

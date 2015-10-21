@@ -5,7 +5,7 @@ import subprocess as sp
 import forgi
 import eden.converter.rna as converter
 from eden import path
-from sklearn.neighbors import LSHForest
+import sklearn
 import graphlearn.graph as graphtools
 import os
 import textwrap
@@ -13,7 +13,7 @@ from graphlearn.graphlearn import Sampler
 import subprocess  as sp
 from graphlearn.utils import draw
 from graphlearn.processing import PreProcessor
-
+import eden.RNA
 
 class PreProcessor(PreProcessor):
 
@@ -33,11 +33,11 @@ class PreProcessor(PreProcessor):
 
     def fit(self, inputs,vectorizer):
         self.vectorizer=vectorizer
-        self.NNmodel=NearestNeighborFolding()
-        self.NNmodel.fit(inputs,4)
+        self.NNmodel=EdenNNF(NN=4)
+        self.NNmodel.fit(inputs)
         return self
 
-    def fit_transform(self,inputs,vectorizer):
+    def fit_transform(self,inputs):
         '''
         Parameters
         ----------
@@ -48,8 +48,8 @@ class PreProcessor(PreProcessor):
         graphwrapper iterator
         '''
         inputs=list(inputs)
-
-        self.fit(inputs,vectorizer)
+        self.fit(inputs,self.vectorizer)
+        inputs = [b for a,b in inputs]
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
@@ -87,7 +87,7 @@ class PreProcessor(PreProcessor):
         result=[]
         for sequence in sequences:
             if type(sequence)==str:
-                structure = self.NNmodel.transform_single(sequence)
+                structure = self.NNmodel.transform_single(('fake',sequence))
                 if self.structure_mod:
                     structure,sequence= fix_structure(structure,sequence)
 
@@ -96,8 +96,6 @@ class PreProcessor(PreProcessor):
                 base_graph = expanded_rna_graph_to_digraph(base_graph)
 
                 result.append(RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list))
-
-
 
             # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
             else:
@@ -323,19 +321,24 @@ def is_rna (graph):
 
 
 
-'''
-looks for nearest neighbors of a sequence then does multiple alignment
-'''
+
 class NearestNeighborFolding(object):
+    '''
+    fit: many structures,  nn model will be build
+    transform: returns a structure  , nn are folded together
+    '''
+
 
     def __init__(self,NN=4):
         self.n_neighbors=NN
 
     def fit(self,sequencelist):
         self.sequencelist = sequencelist
-        self.vectorizer=path.Vectorizer(nbits=10)
+        self.vectorizer=path.Vectorizer(nbits=8)
         X=self.vectorizer.transform(self.sequencelist)
-        self.neigh =LSHForest()
+        self.neigh =sklearn.neighbors.LSHForest()
+        #self.neigh =sklearn.neighbors.NearestNeighbors()
+
         self.neigh.fit(X)
         return self
 
@@ -357,24 +360,30 @@ class NearestNeighborFolding(object):
         seqs.append(sequence)
         filename ='./tmp/fold'+str(os.getpid())
         write_fasta(seqs,filename=filename)
-        return self.call_folder(filename=filename)
+        try:
+            r=self.call_folder(filename=filename)
+        except:
+            print sequence,seqs
+        return r
 
-    def call_folder(self,filename='NNTMP'):
-        out = sp.check_output('mlocarna %s | grep "HACK%d\|alifold"' % (filename, self.n_neighbors), shell=True)
-        out=out.split('\n')
-        seq=out[0].split()[1]
-        stru=out[1].split()[1]
-        stru=list(stru)
+    def call_folder(self,filename='NNTMP',id_of_interest=None):
+        if id_of_interest==None:
+            id_of_interest=self.n_neighbors
+        try:
+            out = sp.check_output('mlocarna %s | grep "HACK%d\|alifold"' % (filename, id_of_interest), shell=True)
+            out=out.split('\n')
+            seq=out[0].split()[1]
+            stru=out[1].split()[1]
+            stru=list(stru)
         #stru2=''.join(stru)
-
+        except:
+            print 'folding problem:',out,filename, id_of_interest
 
         # find  deletions
         ids=[]
         for i,c in enumerate(seq):
             if c=='-':
                 ids.append(i)
-
-
 
         # take care of deletions
 
@@ -395,6 +404,21 @@ class NearestNeighborFolding(object):
         #print ''.join(stru)
 
         return ''.join(stru)
+
+
+
+class EdenNNF(NearestNeighborFolding):
+
+    def fit(self,sequencelist):
+        self.eden_rna_vectorizer=eden.RNA.Vectorizer(n_neighbors=self.n_neighbors)
+        self.eden_rna_vectorizer.fit(sequencelist)
+        return self
+
+    def transform_single(self, sequence):
+        s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
+        head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh)
+        return stru
+
 
 
 '''
@@ -483,7 +507,7 @@ def infernal_checker(sequence_list):
 
 
 def is_sequence(seq):
-    nuc=["A","U","C","G"] #  :)
+    nuc=["A","U","C","G","N"] #  :)  some are N in the rfam fasta file.
     for e in seq:
         if e not in nuc:
             return False
