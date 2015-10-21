@@ -1,8 +1,6 @@
 import graph as gt
 
 class PreProcessor(object):
-
-
     def set_param(self,vectorizer):
         self.vectorizer=vectorizer
 
@@ -35,11 +33,10 @@ class PreProcessor(object):
         a postprocessed graphwrapper
         '''
         # mabe a copy?
-        return gt.Wrapper(graphwrapper, self.vectorizer)
+        return self.wrap(graphwrapper)
 
     def transform(self,inputs):
         '''
-
         Parameters
         ----------
         inputs : list of things
@@ -48,9 +45,10 @@ class PreProcessor(object):
         -------
         graphwrapper : iterator
         '''
-        return [gt.Wrapper(self.vectorizer._edge_to_vertex_transform(i), self.vectorizer) for i in inputs]
+        return [self.wrap(self.vectorizer._edge_to_vertex_transform(i)) for i in inputs]
 
-
+    def wrap(self,graph):
+        return gt.Wrapper(graph,self.vectorizer)
 
 
 

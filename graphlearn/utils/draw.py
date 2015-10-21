@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 from scipy.optimize import curve_fit
 from collections import defaultdict
-from graphlearn.utils import calc_stats_from_grammar
+#from graphlearn.utils import calc_stats_from_grammar
 import logging
 import copy
 
