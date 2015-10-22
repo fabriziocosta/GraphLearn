@@ -23,7 +23,6 @@ class PreProcessor(object):
 
     def re_transform_single(self, graphwrapper):
         '''
-
         Parameters
         ----------
         graphwrapper
