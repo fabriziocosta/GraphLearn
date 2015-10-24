@@ -305,7 +305,7 @@ def extract_cores_and_interfaces(parameters):
         d={'radius_list':radius_list,
         'thickness_list':thickness_list,
         'hash_bitmask':hash_bitmask,
-        'filter':node_entity_check}
+        'node_filter':node_entity_check}
 
         return graphmanager.all_core_interface_pairs(**d)
 

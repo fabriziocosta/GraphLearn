@@ -161,6 +161,9 @@ class Sampler(object):
         self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 
+    def samplelog(self,msg,level=10):
+        logger.log(level,msg)
+        self.monitor.debug(level,msg)
 
     def sample(self, graph_iter,
 
@@ -182,11 +185,15 @@ class Sampler(object):
                accept_static_penalty=0.0,
                select_cip_max_tries=20,
                burnin=0,
+               backtrack=0,
 
 
-               generator_mode=False,
+
                omit_seed=True,
-               keep_duplicates=False):
+               keep_duplicates=False,
+               mode = 'generator', # 'monitor' and 'single'
+               monitor = False,
+               generator_mode=False):
         """
 
         :param graph_iter:  seed graphs
@@ -590,7 +597,7 @@ class Sampler(object):
             for n, d in cip_graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
                     cips = gman.rooted_core_interface_pairs(n, radius_list= self.radius_list, thickness_list=self.thickness_list,
-                                             hash_bitmask=self.hash_bitmask, filter=self.node_entity_check)
+                                             hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check)
                     for cip in cips:
                         if cip.interface_hash in self.lsgg.productions:
                             counter += len(self.lsgg.productions[cip.interface_hash])
@@ -707,7 +714,7 @@ class Sampler(object):
             # in addition the selection might fail because it is not possible
             # to extract at the desired radius/thicknes
             cip = graphman.random_core_interface_pair( radius_list=self.radius_list, thickness_list=self.thickness_list,
-                                    hash_bitmask=self.hash_bitmask, filter=self.node_entity_check )
+                                    hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check )
             if not cip:
                 nocip += 1
                 continue
