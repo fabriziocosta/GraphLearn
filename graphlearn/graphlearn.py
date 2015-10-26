@@ -387,7 +387,7 @@ class Sampler(object):
 
                 # save score
                 self._score_list_append(graph_manager)
-                self.monitorobject.tick(graph_manager,self.step)
+                self.monitorobject.tick(candidate_graph_manager,self.step)
                 self.step+=1
 
         except Exception as exc:
@@ -497,7 +497,7 @@ class Sampler(object):
         """
         if '_score' not in graphmanager.__dict__:
             graphmanager._score= self.estimatorobject.score(graphmanager)
-        self.monitorobject.info('score',graphmanager._score)
+            self.monitorobject.info('score',graphmanager._score)
         return graphmanager._score
 
     def _accept(self, graphman_old, graphman_new):
@@ -541,6 +541,8 @@ class Sampler(object):
             # score_ratio is smaller than 1. random.random generates a float between 0 and 1
             # the smaller the score_ratio the smaller the chance of getting accepted.
             accept_decision = (score_ratio > random.random())
+
+        self.monitorobject.info('accepted:', accept_decision)
         return accept_decision
 
     def _propose(self, graphman):
