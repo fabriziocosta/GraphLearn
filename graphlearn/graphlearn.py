@@ -160,9 +160,7 @@ class Sampler(object):
         self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 
-    def samplelog(self,msg,level=10):
-        logger.log(level,msg)
-        #self.monitorobject.debug(level,msg)
+
 
     def sample(self, graph_iter,
 
@@ -235,7 +233,7 @@ class Sampler(object):
 
         self.monitor = monitor
         if monitor:
-            self.monitor_list=[]
+            self.monitors=[]
 
         self.proposal_probability = proposal_probability
 
@@ -322,8 +320,8 @@ class Sampler(object):
 
     def return_formatter(self, sample_product):
 
-        #if self.monitor:
-        #   self.monitor_list.append(sample_product.monitorobject)
+        if self.monitor and sample_product is not None:
+           self.monitors.append(sample_product.graph['sampling_info']['monitor'])
 
 
         # after _sample we need to decide what to yield...
@@ -342,6 +340,15 @@ class Sampler(object):
             batch = dill.dumps(e)
             yield (s, batch)
 
+
+
+    def _samplelog(self,msg,level=10):
+        # debug messages in _sample will use this,
+        # we will also log to monitor.
+        logger.log(level,msg)
+        self.monitorobject.info('debug','debuglevel:%d %s' % (level,msg))
+
+
     def _sample(self, graph):
         '''
             we sample a single graph.
@@ -355,17 +362,16 @@ class Sampler(object):
         try:
             graph_manager = self._sample_init(graph)
         except Exception as exc:
-            logger.debug(exc)
-            logger.debug(traceback.format_exc(10))
+            logger.warning(exc)
+            logger.warning(traceback.format_exc(10))
             return None
 
         self._score_list = [graph_manager._score]
         self.sample_path = []
         accept_counter = 0
-
+        self.step=0
         try:
-            for self.step in xrange(self.n_steps):
-
+            while self.step < self.n_steps:
                 self._sample_path_append(graph_manager)
                 # check stop condition..
                 self._stop_condition(graph_manager)
@@ -381,11 +387,13 @@ class Sampler(object):
 
                 # save score
                 self._score_list_append(graph_manager)
+                self.monitorobject.tick(graph_manager,self.step)
+                self.step+=1
 
         except Exception as exc:
-            logger.debug(exc)
-            logger.debug(traceback.format_exc(10))
-            self._sample_notes += "\n" + str(exc)
+            self._samplelog(exc)
+            self._samplelog(traceback.format_exc(10))
+            self._samplelog('_sample stopped at %d out of %d n_steps' % (self.step, self.n_steps))
             self._sample_notes += '\nstopped at step %d' % self.step
 
         self._score_list += [self._score_list[-1]] * (self.n_steps +1 - len(self._score_list))
@@ -397,7 +405,9 @@ class Sampler(object):
         sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
                                                 'score_history': self._score_list,
                                                 'accept_count': accept_counter,
-                                                'notes': self._sample_notes}
+                                                'notes': self._sample_notes,
+                                                'monitor':self.monitorobject}
+
         return sampled_graph
 
     def _score_list_append(self, graphman):
@@ -425,9 +435,6 @@ class Sampler(object):
             self.sample_path.append(graphmanager.out())
 
 
-
-
-
     def _sample_init(self, graph):
         '''
         we prepare the sampling process
@@ -438,7 +445,7 @@ class Sampler(object):
         - possibly we are in a multiprocessing process, and this class instance hasnt been used before,
           in this case we need to rebuild the postprocessing function .
         '''
-        #self.monitorobject=monitor.Monitor(self.monitor)
+        self.monitorobject=monitor.Monitor(self.monitor)
 
         self.backtrack=self.maxbacktrack
         self.last_graphman = None
@@ -447,7 +454,6 @@ class Sampler(object):
         graph = graphman.base_graph()
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
-
         self._score(graphman)
         self._sample_notes = ''
         self._sample_path_score_set = set()
@@ -491,6 +497,7 @@ class Sampler(object):
         """
         if '_score' not in graphmanager.__dict__:
             graphmanager._score= self.estimatorobject.score(graphmanager)
+        self.monitorobject.info('score',graphmanager._score)
         return graphmanager._score
 
     def _accept(self, graphman_old, graphman_new):
@@ -538,7 +545,7 @@ class Sampler(object):
 
     def _propose(self, graphman):
         """
-         we wrap , so it may be overwritten some day
+        we do the backtrack
         """
 
         if self.maxbacktrack > 0:
@@ -552,6 +559,8 @@ class Sampler(object):
             #print 'backtracking'
             #draw.graphlearn([graphman.base_graph(),self.backtrack_graphman.base_graph()])
             self.backtrack-=1
+            self.step-=1
+            self.monitorobject.info('backtrack to (score)',self.backtrack_graphman._score)
             graphman2 = self._propose_graph(self.backtrack_graphman)
 
         if graphman2:
@@ -582,14 +591,16 @@ class Sampler(object):
                 choices = len(self.lsgg.productions[candidate_cip.interface_hash].keys()) - 1
                 # count possible replacements for debug output
 
-
+                self.monitorobject.info('substitution', "root: %d , newcip: %d / %d" %
+                                        (original_cip.distance_dict[0][0], candidate_cip.interface_hash,candidate_cip.core_hash) )
                 new_graph = graphman.core_substitution( original_cip.graph, candidate_cip.graph)
+
                 if self.feasibility_checker.check(new_graph):
                     new_graphmanager = self.postprocessor.re_transform_single(new_graph)
                     if new_graphmanager:
                         self.calc_proposal_probability(graphman, new_graphmanager, original_cip)
 
-                        logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
+                        self._samplelog("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
                                      (self.step, attempt, choices, orig_cip_ctr,graphman._base_graph.number_of_nodes()))
 
                         new_graphmanager.clean() # i clean only here because i need the interface mark for reverse_dir_prob
@@ -638,7 +649,7 @@ class Sampler(object):
             v2 = old_opts + average_opts* ( len(graphman.base_graph())-interfacesize)
             value = float(v1)/v2
             self.proposal_probability_value= value
-            logger.log( 5, 'reverse_direction_modifier: %f' % value )
+            self._samplelog( 'reverse_direction_modifier: %f' % value , level=5)
 
     def _select_cips(self, cip, graphman):
         """
@@ -748,7 +759,7 @@ class Sampler(object):
             else:
                 failcount += 1
 
-        logger.debug(
+        self._samplelog(
             'select_cip_for_substitution failed because no suiting interface was found, \
             extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount))
 
@@ -776,7 +787,7 @@ class Sampler(object):
         if len(self.lsgg.productions.get(cip.interface_hash, {})) > 1:
             in_grammar = True
 
-        logger.log(5, 'accept_orig_cip: %r %r' % (score_ok, in_grammar))
+        self._samplelog( 'accept_orig_cip: %r %r' % (score_ok, in_grammar), level=5)
 
         return in_grammar and score_ok
 

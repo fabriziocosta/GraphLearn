@@ -254,7 +254,7 @@ def enhance_base_cip(base_cip, abstract_cip,mergeids,base_graph,hash_bitmask,mod
 
         # i want to see what they look like :)
         base_cip.abstract_view = abstract_cip.graph
-
+        base_cip.distance_dict= abstract_cip.distance_dict
         return base_cip
 
 
