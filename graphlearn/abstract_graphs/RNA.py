@@ -14,6 +14,9 @@ import subprocess  as sp
 from graphlearn.utils import draw
 from graphlearn.processing import PreProcessor
 import eden.RNA
+import logging
+logger = logging.getLogger(__name__)
+
 
 class PreProcessor(PreProcessor):
 
@@ -66,8 +69,8 @@ class PreProcessor(PreProcessor):
         try:
             sequence = get_sequence(graph)
         except:
-            print 'sequenceproblem:'
-            draw.graphlearn(graph, size=20)
+            logger.debug('sequenceproblem: this is not an rna')
+            #draw.graphlearn(graph, size=20)
             return None
 
         sequence= sequence.replace("F",'')
@@ -494,7 +497,7 @@ class AbstractSampler(Sampler):
         super(self.__class__,self)._sample_path_append(graph,force=force)
 
 
-def infernal_checker(sequence_list):
+def infernal_checker(sequence_list,cmfile='rf00005.cm'):
     '''
     :param sequences: a bunch of rna sequences
     :return: get evaluation from cmsearch
@@ -502,7 +505,7 @@ def infernal_checker(sequence_list):
     write_fasta(sequence_list,filename='temp.fa')
     sequence_list = [ s for s in sequence_list if is_sequence(s.replace('F',''))  ]
     #print sequence_list
-    return call_cm_search('temp.fa',len(sequence_list))
+    return call_cm_search(cmfile,'temp.fa',len(sequence_list))
 
 
 
@@ -527,9 +530,9 @@ def write_fasta(sequences,filename='asdasd'):
         f.write(fasta)
 
 
-def call_cm_search(filename, count):
+def call_cm_search(cmfile,filename, count):
 
-    out = sp.check_output('./cmsearch -g --noali --incT 0  rf00005.cm %s' % filename, shell=True)
+    out = sp.check_output('../cmsearch -g --noali --incT 0  %s %s' %(cmfile, filename), shell=True)
     # -g global
     # --noali, we dont want to see the alignment, score is enough
     # --incT 0 we want to see everything with score > 0

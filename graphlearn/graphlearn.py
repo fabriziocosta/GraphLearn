@@ -13,9 +13,8 @@ from eden.util import serialize_dict
 import logging
 from utils import draw
 import processing
-
 logger = logging.getLogger(__name__)
-
+import utils.monitor as monitor
 
 
 
@@ -163,7 +162,7 @@ class Sampler(object):
 
     def samplelog(self,msg,level=10):
         logger.log(level,msg)
-        self.monitor.debug(level,msg)
+        #self.monitorobject.debug(level,msg)
 
     def sample(self, graph_iter,
 
@@ -191,7 +190,6 @@ class Sampler(object):
 
                omit_seed=True,
                keep_duplicates=False,
-               mode = 'generator', # 'monitor' and 'single'
                monitor = False,
                generator_mode=False):
         """
@@ -233,11 +231,15 @@ class Sampler(object):
         :return:  yield graphs
 
         """
+        self.maxbacktrack=backtrack
+
+        self.monitor = monitor
+        if monitor:
+            self.monitor_list=[]
+
         self.proposal_probability = proposal_probability
 
         self.similarity = similarity
-
-
 
         if probabilistic_core_choice + score_core_choice + max_core_size_diff == -1 > 1:
             raise Exception('choose max one cip choice strategy')
@@ -319,6 +321,11 @@ class Sampler(object):
             #    yield pair
 
     def return_formatter(self, sample_product):
+
+        #if self.monitor:
+        #   self.monitor_list.append(sample_product.monitorobject)
+
+
         # after _sample we need to decide what to yield...
         if sample_product is not None:
             if self.generator_mode:
@@ -366,6 +373,7 @@ class Sampler(object):
                 # get a proposal for a new graph
                 # keep it if we like it
                 candidate_graph_manager = self._propose(graph_manager)
+
 
                 if self._accept(graph_manager, candidate_graph_manager):
                     accept_counter += 1
@@ -430,9 +438,12 @@ class Sampler(object):
         - possibly we are in a multiprocessing process, and this class instance hasnt been used before,
           in this case we need to rebuild the postprocessing function .
         '''
+        #self.monitorobject=monitor.Monitor(self.monitor)
+
+        self.backtrack=self.maxbacktrack
+        self.last_graphman = None
 
         graphman=self.preprocessor.transform([graph])[0]
-
         graph = graphman.base_graph()
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
@@ -530,16 +541,24 @@ class Sampler(object):
          we wrap , so it may be overwritten some day
         """
 
-        #if self.backtrack:
-        #    if self.backtrack_graphman==None:
-        #        self.backtrack_graphman=graphman
+        if self.maxbacktrack > 0:
+            self.backtrack_graphman=self.last_graphman
+            self.last_graphman=graphman
 
 
-        graph = self._propose_graph(graphman)
-        if graph is not None:
-            return graph
+        graphman2 = self._propose_graph(graphman)
+
+        if self.backtrack > 0 and not graphman2:
+            #print 'backtracking'
+            #draw.graphlearn([graphman.base_graph(),self.backtrack_graphman.base_graph()])
+            self.backtrack-=1
+            graphman2 = self._propose_graph(self.backtrack_graphman)
+
+        if graphman2:
+            return graphman2
 
         raise Exception("propose failed.. usualy the problem is propose_single_cip")
+
 
     def _propose_graph(self, graphman):
         """
@@ -551,6 +570,7 @@ class Sampler(object):
         on each we do our best to find a hit in the grammar.
         as soon as we found one replacement that works we are good and return.
         """
+
 
         for orig_cip_ctr, original_cip in enumerate(self.select_original_cip(graphman)):
             # for all cips we are allowed to find in the original graph:
@@ -569,8 +589,8 @@ class Sampler(object):
                     if new_graphmanager:
                         self.calc_proposal_probability(graphman, new_graphmanager, original_cip)
 
-                        logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d" %
-                                     (self.step, attempt, choices, orig_cip_ctr))
+                        logger.debug("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
+                                     (self.step, attempt, choices, orig_cip_ctr,graphman._base_graph.number_of_nodes()))
 
                         new_graphmanager.clean() # i clean only here because i need the interface mark for reverse_dir_prob
                         return new_graphmanager
@@ -728,8 +748,7 @@ class Sampler(object):
             else:
                 failcount += 1
 
-
-        raise Exception(
+        logger.debug(
             'select_cip_for_substitution failed because no suiting interface was found, \
             extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount))
 
