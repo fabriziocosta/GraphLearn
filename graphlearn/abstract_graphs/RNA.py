@@ -16,6 +16,14 @@ from graphlearn.processing import PreProcessor
 import eden.RNA
 import logging
 logger = logging.getLogger(__name__)
+from graphlearn.processing import PostProcessor
+
+
+class PostProcessor(PostProcessor):
+    def re_transform_single(self, input):
+        return self.pp.re_transform_single(input)
+
+
 
 
 class PreProcessor(PreProcessor):
@@ -74,7 +82,10 @@ class PreProcessor(PreProcessor):
             return None
 
         sequence= sequence.replace("F",'')
-        return self.transform([sequence])[0]
+        trans= self.transform([sequence])[0]
+        if trans._base_graph.graph['energy'] > -10:
+            return None
+        return trans
 
     def transform(self,sequences):
         """
@@ -89,20 +100,14 @@ class PreProcessor(PreProcessor):
         """
         result=[]
         for sequence in sequences:
-            if type(sequence)==str:
-                structure = self.NNmodel.transform_single(('fake',sequence))
+                structure,energy = self.NNmodel.transform_single(('fake',sequence))
                 if self.structure_mod:
                     structure,sequence= fix_structure(structure,sequence)
-
                 base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
                 base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
                 base_graph = expanded_rna_graph_to_digraph(base_graph)
-
+                base_graph.graph['energy']=energy
                 result.append(RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list))
-
-            # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
-            else:
-                result.append(self.re_transform_single(sequence))
         return result
 
 
@@ -415,12 +420,17 @@ class EdenNNF(NearestNeighborFolding):
     def fit(self,sequencelist):
         self.eden_rna_vectorizer=eden.RNA.Vectorizer(n_neighbors=self.n_neighbors)
         self.eden_rna_vectorizer.fit(sequencelist)
+
+        # after the initial thing: settting min enery high so we never do mfe
+        self.eden_rna_vectorizer.min_energy= 100
         return self
 
     def transform_single(self, sequence):
         s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
+
         head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh)
-        return stru
+
+        return stru,en
 
 
 
