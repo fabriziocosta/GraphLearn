@@ -349,6 +349,9 @@ def draw_grammar(grammar,
 def get_score_of_graph(graph):
     return "%s%s" % (' score: ', str(graph.graph.get('score', '?')))
 
+def get_energy_of_graph(graph):
+    return "%s%s" % (' score: ', str(graph.graph.get('energy', '?')))
+
 
 def remove_colors(g, key='col'):
     for n, d in g.nodes(data=True):

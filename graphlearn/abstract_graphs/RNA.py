@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 from graphlearn.processing import PostProcessor
 
 
+'''
+check the EDENNN stuff down below...
+i am not ready yet to give up on the  free energy meassure for bad graphs
+'''
+
+
 class PostProcessor(PostProcessor):
     def re_transform_single(self, input):
         return self.pp.re_transform_single(input)
@@ -215,7 +221,6 @@ class RnaWrapper(AbstractWrapper):
 '''
 a few handy graph tools :)
 '''
-
 def get_sequence(digraph):
     if type(digraph)==str:
         return digraph
@@ -427,10 +432,12 @@ class EdenNNF(NearestNeighborFolding):
 
     def transform_single(self, sequence):
         s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
-
         head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh)
-
         return stru,en
+
+
+
+
 
 
 
