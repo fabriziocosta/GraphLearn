@@ -70,8 +70,8 @@ class DeepSampler(GraphLearnSampler):
             sampler.lsgg.fit(graphs_wrapped)
             sampler.preprocessor.fit(0,self.vectorizer)
             sampler.postprocessor.fit(sampler.preprocessor)
-            r=sampler.sample(graphs,max_core_size_diff=0,select_cip_max_tries=100, quick_skip_orig_cip=False,
-                           improving_linear_start=.2,improving_threshold=.6)
+            r=sampler.sample(graphs, max_size_diff=0, select_cip_max_tries=100, quick_skip_orig_cip=False,
+                             improving_linear_start=.2, improving_threshold=.6)
 
             # get graphs and sample them
             r= list(r)

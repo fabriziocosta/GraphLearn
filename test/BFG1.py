@@ -84,15 +84,15 @@ for perc in percentages:
     # do sampling
     sampler.fit(graphs_pos__, grammar_n_jobs=4)
 
-    improved_graphs = sampler.sample( graphs_pos_,
-                        same_radius=False,
-                        max_core_size_diff=True,
-                        sampling_interval=9999,
-                        select_cip_max_tries=100,
-                        batch_size=int(count/4)+1,
-                        n_steps=100,
-                        n_jobs=-1,
-                        improving_threshold=0.9)
+    improved_graphs = sampler.sample(graphs_pos_,
+                                     same_radius=False,
+                                     max_size_diff=True,
+                                     sampling_interval=9999,
+                                     select_cip_max_tries=100,
+                                     batch_size=int(count/4)+1,
+                                     n_steps=100,
+                                     n_jobs=-1,
+                                     improving_threshold=0.9)
 
 
 

@@ -39,32 +39,37 @@ class Sampler(object):
                  grammar=None,
                  min_cip_count=2,
                  min_interface_count=2):
-        """
 
-        :param nbit: the cip-hashes ( core and interface ) will be this many bit long
-        :param complexity: is currently ignored since its an argument of the vectorizer
-        :param vectorizer: a eden.graph.vectorizer used to turn graphs into vectors. also provides utils
-        :param estimator: is trained on the inout graphs. see implementation
+        '''
 
+        Parameters
+        ----------
+        nbit : int
+            the cip-hashes ( core and interface ) will be this many bit long
+        vectorizer : vectorizer
+            a eden.graph.vectorizer used to turn graphs into vectors. also provides utils
+        random_state : int
+            random seed
+        estimator : estimator.wrapper
+            an estimator trained or untrained oOo
 
-        # gramar+sampling options
-        :param radius_list: the cores of a root will have these radii
-        :param thickness_list: the cores will extend this much
-        :param node_entity_check: decides if a cip is used at all. see example implementation
-                check is performed during cip extraction.
-                notice difference to the accept cip :)
-
-
-        # grammar options:
-        :param grammar: a grammar -> see implementation of localsubstututablegrammar
-        :param min_cip_count:  during the grammar training we need to see a cip this many
-            times before adding it to the grammar
-        :param min_interface_count: if we dont find this many different cores for this interface,\
-        it gets removed.
-
-        :return:
-        """
-
+        preprocessor : graphlearn.processing.preprocessor
+        postprocessor : graphlearn.processing.postprocessor
+        feasibility_checker : feasibility.FeasibilityChecker()
+            can determine if a graph is valid
+        radius_list : list
+        thickness_list : list
+        node_entity_check : lambda x,y: bool
+        grammar : localsubstitutablegraphgrammar
+            a grammar
+        min_cip_count : int
+            how often do i need to see a cip to accept it into the grammar
+        min_interface_count: int
+            how many cips need to be in an interface
+        Returns
+        -------
+        an initialized sampler
+        '''
 
         self.preprocessor=preprocessor
         self.feasibility_checker = feasibility_checker
@@ -166,7 +171,7 @@ class Sampler(object):
 
                probabilistic_core_choice=True,
                score_core_choice=False,
-               max_core_size_diff=-1,
+               max_size_diff=-1,
 
                similarity=-1,
                n_samples=None,
@@ -185,50 +190,84 @@ class Sampler(object):
                backtrack=0,
 
 
-
                omit_seed=True,
                keep_duplicates=False,
                monitor = False,
                generator_mode=False):
-        """
 
-        :param graph_iter:  seed graphs
+        '''
 
-        # strategy for choosing a cip inside the grammar
-        :param probabilistic_core_choice:  the more of a cip i have seen, the more likely ill use it
-        :param score_core_choice:   ill use the estimator to determine how likely every cip is.
-        (higher score => higher proba)
-        :param max_core_size_diff: ill prefer cips that wont change the size of the graph
-
-        # sampling
-        :param n_samples:  how many graphs will i print at the end
-        :param batch_size:  how many seeds are going to get batched ( small: overhead, large: needs ram )
-        :param n_jobs: ill start this many threads
-        :param n_steps: how many samplesteps are conducted
-        :param burnin: do this many steps before collecting samples
-
-        :proposal_probability: True to calculate new and old options
-        # sampling strategy
-        :param target_orig_cip:  we will use the estimator to determine weak regions in the graph that need
-        improvement
-        :param quick_skip_orig_cip: dont try all the hits in the grammar, if the first fails
-        (due to feasibility) we give up
-        :param improving_threshold: fraction after which we only accept graphs that improve the score.
-        :param improving_linear_start: fraction after which we start linearly penalising bad graphs until we reach impth
-        :param accept_static_penalty: so there is a chance to accept a lower scoring grpah,  here we penalize
-        :param select_cip_max_tries: how often do we try to get an original cip before declaring the seed done
-        :param similarity:  provides the option to kill the sampling  eg if distance to seed is too large.
-
-        # output options
-        :param generator_mode: yield every graph on its own   or  put all the n_samples as an argument in the
-        last graph
-        :param omit_seed: dont record the seed graph
-        :param keep_duplicates: duplicates are not recorded
+        Parameters
+        ----------
+        graph_iter : iterator over networkx graphs
+            the by nw trained preprocessor will turn them into  graphwrappers
 
 
-        :return:  yield graphs
+        probabilistic_core_choice : bool
+            cores are chosen according to their frequency in the grammar...
+        score_core_choice : bool
+            cores are chosen  probabilisticaly according to their score
+        max_size_diff : int
+            linear increasing penalty is applied to enforce that the graphs
+            stays in the desired size range
 
-        """
+        similarity : float
+            stop condition for sampling, stop if desired similarity is reached,
+            similarity meassure is weired due to high dimensionality of eden vector, be warned
+        n_samples : int
+            collect this many samples for each seed graph
+        proposal_probability : bool
+            if you are not dealing with abstract graphs you get this option;
+            if you want to comply to Metropolis hastings
+        batch_size : int
+            this many graphs will be processed by one instance,
+            (maybe i should calculate the max effective number and use that)
+        n_jobs : int (-1)
+            number of processes created used. -1 is cpu count
+        target_orig_cip : bool
+            omly replace low scoring parts of the graph.. see implementation for details
+
+        n_steps: int
+            sample steps
+
+        quick_skip_orig_cip : bool
+            for each cip on the original graph, only try one entry from the grammar.
+
+        improving_threshold : float
+            starting from this fraction we only accept a graph if it is better
+        improving_linear_start : float
+            starting from this fraction there is a linearly increasing penalty
+            to the score until the improving_threshould value
+        accept_static_penalty : float
+            decrease probability of accepting a worse graph
+        select_cip_max_tries : int
+            try this many times to get a cip from the original graph before declaring
+            the seed dead.
+        burnin : int
+            ignore this many graphs until n_samples starts collecting
+        backtrack : int
+            sometimes you  generate a dead-end graph, a graph that is valid but finding a proposal is impossible.
+            you can take one step back this many times.
+            this is of questionable efficiency currently because we cant detecect
+            the exact place where we went wrong.
+        omit_seed : bool
+            dont collect the seed as sample
+        keep_duplicates : bool
+            metropolice compliance says that we should output duplicates. but otherwise duplicates
+            are not interesting.
+        monitor : bool
+            enabling monitor accessible after  sampling. sampler.monitors will contain all the information
+
+        generator_mode : bool
+            the sampling will yield each of the n_samples,
+            otherwise there is only one graph in output that has the sampling_info which contains the path
+
+        Returns
+        -------
+        graphs,
+            depends on generator mode.
+        '''
+
         self.maxbacktrack=backtrack
 
         self.monitor = monitor
@@ -239,7 +278,7 @@ class Sampler(object):
 
         self.similarity = similarity
 
-        if probabilistic_core_choice + score_core_choice + max_core_size_diff == -1 > 1:
+        if probabilistic_core_choice + score_core_choice + max_size_diff == -1 > 1:
             raise Exception('choose max one cip choice strategy')
 
         if n_samples:
@@ -253,8 +292,8 @@ class Sampler(object):
         self.target_orig_cip = target_orig_cip
 
         # the user doesnt know about edge nodes.. so this needs to be done
-        max_core_size_diff = max_core_size_diff * 2
-        self.max_core_size_diff = max_core_size_diff
+        max_size_diff = max_size_diff * 2
+        self.max_core_size_diff = max_size_diff
 
         #  calculating the actual steps for improving :)
         self.improving_threshold = improving_threshold
@@ -277,8 +316,8 @@ class Sampler(object):
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
         self.lsgg.preprocessing(n_jobs,
-                                max_core_size_diff,
-                                probabilistic_core_choice )
+                                max_size_diff,
+                                probabilistic_core_choice)
 
         if score_core_choice:
             self.score_core_choice_dict = {}
