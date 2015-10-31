@@ -336,9 +336,10 @@ class Sampler(object):
         # sampling
         if n_jobs in [0, 1]:
             for graph in graph_iter:
-                sampled_graph = self._sample(graph)
+                #sampled_graph = self._sample(graph)
                 # yield sampled_graph
-                for new_graph in self.return_formatter(sampled_graph):
+                a,b=self._sample(graph)
+                for new_graph in self.return_formatter(a,b):
                     yield new_graph
         else:
             if n_jobs > 1:
@@ -348,8 +349,8 @@ class Sampler(object):
             sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
 
             for batch in sampled_graphs:
-                for sampled_graph in batch:
-                    for new_graph in self.return_formatter(sampled_graph):
+                for graph,moni in batch:
+                    for new_graph in self.return_formatter(graph,moni):
                         yield new_graph
             pool.close()
             pool.join()
@@ -357,20 +358,13 @@ class Sampler(object):
             #                                           _sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
             #    yield pair
 
-    def return_formatter(self, sample_product):
-
-        if self.monitor and sample_product is not None:
-           self.monitors.append(sample_product.graph['sampling_info']['monitor'])
-
-
-        # after _sample we need to decide what to yield...
-        if sample_product is not None:
-            if self.generator_mode:
-                # yield all the graphs but jump first because that one is the start graph :)
-                for graph in sample_product.graph['sampling_info']['graphs_history'][1:]:
-                    yield graph
-            else:
-                yield sample_product
+    def return_formatter(self,graphlist,mon):
+        self.monitors.append(mon)
+        if self.generator_mode:
+            for graph in graphlist:
+                yield graph
+        else:
+            yield graphlist
 
     def _argbuilder(self, problem_iter):
         # for multiprocessing  divide task into small multiprocessable bites
@@ -439,15 +433,29 @@ class Sampler(object):
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph_manager, force=True)
-        sampled_graph = graph_manager.out()
 
+
+
+        """ old way
+        sampled_graph = graph_manager.out()
         sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
                                                 'score_history': self._score_list,
                                                 'accept_count': accept_counter,
                                                 'notes': self._sample_notes,
                                                 'monitor':self.monitorobject}
-
         return sampled_graph
+        """
+        #sampled_graph = graph_manager.out()
+        #sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
+
+        sampling_info={'score_history': self._score_list,
+                       'accept_count': accept_counter,
+                       'notes': self._sample_notes}
+        self.monitorobject.sampling_info=sampling_info
+        return self.sample_path,self.monitorobject
+
+
+
 
     def _score_list_append(self, graphman):
         self._score_list.append(graphman._score)
