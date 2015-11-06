@@ -1,55 +1,58 @@
-import sys
-import os
-os.nice(20)
-sys.path.append("..")
-from eden.converter.graph.gspan import gspan_to_eden
-import graphlearn.graphlearn as gl
+# get data
+from itertools import islice
+'''
+Create a function that is able to deliver a graph iterator
+'''
+from eden.converter.fasta import fasta_to_sequence
+from eden.converter.rna.rnafold import rnafold_to_eden
+
+from eden.graph import Vectorizer
+def rfam_uri(family_id):
+    return 'http://rfam.xfam.org/family/%s/alignment?acc=%s&format=fastau&download=0'%(family_id,family_id)
+
+
+def clean(graphs):
+    for g in graphs:
+        for n,d in g.nodes(data=True):
+            if 'weight' in d:
+                d.pop('weight')
+        yield g
+
+
+def rfam_uri(family_id):
+    return '%s.fa'%(family_id)
+
+def get_graphs(rfam_id = '../example/RF00005',size=9999):
+    seqs = fasta_to_sequence(rfam_uri(rfam_id))
+    graphs = islice( clean(rnafold_to_eden(seqs, shape_type=5, energy_range=30, max_num=3)), size)
+    return graphs
+
+
+from eden.converter.fasta import fasta_to_sequence
 import itertools
-from eden.util import configure_logging
-import logging
-configure_logging(logging.getLogger(),verbosity=1)
-
-def test_sampler():
-    steps=20
-    graphcount=8
-    sampler=gl.GraphLearnSampler()
-    sampler.load('../example/tmp/demo_50.ge')
-    graphs = gspan_to_eden( '../example/bursi.pos.gspan' )
-    graphs = itertools.islice(graphs,graphcount)
-
-    # we test multicore and single:
-    graphs = sampler.sample(graphs,
-                            same_radius=False,
-                            max_core_size_diff=False,
-                            sampling_interval=9999,
-                            batch_size=2,
-                            probabilistic_core_choice=True,
-                            n_steps=steps,
-                            n_jobs=1,
-                            improving_threshold=0.9,
-                            keep_duplicates=False)
-    #graphs = sampler.sample(graphs,same_radius=True,sampling_interval=9999,batch_size=2,n_steps=steps,n_jobs=4)
-    for e in graphs:
-        print e
 
 
-def test_fit():
-    gr = gspan_to_eden( '../example/bursi.pos.gspan' )
-    #radius_list=[2,4]
-    #thickness_list=[2]
+def get_sequences(size=9999):
+    sequences = itertools.islice( fasta_to_sequence("../example/RF00005.fa"), size)
+    return [ b for (a,b) in sequences ]
 
-    gr=itertools.islice(gr,50)
-
-    sampler=gl.GraphLearnSampler()
-    sampler.fit(gr,n_jobs=-1)
-    sampler.save('../example/tmp/demo_50.ge')
-    #graphlearn_utils.draw_grammar(sampler.local_substitutable_graph_grammar,5)
-    print 'fitting done'
+def get_sequences_with_names(size=9999):
+    sequences = itertools.islice( fasta_to_sequence("../example/RF00005.fa"), size)
+    return sequences
 
 
 
 
-#test_fit()
-test_sampler()
 
+'''
+learning a grammar
+'''
+import graphlearn.abstract_graphs.learned_RNA as learned
+import graphlearn.abstract_graphs.RNA as rna
+from graphlearn import feasibility
+feas=feasibility.FeasibilityChecker(checklist=[feasibility.default_check,rna.is_rna])
+graphs = get_sequences_with_names(150)
+pp=learned.RnaPreProcessor(base_thickness_list=[2],kmeans_clusters=3,structure_mod=False)
+sampler=rna.AbstractSampler(radius_list=[0,1],thickness_list=[1], min_cip_count=2, min_interface_count=2,feasibility_checker=feas, preprocessor=pp)
+sampler.fit(graphs,grammar_n_jobs=1,grammar_batch_size=1)
 

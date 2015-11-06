@@ -13,15 +13,17 @@ class Wrapper:
     this is the interface between graphmanagers and edens machine learning
 
     you just fit() with graphmanagers
-    and then you score() graphmanagers.
-
-
+    and then you score() graphmanagers or graphs
     '''
-    def __init__(self):
+
+    def __init__(self, nu=.5, cv=2, n_jobs=-1):
         self.status='new'
+        self.nu=nu
+        self.cv=cv
+        self.n_jobs=n_jobs
 
 
-    def fit(self, graphmanagers, vectorizer=None, nu=.5, cv=2, n_jobs=-1, random_state=None):
+    def fit(self, graphmanagers, vectorizer=None, random_state=None):
         self.vectorizer=vectorizer
         if random_state is not None:
             random.seed(random_state)
@@ -31,10 +33,10 @@ class Wrapper:
         data_matrix = vectorizer.fit_transform(self.mass_unwrap(graphmanagers))
 
         # fit
-        self.estimator = self.fit_estimator(data_matrix, n_jobs=n_jobs, cv=cv, random_state=random_state)
+        self.estimator = self.fit_estimator(data_matrix, n_jobs=self.n_jobs, cv=self.cv, random_state=random_state)
 
         # calibrate
-        self.cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=nu, cv=cv)
+        self.cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=self.nu, cv=self.cv)
 
         self.status='trained'
         return self

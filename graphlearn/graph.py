@@ -4,19 +4,14 @@ from eden import fast_hash
 from coreinterfacepair import CoreInterfacePair
 import logging
 from eden.graph import Vectorizer
-logger = logging.getLogger(__name__)
 import random
-import utils.draw as draw
 
+logger = logging.getLogger(__name__)
 
 
 
 
 class AbstractWrapper(object):
-
-
-
-
 
     def rooted_core_interface_pairs(self, root, **args):
         '''
@@ -234,7 +229,7 @@ def extract_core_and_interface(root_node=None,
                                thickness_list=None,
                                vectorizer=Vectorizer(),
                                hash_bitmask=2 ** 20 - 1,
-                               filter=lambda x, y: True):
+                               node_filter=lambda x, y: True):
     """
     :param root_node: root root_node
     :param graph: graph
@@ -245,7 +240,7 @@ def extract_core_and_interface(root_node=None,
     :return: radius_list*thicknes_list long list of cips
     """
     DEBUG = False
-    if not filter(graph, root_node):
+    if not node_filter(graph, root_node):
         if DEBUG:
             print 'filta'
         return []
@@ -279,7 +274,7 @@ def extract_core_and_interface(root_node=None,
                 continue
 
             core_graph_nodes = [item for x in range(radius_ + 1) for item in node_dict.get(x, [])]
-            if not filter(master_cip_graph, core_graph_nodes):
+            if not node_filter(master_cip_graph, core_graph_nodes):
                 if DEBUG:
                     print 'jump2'
                 continue

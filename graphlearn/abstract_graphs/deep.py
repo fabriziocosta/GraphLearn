@@ -13,29 +13,28 @@ from graphlearn.utils import draw
 class DeepSampler(GraphLearnSampler):
 
 
-    def fit(self, input, n_jobs=-1, nu=.5, batch_size=10):
+    def fit(self, input, grammar_n_jobs=-1, grammar_batch_size=10, train_min_size=None):
         """
           use input to fit the grammar and fit the estimator
         """
-
+        self.preprocessor.set_param(self.vectorizer)
 
         graphmanagers = self.preprocessor.fit_transform(input,self.vectorizer)
 
         self.estimatorobject.fit(graphmanagers,
-                                                  vectorizer=self.vectorizer,
-                                                  nu=nu,
-                                                  n_jobs=n_jobs,
-                                                  random_state=self.random_state)
+                                 vectorizer=self.vectorizer,
+                                 nu=nu,
+                                 grammar_n_jobs=grammar_n_jobs,
+                                 random_state=self.random_state)
 
-        self.lsgg.fit(graphmanagers, n_jobs, batch_size=batch_size)
+        self.lsgg.fit(graphmanagers, grammar_n_jobs, grammar_batch_size=grammar_batch_size)
 
 
-        tempest= EstiWrap()
+        tempest= EstiWrap(nu=.5,  grammar_n_jobs=grammar_n_jobs)
         tempest.fit(graphmanagers,
-                                                  vectorizer=self.vectorizer,
-                                                  nu=nu,
-                                                  n_jobs=n_jobs,
-                                                  random_state=self.random_state)
+                    vectorizer=self.vectorizer,
+
+                    random_state=self.random_state)
 
 
 
@@ -58,9 +57,11 @@ class DeepSampler(GraphLearnSampler):
         prod=self.lsgg.productions
 
         for i, interface_hash in enumerate(prod.keys()):
+
+            if prod[interface_hash] < train_min_size:
+                continue
             print "################################# new ihash"
             # for all the interface buckets
-
             cips=prod[interface_hash].values()
             sampler=GraphLearnSampler(estimator=tempest,node_entity_check=entitycheck)
             graphs_wrapped=[ GraphWrap(cip.graph, self.vectorizer) for cip in cips ]
@@ -69,8 +70,8 @@ class DeepSampler(GraphLearnSampler):
             sampler.lsgg.fit(graphs_wrapped)
             sampler.preprocessor.fit(0,self.vectorizer)
             sampler.postprocessor.fit(sampler.preprocessor)
-            r=sampler.sample(graphs,max_core_size_diff=0,select_cip_max_tries=100, quick_skip_orig_cip=False,
-                           improving_linear_start=.2,improving_threshold=.6)
+            r=sampler.sample(graphs, max_size_diff=0, select_cip_max_tries=100, quick_skip_orig_cip=False,
+                             improving_linear_start=.2, improving_threshold=.6)
 
             # get graphs and sample them
             r= list(r)

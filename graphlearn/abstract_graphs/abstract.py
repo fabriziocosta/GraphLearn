@@ -3,7 +3,7 @@ from eden.modifier.graph.structure import contraction
 import graphlearn.graph as graphtools
 from graphlearn.graph import Wrapper
 import random
-from graphlearn.graphlearn import GraphLearnSampler
+from graphlearn.graphlearn import Sampler
 from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 import logging
 logger = logging.getLogger(__name__)
@@ -17,9 +17,7 @@ import traceback
 '''
 1. tell the sampler to use new GraphManager
 '''
-
-
-class UberWrapper(Wrapper):
+class AbstractWrapper(Wrapper):
     '''
      since i should not repeat myself, i will just use as much as possible
      from the Graphmanager implementation.
@@ -256,7 +254,7 @@ def enhance_base_cip(base_cip, abstract_cip,mergeids,base_graph,hash_bitmask,mod
 
         # i want to see what they look like :)
         base_cip.abstract_view = abstract_cip.graph
-
+        base_cip.distance_dict= abstract_cip.distance_dict
         return base_cip
 
 

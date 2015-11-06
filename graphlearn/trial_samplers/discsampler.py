@@ -152,7 +152,7 @@ class DiscSampler():
         iter_pos, pos, pos_ = itertools.tee(iter_pos, 3)
         self.estimator = self.sampler.estimatorobject.fit_2(iter_pos, iter_neg, self.sampler.vectorizer)
         print 'got estimeetaaa'
-        self.sampler.local_substitutable_graph_grammar.fit(pos,n_jobs=-1,batch_size=8)
+        self.sampler.local_substitutable_graph_grammar.fit(pos, grammar_n_jobs=-1, grammar_batch_size=8)
         self.sampler.estimator = self.estimator
         print 'got grammar:grammar is there oO'
         #draw_grammar(self.sampler.local_substitutable_graph_grammar.grammar,n_productions=5)

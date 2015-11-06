@@ -74,15 +74,15 @@ def sample(graphs):
     graphs, graphs_ = itertools.tee(graphs)
     sampler.fit(graphs)
     return unpack(sampler.sample(graphs_,
-                        same_radius=False,
-                        max_core_size_diff=False,
-                        sampling_interval=9999,
-                        select_cip_max_tries=100,
-                        batch_size=30,
-                        n_steps=100,
-                        n_jobs=-1,
-                        improving_threshold=0.9
-                        ))
+                                 same_radius=False,
+                                 max_size_diff=False,
+                                 sampling_interval=9999,
+                                 select_cip_max_tries=100,
+                                 batch_size=30,
+                                 n_steps=100,
+                                 n_jobs=-1,
+                                 improving_threshold=0.9
+                                 ))
 
 # initializing
 graphs_pos= gspan_to_eden(path+'bursi.pos.gspan')

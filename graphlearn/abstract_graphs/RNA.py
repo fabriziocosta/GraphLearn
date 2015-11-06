@@ -1,27 +1,60 @@
-from ubergraphlearn import UberWrapper
+from abstract import AbstractWrapper
 import eden
 import networkx as nx
 import subprocess as sp
 import forgi
 import eden.converter.rna as converter
 from eden import path
-from sklearn.neighbors import LSHForest
+import sklearn
 import graphlearn.graph as graphtools
 import os
 import textwrap
+from graphlearn.graphlearn import Sampler
+import subprocess  as sp
+from graphlearn.utils import draw
+from graphlearn.processing import PreProcessor
+import eden.RNA
+import logging
+logger = logging.getLogger(__name__)
+from graphlearn.processing import PostProcessor
 
-class PreProcessor(object):
 
-    def __init__(self,base_thickness_list=[2]):
+'''
+check the EDENNN stuff down below...
+i am not ready yet to give up on the  free energy meassure for bad graphs
+'''
+
+
+class PostProcessor(PostProcessor):
+    def re_transform_single(self, input):
+        return self.pp.re_transform_single(input)
+
+
+
+
+class PreProcessor(PreProcessor):
+
+    def __init__(self,base_thickness_list=[2],structure_mod=True):
+        '''
+        Parameters
+        ----------
+        base_thickness_list thickness for base graph
+        structure_mod should we introduce the Fs
+
+        Returns
+        -------
+
+        '''
         self.base_thickness_list= base_thickness_list
+        self.structure_mod= structure_mod
 
     def fit(self, inputs,vectorizer):
         self.vectorizer=vectorizer
-        self.NNmodel=NearestNeighborFolding()
-        self.NNmodel.fit(inputs,4)
+        self.NNmodel=EdenNNF(NN=4)
+        self.NNmodel.fit(inputs)
         return self
 
-    def fit_transform(self,inputs,vectorizer):
+    def fit_transform(self,inputs):
         '''
         Parameters
         ----------
@@ -32,8 +65,8 @@ class PreProcessor(object):
         graphwrapper iterator
         '''
         inputs=list(inputs)
-
-        self.fit(inputs,vectorizer)
+        self.fit(inputs,self.vectorizer)
+        inputs = [b for a,b in inputs]
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
@@ -50,13 +83,15 @@ class PreProcessor(object):
         try:
             sequence = get_sequence(graph)
         except:
-            from graphlearn.utils import draw
-            print 'sequenceproblem:'
-            draw.graphlearn(graph, size=20)
+            logger.debug('sequenceproblem: this is not an rna')
+            #draw.graphlearn(graph, size=20)
             return None
 
         sequence= sequence.replace("F",'')
-        return self.transform([sequence])[0]
+        trans= self.transform([sequence])[0]
+        if trans._base_graph.graph['energy'] > -10:
+            return None
+        return trans
 
     def transform(self,sequences):
         """
@@ -71,21 +106,14 @@ class PreProcessor(object):
         """
         result=[]
         for sequence in sequences:
-            if type(sequence)==str:
-                structure = self.NNmodel.transform_single(sequence)
-                structure,sequence= fix_structure(structure,sequence)
+                structure,energy = self.NNmodel.transform_single(('fake',sequence))
+                if self.structure_mod:
+                    structure,sequence= fix_structure(structure,sequence)
                 base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
                 base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
                 base_graph = expanded_rna_graph_to_digraph(base_graph)
-
-
+                base_graph.graph['energy']=energy
                 result.append(RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list))
-
-
-
-            # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
-            else:
-                result.append(self.re_transform_single(sequence))
         return result
 
 
@@ -93,7 +121,7 @@ class PreProcessor(object):
 
 
 
-class RnaWrapper(UberWrapper):
+class RnaWrapper(AbstractWrapper):
 
 
     #def core_substitution(self, orig_cip_graph, new_cip_graph):
@@ -193,7 +221,6 @@ class RnaWrapper(UberWrapper):
 '''
 a few handy graph tools :)
 '''
-
 def get_sequence(digraph):
     if type(digraph)==str:
         return digraph
@@ -307,18 +334,24 @@ def is_rna (graph):
 
 
 
-'''
-looks for nearest neighbors of a sequence then does multiple alignment
-'''
+
 class NearestNeighborFolding(object):
+    '''
+    fit: many structures,  nn model will be build
+    transform: returns a structure  , nn are folded together
+    '''
 
 
-    def fit(self,sequencelist, n_neighbors):
-        self.n_neighbors=n_neighbors
+    def __init__(self,NN=4):
+        self.n_neighbors=NN
+
+    def fit(self,sequencelist):
         self.sequencelist = sequencelist
-        self.vectorizer=path.Vectorizer(nbits=10)
+        self.vectorizer=path.Vectorizer(nbits=8)
         X=self.vectorizer.transform(self.sequencelist)
-        self.neigh =LSHForest()
+        self.neigh =sklearn.neighbors.LSHForest()
+        #self.neigh =sklearn.neighbors.NearestNeighbors()
+
         self.neigh.fit(X)
         return self
 
@@ -340,24 +373,30 @@ class NearestNeighborFolding(object):
         seqs.append(sequence)
         filename ='./tmp/fold'+str(os.getpid())
         write_fasta(seqs,filename=filename)
-        return self.call_folder(filename=filename)
+        try:
+            r=self.call_folder(filename=filename)
+        except:
+            print sequence,seqs
+        return r
 
-    def call_folder(self,filename='NNTMP'):
-        out = sp.check_output('mlocarna %s | grep "HACK%d\|alifold"' % (filename, self.n_neighbors), shell=True)
-        out=out.split('\n')
-        seq=out[0].split()[1]
-        stru=out[1].split()[1]
-        stru=list(stru)
+    def call_folder(self,filename='NNTMP',id_of_interest=None):
+        if id_of_interest==None:
+            id_of_interest=self.n_neighbors
+        try:
+            out = sp.check_output('mlocarna %s | grep "HACK%d\|alifold"' % (filename, id_of_interest), shell=True)
+            out=out.split('\n')
+            seq=out[0].split()[1]
+            stru=out[1].split()[1]
+            stru=list(stru)
         #stru2=''.join(stru)
-
+        except:
+            print 'folding problem:',out,filename, id_of_interest
 
         # find  deletions
         ids=[]
         for i,c in enumerate(seq):
             if c=='-':
                 ids.append(i)
-
-
 
         # take care of deletions
 
@@ -380,10 +419,31 @@ class NearestNeighborFolding(object):
         return ''.join(stru)
 
 
+
+class EdenNNF(NearestNeighborFolding):
+
+    def fit(self,sequencelist):
+        self.eden_rna_vectorizer=eden.RNA.Vectorizer(n_neighbors=self.n_neighbors)
+        self.eden_rna_vectorizer.fit(sequencelist)
+
+        # after the initial thing: settting min enery high so we never do mfe
+        self.eden_rna_vectorizer.min_energy= 100
+        return self
+
+    def transform_single(self, sequence):
+        s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
+        head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh)
+        return stru,en
+
+
+
+
+
+
+
 '''
 default method if no nearest neighbor folding class is provided
 '''
-
 def callRNAshapes(sequence):
 
     cmd = 'RNAshapes %s' % sequence
@@ -446,17 +506,15 @@ def fix_structure( stru,stri ):
 '''
 Here we see stuff that we use for INFERNAL scores
 '''
-from graphlearn.graphlearn import GraphLearnSampler
-import subprocess  as sp
 
 
-class UberLearnSampler(GraphLearnSampler):
+class AbstractSampler(Sampler):
     def _sample_path_append(self, graph, force=False):
         self._sample_notes+=graph.sequence+"n"
         super(self.__class__,self)._sample_path_append(graph,force=force)
 
 
-def infernal_checker(sequence_list):
+def infernal_checker(sequence_list,cmfile='rf00005.cm'):
     '''
     :param sequences: a bunch of rna sequences
     :return: get evaluation from cmsearch
@@ -464,12 +522,12 @@ def infernal_checker(sequence_list):
     write_fasta(sequence_list,filename='temp.fa')
     sequence_list = [ s for s in sequence_list if is_sequence(s.replace('F',''))  ]
     #print sequence_list
-    return call_cm_search('temp.fa',len(sequence_list))
+    return call_cm_search(cmfile,'temp.fa',len(sequence_list))
 
 
 
 def is_sequence(seq):
-    nuc=["A","U","C","G"] #  :)
+    nuc=["A","U","C","G","N"] #  :)  some are N in the rfam fasta file.
     for e in seq:
         if e not in nuc:
             return False
@@ -489,9 +547,9 @@ def write_fasta(sequences,filename='asdasd'):
         f.write(fasta)
 
 
-def call_cm_search(filename, count):
+def call_cm_search(cmfile,filename, count):
 
-    out = sp.check_output('./cmsearch -g --noali --incT 0  rf00005.cm %s' % filename, shell=True)
+    out = sp.check_output('../cmsearch -g --noali --incT 0  %s %s' %(cmfile, filename), shell=True)
     # -g global
     # --noali, we dont want to see the alignment, score is enough
     # --incT 0 we want to see everything with score > 0
@@ -506,18 +564,3 @@ def call_cm_search(filename, count):
 
 
     return [ result.get(k,0) for k in range(count) ]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
