@@ -100,24 +100,22 @@ class RnaPreProcessor(PreProcessor):
         result=[]
         for sequence in sequences:
             if type(sequence)==str:
-                structure = self.NNmodel.transform_single(('FACE',sequence))
-
+                structure,energy = self.NNmodel.transform_single(('fake',sequence))
+                #print structure
                 if self.structure_mod:
                     structure,sequence= rna.fix_structure(structure,sequence)
-
                 base_graph = rna.converter.sequence_dotbracket_to_graph(seq_info=sequence, \
                                                                         seq_struct=structure)
-                abstract_graph=self.make_abstract.abstract(base_graph.copy())
 
+                abstract_graph=self.make_abstract.abstract(base_graph.copy())
                 base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
                 base_graph = rna.expanded_rna_graph_to_digraph(base_graph)
 
                 result.append(rna.RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,\
                                              abstract_graph=abstract_graph))
 
-
-
             # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
+            # needs some changing obviously
             else:
                 result.append(self.re_transform_single(sequence))
         return result

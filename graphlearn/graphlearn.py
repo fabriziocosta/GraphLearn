@@ -271,8 +271,7 @@ class Sampler(object):
         self.maxbacktrack=backtrack
 
         self.monitor = monitor
-        if monitor:
-            self.monitors=[]
+        self.monitors=[]
 
         self.proposal_probability = proposal_probability
 
