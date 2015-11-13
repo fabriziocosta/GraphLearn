@@ -190,7 +190,7 @@ class Sampler(object):
                backtrack=0,
 
 
-               omit_seed=True,
+               include_seed=False,
                keep_duplicates=False,
                monitor = False,
                generator_mode=False):
@@ -250,7 +250,7 @@ class Sampler(object):
             you can take one step back this many times.
             this is of questionable efficiency currently because we cant detecect
             the exact place where we went wrong.
-        omit_seed : bool
+        include_seed : bool
             dont collect the seed as sample
         keep_duplicates : bool
             metropolice compliance says that we should output duplicates. but otherwise duplicates
@@ -281,7 +281,7 @@ class Sampler(object):
             raise Exception('choose max one cip choice strategy')
 
         if n_samples:
-            self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1))
+            self.sampling_interval = int((n_steps - burnin) / (n_samples + include_seed - 1))
         else:
             self.sampling_interval = 9999
 
@@ -306,7 +306,7 @@ class Sampler(object):
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
         self.burnin = burnin
-        self.omit_seed = omit_seed
+        self.include_seed = include_seed
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
         self.score_core_choice = score_core_choice
@@ -461,7 +461,7 @@ class Sampler(object):
 
     def _sample_path_append(self, graphmanager, force=False):
 
-        step0 = (self.step == 0 and self.omit_seed is False)
+        step0 = (self.step == 0 and self.include_seed is False)
         normal = self.step % self.sampling_interval == 0 and self.step != 0 and self.step > self.burnin
 
         # conditions meet?
