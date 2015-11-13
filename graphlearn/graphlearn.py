@@ -352,8 +352,7 @@ class Sampler(object):
 
     def return_formatter(self,graphlist,mon):
         self.monitors.append(mon)
-
-            yield graphlist
+        yield graphlist
 
     def _argbuilder(self, problem_iter):
         # for multiprocessing  divide task into small multiprocessable bites
