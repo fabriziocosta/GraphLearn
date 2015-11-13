@@ -192,8 +192,7 @@ class Sampler(object):
 
                include_seed=False,
                keep_duplicates=False,
-               monitor = False,
-               generator_mode=False):
+               monitor = False):
 
         '''
 
@@ -258,14 +257,9 @@ class Sampler(object):
         monitor : bool
             enabling monitor accessible after  sampling. sampler.monitors will contain all the information
 
-        generator_mode : bool
-            the sampling will yield each of the n_samples,
-            otherwise there is only one graph in output that has the sampling_info which contains the path
-
         Returns
         -------
-        graphs,
-            depends on generator mode.
+        list of graphs
         '''
 
         self.maxbacktrack=backtrack
@@ -311,7 +305,6 @@ class Sampler(object):
         self.probabilistic_core_choice = probabilistic_core_choice
         self.score_core_choice = score_core_choice
 
-        self.generator_mode = generator_mode
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
         self.lsgg.preprocessing(n_jobs,
@@ -359,10 +352,7 @@ class Sampler(object):
 
     def return_formatter(self,graphlist,mon):
         self.monitors.append(mon)
-        if self.generator_mode:
-            for graph in graphlist:
-                yield graph
-        else:
+
             yield graphlist
 
     def _argbuilder(self, problem_iter):
