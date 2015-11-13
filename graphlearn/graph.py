@@ -128,6 +128,7 @@ class Wrapper(AbstractWrapper):
         # copy and  if digraph make graph
         graph=nx.Graph(self._base_graph)
         graph= self.vectorizer._revert_edge_to_vertex_transform(graph)
+        graph.graph['score']=self.__dict__.get("_score","?")
         return graph
 
     def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
