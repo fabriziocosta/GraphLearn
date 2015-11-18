@@ -782,8 +782,7 @@ class Sampler(object):
             # we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible
             # to extract at the desired radius/thicknes
-            cip = graphman.random_core_interface_pair( radius_list=self.radius_list, thickness_list=self.thickness_list,
-                                    hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check )
+            cip = self._get_original_cip(graphman)
             if not cip:
                 nocip += 1
                 continue
@@ -801,6 +800,22 @@ class Sampler(object):
             'select_cip_for_substitution failed because no suiting interface was found, \
             extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount))
 
+    def _get_original_cip(self,graphman):
+        '''
+
+        Parameters
+        ----------
+        graphman
+
+        Returns
+        -------
+            a random cip from graphman
+
+        USED ONLY IN SELECT_ORIGINAL_CIP
+
+        '''
+        return graphman.random_core_interface_pair( radius_list=self.radius_list, thickness_list=self.thickness_list,
+                    hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check )
 
 
     def _accept_original_cip(self, cip):
