@@ -22,9 +22,9 @@ class AbstractWrapper(Wrapper):
      since i should not repeat myself, i will just use as much as possible
      from the Graphmanager implementation.
     '''
-    def __str__(self):
+    #def __str__(self):
         #return 'Ubermanager: base_nodes: %d abstract_nodes: %d' % (len(self._base_graph),len(self._abstract_graph))
-        return '\n'.join (['%s:%s'% (str(k),v) for k,v in self.__dict__.items()]+[str(len(self._base_graph)),str(len(self._abstract_graph))])
+    #    return '\n'.join (['%s:%s'% (str(k),v) for k,v in self.__dict__.items()]+[str(len(self._base_graph)),str(len(self._abstract_graph))])
 
 
 

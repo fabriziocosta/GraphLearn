@@ -427,12 +427,17 @@ class EdenNNF(NearestNeighborFolding):
         self.eden_rna_vectorizer.fit(sequencelist)
 
         # after the initial thing: settting min enery high so we never do mfe
-        self.eden_rna_vectorizer.min_energy= 100
+        #self.eden_rna_vectorizer.min_energy= -10
         return self
 
     def transform_single(self, sequence):
         s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
         head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh)
+
+        stru= stru.replace("(())","....")
+        stru= stru.replace("(.)","...")
+        stru= stru.replace("(..)","....")
+
         return stru,en
 
 

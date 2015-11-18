@@ -391,6 +391,7 @@ class Sampler(object):
         self.sample_path = []
         accept_counter = 0
         self.step=0
+        self.monitorobject.tick(graph_manager,self.step)
         try:
             while self.step < self.n_steps:
                 self._sample_path_append(graph_manager)
@@ -408,7 +409,7 @@ class Sampler(object):
 
                 # save score
                 self._score_list_append(graph_manager)
-                self.monitorobject.tick(candidate_graph_manager,self.step)
+                self.monitorobject.tick(candidate_graph_manager,self.step+1)
                 self.step+=1
 
         except Exception as exc:

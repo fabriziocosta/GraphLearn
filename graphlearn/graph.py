@@ -91,6 +91,9 @@ class AbstractWrapper(object):
 
 class Wrapper(AbstractWrapper):
 
+    def __str__(self):
+        return "base_graph size: %s" % len(self._base_graph)
+
     def __init__(self,graph,vectorizer):
         self.vectorizer=vectorizer
         self._base_graph=graph
