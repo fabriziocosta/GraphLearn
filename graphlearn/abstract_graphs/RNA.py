@@ -47,7 +47,7 @@ class PreProcessor(PreProcessor):
 
     def fit(self, inputs, vectorizer):
         self.vectorizer = vectorizer
-        self.NNmodel = EdenNNF(NN=4)
+        self.NNmodel = EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
         return self
 

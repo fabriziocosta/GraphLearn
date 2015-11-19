@@ -402,7 +402,7 @@ def extract_cips_base(node,
             cores=[n for n,d in base_cip.graph.nodes(data=True) if 'interface' not in d]
             base_cip.interface_hash = eden.fast_hash_4(base_cip.interface_hash,
                                                    abstract_cip.interface_hash,
-                                                   get_mods(mod_dict,cores ), 0,
+                                                   get_mods(mod_dict,cores ), 1337,
                                                    hash_bitmask)
             base_cip.abstract_view = abstract_cip.graph
             cips.append(base_cip)
