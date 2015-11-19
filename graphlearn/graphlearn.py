@@ -190,10 +190,9 @@ class Sampler(object):
                backtrack=0,
 
 
-               omit_seed=True,
+               include_seed=False,
                keep_duplicates=False,
-               monitor = False,
-               generator_mode=False):
+               monitor = False):
 
         '''
 
@@ -250,7 +249,7 @@ class Sampler(object):
             you can take one step back this many times.
             this is of questionable efficiency currently because we cant detecect
             the exact place where we went wrong.
-        omit_seed : bool
+        include_seed : bool
             dont collect the seed as sample
         keep_duplicates : bool
             metropolice compliance says that we should output duplicates. but otherwise duplicates
@@ -258,14 +257,9 @@ class Sampler(object):
         monitor : bool
             enabling monitor accessible after  sampling. sampler.monitors will contain all the information
 
-        generator_mode : bool
-            the sampling will yield each of the n_samples,
-            otherwise there is only one graph in output that has the sampling_info which contains the path
-
         Returns
         -------
-        graphs,
-            depends on generator mode.
+        list of graphs
         '''
 
         self.maxbacktrack=backtrack
@@ -281,7 +275,7 @@ class Sampler(object):
             raise Exception('choose max one cip choice strategy')
 
         if n_samples:
-            self.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1))
+            self.sampling_interval = int((n_steps - burnin) / (n_samples + include_seed - 1))
         else:
             self.sampling_interval = 9999
 
@@ -306,12 +300,11 @@ class Sampler(object):
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
         self.burnin = burnin
-        self.omit_seed = omit_seed
+        self.include_seed = include_seed
         self.batch_size = batch_size
         self.probabilistic_core_choice = probabilistic_core_choice
         self.score_core_choice = score_core_choice
 
-        self.generator_mode = generator_mode
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
         self.lsgg.preprocessing(n_jobs,
@@ -359,11 +352,7 @@ class Sampler(object):
 
     def return_formatter(self,graphlist,mon):
         self.monitors.append(mon)
-        if self.generator_mode:
-            for graph in graphlist:
-                yield graph
-        else:
-            yield graphlist
+        yield graphlist
 
     def _argbuilder(self, problem_iter):
         # for multiprocessing  divide task into small multiprocessable bites
@@ -402,6 +391,7 @@ class Sampler(object):
         self.sample_path = []
         accept_counter = 0
         self.step=0
+        self.monitorobject.tick(graph_manager,self.step)
         try:
             while self.step < self.n_steps:
                 self._sample_path_append(graph_manager)
@@ -419,7 +409,7 @@ class Sampler(object):
 
                 # save score
                 self._score_list_append(graph_manager)
-                self.monitorobject.tick(candidate_graph_manager,self.step)
+                self.monitorobject.tick(candidate_graph_manager,self.step+1)
                 self.step+=1
 
         except Exception as exc:
@@ -461,7 +451,7 @@ class Sampler(object):
 
     def _sample_path_append(self, graphmanager, force=False):
 
-        step0 = (self.step == 0 and self.omit_seed is False)
+        step0 = (self.step == 0 and self.include_seed is False)
         normal = self.step % self.sampling_interval == 0 and self.step != 0 and self.step > self.burnin
 
         # conditions meet?
@@ -792,8 +782,7 @@ class Sampler(object):
             # we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible
             # to extract at the desired radius/thicknes
-            cip = graphman.random_core_interface_pair( radius_list=self.radius_list, thickness_list=self.thickness_list,
-                                    hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check )
+            cip = self._get_original_cip(graphman)
             if not cip:
                 nocip += 1
                 continue
@@ -811,6 +800,22 @@ class Sampler(object):
             'select_cip_for_substitution failed because no suiting interface was found, \
             extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount))
 
+    def _get_original_cip(self,graphman):
+        '''
+
+        Parameters
+        ----------
+        graphman
+
+        Returns
+        -------
+            a random cip from graphman
+
+        USED ONLY IN SELECT_ORIGINAL_CIP
+
+        '''
+        return graphman.random_core_interface_pair( radius_list=self.radius_list, thickness_list=self.thickness_list,
+                    hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check )
 
 
     def _accept_original_cip(self, cip):

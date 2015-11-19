@@ -30,7 +30,7 @@ class PostProcessor(PostProcessor):
 
 class PreProcessor(PreProcessor):
 
-    def __init__(self, base_thickness_list=[2], structure_mod=True):
+    def __init__(self,base_thickness_list=[2],structure_mod=True,include_base=False):
         '''
         Parameters
         ----------
@@ -41,8 +41,9 @@ class PreProcessor(PreProcessor):
         -------
 
         '''
-        self.base_thickness_list = base_thickness_list
-        self.structure_mod = structure_mod
+        self.base_thickness_list= base_thickness_list
+        self.structure_mod= structure_mod
+        self.include_base=include_base
 
     def fit(self, inputs, vectorizer):
         self.vectorizer = vectorizer
@@ -102,18 +103,16 @@ class PreProcessor(PreProcessor):
         """
         result = []
         for sequence in sequences:
-            structure, energy = self.NNmodel.transform_single(('fake', sequence))
-            if self.structure_mod:
-                structure, sequence = fix_structure(structure, sequence)
-            base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
-            base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
-            base_graph = expanded_rna_graph_to_digraph(base_graph)
-            base_graph.graph['energy'] = energy
-            result.append(RnaWrapper(sequence,
-                                     structure,
-                                     base_graph,
-                                     self.vectorizer,
-                                     self.base_thickness_list))
+                structure,energy = self.NNmodel.transform_single(('fake',sequence))
+                if self.structure_mod:
+                    structure,sequence= fix_structure(structure,sequence)
+                base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
+                base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
+                base_graph = expanded_rna_graph_to_digraph(base_graph)
+                base_graph.graph['energy']=energy
+                result.append(
+                    RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,include_base=self.include_base)
+                    )
         return result
 
 
@@ -147,20 +146,20 @@ class RnaWrapper(AbstractWrapper):
 
         return self._abstract_graph
 
-    def __init__(self,
-                 sequence,
-                 structure,
-                 base_graph,
-                 vectorizer=eden.graph.Vectorizer(),
-                 base_thickness_list=None,
-                 abstract_graph=None):
 
-        self.some_thickness_list = base_thickness_list
-        self.vectorizer = vectorizer
-        self._abstract_graph = abstract_graph
-        self._base_graph = base_graph
-        self.sequence = sequence
-        self.structure = structure
+
+    def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,\
+                 abstract_graph=None,include_base=False):
+
+
+        self.some_thickness_list=base_thickness_list
+        self.vectorizer=vectorizer
+        self._abstract_graph= abstract_graph
+        self._base_graph= base_graph
+        self.sequence=sequence
+        self.structure=structure
+        self.include_base=include_base
+
 
         # self._base_graph = converter.sequence_dotbracket_to_graph(
         #                                      seq_info=self.sequence, seq_struct=self.structure)
@@ -415,13 +414,18 @@ class EdenNNF(NearestNeighborFolding):
         self.eden_rna_vectorizer.fit(sequencelist)
 
         # after the initial thing: settting min enery high so we never do mfe
-        self.eden_rna_vectorizer.min_energy = 100
+        #self.eden_rna_vectorizer.min_energy= -10
         return self
 
     def transform_single(self, sequence):
-        s, neigh = self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
-        head, seq, stru, en = self.eden_rna_vectorizer._align_sequence_structure(s, neigh)
-        return stru, en
+        s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
+        head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh)
+
+        stru= stru.replace("(())","....")
+        stru= stru.replace("(.)","...")
+        stru= stru.replace("(..)","....")
+
+        return stru,en
 
 
 '''
@@ -500,15 +504,15 @@ class AbstractSampler(Sampler):
         super(self.__class__, self)._sample_path_append(graph, force=force)
 
 
-def infernal_checker(sequence_list, cmfile='rf00005.cm'):
+def infernal_checker(sequence_list,cmfile='rf00005.cm', cmsearchbinarypath='../toolsdata/cmsearch'):
     '''
     :param sequences: a bunch of rna sequences
     :return: get evaluation from cmsearch
     '''
-    write_fasta(sequence_list, filename='temp.fa')
-    sequence_list = [s for s in sequence_list if is_sequence(s.replace('F', ''))]
-    # print sequence_list
-    return call_cm_search(cmfile, 'temp.fa', len(sequence_list))
+    write_fasta(sequence_list,filename='temp.fa')
+    sequence_list = [ s for s in sequence_list if is_sequence(s.replace('F',''))  ]
+    #print sequence_list
+    return call_cm_search(cmfile,'temp.fa',len(sequence_list),cmsearchbinarypath)
 
 
 def is_sequence(seq):
@@ -532,9 +536,9 @@ def write_fasta(sequences, filename='asdasd'):
         f.write(fasta)
 
 
-def call_cm_search(cmfile, filename, count):
+def call_cm_search(cmfile,filename, count,cmsearchbinpath):
 
-    out = sp.check_output('cmsearch -g --noali --incT 0  %s %s' % (cmfile, filename), shell=True)
+    out = sp.check_output('%s -g --noali --incT 0  %s %s' %(cmsearchbinpath,cmfile, filename), shell=True)
     # -g global
     # --noali, we dont want to see the alignment, score is enough
     # --incT 0 we want to see everything with score > 0

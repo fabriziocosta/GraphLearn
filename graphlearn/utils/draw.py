@@ -194,15 +194,14 @@ def graphlearn(graphs,
                     vertex_label='label',
                     edge_label=None,
                     edge_alpha=.5,
-                    **args):
 
+                    **args):
     if isinstance(graphs, nx.Graph):
         graphs = [graphs]
 
     graphs = copy.deepcopy(graphs)
 
     for graph in graphs:
-
         if show_direction:
             contract = False
 
@@ -222,7 +221,7 @@ def graphlearn(graphs,
                 else:
                     d['color']='gray'
 
-        if vertex_label == 'id':
+        if vertex_label == 'id' or args.get("secondary_vertex_label","no")== 'id':
             set_ids(graph)
 
 
