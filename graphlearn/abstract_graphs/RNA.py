@@ -34,7 +34,7 @@ class PostProcessor(PostProcessor):
 
 class PreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2],structure_mod=True):
+    def __init__(self,base_thickness_list=[2],structure_mod=True,include_base=False):
         '''
         Parameters
         ----------
@@ -47,6 +47,7 @@ class PreProcessor(PreProcessor):
         '''
         self.base_thickness_list= base_thickness_list
         self.structure_mod= structure_mod
+        self.include_base=include_base
 
     def fit(self, inputs,vectorizer):
         self.vectorizer=vectorizer
@@ -113,9 +114,10 @@ class PreProcessor(PreProcessor):
                 base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
                 base_graph = expanded_rna_graph_to_digraph(base_graph)
                 base_graph.graph['energy']=energy
-                result.append(RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list))
+                result.append(
+                    RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,include_base=self.include_base)
+                    )
         return result
-
 
 
 
@@ -156,7 +158,7 @@ class RnaWrapper(AbstractWrapper):
 
 
     def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,\
-                 abstract_graph=None):
+                 abstract_graph=None,include_base=False):
 
 
         self.some_thickness_list=base_thickness_list
@@ -165,6 +167,8 @@ class RnaWrapper(AbstractWrapper):
         self._base_graph= base_graph
         self.sequence=sequence
         self.structure=structure
+        self.include_base=include_base
+
 
         #self._base_graph = converter.sequence_dotbracket_to_graph(seq_info=self.sequence, seq_struct=self.structure)
         #self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)

@@ -109,8 +109,8 @@ class AbstractWrapper(Wrapper):
         if self.include_base == False:
             raise Exception("impossible oOoo")
         node = random.choice(self.base_graph().nodes())
-        if 'edge' in self._abstract_graph.node[node]:
-            node = random.choice(self._abstract_graph.neighbors(node))
+        if 'edge' in self._base_graph.node[node]:
+            node = random.choice(self._base_graph.neighbors(node))
             # random radius and thickness
         args['radius_list'] = [random.choice(radius_list)]
         args['thickness_list'] = [random.choice(thickness_list)]
