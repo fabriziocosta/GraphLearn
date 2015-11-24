@@ -194,7 +194,6 @@ def graphlearn(graphs,
                     vertex_label='label',
                     edge_label=None,
                     edge_alpha=.5,
-
                     **args):
     if isinstance(graphs, nx.Graph):
         graphs = [graphs]
@@ -224,7 +223,6 @@ def graphlearn(graphs,
         if vertex_label == 'id' or args.get("secondary_vertex_label","no")== 'id':
             set_ids(graph)
 
-
     if vertex_color is None:
         vertex_color = 'col'
 
@@ -233,10 +231,12 @@ def graphlearn(graphs,
         edge_alpha = 1.0
 
     if contract:
-        tmp=[]
-        for graph in graphs:
-            tmp.append(  contract_edges(graph) )
-        graphs=tmp
+        #tmp=[]
+        #for graph in graphs:
+        #    tmp.append(  contract_edges(graph) )
+        #graphs=tmp
+        print 'contracting'
+        graphs= [contract_edges(g) for g in graphs]
 
 
     draw_graph_set(graphs,
@@ -366,23 +366,29 @@ def contract_edges(original_graph):
         i still want to see them :)
     """
     # start from 0a copy of the original graph
-    graph = nx.Graph(original_graph)
+    #graph = nx.Graph(original_graph)
+    graph=original_graph.copy()
     # re-wire the endpoints of edge-vertices
     for n, d in original_graph.nodes_iter(data=True):
         if d.get('edge', False) is True:
             # extract the endpoints
+
+
             endpoints = [u for u in original_graph.neighbors(n)]
-            # assert (len(endpoints) == 2), 'ERROR: more than 2 endpoints'
-            if len(endpoints) != 2:
-                continue
-            u = endpoints[0]
-            v = endpoints[1]
+            if len(endpoints)==2:
+                u = endpoints[0]
+                v = endpoints[1]
+            if len(endpoints)==1: # support for digraph
+                u=endpoints[0]
+                v=original_graph.predecessors(n)[0]
+            else:
+                print "SOMETHING IS WRONG IN CONTRACT EDGES"
+
             # add the corresponding edge
             nd={}
             nd.update(d)
             nd.update( original_graph[n][u] )
-            graph.add_edge(u, v, nd)
-
+            graph.add_edge(v, u, nd)
             # remove the edge-vertex
             graph.remove_node(n)
         if d.get('node', False) is True:
