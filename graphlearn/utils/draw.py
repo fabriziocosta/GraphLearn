@@ -235,7 +235,6 @@ def graphlearn(graphs,
         #for graph in graphs:
         #    tmp.append(  contract_edges(graph) )
         #graphs=tmp
-        print 'contracting'
         graphs= [contract_edges(g) for g in graphs]
 
 
@@ -378,10 +377,11 @@ def contract_edges(original_graph):
             if len(endpoints)==2:
                 u = endpoints[0]
                 v = endpoints[1]
-            if len(endpoints)==1: # support for digraph
+            elif len(endpoints)==1: # support for digraph
                 u=endpoints[0]
                 v=original_graph.predecessors(n)[0]
             else:
+                print len(endpoints)
                 print "SOMETHING IS WRONG IN CONTRACT EDGES"
 
             # add the corresponding edge
