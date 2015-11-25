@@ -25,6 +25,11 @@ class Monitor(object):
         this allows us to conveniently accessing the list of dictionary
         '''
         return self.content[key]
+    def __len__(self):
+        '''
+        python builtin len
+        '''
+        return len(self.content)
 
 
     def __init__(self,active):

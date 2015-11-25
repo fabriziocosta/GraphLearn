@@ -68,12 +68,16 @@ def easy_get_new_graphs(graphwrap,sampler):
     res=[]
     graphwrap.clean()
     res= [sampler._propose(graphwrap) for i in range(8)]
+
+    for i,gw in enumerate(res):
+        gw._base_graph.graph['info'] = str(i)
     #for i in range(8):
     #    gr2=      nx.Graph(gr)
     #    cip =     sampler.select_original_cip(gr2)
     #    newcip =  sampler._select_cips(cip).next()
     #    newgr=    graphtools.core_substitution(gr2, cip.graph, newcip.graph)
     #    res.append(newgr)
+
     return res
 
 
@@ -90,13 +94,17 @@ def getargz(sampler):
 def get_cips(graphman,sampler,root,d):
     cips = graphman.rooted_core_interface_pairs(root,**d)
     res=[]
+    counter=0
     for cip in cips:
         if cip.interface_hash in sampler.lsgg.productions:
             new_cips=sampler.lsgg.productions[cip.interface_hash].values()
             for nc in new_cips:
                 # save the original_cip_graph for replacement later
                 nc.orig=cip.graph
+                nc.graph.graph['info']=str(counter)
+                counter+=1
             res+=new_cips
+
     return res
 
 
