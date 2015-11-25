@@ -298,6 +298,7 @@ def draw_grammar(grammar,
                  n_graphs_per_production=10,
                  size=4,
                  abstract_interface=False,
+                 title_key='frequency',
                  **args):
 
     if abstract_interface:
@@ -330,7 +331,7 @@ def draw_grammar(grammar,
         # dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) \
         # if i < 5]
         print('interface id: %s [%d options]' % (interface, len(grammar[interface])))
-        freq = lambda graph: graph.graph.get('frequency', 'no freqency data')
+
 
         # uebersampler gets to do this because he is the uebersampler
         if abstract_interface:
@@ -340,15 +341,9 @@ def draw_grammar(grammar,
         graphlearn(graphs,
                         n_graphs_per_line=n_graphs_per_line,
                         size=size,
-                        headlinehook=freq,
+                        title_key=title_key,
                         **args)
 
-
-def get_score_of_graph(graph):
-    return "%s%s" % (' score: ', str(graph.graph.get('score', '?')))
-
-def get_energy_of_graph(graph):
-    return "%s%s" % (' score: ', str(graph.graph.get('energy', '?')))
 
 
 def remove_colors(g, key='col'):
@@ -391,10 +386,11 @@ def contract_edges(original_graph):
             graph.add_edge(v, u, nd)
             # remove the edge-vertex
             graph.remove_node(n)
+
         if d.get('node', False) is True:
             # remove stale information
             graph.node[n].pop('remote_neighbours', None)
-    return graph
+    return nx.Graph(graph)
 
 
 def draw_learning_curve(data_first=None,
