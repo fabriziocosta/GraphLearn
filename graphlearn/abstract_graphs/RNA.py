@@ -387,7 +387,6 @@ class NearestNeighborFolding(object):
                 ids.append(i)
 
         # take care of deletions
-
         # remove brackets that dont have a partner anymore
         pairdict = _pairs(stru)
         for i in ids:
@@ -419,12 +418,7 @@ class EdenNNF(NearestNeighborFolding):
 
     def transform_single(self, sequence):
         s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
-        head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh)
-
-        stru= stru.replace("(())","....")
-        stru= stru.replace("(.)","...")
-        stru= stru.replace("(..)","....")
-
+        head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh,structure_deletions=True)
         return stru,en
 
 
