@@ -178,7 +178,7 @@ def draw_center(graph, root_node, radius, **args):
 
 def set_ids(graph):
     for n, d in graph.nodes_iter(data=True):
-        d['id'] = str(n)
+        d['id_LABEL'] = str(n)
 
 
 def graphlearn(graphs,
@@ -222,6 +222,12 @@ def graphlearn(graphs,
 
         if vertex_label == 'id' or args.get("secondary_vertex_label","no")== 'id':
             set_ids(graph)
+            # now we need to change the attribute
+            # because there is a label collission in json graph saving
+            if vertex_label == 'id':
+                vertex_label='id_LABEL'
+            if args.get("secondary_vertex_label","no")== 'id':
+                args["secondary_vertex_label"]='id_LABEL'
 
     if vertex_color is None:
         vertex_color = 'col'
