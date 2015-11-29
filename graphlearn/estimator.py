@@ -105,11 +105,13 @@ class Wrapper:
 
         return estimator
 
-    def score(self,graphmanager):
+    def score(self,graphmanager,keep_vector=False):
 
         transformed_graph = self.vectorizer.transform_single(self.unwrap(graphmanager))
         # slow so dont do it..
         # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
+        if keep_vector:
+            graphmanager.transformed_vector=transformed_graph
         return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
 
 

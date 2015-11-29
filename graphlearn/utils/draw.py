@@ -326,6 +326,8 @@ def draw_grammar(grammar,
 
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True)
         graphs = [cip.graph for count, cip in most_frequent_cips]
+        #graphs =[cip.abstract_view for count, cip in most_frequent_cips]
+
 
         graphs = graphs[:n_graphs_per_production]
         # dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) \

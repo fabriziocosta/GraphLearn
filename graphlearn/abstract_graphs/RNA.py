@@ -86,8 +86,8 @@ class PreProcessor(PreProcessor):
 
         sequence = sequence.replace("F", '')
         trans = self.transform([sequence])[0]
-        if trans._base_graph.graph['energy'] > -10:
-            return None
+        #if trans._base_graph.graph['energy'] > -10:
+        #    return None
         return trans
 
     def transform(self, sequences):
@@ -104,6 +104,9 @@ class PreProcessor(PreProcessor):
         result = []
         for sequence in sequences:
                 structure,energy = self.NNmodel.transform_single(('fake',sequence))
+                if structure==None:
+                    result.append(None)
+                    continue
                 if self.structure_mod:
                     structure,sequence= fix_structure(structure,sequence)
                 base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
@@ -148,7 +151,7 @@ class RnaWrapper(AbstractWrapper):
 
 
 
-    def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,\
+    def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,
                  abstract_graph=None,include_base=False):
 
 
@@ -419,7 +422,77 @@ class EdenNNF(NearestNeighborFolding):
     def transform_single(self, sequence):
         s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
         head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh,structure_deletions=True)
+        #stru = self._clean_structure(seq,stru) # this is a way to limit the deleted bracket count, idea does not work well
         return stru,en
+
+    def _clean_structure(self, seq, stru):
+        '''
+        Parameters
+        ----------
+        seq : basestring
+            rna sequence
+        stru : basestring
+            dotbracket string
+        Returns
+        -------
+        the structure given may not respect deletions in the sequence.
+        we transform the structure to one that does
+        '''
+        DELETED_BRACKETS=0
+
+        # find  deletions in sequence
+        ids = []
+        for i, c in enumerate(seq):
+            if c == '-':
+                ids.append(i)
+        # remove brackets that dont have a partner anymore
+        stru = list(stru)
+        pairdict = self._pairs(stru)
+        for i in ids:
+            stru[pairdict[i]] = '.'
+            DELETED_BRACKETS+=1
+        # delete deletions in structure
+        ids.reverse()
+        for i in ids:
+            del stru[i]
+        stru = ''.join(stru)
+
+
+
+        if "(())" in stru:
+            DELETED_BRACKETS+=4
+        if "(..)" in stru:
+            DELETED_BRACKETS+=2
+        if "(.)" in stru:
+            DELETED_BRACKETS+=2
+        # removing obvious mistakes
+        stru = stru.replace("(())", "....")
+        stru = stru.replace("(.)", "...")
+        stru = stru.replace("(..)", "....")
+
+        if DELETED_BRACKETS > 4:
+            return None
+        return stru
+
+    def _pairs(self, struct):
+        '''
+        Parameters
+        ----------
+        struct : basestring
+        Returns
+        -------
+        dictionary of ids in the struct, that are bond pairs
+        '''
+        unpaired = []
+        pairs = {}
+        for i, c in enumerate(struct):
+            if c == '(':
+                unpaired.append(i)
+            if c == ')':
+                partner = unpaired.pop()
+                pairs[i] = partner
+                pairs[partner] = i
+        return pairs
 
 
 '''
