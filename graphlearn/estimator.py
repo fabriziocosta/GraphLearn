@@ -32,6 +32,7 @@ class Wrapper:
         # convert to sklearn compatible format
         data_matrix = vectorizer.fit_transform(self.mass_unwrap(graphmanagers))
 
+
         # fit
         self.estimator = self.fit_estimator(data_matrix, n_jobs=self.n_jobs, cv=self.cv, random_state=random_state)
 

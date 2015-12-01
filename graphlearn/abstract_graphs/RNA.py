@@ -212,6 +212,83 @@ class RnaWrapper(AbstractWrapper):
         return ciplist
 
 
+    def graph(self, nested=True,fcorrect=False):
+        '''
+        does what graph in abstract does but removes F-ndoes
+        '''
+        g= nx.disjoint_union(self._base_graph, self.abstract_graph())
+        node_id= len(g)
+        delset=[]
+        if nested:
+            for n,d in g.nodes(data=True):
+                if 'contracted' in d and 'edge' not in d:
+                    for e in d['contracted']:
+                        if 'edge' not in g.node[e] and not(g.node[e]['label']=='F' and fcorrect): # think about this
+
+                            # we want an edge from n to e
+                            g.add_node(node_id,edge=True,label='e')
+                            g.add_edge( n, node_id, nesting=True)
+                            g.add_edge( node_id, e, nesting=True)
+                            #g.add_edge( n, e, nesting=True)
+                            node_id+=1
+
+        if fcorrect:
+            for n,d in g.nodes(data=True):
+                if d['label']=="F":
+                    down=self.nextnode(g,n)
+                    up=self.nextnode(g,n,down_direction=False)
+                    delset.append( (n,down,up) )
+
+            for r,d,u in delset:
+
+                    #print g.node[d[0]]
+                    # we copy the label of the adjacent edge to r
+                    g.node[r]=g.node[d[0]].copy()
+                    #print g.node[r]
+
+                    #g.node[r]={"label":'-','edge':True}
+                    #delete neighbors
+                    g.remove_nodes_from([d[0],u[0]])
+
+                    #rewire neighbors of neighbors
+                    g.add_edge(r,d[1])
+                    g.add_edge(u[1],r)
+                    #print r,d,u
+
+
+
+        return g
+
+    def nextnode(self,g,n,down_direction=True):
+        '''
+        goto the nextnext node in a direction
+        '''
+        if down_direction:
+            f=g.successors
+        else:
+            f=g.predecessors
+        next=f(n)[0]
+        return next,f(next)[0]
+
+        '''
+        f=g.neighbors
+        # immediate
+        next=f(n)
+        #next
+        nn_list=[]
+        # for every neighbor
+        for neigh in next:
+            # check the neighbors neighbor
+            for nn in f(neigh):
+                # if it is the root we dont care, otherweise save
+                if nn != n:
+                    nn_list.append(nn)
+
+
+        return n,next,nn_list
+        '''
+
+
 '''
 a few handy graph tools :)
 '''
