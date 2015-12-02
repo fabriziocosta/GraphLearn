@@ -7,7 +7,7 @@ from graphlearn.utils import draw
 class RnaPreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2], kmeans_clusters=2,structure_mod=True):
-        self.base_thickness_list= base_thickness_list
+        self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
         self.kmeans_clusters=kmeans_clusters
         self.structure_mod=structure_mod
 

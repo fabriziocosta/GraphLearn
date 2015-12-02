@@ -41,7 +41,7 @@ class PreProcessor(PreProcessor):
         -------
 
         '''
-        self.base_thickness_list= base_thickness_list
+        self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
         self.structure_mod= structure_mod
         self.include_base=include_base
 
