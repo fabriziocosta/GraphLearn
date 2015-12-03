@@ -312,7 +312,6 @@ class RnaWrapper(AbstractWrapper):
 a few handy graph tools :)
 '''
 
-
 def get_sequence(digraph):
     if type(digraph) == str:
         return digraph
@@ -408,8 +407,6 @@ def expanded_rna_graph_to_digraph(graph):
 '''
 rna feasibility checker
 '''
-
-
 def is_rna(graph):
     graph = graph.copy()
     # remove structure

@@ -103,6 +103,9 @@ def forgi_to_graph(forgi, ignore_inserts=False):
                     merger=merged[merger]
                 merge(g,s1,merger)
                 merged[merger]=s1
+            # remove resulting self-loops
+            if s1 in g[s1]:
+                g.remove_edge(s1,s1)
     return g
 
 def merge(graph, node, node2):
