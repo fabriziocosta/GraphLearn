@@ -6,25 +6,67 @@ import networkx as nx
 import eden.modifier.rna.lib_forgi as lib_forgi
 
 def get_abstr_graph(struct, ignore_inserts=False):
-    # get forgi string
+    '''
+
+    Parameters
+    ----------
+    struct: basestring
+        dot-bracket string
+    ignore_inserts: bool
+        internal loops are ignored
+
+    Returns
+    -------
+        abstract graph   with "label" and "contracton" for each node.
+        graph is not expanded
+    '''
+
     bg = lib_forgi.BulgeGraph()
     bg.from_dotbracket(struct, None)
     forgi = bg.to_bg_string()
-
     g=make_abstract_graph(forgi, ignore_inserts)
     return g
 
 
 def make_abstract_graph(forgi, ignore_inserts=False):
+    '''
+
+    Parameters
+    ----------
+    forgi: string
+        output of forgiobject,to_bg_string()
+    ignore_inserts : bool
+        ignore internal loops
+
+    Returns
+    -------
+        nx.graph
+    '''
     g=forgi_to_graph(forgi, ignore_inserts)
     connect_multiloop(g)
     return g
 
 
 def forgi_to_graph(forgi, ignore_inserts=False):
+    '''
+
+    Parameters
+    ----------
+    forgi: forgi string
+    ignore_inserts: iignore internal loops
+
+    Returns
+    -------
+        nx.graph
+    '''
     def make_node_set(numbers):
         '''
-        forgi gives me stuff like define STEM START,END,START,END .. we take indices and output a list
+        numbers: list of string
+            forgi gives me stuff like """define STEM START,END,START,END"""
+
+        Resturns
+        --------
+            list of int
         '''
         numbers=map(int,numbers)
         ans=set()
@@ -37,6 +79,7 @@ def forgi_to_graph(forgi, ignore_inserts=False):
 
     def get_pairs(things):
         '''
+        ???????
         '''
         current=[]
         for thing in things:
