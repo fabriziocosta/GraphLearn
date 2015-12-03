@@ -30,7 +30,25 @@ class PostProcessor(PostProcessor):
 
 class PreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2],structure_mod=True,include_base=False):
+    def __init__(self,base_thickness_list=[2],structure_mod=True,include_base=False,ignore_inserts=False):
+        '''
+
+        Parameters
+        ----------
+        base_thickness_list: list of int
+            thickness list for the base graph
+        structure_mod : bool
+            should we introduce "F" nodes to keep multiloop flexible regarding substitution
+        include_base : base
+            if asked for all cips, i will also yield   "normal" cips (whose core is not radius of abstract, but radius of base graph)
+        ignore_inserts:
+            bolges will be ignored and merged to their adjacend stems
+
+        Returns
+        -------
+
+        '''
+
         '''
         Parameters
         ----------
@@ -41,6 +59,7 @@ class PreProcessor(PreProcessor):
         -------
 
         '''
+        self.ignore_inserts=ignore_inserts
         self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
         self.structure_mod= structure_mod
         self.include_base=include_base
@@ -114,7 +133,7 @@ class PreProcessor(PreProcessor):
                 base_graph = expanded_rna_graph_to_digraph(base_graph)
                 base_graph.graph['energy']=energy
                 result.append(
-                    RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,include_base=self.include_base)
+                    RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,include_base=self.include_base, ignore_inserts=self.ignore_inserts)
                     )
         return result
 
@@ -132,7 +151,7 @@ class RnaWrapper(AbstractWrapper):
         if self._abstract_graph is None:
 
             # create the abstract graph and populate the contracted set
-            abstract_graph = forgi.get_abstr_graph(self.structure)
+            abstract_graph = forgi.get_abstr_graph(self.structure,ignore_inserts=self.ignore_inserts)
             abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
             self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph)
 
@@ -152,9 +171,9 @@ class RnaWrapper(AbstractWrapper):
 
 
     def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,
-                 abstract_graph=None,include_base=False):
+                 abstract_graph=None,include_base=False,ignore_inserts=False):
 
-
+        self.ignore_inserts=ignore_inserts
         self.some_thickness_list=base_thickness_list
         self.vectorizer=vectorizer
         self._abstract_graph= abstract_graph
