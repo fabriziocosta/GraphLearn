@@ -48,17 +48,6 @@ class PreProcessor(PreProcessor):
         -------
 
         '''
-
-        '''
-        Parameters
-        ----------
-        base_thickness_list thickness for base graph
-        structure_mod should we introduce the Fs
-
-        Returns
-        -------
-
-        '''
         self.ignore_inserts=ignore_inserts
         self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
         self.structure_mod= structure_mod
