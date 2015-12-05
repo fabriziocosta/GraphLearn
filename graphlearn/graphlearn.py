@@ -497,6 +497,8 @@ class Sampler(object):
         self._score(graphman)
         self._sample_notes = ''
         self._sample_path_score_set = set()
+        if self.include_seed==False: # make sure that seed never appears,, may happen if there is nothing happening
+            self._sample_path_score_set.add(graphman._score)
 
 
         #print 'sample init:',graphman
