@@ -220,6 +220,11 @@ class RnaWrapper(AbstractWrapper):
         return ciplist
 
 
+    def out(self):
+        # copy and  if digraph make graph
+        sequence=get_sequence(self.base_graph())
+        return ('',sequence.replace("F",""))
+
     def graph(self, nested=True,fcorrect=False):
         '''
         does what graph in abstract does but removes F-ndoes

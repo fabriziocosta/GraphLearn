@@ -500,7 +500,6 @@ class Sampler(object):
         if self.include_seed==False: # make sure that seed never appears,, may happen if there is nothing happening
             self._sample_path_score_set.add(graphman._score)
 
-
         #print 'sample init:',graphman
         #draw.graphlearn_draw(graphman.graph())
 
