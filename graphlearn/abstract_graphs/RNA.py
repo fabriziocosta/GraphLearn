@@ -225,11 +225,13 @@ class RnaWrapper(AbstractWrapper):
         sequence=get_sequence(self.base_graph())
         return ('',sequence.replace("F",""))
 
-    def graph(self, nested=True,fcorrect=False):
+    def graph(self, nested=True,fcorrect=False,base_only=False):
         '''
-        does what graph in abstract does but removes F-ndoes
+
         '''
         g= nx.disjoint_union(self._base_graph, self.abstract_graph())
+        if base_only:
+            g=self.base_graph().copy()
         node_id= len(g)
         delset=[]
         if nested:
@@ -507,8 +509,8 @@ class EdenNNF(NearestNeighborFolding):
         return self
 
     def transform_single(self, sequence):
-        s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
-        head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh,structure_deletions=True)
+        s,neigh = self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
+        head,seq,stru,en = self.eden_rna_vectorizer._align_sequence_structure(s,neigh,structure_deletions=True)
         #stru = self._clean_structure(seq,stru) # this is a way to limit the deleted bracket count, idea does not work well
         return stru,en
 

@@ -16,12 +16,12 @@ class Wrapper:
     and then you score() graphmanagers or graphs
     '''
 
-    def __init__(self, nu=.5, cv=2, n_jobs=-1):
+    def __init__(self, nu=.5, cv=2, n_jobs=-1,calibrate=True):
         self.status='new'
         self.nu=nu
         self.cv=cv
         self.n_jobs=n_jobs
-
+        self.calibrate=calibrate
 
     def fit(self, graphmanagers, vectorizer=None, random_state=None):
         self.vectorizer=vectorizer
@@ -99,10 +99,11 @@ class Wrapper:
         estimator.intercept_ -= l[element][0]
 
         # calibrate
-        data_matrix_binary = vstack([a[1] for a in l])
-        data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
-        estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
-        estimator.fit(data_matrix_binary, data_y)
+        if self.calibrate:
+            data_matrix_binary = vstack([a[1] for a in l])
+            data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
+            estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
+            estimator.fit(data_matrix_binary, data_y)
 
         return estimator
 
@@ -113,8 +114,9 @@ class Wrapper:
         # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
         if keep_vector:
             graphmanager.transformed_vector=transformed_graph
-        return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
-
+        if self.calibrate:
+            return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
+        self.cal_estimator.decision_function(transformed_graph)[0]
 
     '''
     unwrappers do:
