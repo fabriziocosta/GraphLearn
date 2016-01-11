@@ -17,8 +17,12 @@ from graphlearn.processing import PostProcessor
 
 
 '''
-check the EDENNN stuff down below...
-i am not ready yet to give up on the  free energy meassure for bad graphs
+contains:
+sampler that saves sequences
+preprocessor with knn models for refolding
+postprocessor which may be redundant
+rna_wrapper
+tools to call the infernal/cmsearch
 '''
 
 

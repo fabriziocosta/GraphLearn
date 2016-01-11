@@ -1,9 +1,18 @@
 import RNA as rna
 from graphlearn.processing import PreProcessor
-from graphlearn.abstract_graphs.learned_molecules import PreProcessor as default_preprocessor
+from graphlearn.abstract_graphs.learned import PreProcessor as default_preprocessor
 from graphlearn.utils import draw
 import logging
 logger = logging.getLogger(__name__)
+
+
+
+'''
+file contains: preprocessor
+
+we try to learn an abstraction for RNA.
+see learned.py
+'''
 
 class RnaPreProcessor(PreProcessor):
 

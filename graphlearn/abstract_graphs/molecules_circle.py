@@ -6,6 +6,13 @@ from graphlearn.processing import PreProcessor
 import networkx as nx
 import graphlearn.utils.draw as draw
 
+
+
+'''
+contains: a preprocessor that can produce wrappped graphs.
+            there is also a molecular wrapper.
+'''
+
 class PreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2]):
@@ -97,53 +104,6 @@ class MolecularWrapper(AbstractWrapper):
         return self._abstract_graph
 
 
-"""
-
-class PostProcessor:
-    def __init__(self):
-        pass
-
-    def fit(self, other):
-        self.vectorizer = other.vectorizer
-
-    def postprocess(self, graph):
-        return GraphManager(graph, self.vectorizer)
-
-
-
-class GraphManager(gt.GraphManager):
-
-    '''
-    these are the basis for creating a fitting an ubersampler
-    def get_estimateable(self):
-    def get_base_graph(self):
-    def get_abstract_graph(self):
-    '''
-
-    def __init__(self, graph, vectorizer):
-        self.base_graph = vectorizer._edge_to_vertex_transform(graph)
-        self.abstract_graph = make_abstract(self.base_graph.copy())
-
-        # in the abstract graph , all the edge nodes need to have a contracted attribute.
-        # originaly this happens naturally but since we make multiloops into one loop there are some left out
-        def setset(graph):
-            for n, d in graph.nodes(data=True):
-                if 'contracted' not in d:
-                    d['contracted'] = set()
-        setset(self.abstract_graph)
-
-    def graph(self):
-        # returns an expanded, undirected graph
-        # that the eden machine learning can compute
-        return nx.disjoint_union(self.base_graph, self.abstract_graph)
-
-    def get_base_graph(self):
-        return self.base_graph
-
-    def get_abstract_graph(self):
-        return self.abstract_graph
-
-"""
 
 
 

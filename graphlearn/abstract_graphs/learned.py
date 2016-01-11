@@ -6,6 +6,19 @@ from graphlearn.processing import PreProcessor
 from graphlearn.utils import draw
 
 
+'''
+file contains:
+    a simpler version of the wrapper.
+    a preprocessor that takes care of abstraction
+
+the idea here is to learn how to create the graph minor.
+
+the preprocessor usualy gets all the input graphs in the beginning.
+with those it tries to find out how to make a graph minor.
+the peprocessor object will then be used to create minors for all the graphs that
+appear during sampling.
+'''
+
 class PreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2],kmeans_clusters=4):
