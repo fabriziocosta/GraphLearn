@@ -3,15 +3,13 @@ from eden.modifier.graph.structure import contraction
 import graphlearn.graph as graphtools
 from graphlearn.graph import Wrapper
 import random
-from graphlearn.graphlearn import Sampler
-from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 import logging
 logger = logging.getLogger(__name__)
 import networkx as nx
 from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
-import traceback
+
 
 
 '''
@@ -52,7 +50,6 @@ class AbstractWrapper(Wrapper):
                             g.add_edge( n, node_id, nesting=True)
                             g.add_edge( node_id, e, nesting=True)
                             #g.add_edge( n, e, nesting=True)
-
                             node_id+=1
 
         return g
@@ -70,7 +67,7 @@ class AbstractWrapper(Wrapper):
 
 
 
-    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(),include_base=False, base_thickness_list=None):
+    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(),include_base=False, base_thickness_list=None,abstract_graph=None):
         '''
 
         Args:
@@ -86,6 +83,9 @@ class AbstractWrapper(Wrapper):
             base_thickness_list:  list
                 thickness for the base graph, i.e. how thick is the interface graph
 
+            abstract_graph: graph
+                provide the abstract graph ...
+
         Returns:
         '''
         self.some_thickness_list=base_thickness_list
@@ -93,7 +93,7 @@ class AbstractWrapper(Wrapper):
         self._base_graph=graph
         if len(graph) > 0:
             self._base_graph=vectorizer._edge_to_vertex_transform(self._base_graph)
-        self._abstract_graph= None
+        self._abstract_graph= abstract_graph
         self._mod_dict={} # this is the default.
         self.include_base=include_base # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
 
@@ -119,7 +119,9 @@ class AbstractWrapper(Wrapper):
         '''
         if thickness==None:
             thickness=self.some_thickness_list
+
         if for_base == False:
+
             return extract_cips(root,self, base_thickness_list= thickness,mod_dict=self._mod_dict,**args)
         else:
             return extract_cips_base(root,self, base_thickness_list= thickness,mod_dict=self._mod_dict,**args)
@@ -133,6 +135,7 @@ class AbstractWrapper(Wrapper):
         Returns:
 
         '''
+
         graph=self.abstract_graph()
         cips = []
         for root_node in graph.nodes_iter():

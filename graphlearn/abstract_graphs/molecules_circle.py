@@ -9,8 +9,7 @@ import graphlearn.utils.draw as draw
 
 
 '''
-contains: a preprocessor that can produce wrappped graphs.
-            there is also a molecular wrapper.
+contains: a preprocessor that takes care of molecular graps with circleabstraction
 '''
 
 class PreProcessor(PreProcessor):
@@ -19,51 +18,8 @@ class PreProcessor(PreProcessor):
         self.base_thickness_list= base_thickness_list
 
 
-    def fit(self,inputs):
-        return self
-
-    def fit_transform(self,inputs):
-        '''
-
-        Parameters
-        ----------
-        input : many inputs
-
-        Returns
-        -------
-        graphwrapper iterator
-        '''
-        self.fit(inputs)
-        return self.transform(inputs)
-
-    def re_transform_single(self, graph):
-        '''
-
-        Parameters
-        ----------
-        graphwrapper
-
-        Returns
-        -------
-        a postprocessed graphwrapper
-        '''
-        # mabe a copy?
-        return MolecularWrapper(graph, self.vectorizer, self.base_thickness_list)
-
-    def transform(self,inputs):
-        '''
-
-        Parameters
-        ----------
-        inputs : list of things
-
-        Returns
-        -------
-        graphwrapper : iterator
-        '''
-        return [MolecularWrapper(self.vectorizer._edge_to_vertex_transform(i), self.vectorizer, self.base_thickness_list) for i in inputs]
-
-
+    def wrap(self,graph):
+        return MolecularWrapper(graph,self.vectorizer, self.vectorizer,base_thickness_list = self.base_thickness_list)
 
 
 class MolecularWrapper(AbstractWrapper):
