@@ -110,12 +110,14 @@ class PreProcessor(PreProcessor):
         graph2 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
 
 
+
         for n,d in graph2.nodes(data=True):
             names=[]
             for node in d['contracted']:
-                names.append(graph.node[node]['hlabel'][-1])
+                names.append(graph.node[node]['label'])
             names.sort()
-            d['label']=eden.fast_hash(names,2**20-1)
+            names=''.join(names)
+            d['label']=str(hash(names))
 
 
 

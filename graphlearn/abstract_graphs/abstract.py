@@ -22,7 +22,7 @@ class AbstractWrapper(Wrapper):
     here we wrap a graph and also take care of its minor.
     '''
 
-    def graph(self, nested=True):
+    def graph(self, nested=False):
         '''
         generate the graph that will be used for evaluation ( it will be vectorized by eden and then used
         in a machine learning scheme).

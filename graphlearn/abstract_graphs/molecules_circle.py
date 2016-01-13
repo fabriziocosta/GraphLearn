@@ -19,48 +19,43 @@ class PreProcessor(PreProcessor):
 
 
     def wrap(self,graph):
-        return MolecularWrapper(graph,self.vectorizer, self.vectorizer,base_thickness_list = self.base_thickness_list)
-
-
-class MolecularWrapper(AbstractWrapper):
-
-    def abstract_graph(self):
-        if self._abstract_graph== None:
-            graph=self.vectorizer._revert_edge_to_vertex_transform(self._base_graph)
-            abstract_graph = make_abstract(graph)
-            self._abstract_graph= self.vectorizer._edge_to_vertex_transform(abstract_graph)
-
-            for n, d in self._abstract_graph.nodes(data=True):
-                if 'contracted' not in d:
-                    d['contracted'] = set()
-
-
-            getabstr = {contra: node for node, d in self._abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
-
-            for n, d in self._base_graph.nodes(data=True):
-                if 'edge' in d:
-                    # if we have found an edge node...
-                    # lets see whos left and right of it:
-                    n1, n2 = self._base_graph.neighbors(n)
-                    # case1: ok those belong to the same gang so we most likely also belong there.
-                    if getabstr[n1] == getabstr[n2]:
-                        self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
-
-                    # case2: neighbors belong to different gangs...
-                    else:
-                        blub = set(self._abstract_graph.neighbors(getabstr[n1])) & set(self._abstract_graph.neighbors(getabstr[n2]))
-                        for blob in blub:
-                            if 'contracted' in self._abstract_graph.node[blob]:
-                                self._abstract_graph.node[blob]['contracted'].add(n)
-                            else:
-                                self._abstract_graph.node[blob]['contracted'] = set([n])
+        graph=self.vectorizer._edge_to_vertex_transform(graph)
+        return AbstractWrapper(graph,vectorizer=self.vectorizer,base_thickness_list = self.base_thickness_list, abstract_graph=self.abstract(graph))
 
 
 
-        return self._abstract_graph
+    def  abstract(self,graph):
+        draw.graphlearn(graph,contract=False)
+        tmpgraph=self.vectorizer._revert_edge_to_vertex_transform(graph)
+        abstract_graph = make_abstract(tmpgraph)
+        _abstract_graph= self.vectorizer._edge_to_vertex_transform(abstract_graph)
+
+        for n, d in _abstract_graph.nodes(data=True):
+            if 'contracted' not in d:
+                d['contracted'] = set()
 
 
+        getabstr = {contra: node for node, d in _abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
 
+        for n, d in graph.nodes(data=True):
+            if 'edge' in d:
+                # if we have found an edge node...
+                # lets see whos left and right of it:
+                n1, n2 = graph.neighbors(n)
+                # case1: ok those belong to the same gang so we most likely also belong there.
+                if getabstr[n1] == getabstr[n2]:
+                    _abstract_graph.node[getabstr[n1]]['contracted'].add(n)
+
+                # case2: neighbors belong to different gangs...
+                else:
+                    blub = set(_abstract_graph.neighbors(getabstr[n1])) & set(_abstract_graph.neighbors(getabstr[n2]))
+                    for blob in blub:
+                        if 'contracted' in _abstract_graph.node[blob]:
+                            _abstract_graph.node[blob]['contracted'].add(n)
+                        else:
+                            _abstract_graph.node[blob]['contracted'] = set([n])
+
+        return _abstract_graph
 
 
 '''

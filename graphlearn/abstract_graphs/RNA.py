@@ -289,23 +289,7 @@ class RnaWrapper(AbstractWrapper):
         next=f(n)[0]
         return next,f(next)[0]
 
-        '''
-        f=g.neighbors
-        # immediate
-        next=f(n)
-        #next
-        nn_list=[]
-        # for every neighbor
-        for neigh in next:
-            # check the neighbors neighbor
-            for nn in f(neigh):
-                # if it is the root we dont care, otherweise save
-                if nn != n:
-                    nn_list.append(nn)
 
-
-        return n,next,nn_list
-        '''
 
 
 '''
