@@ -25,7 +25,6 @@ class PreProcessor(PreProcessor):
 
 
     def  abstract(self,graph):
-        draw.graphlearn(graph,contract=False)
         tmpgraph=self.vectorizer._revert_edge_to_vertex_transform(graph)
         abstract_graph = make_abstract(tmpgraph)
         _abstract_graph= self.vectorizer._edge_to_vertex_transform(abstract_graph)

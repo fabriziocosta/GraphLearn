@@ -22,7 +22,7 @@ def setparameters(sampler):
     select_cip_max_tries=20
     burnin=0
     generator_mode=False
-    omit_seed=True
+    include_seed=False
     keep_duplicates=False
 
     sampler.proposal_probability = proposal_probability
@@ -45,7 +45,7 @@ def setparameters(sampler):
     sampler.max_core_size_diff = max_core_size_diff
     sampler.select_cip_max_tries = select_cip_max_tries
     sampler.burnin = burnin
-    sampler.omit_seed = omit_seed
+    sampler.include_seed = include_seed
     sampler.batch_size = batch_size
     sampler.probabilistic_core_choice = probabilistic_core_choice
     sampler.score_core_choice = score_core_choice
@@ -53,6 +53,7 @@ def setparameters(sampler):
     sampler.monitors=[]
     sampler.maxbacktrack=0
     sampler.keep_duplicates = keep_duplicates
+    sampler.accept_min_similarity=0.0
     # adapt grammar to task:
     sampler.lsgg.preprocessing(4,
                             max_core_size_diff,

@@ -226,14 +226,15 @@ class RnaWrapper(AbstractWrapper):
 
     def out(self):
         # copy and  if digraph make graph
-        sequence=get_sequence(self.base_graph())
-        return ('',sequence.replace("F",""))
+        return self.base_graph()
+        #sequence=get_sequence(self.base_graph())
+        #return ('',sequence.replace("F",""))
 
     def graph(self, nested=True,fcorrect=False,base_only=False):
         '''
 
         '''
-        g= nx.disjoint_union(self._base_graph, self.abstract_graph())
+        g= nx.disjoint_union(nx.Graph(self._base_graph), self.abstract_graph())
         if base_only:
             g=self.base_graph().copy()
         node_id= len(g)

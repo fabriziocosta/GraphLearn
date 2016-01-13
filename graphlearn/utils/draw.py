@@ -377,15 +377,15 @@ def contract_edges(original_graph):
 
 
             endpoints = [u for u in original_graph.neighbors(n)]
-            if len(endpoints)==2:
+            if len(endpoints) == 2:
                 u = endpoints[0]
                 v = endpoints[1]
-            elif len(endpoints)==1: # support for digraph
+            elif len(endpoints) == 1: # support for digraph
                 u=endpoints[0]
                 v=original_graph.predecessors(n)[0]
             else:
-                print len(endpoints)
-                print "SOMETHING IS WRONG IN CONTRACT EDGES"
+                print "DRAW:SOMETHING IS WRONG IN CONTRACT EDGES  ends:",len(endpoints),n
+                continue
 
             # add the corresponding edge
             nd={}

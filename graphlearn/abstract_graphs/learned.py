@@ -110,7 +110,7 @@ class PreProcessor(PreProcessor):
         graph2 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
 
 
-
+        ''' THIS LISTS ALL THE LABELS AND HASHES THEM
         for n,d in graph2.nodes(data=True):
             names=[]
             for node in d['contracted']:
@@ -118,7 +118,7 @@ class PreProcessor(PreProcessor):
             names.sort()
             names=''.join(names)
             d['label']=str(hash(names))
-
+        '''
 
 
         graph2 = self.vectorizer._edge_to_vertex_transform(graph2)

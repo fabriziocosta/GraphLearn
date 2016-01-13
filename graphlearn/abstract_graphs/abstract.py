@@ -60,6 +60,9 @@ class AbstractWrapper(Wrapper):
         '''
         Returns: nx.graph
             returns the graph minor
+
+        here i calculate the minor on demand.
+        it is usualy more convenient to calculate the minor in the proprocessor.
         '''
         if self._abstract_graph== None:
             self._abstract_graph = make_abstract(self._base_graph,self.vectorizer)
