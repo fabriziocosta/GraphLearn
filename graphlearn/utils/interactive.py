@@ -1,3 +1,20 @@
+from graphlearn.processing import PreProcessor
+from graphlearn.graph import Wrapper
+import graphlearn
+'''
+first we generate a preprocesser where we can define when the cleaning happens.
+'''
+class mywrap(Wrapper):
+    def clean(self):
+        return
+    def real_clean(self):
+        graphlearn.graph.graph_clean(self._base_graph)
+class simple_pp(PreProcessor):
+    def wrap(self,graph):
+        return mywrap(graph,self.vectorizer)
+
+
+
 
 
 
