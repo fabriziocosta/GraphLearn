@@ -4,7 +4,19 @@ from graphlearn.abstract_graphs.abstract import AbstractWrapper
 from graphlearn.estimator import Wrapper as estimartorwrapper
 from graphlearn.processing import PreProcessor
 from graphlearn.utils import draw
+import eden
 
+'''
+file contains:
+    a preprocessor that takes care of abstraction
+
+the idea here is to learn how to create the graph minor.
+
+the preprocessor usualy gets all the input graphs in the beginning.
+with those it tries to find out how to make a graph minor.
+the peprocessor object will then be used to create minors for all the graphs that
+appear during sampling.
+'''
 
 class PreProcessor(PreProcessor):
 
@@ -13,7 +25,6 @@ class PreProcessor(PreProcessor):
         self.kmeans_clusters=kmeans_clusters
 
     def fit(self,inputs):
-
         self.rawgraph_estimator= estimartorwrapper(nu=.3, n_jobs=4)
         self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
         self.make_kmeans(inputs)
@@ -43,25 +54,26 @@ class PreProcessor(PreProcessor):
         '''
 
         inputs=list(inputs)
-        self.fit(inputs,self.vectorizer)
+        self.fit(inputs)
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
         '''
         Parameters
         ----------
-        graphwrapper
+        graph
 
         Returns
         -------
         a postprocessed graphwrapper
         '''
 
-        draw.graphlearn(graph)
+        #draw.graphlearn(graph)
         #print len(graph)
         abstract=self.abstract(graph,debug=False)
-        draw.graphlearn([graph,abstract])
-        return ScoreGraphWrapper(abstract,graph,self.vectorizer,self.base_thickness_list)
+        #draw.graphlearn([graph,abstract])
+        return AbstractWrapper(graph,vectorizer=self.vectorizer,base_thickness_list=self.base_thickness_list,abstract_graph=abstract)
+
 
 
     def abstract(self,graph, score_attribute='importance', group='class', debug=False):
@@ -84,21 +96,35 @@ class PreProcessor(PreProcessor):
 
         graph2 = self.vectorizer.annotate([graph2], estimator=self.rawgraph_estimator.estimator).next()
 
+
         for n,d in graph2.nodes(data=True):
-            #d[group]=str(math.floor(d[score_attribute]))
             d[group]=str(self.kmeans.predict(d[score_attribute])[0])
+
 
         if debug:
             print 'abstr here'
             draw.graphlearn(graph2, vertex_label='class')
 
+
+
         graph2 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
+
+
+        ''' THIS LISTS ALL THE LABELS AND HASHES THEM
+        for n,d in graph2.nodes(data=True):
+            names=[]
+            for node in d['contracted']:
+                names.append(graph.node[node]['label'])
+            names.sort()
+            names=''.join(names)
+            d['label']=str(hash(names))
+        '''
+
+
         graph2 = self.vectorizer._edge_to_vertex_transform(graph2)
 
-        # find out to which abstract node the edges belong
-        # finding out where the edge-nodes belong, because the contractor cant possibly do this
+        #  is this mainly for coloring?
         getabstr = {contra: node for node, d in graph2.nodes(data=True) for contra in d.get('contracted', [])}
-
         for n, d in graph.nodes(data=True):
             if 'edge' in d:
                 # if we have found an edge node...
@@ -116,6 +142,7 @@ class PreProcessor(PreProcessor):
                             graph2.node[blob]['contracted'].add(n)
                         else:
                             graph2.node[blob]['contracted'] = set([n])
+
         return graph2
 
 
@@ -130,21 +157,6 @@ class PreProcessor(PreProcessor):
         -------
         graphwrapper : iterator
         '''
-        return [ ScoreGraphWrapper(self.abstract(i),self.vectorizer._edge_to_vertex_transform(i),self.vectorizer,self.base_thickness_list) for i in inputs]
+        return [ AbstractWrapper(self.vectorizer._edge_to_vertex_transform(i),
+                                 vectorizer=self.vectorizer,base_thickness_list=self.base_thickness_list,abstract_graph=self.abstract(i)) for i in inputs]
 
-
-
-"""
-below: mole version
-"""
-class ScoreGraphWrapper(AbstractWrapper):
-    def abstract_graph(self):
-        return self._abstract_graph
-
-    #def __init__(self,graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None):
-    def __init__(self, abstr,graph,vectorizer=None, base_thickness_list=None):
-        self.some_thickness_list=base_thickness_list
-        self.vectorizer=vectorizer
-        self._base_graph=graph
-        self._abstract_graph=abstr
-        self._mod_dict={}

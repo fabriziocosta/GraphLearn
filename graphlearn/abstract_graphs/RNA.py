@@ -17,8 +17,12 @@ from graphlearn.processing import PostProcessor
 
 
 '''
-check the EDENNN stuff down below...
-i am not ready yet to give up on the  free energy meassure for bad graphs
+contains:
+sampler that saves sequences
+preprocessor with knn models for refolding
+postprocessor which may be redundant
+rna_wrapper
+tools to call the infernal/cmsearch
 '''
 
 
@@ -30,18 +34,26 @@ class PostProcessor(PostProcessor):
 
 class PreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2],structure_mod=True,include_base=False):
+    def __init__(self,base_thickness_list=[2],structure_mod=True,include_base=False,ignore_inserts=False):
         '''
+
         Parameters
         ----------
-        base_thickness_list thickness for base graph
-        structure_mod should we introduce the Fs
+        base_thickness_list: list of int
+            thickness list for the base graph
+        structure_mod : bool
+            should we introduce "F" nodes to keep multiloop flexible regarding substitution
+        include_base : base
+            if asked for all cips, i will also yield   "normal" cips (whose core is not radius of abstract, but radius of base graph)
+        ignore_inserts:
+            bolges will be ignored and merged to their adjacend stems
 
         Returns
         -------
 
         '''
-        self.base_thickness_list= base_thickness_list
+        self.ignore_inserts=ignore_inserts
+        self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
         self.structure_mod= structure_mod
         self.include_base=include_base
 
@@ -86,8 +98,8 @@ class PreProcessor(PreProcessor):
 
         sequence = sequence.replace("F", '')
         trans = self.transform([sequence])[0]
-        if trans._base_graph.graph['energy'] > -10:
-            return None
+        #if trans._base_graph.graph['energy'] > -10:
+        #    return None
         return trans
 
     def transform(self, sequences):
@@ -104,6 +116,9 @@ class PreProcessor(PreProcessor):
         result = []
         for sequence in sequences:
                 structure,energy = self.NNmodel.transform_single(('fake',sequence))
+                if structure==None:
+                    result.append(None)
+                    continue
                 if self.structure_mod:
                     structure,sequence= fix_structure(structure,sequence)
                 base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
@@ -111,7 +126,7 @@ class PreProcessor(PreProcessor):
                 base_graph = expanded_rna_graph_to_digraph(base_graph)
                 base_graph.graph['energy']=energy
                 result.append(
-                    RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,include_base=self.include_base)
+                    RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,include_base=self.include_base, ignore_inserts=self.ignore_inserts)
                     )
         return result
 
@@ -129,7 +144,7 @@ class RnaWrapper(AbstractWrapper):
         if self._abstract_graph is None:
 
             # create the abstract graph and populate the contracted set
-            abstract_graph = forgi.get_abstr_graph(self.structure)
+            abstract_graph = forgi.get_abstr_graph(self.structure,ignore_inserts=self.ignore_inserts)
             abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
             self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph)
 
@@ -148,10 +163,10 @@ class RnaWrapper(AbstractWrapper):
 
 
 
-    def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,\
-                 abstract_graph=None,include_base=False):
+    def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,
+                 abstract_graph=None,include_base=False,ignore_inserts=False):
 
-
+        self.ignore_inserts=ignore_inserts
         self.some_thickness_list=base_thickness_list
         self.vectorizer=vectorizer
         self._abstract_graph= abstract_graph
@@ -209,10 +224,78 @@ class RnaWrapper(AbstractWrapper):
         return ciplist
 
 
+    def out(self):
+        # copy and  if digraph make graph
+        return self.base_graph()
+        #sequence=get_sequence(self.base_graph())
+        #return ('',sequence.replace("F",""))
+
+    def graph(self, nested=True,fcorrect=False,base_only=False):
+        '''
+
+        '''
+        g= nx.disjoint_union(nx.Graph(self._base_graph), self.abstract_graph())
+        if base_only:
+            g=self.base_graph().copy()
+        node_id= len(g)
+        delset=[]
+        if nested:
+            for n,d in g.nodes(data=True):
+                if 'contracted' in d and 'edge' not in d:
+                    for e in d['contracted']:
+                        if 'edge' not in g.node[e] and not(g.node[e]['label']=='F' and fcorrect): # think about this
+
+                            # we want an edge from n to e
+                            g.add_node(node_id,edge=True,label='e')
+                            g.add_edge( n, node_id, nesting=True)
+                            g.add_edge( node_id, e, nesting=True)
+                            #g.add_edge( n, e, nesting=True)
+                            node_id+=1
+
+        if fcorrect:
+            for n,d in g.nodes(data=True):
+                if d['label']=="F":
+                    down=self.nextnode(g,n)
+                    up=self.nextnode(g,n,down_direction=False)
+                    delset.append( (n,down,up) )
+
+            for r,d,u in delset:
+
+                    #print g.node[d[0]]
+                    # we copy the label of the adjacent edge to r
+                    g.node[r]=g.node[d[0]].copy()
+                    #print g.node[r]
+
+                    #g.node[r]={"label":'-','edge':True}
+                    #delete neighbors
+                    g.remove_nodes_from([d[0],u[0]])
+
+                    #rewire neighbors of neighbors
+                    g.add_edge(r,d[1])
+                    g.add_edge(u[1],r)
+                    #print r,d,u
+
+
+
+        return g
+
+    def nextnode(self,g,n,down_direction=True):
+        '''
+        goto the nextnext node in a direction
+        '''
+        if down_direction:
+            f=g.successors
+        else:
+            f=g.predecessors
+        next=f(n)[0]
+        return next,f(next)[0]
+
+
+
+
 '''
 a few handy graph tools :)
 '''
-
 
 def get_sequence(digraph):
     if type(digraph) == str:
@@ -309,8 +392,6 @@ def expanded_rna_graph_to_digraph(graph):
 '''
 rna feasibility checker
 '''
-
-
 def is_rna(graph):
     graph = graph.copy()
     # remove structure
@@ -387,7 +468,6 @@ class NearestNeighborFolding(object):
                 ids.append(i)
 
         # take care of deletions
-
         # remove brackets that dont have a partner anymore
         pairdict = _pairs(stru)
         for i in ids:
@@ -418,14 +498,79 @@ class EdenNNF(NearestNeighborFolding):
         return self
 
     def transform_single(self, sequence):
-        s,neigh=self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
-        head,seq,stru,en=self.eden_rna_vectorizer._align_sequence_structure(s,neigh)
-
-        stru= stru.replace("(())","....")
-        stru= stru.replace("(.)","...")
-        stru= stru.replace("(..)","....")
-
+        s,neigh = self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
+        head,seq,stru,en = self.eden_rna_vectorizer._align_sequence_structure(s,neigh,structure_deletions=True)
+        #stru = self._clean_structure(seq,stru) # this is a way to limit the deleted bracket count, idea does not work well
         return stru,en
+
+    def _clean_structure(self, seq, stru):
+        '''
+        Parameters
+        ----------
+        seq : basestring
+            rna sequence
+        stru : basestring
+            dotbracket string
+        Returns
+        -------
+        the structure given may not respect deletions in the sequence.
+        we transform the structure to one that does
+        '''
+        DELETED_BRACKETS=0
+
+        # find  deletions in sequence
+        ids = []
+        for i, c in enumerate(seq):
+            if c == '-':
+                ids.append(i)
+        # remove brackets that dont have a partner anymore
+        stru = list(stru)
+        pairdict = self._pairs(stru)
+        for i in ids:
+            stru[pairdict[i]] = '.'
+            DELETED_BRACKETS+=1
+        # delete deletions in structure
+        ids.reverse()
+        for i in ids:
+            del stru[i]
+        stru = ''.join(stru)
+
+
+
+        if "(())" in stru:
+            DELETED_BRACKETS+=4
+        if "(..)" in stru:
+            DELETED_BRACKETS+=2
+        if "(.)" in stru:
+            DELETED_BRACKETS+=2
+        # removing obvious mistakes
+        stru = stru.replace("(())", "....")
+        stru = stru.replace("(.)", "...")
+        stru = stru.replace("(..)", "....")
+
+        if DELETED_BRACKETS > 4:
+            return None
+        return stru
+
+    def _pairs(self, struct):
+        '''
+        Parameters
+        ----------
+        struct : basestring
+        Returns
+        -------
+        dictionary of ids in the struct, that are bond pairs
+        '''
+        unpaired = []
+        pairs = {}
+        for i, c in enumerate(struct):
+            if c == '(':
+                unpaired.append(i)
+            if c == ')':
+                partner = unpaired.pop()
+                pairs[i] = partner
+                pairs[partner] = i
+        return pairs
 
 
 '''

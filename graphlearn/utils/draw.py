@@ -178,7 +178,7 @@ def draw_center(graph, root_node, radius, **args):
 
 def set_ids(graph):
     for n, d in graph.nodes_iter(data=True):
-        d['id'] = str(n)
+        d['id_LABEL'] = str(n)
 
 
 def graphlearn(graphs,
@@ -194,7 +194,6 @@ def graphlearn(graphs,
                     vertex_label='label',
                     edge_label=None,
                     edge_alpha=.5,
-
                     **args):
     if isinstance(graphs, nx.Graph):
         graphs = [graphs]
@@ -223,7 +222,12 @@ def graphlearn(graphs,
 
         if vertex_label == 'id' or args.get("secondary_vertex_label","no")== 'id':
             set_ids(graph)
-
+            # now we need to change the attribute
+            # because there is a label collission in json graph saving
+            if vertex_label == 'id':
+                vertex_label='id_LABEL'
+            if args.get("secondary_vertex_label","no")== 'id':
+                args["secondary_vertex_label"]='id_LABEL'
 
     if vertex_color is None:
         vertex_color = 'col'
@@ -233,10 +237,11 @@ def graphlearn(graphs,
         edge_alpha = 1.0
 
     if contract:
-        tmp=[]
-        for graph in graphs:
-            tmp.append(  contract_edges(graph) )
-        graphs=tmp
+        #tmp=[]
+        #for graph in graphs:
+        #    tmp.append(  contract_edges(graph) )
+        #graphs=tmp
+        graphs= [contract_edges(g) for g in graphs]
 
 
     draw_graph_set(graphs,
@@ -299,6 +304,7 @@ def draw_grammar(grammar,
                  n_graphs_per_production=10,
                  size=4,
                  abstract_interface=False,
+                 title_key='frequency',
                  **args):
 
     if abstract_interface:
@@ -326,12 +332,14 @@ def draw_grammar(grammar,
 
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True)
         graphs = [cip.graph for count, cip in most_frequent_cips]
+        #graphs =[cip.abstract_view for count, cip in most_frequent_cips]
+
 
         graphs = graphs[:n_graphs_per_production]
         # dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) \
         # if i < 5]
         print('interface id: %s [%d options]' % (interface, len(grammar[interface])))
-        freq = lambda graph: graph.graph.get('frequency', 'no freqency data')
+
 
         # uebersampler gets to do this because he is the uebersampler
         if abstract_interface:
@@ -341,15 +349,9 @@ def draw_grammar(grammar,
         graphlearn(graphs,
                         n_graphs_per_line=n_graphs_per_line,
                         size=size,
-                        headlinehook=freq,
+                        title_key=title_key,
                         **args)
 
-
-def get_score_of_graph(graph):
-    return "%s%s" % (' score: ', str(graph.graph.get('score', '?')))
-
-def get_energy_of_graph(graph):
-    return "%s%s" % (' score: ', str(graph.graph.get('energy', '?')))
 
 
 def remove_colors(g, key='col'):
@@ -366,29 +368,37 @@ def contract_edges(original_graph):
         i still want to see them :)
     """
     # start from 0a copy of the original graph
-    graph = nx.Graph(original_graph)
+    #graph = nx.Graph(original_graph)
+    graph=original_graph.copy()
     # re-wire the endpoints of edge-vertices
     for n, d in original_graph.nodes_iter(data=True):
         if d.get('edge', False) is True:
             # extract the endpoints
+
+
             endpoints = [u for u in original_graph.neighbors(n)]
-            # assert (len(endpoints) == 2), 'ERROR: more than 2 endpoints'
-            if len(endpoints) != 2:
+            if len(endpoints) == 2:
+                u = endpoints[0]
+                v = endpoints[1]
+            elif len(endpoints) == 1: # support for digraph
+                u=endpoints[0]
+                v=original_graph.predecessors(n)[0]
+            else:
+                print "DRAW:SOMETHING IS WRONG IN CONTRACT EDGES  ends:",len(endpoints),n
                 continue
-            u = endpoints[0]
-            v = endpoints[1]
+
             # add the corresponding edge
             nd={}
             nd.update(d)
             nd.update( original_graph[n][u] )
-            graph.add_edge(u, v, nd)
-
+            graph.add_edge(v, u, nd)
             # remove the edge-vertex
             graph.remove_node(n)
+
         if d.get('node', False) is True:
             # remove stale information
             graph.node[n].pop('remote_neighbours', None)
-    return graph
+    return nx.Graph(graph)
 
 
 def draw_learning_curve(data_first=None,

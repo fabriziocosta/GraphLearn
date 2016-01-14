@@ -1,30 +1,31 @@
 import RNA as rna
 from graphlearn.processing import PreProcessor
-from graphlearn.abstract_graphs.learned_molecules import PreProcessor as default_preprocessor
+from graphlearn.abstract_graphs.learned import PreProcessor as default_preprocessor
 from graphlearn.utils import draw
+import logging
+logger = logging.getLogger(__name__)
 
+
+
+'''
+file contains: preprocessor
+
+we try to learn an abstraction for RNA.
+see learned.py
+'''
 
 class RnaPreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2], kmeans_clusters=2,structure_mod=True):
-        self.base_thickness_list= base_thickness_list
+        self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
         self.kmeans_clusters=kmeans_clusters
         self.structure_mod=structure_mod
 
-    def fit(self, inputs):
-        '''
-        Parameters
-        ----------
-        inputs list of inputs
-
-        Returns
-        -------
-        self
-        '''
-        #self.NNmodel=rna.NearestNeighborFolding(4)  takes 2 min for 25 graphs
-        self.NNmodel=rna.EdenNNF(NN=4)
+    def fit(self, inputs, vectorizer):
+        self.vectorizer = vectorizer
+        self.NNmodel = rna.EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
-        print "fitting nn done"
+
 
         #abstr_input = [ self._sequence_to_base_graph(seq) for seq in inputs ]
 
@@ -47,7 +48,7 @@ class RnaPreProcessor(PreProcessor):
         '''
 
         inputs=list(inputs)
-        self.fit(inputs)
+        self.fit(inputs,self.vectorizer)
         inputs= [b for a,b in inputs]
         return self.transform(inputs)
 
@@ -65,9 +66,10 @@ class RnaPreProcessor(PreProcessor):
         try:
             sequence = rna.get_sequence(graph)
         except:
-            from graphlearn.utils import draw
-            print 'sequenceproblem:'
-            draw.graphlearn(graph, size=20)
+            logger.debug('sequenceproblem: this is not an rna')
+            #from graphlearn.utils import draw
+            #print 'sequenceproblem:'
+            #draw.graphlearn(graph, size=20)
             return None
 
         sequence= sequence.replace("F",'')

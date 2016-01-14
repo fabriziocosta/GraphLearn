@@ -3,32 +3,40 @@ from eden.modifier.graph.structure import contraction
 import graphlearn.graph as graphtools
 from graphlearn.graph import Wrapper
 import random
-from graphlearn.graphlearn import Sampler
-from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 import logging
 logger = logging.getLogger(__name__)
 import networkx as nx
 from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
-import traceback
+
 
 
 '''
-1. tell the sampler to use new GraphManager
+this file contains the abstract wrapper only.
 '''
+
 class AbstractWrapper(Wrapper):
     '''
-     since i should not repeat myself, i will just use as much as possible
-     from the Graphmanager implementation.
+    a wrapper normally wraps a graph.
+    here we wrap a graph and also take care of its minor.
     '''
-    #def __str__(self):
-        #return 'Ubermanager: base_nodes: %d abstract_nodes: %d' % (len(self._base_graph),len(self._abstract_graph))
-    #    return '\n'.join (['%s:%s'% (str(k),v) for k,v in self.__dict__.items()]+[str(len(self._base_graph)),str(len(self._abstract_graph))])
+
+    def graph(self, nested=False):
+        '''
+        generate the graph that will be used for evaluation ( it will be vectorized by eden and then used
+        in a machine learning scheme).
+
+        Args:
+            nested: bool
+                the graph returned here is the union of graph minor and the base graph.
+                nested decides wether there edges between nodes in the base graph and their
+                representative in the graph minor. these edges have the attribute 'nested'.
 
 
-
-    def graph(self, nested=True):
+        Returns:
+            nx.graph
+        '''
         g= nx.disjoint_union(self._base_graph, self.abstract_graph())
         node_id= len(g)
 
@@ -42,7 +50,6 @@ class AbstractWrapper(Wrapper):
                             g.add_edge( n, node_id, nesting=True)
                             g.add_edge( node_id, e, nesting=True)
                             #g.add_edge( n, e, nesting=True)
-
                             node_id+=1
 
         return g
@@ -50,30 +57,88 @@ class AbstractWrapper(Wrapper):
 
 
     def abstract_graph(self):
+        '''
+        Returns: nx.graph
+            returns the graph minor
+
+        here i calculate the minor on demand.
+        it is usualy more convenient to calculate the minor in the proprocessor.
+        '''
         if self._abstract_graph== None:
             self._abstract_graph = make_abstract(self._base_graph,self.vectorizer)
         return self._abstract_graph
 
-    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(),include_base=False, base_thickness_list=None):
 
+
+    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(),include_base=False, base_thickness_list=None,abstract_graph=None):
+        '''
+
+        Args:
+            graph: nx.graph
+
+            vectorizer:  a vectorizer from eden
+
+            include_base: bool
+                normally cores are at least as big as a node in the minor graph.
+                enabling this will allow for extraction of cips from the base graph (that still have minor annotation).
+                enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
+
+            base_thickness_list:  list
+                thickness for the base graph, i.e. how thick is the interface graph
+
+            abstract_graph: graph
+                provide the abstract graph ...
+
+        Returns:
+        '''
         self.some_thickness_list=base_thickness_list
         self.vectorizer=vectorizer
         self._base_graph=graph
         if len(graph) > 0:
             self._base_graph=vectorizer._edge_to_vertex_transform(self._base_graph)
-        self._abstract_graph= None
+        self._abstract_graph= abstract_graph
         self._mod_dict={} # this is the default.
         self.include_base=include_base # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
 
+
+
     def rooted_core_interface_pairs(self, root,thickness = None ,for_base=False, **args):
+        '''
+        get cips for a root
+        Args:
+            root: int
+                vertex id
+
+            thickness: list
+
+            for_base:bool
+                do we want to extract from the base graph?
+
+            **args: dict
+                everything needed by extract_cips
+
+        Returns:
+
+        '''
         if thickness==None:
             thickness=self.some_thickness_list
+
         if for_base == False:
+
             return extract_cips(root,self, base_thickness_list= thickness,mod_dict=self._mod_dict,**args)
         else:
             return extract_cips_base(root,self, base_thickness_list= thickness,mod_dict=self._mod_dict,**args)
 
     def all_core_interface_pairs(self,**args):
+        '''
+        return all cips
+        Args:
+            **args:
+
+        Returns:
+
+        '''
+
         graph=self.abstract_graph()
         cips = []
         for root_node in graph.nodes_iter():
@@ -96,6 +161,17 @@ class AbstractWrapper(Wrapper):
 
 
     def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
+        '''
+        get a random cip  rooted in the minor
+        Args:
+            radius_list: list
+            thickness_list: list
+            **args: dict
+                args for rooted_core_interface_pairs
+
+        Returns:
+            cip
+        '''
         node = random.choice(self.abstract_graph().nodes())
         if 'edge' in self._abstract_graph.node[node]:
             node = random.choice(self._abstract_graph.neighbors(node))
@@ -106,6 +182,16 @@ class AbstractWrapper(Wrapper):
         return self.rooted_core_interface_pairs(node,thickness=random_something, **args)
 
     def random_core_interface_pair_base(self,radius_list=None,thickness_list=None, **args):
+        '''
+        get a random cip, rooted in the base graph
+        Args:
+            radius_list:
+            thickness_list:
+            **args:
+
+        Returns:
+
+        '''
         if self.include_base == False:
             raise Exception("impossible oOoo")
         node = random.choice(self.base_graph().nodes())

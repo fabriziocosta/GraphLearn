@@ -10,6 +10,14 @@ from graphlearn.estimator import Wrapper as EstiWrap
 from graphlearn.coreinterfacepair import CoreInterfacePair
 from graphlearn.utils import draw
 
+
+'''
+    file contains the DeepSampler only.
+
+    the idea of the deep sampler was to train an abstract sampler,
+    and then a normal sampler to increase the elements in each cip 'bucket'.
+'''
+
 class DeepSampler(GraphLearnSampler):
 
 

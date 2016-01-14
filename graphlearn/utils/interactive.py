@@ -22,7 +22,7 @@ def setparameters(sampler):
     select_cip_max_tries=20
     burnin=0
     generator_mode=False
-    omit_seed=True
+    include_seed=False
     keep_duplicates=False
 
     sampler.proposal_probability = proposal_probability
@@ -45,7 +45,7 @@ def setparameters(sampler):
     sampler.max_core_size_diff = max_core_size_diff
     sampler.select_cip_max_tries = select_cip_max_tries
     sampler.burnin = burnin
-    sampler.omit_seed = omit_seed
+    sampler.include_seed = include_seed
     sampler.batch_size = batch_size
     sampler.probabilistic_core_choice = probabilistic_core_choice
     sampler.score_core_choice = score_core_choice
@@ -53,6 +53,7 @@ def setparameters(sampler):
     sampler.monitors=[]
     sampler.maxbacktrack=0
     sampler.keep_duplicates = keep_duplicates
+    sampler.accept_min_similarity=0.0
     # adapt grammar to task:
     sampler.lsgg.preprocessing(4,
                             max_core_size_diff,
@@ -68,12 +69,16 @@ def easy_get_new_graphs(graphwrap,sampler):
     res=[]
     graphwrap.clean()
     res= [sampler._propose(graphwrap) for i in range(8)]
+
+    for i,gw in enumerate(res):
+        gw._base_graph.graph['info'] = str(i)
     #for i in range(8):
     #    gr2=      nx.Graph(gr)
     #    cip =     sampler.select_original_cip(gr2)
     #    newcip =  sampler._select_cips(cip).next()
     #    newgr=    graphtools.core_substitution(gr2, cip.graph, newcip.graph)
     #    res.append(newgr)
+
     return res
 
 
@@ -90,13 +95,17 @@ def getargz(sampler):
 def get_cips(graphman,sampler,root,d):
     cips = graphman.rooted_core_interface_pairs(root,**d)
     res=[]
+    counter=0
     for cip in cips:
         if cip.interface_hash in sampler.lsgg.productions:
             new_cips=sampler.lsgg.productions[cip.interface_hash].values()
             for nc in new_cips:
                 # save the original_cip_graph for replacement later
                 nc.orig=cip.graph
+                nc.graph.graph['info']=str(counter)
+                counter+=1
             res+=new_cips
+
     return res
 
 

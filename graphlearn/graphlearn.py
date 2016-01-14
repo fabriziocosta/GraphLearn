@@ -185,6 +185,7 @@ class Sampler(object):
                improving_threshold=-1,
                improving_linear_start=0,
                accept_static_penalty=0.0,
+               accept_min_similarity=0.0,
                select_cip_max_tries=20,
                burnin=0,
                backtrack=0,
@@ -239,6 +240,9 @@ class Sampler(object):
             to the score until the improving_threshould value
         accept_static_penalty : float
             decrease probability of accepting a worse graph
+        accept_min_similarity : in [0,1]
+            acceptance requirement, graphs musst be at least this similar to be accepted..
+            zero is ignore this
         select_cip_max_tries : int
             try this many times to get a cip from the original graph before declaring
             the seed dead.
@@ -266,7 +270,7 @@ class Sampler(object):
 
         self.monitor = monitor
         self.monitors=[]
-
+        self.accept_min_similarity=accept_min_similarity
         self.proposal_probability = proposal_probability
 
         self.similarity = similarity
@@ -493,7 +497,8 @@ class Sampler(object):
         self._score(graphman)
         self._sample_notes = ''
         self._sample_path_score_set = set()
-
+        if self.include_seed==False: # make sure that seed never appears,, may happen if there is nothing happening
+            self._sample_path_score_set.add(graphman._score)
 
         #print 'sample init:',graphman
         #draw.graphlearn_draw(graphman.graph())
@@ -532,7 +537,7 @@ class Sampler(object):
         we also set graph.score_nonlog and graph.score
         """
         if '_score' not in graphmanager.__dict__:
-            graphmanager._score= self.estimatorobject.score(graphmanager)
+            graphmanager._score= self.estimatorobject.score(graphmanager,keep_vector=self.accept_min_similarity)
             self.monitorobject.info('score',graphmanager._score)
         return graphmanager._score
 
@@ -548,6 +553,13 @@ class Sampler(object):
         # first calculate the score ratio between old and new graph.
         score_graph_old = self._score(graphman_old)
         score_graph_new = self._score(graphman_new)
+        if self.accept_min_similarity:
+            res=graphman_new.transformed_vector.dot(graphman_old.transformed_vector.T).todense()
+            prediction = res[0, 0]
+            if prediction < self.accept_min_similarity:
+                
+                return False
+
         score_ratio = score_graph_new / score_graph_old
 
         if self.proposal_probability:

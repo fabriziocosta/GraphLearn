@@ -6,145 +6,55 @@ from graphlearn.processing import PreProcessor
 import networkx as nx
 import graphlearn.utils.draw as draw
 
+
+
+'''
+contains: a preprocessor that takes care of molecular graps with circleabstraction
+'''
+
 class PreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2]):
         self.base_thickness_list= base_thickness_list
 
 
-    def fit(self,inputs):
-        return self
-
-    def fit_transform(self,inputs):
-        '''
-
-        Parameters
-        ----------
-        input : many inputs
-
-        Returns
-        -------
-        graphwrapper iterator
-        '''
-        self.fit(inputs)
-        return self.transform(inputs)
-
-    def re_transform_single(self, graph):
-        '''
-
-        Parameters
-        ----------
-        graphwrapper
-
-        Returns
-        -------
-        a postprocessed graphwrapper
-        '''
-        # mabe a copy?
-        return MolecularWrapper(graph, self.vectorizer, self.base_thickness_list)
-
-    def transform(self,inputs):
-        '''
-
-        Parameters
-        ----------
-        inputs : list of things
-
-        Returns
-        -------
-        graphwrapper : iterator
-        '''
-        return [MolecularWrapper(self.vectorizer._edge_to_vertex_transform(i), self.vectorizer, self.base_thickness_list) for i in inputs]
+    def wrap(self,graph):
+        graph=self.vectorizer._edge_to_vertex_transform(graph)
+        return AbstractWrapper(graph,vectorizer=self.vectorizer,base_thickness_list = self.base_thickness_list, abstract_graph=self.abstract(graph))
 
 
 
+    def  abstract(self,graph):
+        tmpgraph=self.vectorizer._revert_edge_to_vertex_transform(graph)
+        abstract_graph = make_abstract(tmpgraph)
+        _abstract_graph= self.vectorizer._edge_to_vertex_transform(abstract_graph)
 
-class MolecularWrapper(AbstractWrapper):
-
-    def abstract_graph(self):
-        if self._abstract_graph== None:
-            graph=self.vectorizer._revert_edge_to_vertex_transform(self._base_graph)
-            abstract_graph = make_abstract(graph)
-            self._abstract_graph= self.vectorizer._edge_to_vertex_transform(abstract_graph)
-
-            for n, d in self._abstract_graph.nodes(data=True):
-                if 'contracted' not in d:
-                    d['contracted'] = set()
+        for n, d in _abstract_graph.nodes(data=True):
+            if 'contracted' not in d:
+                d['contracted'] = set()
 
 
-            getabstr = {contra: node for node, d in self._abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
+        getabstr = {contra: node for node, d in _abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
 
-            for n, d in self._base_graph.nodes(data=True):
-                if 'edge' in d:
-                    # if we have found an edge node...
-                    # lets see whos left and right of it:
-                    n1, n2 = self._base_graph.neighbors(n)
-                    # case1: ok those belong to the same gang so we most likely also belong there.
-                    if getabstr[n1] == getabstr[n2]:
-                        self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
+        for n, d in graph.nodes(data=True):
+            if 'edge' in d:
+                # if we have found an edge node...
+                # lets see whos left and right of it:
+                n1, n2 = graph.neighbors(n)
+                # case1: ok those belong to the same gang so we most likely also belong there.
+                if getabstr[n1] == getabstr[n2]:
+                    _abstract_graph.node[getabstr[n1]]['contracted'].add(n)
 
-                    # case2: neighbors belong to different gangs...
-                    else:
-                        blub = set(self._abstract_graph.neighbors(getabstr[n1])) & set(self._abstract_graph.neighbors(getabstr[n2]))
-                        for blob in blub:
-                            if 'contracted' in self._abstract_graph.node[blob]:
-                                self._abstract_graph.node[blob]['contracted'].add(n)
-                            else:
-                                self._abstract_graph.node[blob]['contracted'] = set([n])
+                # case2: neighbors belong to different gangs...
+                else:
+                    blub = set(_abstract_graph.neighbors(getabstr[n1])) & set(_abstract_graph.neighbors(getabstr[n2]))
+                    for blob in blub:
+                        if 'contracted' in _abstract_graph.node[blob]:
+                            _abstract_graph.node[blob]['contracted'].add(n)
+                        else:
+                            _abstract_graph.node[blob]['contracted'] = set([n])
 
-
-
-        return self._abstract_graph
-
-
-"""
-
-class PostProcessor:
-    def __init__(self):
-        pass
-
-    def fit(self, other):
-        self.vectorizer = other.vectorizer
-
-    def postprocess(self, graph):
-        return GraphManager(graph, self.vectorizer)
-
-
-
-class GraphManager(gt.GraphManager):
-
-    '''
-    these are the basis for creating a fitting an ubersampler
-    def get_estimateable(self):
-    def get_base_graph(self):
-    def get_abstract_graph(self):
-    '''
-
-    def __init__(self, graph, vectorizer):
-        self.base_graph = vectorizer._edge_to_vertex_transform(graph)
-        self.abstract_graph = make_abstract(self.base_graph.copy())
-
-        # in the abstract graph , all the edge nodes need to have a contracted attribute.
-        # originaly this happens naturally but since we make multiloops into one loop there are some left out
-        def setset(graph):
-            for n, d in graph.nodes(data=True):
-                if 'contracted' not in d:
-                    d['contracted'] = set()
-        setset(self.abstract_graph)
-
-    def graph(self):
-        # returns an expanded, undirected graph
-        # that the eden machine learning can compute
-        return nx.disjoint_union(self.base_graph, self.abstract_graph)
-
-    def get_base_graph(self):
-        return self.base_graph
-
-    def get_abstract_graph(self):
-        return self.abstract_graph
-
-"""
-
+        return _abstract_graph
 
 
 '''

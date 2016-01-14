@@ -3,29 +3,70 @@
 # in this file i try to make a wrapper 
 
 import networkx as nx
-#import graphlearn.abstract_graphs.forgi.bulge_graph as lol
 import eden.modifier.rna.lib_forgi as lib_forgi
 
-def get_abstr_graph(struct):
-    # get forgi string
+def get_abstr_graph(struct, ignore_inserts=False):
+    '''
+
+    Parameters
+    ----------
+    struct: basestring
+        dot-bracket string
+    ignore_inserts: bool
+        internal loops are ignored
+
+    Returns
+    -------
+        abstract graph   with "label" and "contracton" for each node.
+        graph is not expanded
+    '''
+
     bg = lib_forgi.BulgeGraph()
     bg.from_dotbracket(struct, None)
     forgi = bg.to_bg_string()
-
-    g=make_abstract_graph(forgi)
+    g=make_abstract_graph(forgi, ignore_inserts)
     return g
 
 
-def make_abstract_graph(forgi):
-    g=forgi_to_graph(forgi)
+def make_abstract_graph(forgi, ignore_inserts=False):
+    '''
+
+    Parameters
+    ----------
+    forgi: string
+        output of forgiobject,to_bg_string()
+    ignore_inserts : bool
+        ignore internal loops
+
+    Returns
+    -------
+        nx.graph
+    '''
+    g=forgi_to_graph(forgi, ignore_inserts)
     connect_multiloop(g)
     return g
 
 
-def forgi_to_graph(forgi):
+def forgi_to_graph(forgi, ignore_inserts=False):
+    '''
+
+    Parameters
+    ----------
+    forgi: forgi string
+    ignore_inserts: iignore internal loops
+
+    Returns
+    -------
+        nx.graph
+    '''
     def make_node_set(numbers):
         '''
-        forgi gives me stuff like define STEM START,END,START,END .. we take indices and output a list
+        numbers: list of string
+            forgi gives me stuff like """define STEM START,END,START,END"""
+
+        Resturns
+        --------
+            list of int
         '''
         numbers=map(int,numbers)
         ans=set()
@@ -38,6 +79,7 @@ def forgi_to_graph(forgi):
 
     def get_pairs(things):
         '''
+        ???????
         '''
         current=[]
         for thing in things:
@@ -53,6 +95,7 @@ def forgi_to_graph(forgi):
 
     for l in forgi.split('\n')[:-1]:
         line= l.split()
+        #only look at interesting lines
         if line[0] not in ['define','connect']:
             continue
 
@@ -84,23 +127,44 @@ def forgi_to_graph(forgi):
             g.node[fni[line[1]]]['multipairs']=[]
             for a,b in get_pairs(line[2:]):
                 g.node[fni[line[1]]]['multipairs'].append( (fni[a],fni[b]) )
+    if ignore_inserts:
+        # repair inserts by mergind adjacent stacks
+        mergelist=[]
+        for n,d in g.nodes(data=True):
+            if d['label']=="i":
+                neighs=g.neighbors(n)
+                mergelist.append((neighs[0],(n,neighs[1])))
+
+        # merged is keeping track of already merged nodes.
+        # so we always know where to look for :)
+        merged={}
+        for s1,mergers in mergelist:
+            while s1 not in g.nodes():
+                s1=merged[s1]
+            for merger in mergers:
+                while merger not in g.nodes():
+                    merger=merged[merger]
+                merge(g,s1,merger)
+                merged[merger]=s1
+            # remove resulting self-loops
+            if s1 in g[s1]:
+                g.remove_edge(s1,s1)
     return g
+
+def merge(graph, node, node2):
+    '''
+    merge node2 into the node.
+    input nodes are strings,
+    node is the king
+    '''
+    for n in graph.neighbors(node2):
+        graph.add_edge(node, n)
+    graph.node[node]['contracted'].update(graph.node[node2]['contracted'])
+    graph.remove_node(node2)
+
 
 
 def connect_multiloop(g):
-
-    def merge(graph, node, node2):
-        '''
-        merge node2 into the node.
-        input nodes are strings,
-        node is the king
-        '''
-        for n in graph.neighbors(node2):
-            graph.add_edge(node, n)
-        graph.node[node]['contracted'].update(graph.node[node2]['contracted'])
-        graph.remove_node(node2)
-
-
     merge_dict={}
     for node,d in g.nodes(data=True):
         if d['label'] == 's':

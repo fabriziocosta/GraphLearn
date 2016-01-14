@@ -16,12 +16,12 @@ class Wrapper:
     and then you score() graphmanagers or graphs
     '''
 
-    def __init__(self, nu=.5, cv=2, n_jobs=-1):
+    def __init__(self, nu=.5, cv=2, n_jobs=-1,calibrate=True):
         self.status='new'
         self.nu=nu
         self.cv=cv
         self.n_jobs=n_jobs
-
+        self.calibrate=calibrate
 
     def fit(self, graphmanagers, vectorizer=None, random_state=None):
         self.vectorizer=vectorizer
@@ -31,6 +31,7 @@ class Wrapper:
 
         # convert to sklearn compatible format
         data_matrix = vectorizer.fit_transform(self.mass_unwrap(graphmanagers))
+
 
         # fit
         self.estimator = self.fit_estimator(data_matrix, n_jobs=self.n_jobs, cv=self.cv, random_state=random_state)
@@ -98,20 +99,24 @@ class Wrapper:
         estimator.intercept_ -= l[element][0]
 
         # calibrate
-        data_matrix_binary = vstack([a[1] for a in l])
-        data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
-        estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
-        estimator.fit(data_matrix_binary, data_y)
+        if self.calibrate:
+            data_matrix_binary = vstack([a[1] for a in l])
+            data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
+            estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
+            estimator.fit(data_matrix_binary, data_y)
 
         return estimator
 
-    def score(self,graphmanager):
+    def score(self,graphmanager,keep_vector=False):
 
         transformed_graph = self.vectorizer.transform_single(self.unwrap(graphmanager))
         # slow so dont do it..
         # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-        return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
-
+        if keep_vector:
+            graphmanager.transformed_vector=transformed_graph
+        if self.calibrate:
+            return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
+        self.cal_estimator.decision_function(transformed_graph)[0]
 
     '''
     unwrappers do:
