@@ -20,9 +20,10 @@ appear during sampling.
 
 class PreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2],kmeans_clusters=4):
+    def __init__(self,base_thickness_list=[2],kmeans_clusters=4,estimatorgraph_nested=False):
         self.base_thickness_list= base_thickness_list
         self.kmeans_clusters=kmeans_clusters
+        self.estimatorgraph_nested=estimatorgraph_nested
 
     def fit(self,inputs):
         self.rawgraph_estimator= estimartorwrapper(nu=.3, n_jobs=4)
@@ -72,7 +73,7 @@ class PreProcessor(PreProcessor):
         #print len(graph)
         abstract=self.abstract(graph,debug=False)
         #draw.graphlearn([graph,abstract])
-        return AbstractWrapper(graph,vectorizer=self.vectorizer,base_thickness_list=self.base_thickness_list,abstract_graph=abstract)
+        return self.wrap(graph,abstract)
 
 
 
@@ -157,6 +158,7 @@ class PreProcessor(PreProcessor):
         -------
         graphwrapper : iterator
         '''
-        return [ AbstractWrapper(self.vectorizer._edge_to_vertex_transform(i),
-                                 vectorizer=self.vectorizer,base_thickness_list=self.base_thickness_list,abstract_graph=self.abstract(i)) for i in inputs]
+        return [ self.wrap(self.vectorizer._edge_to_vertex_transform(i), abstract_graph=self.abstract(i)) for i in inputs]
 
+    def wrap(self, graph, abstract_graph):
+        return AbstractWrapper(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list, abstract_graph=abstract_graph,estimatorgraph_nested=self.estimatorgraph_nested)

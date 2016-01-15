@@ -16,10 +16,11 @@ see learned.py
 
 class RnaPreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2], kmeans_clusters=2,structure_mod=True):
+    def __init__(self,base_thickness_list=[2], kmeans_clusters=2,structure_mod=True,estimatorgraph_nested=False):
         self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
         self.kmeans_clusters=kmeans_clusters
         self.structure_mod=structure_mod
+        self.estimatorgraph_nested=estimatorgraph_nested
 
     def fit(self, inputs, vectorizer):
         self.vectorizer = vectorizer
@@ -114,12 +115,11 @@ class RnaPreProcessor(PreProcessor):
                 base_graph = rna.expanded_rna_graph_to_digraph(base_graph)
 
                 result.append(rna.RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,\
-                                             abstract_graph=abstract_graph))
+                                             abstract_graph=abstract_graph,estimatorgraph_nested=self.estimatorgraph_nested))
 
             # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
             # needs some changing obviously
             else:
                 result.append(self.re_transform_single(sequence))
         return result
-
 
