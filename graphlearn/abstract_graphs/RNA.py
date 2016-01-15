@@ -83,7 +83,7 @@ class PreProcessor(PreProcessor):
 
         Parameters
         ----------
-        graphwrapper
+        graph
 
         Returns
         -------
@@ -115,12 +115,23 @@ class PreProcessor(PreProcessor):
         """
         result = []
         for sequence in sequences:
+
+                # if we eat a tupple, it musst be a (name, sequence) type :)  we only want a sequence
+                if type(sequence)== type(()):
+                    logger.warning( 'YOUR INPUT IS A TUPPLE, GIVE ME A SEQUENCE, SINCERELY -- YOUR RNA PREPROCESSOR')
+
+                # get structure
                 structure,energy = self.NNmodel.transform_single(('fake',sequence))
                 if structure==None:
                     result.append(None)
                     continue
+
+                # the consensus structure is not meant to be used as a folding plan for individual sequences
+                # so we do the best we can to get a valid structure
                 if self.structure_mod:
                     structure,sequence= fix_structure(structure,sequence)
+
+                # built base_graph
                 base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
                 base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
                 base_graph = expanded_rna_graph_to_digraph(base_graph)

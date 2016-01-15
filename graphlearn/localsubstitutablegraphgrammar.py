@@ -48,13 +48,18 @@ class LocalSubstitutableGraphGrammar(object):
         """
 
         logger.debug('preprocessing grammar')
-        if self.prep_is_outdated:
-            if max_core_size_diff > -1:
+
+
+        if max_core_size_diff > -1:
+            if self.prep_is_outdated or 'core_size' not in self.__dict__:
                 self._add_core_size_quicklookup()
-            if probabilistic_core_choice:
+
+        if probabilistic_core_choice:
+            if self.prep_is_outdated or 'frequency' not in self.__dict__:
                 self._add_frequency_quicklookup()
 
-            self.prep_is_outdated = False
+        self.prep_is_outdated = False
+
         if n_jobs > 1:
             self._multicore_transform()
 
@@ -171,6 +176,7 @@ class LocalSubstitutableGraphGrammar(object):
 
     def _add_core_size_quicklookup(self):
         """"adds self.core_size{ interface: { core_size:[list of cores] } }"""
+        logger.debug('adding core size lookup to lsgg')
         self.core_size = {}
         for interface in self.productions:
             for core in self.productions[interface]:

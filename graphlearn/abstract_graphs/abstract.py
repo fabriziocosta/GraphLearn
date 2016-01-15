@@ -22,7 +22,7 @@ class AbstractWrapper(Wrapper):
     here we wrap a graph and also take care of its minor.
     '''
 
-    def graph(self, nested=False):
+    def graph(self):
         '''
         generate the graph that will be used for evaluation ( it will be vectorized by eden and then used
         in a machine learning scheme).
@@ -40,7 +40,7 @@ class AbstractWrapper(Wrapper):
         g= nx.disjoint_union(self._base_graph, self.abstract_graph())
         node_id= len(g)
 
-        if nested:
+        if self.estimatorgraph_nested:
             for n,d in g.nodes(data=True):
                 if 'contracted' in d and 'edge' not in d:
                     for e in d['contracted']:
@@ -70,7 +70,7 @@ class AbstractWrapper(Wrapper):
 
 
 
-    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(),include_base=False, base_thickness_list=None,abstract_graph=None):
+    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(),include_base=False, base_thickness_list=None,abstract_graph=None,estimatorgraph_nested=False):
         '''
 
         Args:
@@ -91,6 +91,7 @@ class AbstractWrapper(Wrapper):
 
         Returns:
         '''
+        self.estimatorgraph_nested = estimatorgraph_nested
         self.some_thickness_list=base_thickness_list
         self.vectorizer=vectorizer
         self._base_graph=graph
