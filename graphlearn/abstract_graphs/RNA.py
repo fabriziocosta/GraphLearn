@@ -34,7 +34,7 @@ class PostProcessor(PostProcessor):
 
 class PreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2],structure_mod=True,include_base=False,ignore_inserts=False,estimatorgraph_nested=False):
+    def __init__(self,base_thickness_list=[2],structure_mod=True,include_base=False,ignore_inserts=False):
         '''
 
         Parameters
@@ -56,7 +56,6 @@ class PreProcessor(PreProcessor):
         self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
         self.structure_mod= structure_mod
         self.include_base=include_base
-        self.estimatorgraph_nested=estimatorgraph_nested
 
     def fit(self, inputs, vectorizer):
         self.vectorizer = vectorizer
@@ -138,14 +137,7 @@ class PreProcessor(PreProcessor):
                 base_graph = expanded_rna_graph_to_digraph(base_graph)
                 base_graph.graph['energy']=energy
                 result.append(
-                    RnaWrapper(sequence,
-                               structure,
-                               base_graph,
-                               self.vectorizer,
-                               self.base_thickness_list,
-                               include_base=self.include_base,
-                               ignore_inserts=self.ignore_inserts,
-                               estimatorgraph_nested=self.estimatorgraph_nested)
+                    RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,include_base=self.include_base, ignore_inserts=self.ignore_inserts)
                     )
         return result
 
@@ -183,7 +175,7 @@ class RnaWrapper(AbstractWrapper):
 
 
     def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,
-                 abstract_graph=None,include_base=False,ignore_inserts=False,estimatorgraph_nested=False):
+                 abstract_graph=None,include_base=False,ignore_inserts=False):
 
         self.ignore_inserts=ignore_inserts
         self.some_thickness_list=base_thickness_list
@@ -193,7 +185,6 @@ class RnaWrapper(AbstractWrapper):
         self.sequence=sequence
         self.structure=structure
         self.include_base=include_base
-        self.estimatorgraph_nested=estimatorgraph_nested
 
 
         # self._base_graph = converter.sequence_dotbracket_to_graph(
@@ -250,7 +241,7 @@ class RnaWrapper(AbstractWrapper):
         #sequence=get_sequence(self.base_graph())
         #return ('',sequence.replace("F",""))
 
-    def graph(self,fcorrect=False,base_only=False):
+    def graph(self, nested=True,fcorrect=False,base_only=False):
         '''
 
         '''
@@ -259,7 +250,7 @@ class RnaWrapper(AbstractWrapper):
             g=self.base_graph().copy()
         node_id= len(g)
         delset=[]
-        if self.estimatorgraph_nested:
+        if nested:
             for n,d in g.nodes(data=True):
                 if 'contracted' in d and 'edge' not in d:
                     for e in d['contracted']:

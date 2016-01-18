@@ -14,13 +14,13 @@ contains: a preprocessor that takes care of molecular graps with circleabstracti
 
 class PreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2],estimatorgraph_nested=False):
+    def __init__(self,base_thickness_list=[2]):
         self.base_thickness_list= base_thickness_list
-        self.estimatorgraph_nested=estimatorgraph_nested
+
 
     def wrap(self,graph):
         graph=self.vectorizer._edge_to_vertex_transform(graph)
-        return AbstractWrapper(graph,vectorizer=self.vectorizer,base_thickness_list = self.base_thickness_list, abstract_graph=self.abstract(graph),estimatorgraph_nested=self.estimatorgraph_nested)
+        return AbstractWrapper(graph,vectorizer=self.vectorizer,base_thickness_list = self.base_thickness_list, abstract_graph=self.abstract(graph))
 
 
 
