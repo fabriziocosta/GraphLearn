@@ -130,13 +130,30 @@ class Wrapper:
             yield self.unwrap(gm)
 
     def unwrap(self,graphmanager):
-
+        '''
+        Args:
+            graphmanager: a graphmanager, graph or digraph
+            graphmanager will be transformed to graph and used
+        Returns:
+            graph
+        '''
         if type(graphmanager)==nx.Graph or type(graphmanager)==nx.DiGraph:
             graph=graphmanager.copy()
 
         else:
-            graph = graphmanager.graph().copy()
-
+            graph = self.get_graph(graphmanager)
         if type(graph) == nx.DiGraph:
             graph=nx.Graph(graph)
         return graph
+
+    def get_graph(self, graphmanager):
+        '''
+        abstract graph wrappers may have the option of getting a nested graph
+
+        Args:
+            graphmanager:  a graph manager
+
+        Returns:
+            a graph
+        '''
+        return graphmanager.graph().copy()
