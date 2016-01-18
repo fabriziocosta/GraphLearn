@@ -269,20 +269,23 @@ def set_colors(g, key='col'):
             d[key] = 0
 
 
-def cip_to_drawable_graph(cips=[], graphs=[]):
+def cip_to_drawable_graph(cips=[], graphs=[],mark_root=False):
     regraphs = []
     if not graphs:
         for cip in cips:
             graph = cip.graph
-            graph.node[cip.distance_dict[0][0]]['root'] = True
-            graph.node[cip.distance_dict[0][0]].pop('core')
+            if mark_root:
+                graph.node[cip.distance_dict[0][0]]['root'] = True
+                graph.node[cip.distance_dict[0][0]].pop('core')
             regraphs.append(graph)
     else:
         for c, g in zip(cips, graphs):
             remove_colors(g)
             graph_clean(g)
             g2 = g.copy()
-            d = {0: 'root'}
+            d = {0 : 'core'}
+            if mark_root:
+                d = {0 : 'root'}
             index = 1
             for r in range(c.radius - 1):
                 d[index] = 'core'
