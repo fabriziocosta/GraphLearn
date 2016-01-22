@@ -77,16 +77,14 @@ class PreProcessor(PreProcessor):
 '''
 here we invent the abstractor function
 '''
-
-
-
 def make_abstract(graph):
     '''
 
     Args:
         graph: unexpanded graph
 
-    Returns: wrapped graph
+    Returns:  nx.graph
+        the abstraction
 
     '''
     # prepare fast hash function
