@@ -346,6 +346,31 @@ def extract_cips(node,
 
 
 def enhance_base_cip(base_cip, abstract_cip,mergeids,base_graph,hash_bitmask,mod_dict,core_hash):
+        '''
+
+        Args:
+            base_cip: cip
+                a cip that was extracted from the base graph
+            abstract_cip: cip
+                a cip that was extracted from the abstract graph
+            mergeids: list of int
+                nodes in the base cip that are in the core of the abstract cip
+            base_graph: graph
+                the base graph
+            hash_bitmask: int
+                n/c
+            mod_dict: dict
+                {id in base_graph: modification to interface hash}
+                if there is an exceptionaly important nodetype in thebase graph it makes sure
+                that every substitution will preserve this nodetype Oo
+                used eg to mark the beginning/end of rna sequences.
+                endnode can only be replaced by endnode :)
+            core_hash:
+                hash for the core that will be used in the finished CIP
+
+        Returns:
+            a finished? CIP
+        '''
         # we cheated a little with the core, so we need to undo our cheating
         whatever = base_cip.graph.copy()
         base_cip.graph = base_graph.subgraph(base_cip.graph.nodes() + mergeids).copy()
@@ -381,7 +406,6 @@ def enhance_base_cip(base_cip, abstract_cip,mergeids,base_graph,hash_bitmask,mod
 
 def merge_core(base_graph,abstract_graph,abstract_cip):
     """
-
     :param base_graph: base graph. will be consumed
     :param abstract_graph:  we want the contracted info.. maybe we also find this in the cip.. not sure
     :param abstract_cip: the abstract cip
@@ -409,7 +433,6 @@ def merge_core(base_graph,abstract_graph,abstract_cip):
 a mod_dict is a modification dictionary.
 use get_mod_dict to make a dict of nodenumber:associated_hash
 if the nodenumber is in the core, the hash gets added to the interfacehash.
-
 '''
 def get_mods(mod_dict, nodes):
     su = 0
@@ -434,11 +457,31 @@ def extract_cips_base(node,
                  hash_bitmask=None,
                  mod_dict={},
                  **argz):
+
     '''
-    :param node: node in the BASE graph
-    ::
-    :return:  a  list of cips
+    Args:
+        node: int
+            id of a node
+        graphmanager: graph-wrapper
+            the wrapper that contains the graph
+        base_thickness_list: [int]
+            thickness of SOMETHING
+        hash_bitmask: int
+            see above
+        mod_dict: dict
+            see above
+        **argz: dict
+            more args
+            I guess these are meant:
+            radius_list=None,
+            thickness_list=None,
+            vectorizer=Vectorizer(),
+            node_filter=lambda x, y: True):
+
+    Returns: [CIP]
+        a list of core_interface_pairs
     '''
+
     # if not filter(abstract_graph, node):
     #    return []
 

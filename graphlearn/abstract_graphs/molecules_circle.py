@@ -15,10 +15,27 @@ contains: a preprocessor that takes care of molecular graps with circleabstracti
 class PreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2]):
+        '''
+        Args:
+            base_thickness_list: [int]
+                list of thicknesses for the base graph.   radius_list and thickness_list for abstract graph are
+                those that are handled by graphlearn
+
+        Returns: void
+
+        '''
         self.base_thickness_list= base_thickness_list
 
 
     def wrap(self,graph):
+        '''
+
+        Args:
+            graph: raw graph
+
+        Returns: wrapped graph
+
+        '''
         graph=self.vectorizer._edge_to_vertex_transform(graph)
         return AbstractWrapper(graph,vectorizer=self.vectorizer,base_thickness_list = self.base_thickness_list, abstract_graph=self.abstract(graph))
 
@@ -65,7 +82,12 @@ here we invent the abstractor function
 
 def make_abstract(graph):
     '''
-    make sure this is not expanded
+
+    Args:
+        graph: unexpanded graph
+
+    Returns: wrapped graph
+
     '''
     # prepare fast hash function
     def fhash(stuff):
