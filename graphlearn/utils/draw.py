@@ -372,13 +372,12 @@ def contract_edges(original_graph):
     """
     # start from 0a copy of the original graph
     #graph = nx.Graph(original_graph)
+
     graph=original_graph.copy()
     # re-wire the endpoints of edge-vertices
     for n, d in original_graph.nodes_iter(data=True):
         if d.get('edge', False) is True:
             # extract the endpoints
-
-
             endpoints = [u for u in original_graph.neighbors(n)]
             if len(endpoints) == 2:
                 u = endpoints[0]
@@ -392,14 +391,21 @@ def contract_edges(original_graph):
 
             # add the corresponding edge
             nd={}
+            #ATTENTION
+            #i update the edge first, so that d can overwrite an eventual existing label attribute
+            #also i think the info from the node (d) is most important and should no be overwritten by the edge (og[n][u])
+            nd.update( original_graph[n][u])
             nd.update(d)
-            nd.update( original_graph[n][u] )
+
+
+            #print nd,d,original_graph[n][u]
             graph.add_edge(v, u, nd)
             # remove the edge-vertex
             graph.remove_node(n)
 
         if d.get('node', False) is True:
             # remove stale information
+            # note to self: since i imported this from eden, i am not sure what this does  currently
             graph.node[n].pop('remote_neighbours', None)
     return nx.Graph(graph)
 

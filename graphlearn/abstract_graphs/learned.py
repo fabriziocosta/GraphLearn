@@ -21,16 +21,40 @@ appear during sampling.
 class PreProcessor(PreProcessor):
 
     def __init__(self,base_thickness_list=[2],kmeans_clusters=4):
+        '''
+        Args:
+            base_thickness_list: [int]
+                graphlearn takes care of thickness and radius, but it doesnt know about our base thickness ooO
+            kmeans_clusters: int
+                how many clusters to make
+        Returns:
+        '''
         self.base_thickness_list= base_thickness_list
         self.kmeans_clusters=kmeans_clusters
 
     def fit(self,inputs):
+        '''
+
+        Args:
+            inputs: [graph] (no wrappers)
+                something to train the estimator and do clustering
+        Returns: void
+            nothing
+        '''
         self.rawgraph_estimator= estimartorwrapper(nu=.3, n_jobs=4)
         self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
         self.make_kmeans(inputs)
 
 
     def make_kmeans(self, inputs):
+        """
+
+        Args:
+            inputs: [graph]
+
+        Returns:
+            will fit self.kmeans
+        """
         li=[]
         for graph in inputs:
             g=self.vectorizer.annotate([graph], estimator=self.rawgraph_estimator.estimator).next()
@@ -46,28 +70,25 @@ class PreProcessor(PreProcessor):
         '''
         Parameters
         ----------
-        input : many inputs
+        input : graphs
 
         Returns
         -------
-        graphwrapper iterator
+            graphwrapper list
         '''
-
         inputs=list(inputs)
         self.fit(inputs)
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
         '''
-        Parameters
-        ----------
-        graph
 
-        Returns
-        -------
-        a postprocessed graphwrapper
+        Args:
+            graph: a raw graph
+
+        Returns:
+            wrapped graph
         '''
-
         #draw.graphlearn(graph)
         #print len(graph)
         abstract=self.abstract(graph,debug=False)
@@ -78,13 +99,16 @@ class PreProcessor(PreProcessor):
 
     def abstract(self,graph, score_attribute='importance', group='class', debug=False):
         '''
-        Parameters
-        ----------
-        score_attribute
-        group
-
-        Returns
-        -------
+        Args:
+            graph: raw graph
+            score_attribute: string
+                in which attribute do i write the score
+            group: string
+                in which attribute do i write the cluster id that was assigned
+            debug: bool
+                nothing to see here
+        Returns:
+            abstract graph that was created from 'graph'
         '''
 
         graph = self.vectorizer._edge_to_vertex_transform(graph)
@@ -149,14 +173,14 @@ class PreProcessor(PreProcessor):
     def transform(self,inputs):
         '''
 
-        Parameters
-        ----------
-        inputs : list of things
+        Args:
+            inputs: [graph]
 
-        Returns
-        -------
-        graphwrapper : iterator
+        Returns: [graphwrapper]
+
         '''
         return [ AbstractWrapper(self.vectorizer._edge_to_vertex_transform(i),
-                                 vectorizer=self.vectorizer,base_thickness_list=self.base_thickness_list,abstract_graph=self.abstract(i)) for i in inputs]
+                                 vectorizer=self.vectorizer,
+                                 base_thickness_list=self.base_thickness_list,
+                                 abstract_graph=self.abstract(i)) for i in inputs]
 
