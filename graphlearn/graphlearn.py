@@ -317,8 +317,8 @@ class Sampler(object):
 
         if score_core_choice:
             self.score_core_choice_dict = {}
-            for interface in self.lsgg.productions:
-                for core in self.lsgg.productions[interface]:
+            for interface in self.lsgg.productions.keys():
+                for core in self.lsgg.productions[interface].keys():
                     gr = self.lsgg.productions[interface][core].graph.copy()
                     transformed_graph = self.vectorizer.transform_single(gr)
                     score = self.estimatorobject.cal_estimator.predict_proba(transformed_graph)[0, 1]
@@ -346,6 +346,7 @@ class Sampler(object):
 
             for batch in sampled_graphs:
                 for graph,moni in batch:
+                    #print type(graph)
                     for new_graph in self.return_formatter(graph,moni):
                         yield new_graph
             pool.close()
@@ -860,4 +861,7 @@ class Sampler(object):
 def _sample_multi(what):
     self = dill.loads(what[0])
     graphlist = dill.loads(what[1])
-    return [self._sample(g) for g in graphlist]
+    # if jobsize % batchsize != 0, sample will not give me a tuple,
+    # here i filter for these
+    result = [self._sample(g) for g in graphlist]
+    return [e for e in result if type(e)== type(())]
