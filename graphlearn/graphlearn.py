@@ -352,16 +352,15 @@ class Sampler(object):
                 for graphlist,moni in batch:
                     #print type(graph)
                     # currently formatter only returns one element and thats fine, one day this may be changed
+
                     for new_graph in self.return_formatter(graphlist,moni):
                         yield new_graph
 
                     # forcing termination once the results are in.
                     jobs_done+=1
-                    if jobs_done == self.batch_count:
+                    print jobs_done, self.multiprocess_jobcount
+                    if jobs_done == self.multiprocess_jobcount:
                         pool.terminate()
-
-
-
 
             pool.close()
             pool.join()
@@ -376,10 +375,12 @@ class Sampler(object):
     def _argbuilder(self, problem_iter):
         # for multiprocessing  divide task into small multiprocessable bites
         s = dill.dumps(self)
-        self.batch_count=0
+        self.multiprocess_jobcount = 0
         for e in grouper(problem_iter, self.batch_size):
+            # cant just take batch size here because output of nons will be suppressed
+            problems=[1 for problem in e if problem != None]
+            self.multiprocess_jobcount += sum(problems)
             batch = dill.dumps(e)
-            self.batch_count+=1
             yield (s, batch)
 
 

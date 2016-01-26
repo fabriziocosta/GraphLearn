@@ -254,19 +254,26 @@ class LocalSubstitutableGraphGrammar(object):
                                       self._multi_process_argbuilder(graphs, batch_size=batch_size))
 
         # the resulting chips can now be put intro the grammar
+        jobs_done=0
         for batch in results:
             for exci in batch:
                 if exci:  # exci might be None because the grouper fills up with empty problems
                     for exci_result_per_node in exci:
                         for cip in exci_result_per_node:
                             self._add_core_interface_data(cip)
+                jobs_done+=1
+                if jobs_done == self.multiprocess_jobcount:
+                    pool.terminate()
         pool.close()
         pool.join()
 
     def _multi_process_argbuilder(self, graphs, batch_size=10):
+
         args = self._get_args()
         function = self.get_cip_extractor()
+        self.multiprocess_jobcount=0
         for batch in grouper(graphs, batch_size):
+            self.multiprocess_jobcount+=batch_size
             yield dill.dumps((function, args, batch))
 
     '''
