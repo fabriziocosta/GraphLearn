@@ -342,13 +342,27 @@ class Sampler(object):
                 pool = Pool(processes=n_jobs)
             else:
                 pool = Pool()
+
+
             sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
 
+
+            jobs_done=0
             for batch in sampled_graphs:
-                for graph,moni in batch:
+                for graphlist,moni in batch:
                     #print type(graph)
-                    for new_graph in self.return_formatter(graph,moni):
+                    # currently formatter only returns one element and thats fine, one day this may be changed
+                    for new_graph in self.return_formatter(graphlist,moni):
                         yield new_graph
+
+                    # forcing termination once the results are in.
+                    jobs_done+=1
+                    if jobs_done == self.batch_count:
+                        pool.terminate()
+
+
+
+
             pool.close()
             pool.join()
             # for pair in graphlearn_utils.multiprocess(graph_iter,\
@@ -362,8 +376,10 @@ class Sampler(object):
     def _argbuilder(self, problem_iter):
         # for multiprocessing  divide task into small multiprocessable bites
         s = dill.dumps(self)
+        self.batch_count=0
         for e in grouper(problem_iter, self.batch_size):
             batch = dill.dumps(e)
+            self.batch_count+=1
             yield (s, batch)
 
 
@@ -864,4 +880,5 @@ def _sample_multi(what):
     # if jobsize % batchsize != 0, sample will not give me a tuple,
     # here i filter for these
     result = [self._sample(g) for g in graphlist]
+    #print result
     return [e for e in result if type(e)== type(())]
