@@ -358,8 +358,8 @@ class Sampler(object):
 
                     # forcing termination once the results are in.
                     jobs_done+=1
-                    print jobs_done, self.multiprocess_jobcount
-                    if jobs_done == self.multiprocess_jobcount:
+                    # python is already starting jobs while not all are in the queue
+                    if jobs_done == self.multiprocess_jobcount and self.multiprocess_all_prepared:
                         pool.terminate()
 
             pool.close()
@@ -376,13 +376,14 @@ class Sampler(object):
         # for multiprocessing  divide task into small multiprocessable bites
         s = dill.dumps(self)
         self.multiprocess_jobcount = 0
+        self.multiprocess_all_prepared = False
         for e in grouper(problem_iter, self.batch_size):
             # cant just take batch size here because output of nons will be suppressed
             problems=[1 for problem in e if problem != None]
             self.multiprocess_jobcount += sum(problems)
             batch = dill.dumps(e)
             yield (s, batch)
-
+        self.multiprocess_all_prepared = True
 
 
     def _samplelog(self,msg,level=10):

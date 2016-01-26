@@ -262,7 +262,7 @@ class LocalSubstitutableGraphGrammar(object):
                         for cip in exci_result_per_node:
                             self._add_core_interface_data(cip)
                 jobs_done+=1
-                if jobs_done == self.multiprocess_jobcount:
+                if jobs_done == self.multiprocess_jobcount and self.mp_prepared:
                     pool.terminate()
         pool.close()
         pool.join()
@@ -272,10 +272,11 @@ class LocalSubstitutableGraphGrammar(object):
         args = self._get_args()
         function = self.get_cip_extractor()
         self.multiprocess_jobcount=0
+        self.mp_prepared=False
         for batch in grouper(graphs, batch_size):
             self.multiprocess_jobcount+=batch_size
             yield dill.dumps((function, args, batch))
-
+        self.mp_prepared = True
     '''
     these 2 let you easily change the cip extraction process...
 
