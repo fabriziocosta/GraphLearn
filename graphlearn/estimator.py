@@ -116,7 +116,7 @@ class Wrapper:
             graphmanager.transformed_vector=transformed_graph
         if self.calibrate:
             return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
-        self.cal_estimator.decision_function(transformed_graph)[0]
+        return self.cal_estimator.decision_function(transformed_graph)[0]
 
     '''
     unwrappers do:

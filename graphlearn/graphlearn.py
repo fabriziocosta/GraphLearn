@@ -158,14 +158,15 @@ class Sampler(object):
         graphmanagers = self.preprocessor.fit_transform(input)
 
         self.postprocessor.fit(self.preprocessor)
+        self._train_estimator(graphmanagers)
+        self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
+        return self
+
+    def _train_estimator(self, graphmanagers):
         if self.estimatorobject.status != 'trained':
             self.estimatorobject.fit(graphmanagers,
                                                       vectorizer=self.vectorizer,
                                                       random_state=self.random_state)
-        self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
-        return self
-
-
 
     def sample(self, graph_iter,
 

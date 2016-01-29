@@ -161,7 +161,7 @@ class RnaWrapper(AbstractWrapper):
             # create the abstract graph and populate the contracted set
             abstract_graph = forgi.get_abstr_graph(self.structure,ignore_inserts=self.ignore_inserts)
             abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
-            self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph)
+            self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph_base_graph)
 
             # eden is forcing us to set a label and a contracted attribute.. lets do this
             for n, d in self._abstract_graph.nodes(data=True):
