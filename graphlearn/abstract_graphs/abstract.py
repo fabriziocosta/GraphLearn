@@ -4,17 +4,17 @@ import graphlearn.graph as graphtools
 from graphlearn.graph import Wrapper
 import random
 import logging
+
 logger = logging.getLogger(__name__)
 import networkx as nx
 from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 
-
-
 '''
 this file contains the abstract wrapper only.
 '''
+
 
 class AbstractWrapper(Wrapper):
     '''
@@ -37,24 +37,22 @@ class AbstractWrapper(Wrapper):
         Returns:
             nx.graph
         '''
-        g= nx.disjoint_union(self._base_graph, self.abstract_graph())
-        node_id= len(g)
+        g = nx.disjoint_union(self._base_graph, self.abstract_graph())
+        node_id = len(g)
 
         if nested:
-            for n,d in g.nodes(data=True):
+            for n, d in g.nodes(data=True):
                 if 'contracted' in d and 'edge' not in d:
                     for e in d['contracted']:
                         if 'edge' not in g.node[e]:
                             # we want an edge from n to e
-                            g.add_node(node_id,edge=True,label='e')
-                            g.add_edge( n, node_id, nesting=True)
-                            g.add_edge( node_id, e, nesting=True)
-                            #g.add_edge( n, e, nesting=True)
-                            node_id+=1
+                            g.add_node(node_id, edge=True, label='e')
+                            g.add_edge(n, node_id, nesting=True)
+                            g.add_edge(node_id, e, nesting=True)
+                            # g.add_edge( n, e, nesting=True)
+                            node_id += 1
 
         return g
-
-
 
     def abstract_graph(self):
         '''
@@ -64,13 +62,12 @@ class AbstractWrapper(Wrapper):
         here i calculate the minor on demand.
         it is usualy more convenient to calculate the minor in the proprocessor.
         '''
-        if self._abstract_graph== None:
-            self._abstract_graph = make_abstract(self._base_graph,self.vectorizer)
+        if self._abstract_graph == None:
+            self._abstract_graph = make_abstract(self._base_graph, self.vectorizer)
         return self._abstract_graph
 
-
-
-    def __init__(self,graph,vectorizer=eden.graph.Vectorizer(),include_base=False, base_thickness_list=None,abstract_graph=None):
+    def __init__(self, graph, vectorizer=eden.graph.Vectorizer(), include_base=False, base_thickness_list=None,
+                 abstract_graph=None):
         '''
 
         Args:
@@ -91,18 +88,16 @@ class AbstractWrapper(Wrapper):
 
         Returns:
         '''
-        self.some_thickness_list=base_thickness_list
-        self.vectorizer=vectorizer
-        self._base_graph=graph
+        self.some_thickness_list = base_thickness_list
+        self.vectorizer = vectorizer
+        self._base_graph = graph
         if len(graph) > 0:
-            self._base_graph=vectorizer._edge_to_vertex_transform(self._base_graph)
-        self._abstract_graph= abstract_graph
-        self._mod_dict={} # this is the default.
-        self.include_base=include_base # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
+            self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
+        self._abstract_graph = abstract_graph
+        self._mod_dict = {}  # this is the default.
+        self.include_base = include_base  # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
 
-
-
-    def rooted_core_interface_pairs(self, root,thickness = None ,for_base=False, **args):
+    def rooted_core_interface_pairs(self, root, thickness=None, for_base=False, **args):
         '''
         get cips for a root
         Args:
@@ -120,16 +115,16 @@ class AbstractWrapper(Wrapper):
         Returns:
 
         '''
-        if thickness==None:
-            thickness=self.some_thickness_list
+        if thickness == None:
+            thickness = self.some_thickness_list
 
         if for_base == False:
 
-            return extract_cips(root,self, base_thickness_list= thickness,mod_dict=self._mod_dict,**args)
+            return extract_cips(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict, **args)
         else:
-            return extract_cips_base(root,self, base_thickness_list= thickness,mod_dict=self._mod_dict,**args)
+            return extract_cips_base(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict, **args)
 
-    def all_core_interface_pairs(self,**args):
+    def all_core_interface_pairs(self, **args):
         '''
         return all cips
         Args:
@@ -139,28 +134,27 @@ class AbstractWrapper(Wrapper):
 
         '''
 
-        graph=self.abstract_graph()
+        graph = self.abstract_graph()
         cips = []
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = self.rooted_core_interface_pairs(root_node,**args)
+            cip_list = self.rooted_core_interface_pairs(root_node, **args)
             if cip_list:
                 cips.append(cip_list)
 
         if self.include_base:
-            graph=self.base_graph()
+            graph = self.base_graph()
             for root_node in graph.nodes_iter():
                 if 'edge' in graph.node[root_node]:
                     continue
-                cip_list = self.rooted_core_interface_pairs(root_node,for_base=self.include_base,**args)
+                cip_list = self.rooted_core_interface_pairs(root_node, for_base=self.include_base, **args)
                 if cip_list:
                     cips.append(cip_list)
 
         return cips
 
-
-    def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
+    def random_core_interface_pair(self, radius_list=None, thickness_list=None, **args):
         '''
         get a random cip  rooted in the minor
         Args:
@@ -178,10 +172,10 @@ class AbstractWrapper(Wrapper):
             # random radius and thickness
         args['radius_list'] = [random.choice(radius_list)]
         args['thickness_list'] = [random.choice(thickness_list)]
-        random_something= [random.choice(self.some_thickness_list)]
-        return self.rooted_core_interface_pairs(node,thickness=random_something, **args)
+        random_something = [random.choice(self.some_thickness_list)]
+        return self.rooted_core_interface_pairs(node, thickness=random_something, **args)
 
-    def random_core_interface_pair_base(self,radius_list=None,thickness_list=None, **args):
+    def random_core_interface_pair_base(self, radius_list=None, thickness_list=None, **args):
         '''
         get a random cip, rooted in the base graph
         Args:
@@ -200,12 +194,8 @@ class AbstractWrapper(Wrapper):
             # random radius and thickness
         args['radius_list'] = [random.choice(radius_list)]
         args['thickness_list'] = [random.choice(thickness_list)]
-        random_something= [random.choice(self.some_thickness_list)]
-        return self.rooted_core_interface_pairs(node,thickness=random_something,for_base=True, **args)
-
-
-
-
+        random_something = [random.choice(self.some_thickness_list)]
+        return self.rooted_core_interface_pairs(node, thickness=random_something, for_base=True, **args)
 
 
 def check_and_draw(base_graph, abstr):
@@ -267,6 +257,7 @@ def make_abstract(graph, vectorizer):
                         graph2.node[blob]['contracted'] = set([n])
     return graph2
 
+
 def edge_type_in_radius_abstraction(graph):
     '''
     # the function needs to set a 'contracted' attribute to each node with a set of vertices that
@@ -276,13 +267,11 @@ def edge_type_in_radius_abstraction(graph):
     '''
     # annotate in node attribute 'type' the incident edges' labels
     labeled_graph = vertex_attributes.incident_edge_label(
-        [graph], level=2, output_attribute='type', separator='.').next()
+            [graph], level=2, output_attribute='type', separator='.').next()
     # do contraction
     contracted_graph = contraction(
-        [labeled_graph], contraction_attribute='type', modifiers=[], nesting=False).next()
+            [labeled_graph], contraction_attribute='type', modifiers=[], nesting=False).next()
     return contracted_graph
-
-
 
 
 def extract_cips(node,
@@ -299,15 +288,14 @@ def extract_cips(node,
     # if not filter(abstract_graph, node):
     #    return []
 
-    #PREPARE
-    abstract_graph=graphmanager.abstract_graph()
-    base_graph=graphmanager.base_graph()
-    vectorizer=graphmanager.vectorizer
+    # PREPARE
+    abstract_graph = graphmanager.abstract_graph()
+    base_graph = graphmanager.base_graph()
+    vectorizer = graphmanager.vectorizer
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
         vectorizer._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
         vectorizer._label_preprocessing(base_graph)
-
 
     # EXTRACT CIPS NORMALY ON ABSTRACT GRAPH
     abstract_cips = graphtools.extract_core_and_interface(node,
@@ -316,11 +304,10 @@ def extract_cips(node,
                                                           hash_bitmask=hash_bitmask,
                                                           **argz)
 
-
     # VOR EVERY ABSTRACT CIP: MERGE CORE IN BASE GRAPH AND APPLY CIP EXTRACTON
     cips = []
     for abstract_cip in abstract_cips:
-        base_copy, mergeids = merge_core(base_graph.copy(),abstract_graph,abstract_cip)
+        base_copy, mergeids = merge_core(base_graph.copy(), abstract_graph, abstract_cip)
         argz['thickness_list'] = base_thickness_list
         argz['radius_list'] = [0]
         base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
@@ -329,82 +316,72 @@ def extract_cips(node,
                                                                 hash_bitmask=hash_bitmask,
                                                                 **argz)
 
-
         # VOR EVERY BASE CIP: RESTORE CORE  AND  MERGE INFORMATION WITH ABSTRACT CIP
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
-        abstract_cip.core_nodes_count= len(mergeids)
+        abstract_cip.core_nodes_count = len(mergeids)
         for base_cip in base_level_cips:
-            cips.append(enhance_base_cip(base_cip, abstract_cip,mergeids,base_graph,hash_bitmask,mod_dict,core_hash))
-
+            cips.append(
+                enhance_base_cip(base_cip, abstract_cip, mergeids, base_graph, hash_bitmask, mod_dict, core_hash))
 
     return cips
 
 
+def enhance_base_cip(base_cip, abstract_cip, mergeids, base_graph, hash_bitmask, mod_dict, core_hash):
+    '''
+
+    Args:
+        base_cip: cip
+            a cip that was extracted from the base graph
+        abstract_cip: cip
+            a cip that was extracted from the abstract graph
+        mergeids: list of int
+            nodes in the base cip that are in the core of the abstract cip
+        base_graph: graph
+            the base graph
+        hash_bitmask: int
+            n/c
+        mod_dict: dict
+            {id in base_graph: modification to interface hash}
+            if there is an exceptionaly important nodetype in thebase graph it makes sure
+            that every substitution will preserve this nodetype Oo
+            used eg to mark the beginning/end of rna sequences.
+            endnode can only be replaced by endnode :)
+        core_hash:
+            hash for the core that will be used in the finished CIP
+
+    Returns:
+        a finished? CIP
+    '''
+    # we cheated a little with the core, so we need to undo our cheating
+    whatever = base_cip.graph.copy()
+    base_cip.graph = base_graph.subgraph(base_cip.graph.nodes() + mergeids).copy()
+
+    for n in mergeids:
+        base_cip.graph.node[n]['core'] = True
+
+    for n, d in base_cip.graph.nodes(data=True):
+        if 'core' not in d:
+            d['interface'] = True
+            d['distance_dependent_label'] = whatever.node[n]['distance_dependent_label']
+
+    base_cip.core_hash = core_hash
+    # merging cip info with the abstract graph
+    base_cip.interface_hash = eden.fast_hash_4(base_cip.interface_hash,
+                                               abstract_cip.interface_hash,
+                                               get_mods(mod_dict, mergeids), 0,
+                                               hash_bitmask)
+
+    base_cip.core_nodes_count = abstract_cip.core_nodes_count
+    base_cip.radius = abstract_cip.radius
+    base_cip.abstract_thickness = abstract_cip.thickness
+
+    # i want to see what they look like :)
+    base_cip.abstract_view = abstract_cip.graph
+    base_cip.distance_dict = abstract_cip.distance_dict
+    return base_cip
 
 
-
-
-
-def enhance_base_cip(base_cip, abstract_cip,mergeids,base_graph,hash_bitmask,mod_dict,core_hash):
-        '''
-
-        Args:
-            base_cip: cip
-                a cip that was extracted from the base graph
-            abstract_cip: cip
-                a cip that was extracted from the abstract graph
-            mergeids: list of int
-                nodes in the base cip that are in the core of the abstract cip
-            base_graph: graph
-                the base graph
-            hash_bitmask: int
-                n/c
-            mod_dict: dict
-                {id in base_graph: modification to interface hash}
-                if there is an exceptionaly important nodetype in thebase graph it makes sure
-                that every substitution will preserve this nodetype Oo
-                used eg to mark the beginning/end of rna sequences.
-                endnode can only be replaced by endnode :)
-            core_hash:
-                hash for the core that will be used in the finished CIP
-
-        Returns:
-            a finished? CIP
-        '''
-        # we cheated a little with the core, so we need to undo our cheating
-        whatever = base_cip.graph.copy()
-        base_cip.graph = base_graph.subgraph(base_cip.graph.nodes() + mergeids).copy()
-
-        for n in mergeids:
-            base_cip.graph.node[n]['core'] = True
-
-        for n, d in base_cip.graph.nodes(data=True):
-            if 'core' not in d:
-                d['interface'] = True
-                d['distance_dependent_label'] = whatever.node[n]['distance_dependent_label']
-
-        base_cip.core_hash = core_hash
-        # merging cip info with the abstract graph
-        base_cip.interface_hash = eden.fast_hash_4(base_cip.interface_hash,
-                                                   abstract_cip.interface_hash,
-                                                   get_mods(mod_dict, mergeids), 0,
-                                                   hash_bitmask)
-
-        base_cip.core_nodes_count = abstract_cip.core_nodes_count
-        base_cip.radius = abstract_cip.radius
-        base_cip.abstract_thickness = abstract_cip.thickness
-
-        # i want to see what they look like :)
-        base_cip.abstract_view = abstract_cip.graph
-        base_cip.distance_dict= abstract_cip.distance_dict
-        return base_cip
-
-
-
-
-
-
-def merge_core(base_graph,abstract_graph,abstract_cip):
+def merge_core(base_graph, abstract_graph, abstract_cip):
     """
     :param base_graph: base graph. will be consumed
     :param abstract_graph:  we want the contracted info.. maybe we also find this in the cip.. not sure
@@ -413,11 +390,8 @@ def merge_core(base_graph,abstract_graph,abstract_cip):
     """
 
     mergeids = [base_graph_id for radius in range(
-        abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
-        for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
-
-
-
+            abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
+                for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
 
     # remove duplicates:
     mergeids = list(set(mergeids))
@@ -425,8 +399,7 @@ def merge_core(base_graph,abstract_graph,abstract_cip):
     for node_id in mergeids[1:]:
         graphtools.merge(base_graph, mergeids[0], node_id)
 
-    return base_graph,mergeids
-
+    return base_graph, mergeids
 
 
 '''
@@ -434,30 +407,28 @@ a mod_dict is a modification dictionary.
 use get_mod_dict to make a dict of nodenumber:associated_hash
 if the nodenumber is in the core, the hash gets added to the interfacehash.
 '''
+
+
 def get_mods(mod_dict, nodes):
     su = 0
     for n in nodes:
         if n in mod_dict:
             su += mod_dict[n]
     return su
+
+
 # here we create the mod dict once we have a graph..
 
 def get_mod_dict(graph):
     return {}
 
 
-
-
-
-
-
 def extract_cips_base(node,
-                 graphmanager,
-                 base_thickness_list=None,
-                 hash_bitmask=None,
-                 mod_dict={},
-                 **argz):
-
+                      graphmanager,
+                      base_thickness_list=None,
+                      hash_bitmask=None,
+                      mod_dict={},
+                      **argz):
     '''
     Args:
         node: int
@@ -485,28 +456,24 @@ def extract_cips_base(node,
     # if not filter(abstract_graph, node):
     #    return []
 
-    #PREPARE
-    abstract_graph=graphmanager.abstract_graph()
-    base_graph=graphmanager.base_graph()
-    vectorizer=graphmanager.vectorizer
+    # PREPARE
+    abstract_graph = graphmanager.abstract_graph()
+    base_graph = graphmanager.base_graph()
+    vectorizer = graphmanager.vectorizer
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
         vectorizer._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
         vectorizer._label_preprocessing(base_graph)
 
-
-
-
-
     # LOOK UP ABSTRACT GRAPHS NODE AND
     # EXTRACT CIPS NORMALY ON ABSTRACT GRAPH
-    for n,d in abstract_graph.nodes(data=True):
+    for n, d in abstract_graph.nodes(data=True):
         if node in d['contracted']:
-            abs_node=n
+            abs_node = n
             break
     else:
         raise Exception("IMPOSSIBLE NODE")
-    radiuslist_backup= argz['radius_list']
+    radiuslist_backup = argz['radius_list']
     argz['radius_list'] = [0]
     abstract_cips = graphtools.extract_core_and_interface(abs_node,
                                                           abstract_graph,
@@ -514,10 +481,9 @@ def extract_cips_base(node,
                                                           hash_bitmask=hash_bitmask,
                                                           **argz)
 
-
     # VOR EVERY ABSTRACT CIP: EXTRACT BASE CIP
     cips = []
-    argz['radius_list']= radiuslist_backup
+    argz['radius_list'] = radiuslist_backup
     for abstract_cip in abstract_cips:
         argz['thickness_list'] = base_thickness_list
         base_level_cips = graphtools.extract_core_and_interface(node,
@@ -527,23 +493,12 @@ def extract_cips_base(node,
                                                                 **argz)
         # VOR EVERY BASE CIP: hash interfaces and save the abstract view
         for base_cip in base_level_cips:
-
-            cores=[n for n,d in base_cip.graph.nodes(data=True) if 'interface' not in d]
+            cores = [n for n, d in base_cip.graph.nodes(data=True) if 'interface' not in d]
             base_cip.interface_hash = eden.fast_hash_4(base_cip.interface_hash,
-                                                   abstract_cip.interface_hash,
-                                                   get_mods(mod_dict,cores ), 1337,
-                                                   hash_bitmask)
+                                                       abstract_cip.interface_hash,
+                                                       get_mods(mod_dict, cores), 1337,
+                                                       hash_bitmask)
             base_cip.abstract_view = abstract_cip.graph
             cips.append(base_cip)
 
     return cips
-
-
-
-
-
-
-
-
-
-

@@ -1,7 +1,7 @@
 import itertools
 import random
 import estimator
-#from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
+# from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool
@@ -13,24 +13,22 @@ from eden.util import serialize_dict
 import logging
 from utils import draw
 import processing
+
 logger = logging.getLogger(__name__)
 import utils.monitor as monitor
 
 
-
-
 class Sampler(object):
-
     def __init__(self,
                  nbit=20,
 
-                 vectorizer=Vectorizer(complexity=3, triangular_decomposition=False),
+                 vectorizer=Vectorizer(complexity=3),
                  random_state=None,
 
-                 estimator=estimator.Wrapper( nu=.5, cv=2, n_jobs=-1),
+                 estimator=estimator.Wrapper(nu=.5, cv=2, n_jobs=-1),
                  preprocessor=processing.PreProcessor(),
                  postprocessor=processing.PostProcessor(),
-                 feasibility_checker = feasibility.FeasibilityChecker(),
+                 feasibility_checker=feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -71,9 +69,9 @@ class Sampler(object):
         an initialized sampler
         '''
 
-        self.preprocessor=preprocessor
+        self.preprocessor = preprocessor
         self.feasibility_checker = feasibility_checker
-        self.postprocessor=postprocessor
+        self.postprocessor = postprocessor
 
         self.vectorizer = vectorizer
 
@@ -149,7 +147,6 @@ class Sampler(object):
     def grammar(self):
         return self.lsgg
 
-
     def fit(self, input, grammar_n_jobs=-1, grammar_batch_size=10):
         """
           use input to fit the grammar and fit the estimator
@@ -158,14 +155,15 @@ class Sampler(object):
         graphmanagers = self.preprocessor.fit_transform(input)
 
         self.postprocessor.fit(self.preprocessor)
-        if self.estimatorobject.status != 'trained':
-            self.estimatorobject.fit(graphmanagers,
-                                                      vectorizer=self.vectorizer,
-                                                      random_state=self.random_state)
+        self._train_estimator(graphmanagers)
         self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 
-
+    def _train_estimator(self, graphmanagers):
+        if self.estimatorobject.status != 'trained':
+            self.estimatorobject.fit(graphmanagers,
+                                     vectorizer=self.vectorizer,
+                                     random_state=self.random_state)
 
     def sample(self, graph_iter,
 
@@ -190,10 +188,9 @@ class Sampler(object):
                burnin=0,
                backtrack=0,
 
-
                include_seed=False,
                keep_duplicates=False,
-               monitor = False):
+               monitor=False):
 
         '''
 
@@ -266,11 +263,11 @@ class Sampler(object):
         list of graphs
         '''
 
-        self.maxbacktrack=backtrack
+        self.maxbacktrack = backtrack
 
         self.monitor = monitor
-        self.monitors=[]
-        self.accept_min_similarity=accept_min_similarity
+        self.monitors = []
+        self.accept_min_similarity = accept_min_similarity
         self.proposal_probability = proposal_probability
 
         self.similarity = similarity
@@ -299,7 +296,8 @@ class Sampler(object):
         self.improving_linear_start = improving_linear_start
         if improving_linear_start > 0:
             self.improving_linear_start = int(improving_linear_start * n_steps)
-        self.improving_penalty_per_step = (1 - accept_static_penalty) / float(self.improving_threshold - self.improving_linear_start)
+        self.improving_penalty_per_step = (1 - accept_static_penalty) / float(
+            self.improving_threshold - self.improving_linear_start)
 
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
@@ -317,13 +315,12 @@ class Sampler(object):
 
         if score_core_choice:
             self.score_core_choice_dict = {}
-            for interface in self.lsgg.productions:
-                for core in self.lsgg.productions[interface]:
+            for interface in self.lsgg.productions.keys():
+                for core in self.lsgg.productions[interface].keys():
                     gr = self.lsgg.productions[interface][core].graph.copy()
                     transformed_graph = self.vectorizer.transform_single(gr)
                     score = self.estimatorobject.cal_estimator.predict_proba(transformed_graph)[0, 1]
                     self.score_core_choice_dict[core] = score
-
 
         logger.debug(serialize_dict(self.__dict__))
 
@@ -332,47 +329,62 @@ class Sampler(object):
         # sampling
         if n_jobs in [0, 1]:
             for graph in graph_iter:
-                #sampled_graph = self._sample(graph)
+                # sampled_graph = self._sample(graph)
                 # yield sampled_graph
-                a,b=self._sample(graph)
-                for new_graph in self.return_formatter(a,b):
+                a, b = self._sample(graph)
+                for new_graph in self.return_formatter(a, b):
                     yield new_graph
         else:
             if n_jobs > 1:
                 pool = Pool(processes=n_jobs)
             else:
                 pool = Pool()
+
             sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
 
+            jobs_done = 0
             for batch in sampled_graphs:
-                for graph,moni in batch:
-                    for new_graph in self.return_formatter(graph,moni):
+                for graphlist, moni in batch:
+                    # print type(graph)
+                    # currently formatter only returns one element and thats fine, one day this may be changed
+
+                    for new_graph in self.return_formatter(graphlist, moni):
                         yield new_graph
+
+                    # forcing termination once the results are in.
+                    jobs_done += 1
+                    # python is already starting jobs while not all are in the queue
+                    if jobs_done == self.multiprocess_jobcount and self.multiprocess_all_prepared:
+                        pool.terminate()
+
             pool.close()
             pool.join()
             # for pair in graphlearn_utils.multiprocess(graph_iter,\
             #                                           _sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
             #    yield pair
 
-    def return_formatter(self,graphlist,mon):
+    def return_formatter(self, graphlist, mon):
         self.monitors.append(mon)
         yield graphlist
 
     def _argbuilder(self, problem_iter):
         # for multiprocessing  divide task into small multiprocessable bites
         s = dill.dumps(self)
+        self.multiprocess_jobcount = 0
+        self.multiprocess_all_prepared = False
         for e in grouper(problem_iter, self.batch_size):
+            # cant just take batch size here because output of nons will be suppressed
+            problems = [1 for problem in e if problem != None]
+            self.multiprocess_jobcount += sum(problems)
             batch = dill.dumps(e)
             yield (s, batch)
+        self.multiprocess_all_prepared = True
 
-
-
-    def _samplelog(self,msg,level=10):
+    def _samplelog(self, msg, level=10):
         # debug messages in _sample will use this,
         # we will also log to monitor.
-        logger.log(level,msg)
-        self.monitorobject.info('debug','debuglevel:%d %s' % (level,msg))
-
+        logger.log(level, msg)
+        self.monitorobject.info('debug', 'debuglevel:%d %s' % (level, msg))
 
     def _sample(self, graph):
         '''
@@ -394,8 +406,8 @@ class Sampler(object):
         self._score_list = [graph_manager._score]
         self.sample_path = []
         accept_counter = 0
-        self.step=0
-        self.monitorobject.tick(graph_manager,self.step)
+        self.step = 0
+        self.monitorobject.tick(graph_manager, self.step)
         try:
             while self.step < self.n_steps:
                 self._sample_path_append(graph_manager)
@@ -406,15 +418,14 @@ class Sampler(object):
                 # keep it if we like it
                 candidate_graph_manager = self._propose(graph_manager)
 
-
                 if self._accept(graph_manager, candidate_graph_manager):
                     accept_counter += 1
                     graph_manager = candidate_graph_manager
 
                 # save score
                 self._score_list_append(graph_manager)
-                self.monitorobject.tick(candidate_graph_manager,self.step+1)
-                self.step+=1
+                self.monitorobject.tick(candidate_graph_manager, self.step + 1)
+                self.step += 1
 
         except Exception as exc:
             self._samplelog(exc)
@@ -422,12 +433,10 @@ class Sampler(object):
             self._samplelog('_sample stopped at %d out of %d n_steps' % (self.step, self.n_steps))
             self._sample_notes += '\nstopped at step %d' % self.step
 
-        self._score_list += [self._score_list[-1]] * (self.n_steps +1 - len(self._score_list))
+        self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph_manager, force=True)
-
-
 
         """ old way
         sampled_graph = graph_manager.out()
@@ -438,17 +447,14 @@ class Sampler(object):
                                                 'monitor':self.monitorobject}
         return sampled_graph
         """
-        #sampled_graph = graph_manager.out()
-        #sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
+        # sampled_graph = graph_manager.out()
+        # sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
 
-        sampling_info={'score_history': self._score_list,
-                       'accept_count': accept_counter,
-                       'notes': self._sample_notes}
-        self.monitorobject.sampling_info=sampling_info
-        return self.sample_path,self.monitorobject
-
-
-
+        sampling_info = {'score_history': self._score_list,
+                         'accept_count': accept_counter,
+                         'notes': self._sample_notes}
+        self.monitorobject.sampling_info = sampling_info
+        return self.sample_path, self.monitorobject
 
     def _score_list_append(self, graphman):
         self._score_list.append(graphman._score)
@@ -471,9 +477,8 @@ class Sampler(object):
                     self._sample_path_score_set.add(graphmanager._score)
 
             # append :) .. rescuing score
-            #graph.graph['score'] = graph._score # is never used?
+            # graph.graph['score'] = graph._score # is never used?
             self.sample_path.append(graphmanager.out())
-
 
     def _sample_init(self, graph):
         '''
@@ -485,23 +490,23 @@ class Sampler(object):
         - possibly we are in a multiprocessing process, and this class instance hasnt been used before,
           in this case we need to rebuild the postprocessing function .
         '''
-        self.monitorobject=monitor.Monitor(self.monitor)
+        self.monitorobject = monitor.Monitor(self.monitor)
 
-        self.backtrack=self.maxbacktrack
+        self.backtrack = self.maxbacktrack
         self.last_graphman = None
 
-        graphman=self.preprocessor.transform([graph])[0]
+        graphman = self.preprocessor.transform([graph])[0]
         graph = graphman.base_graph()
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
         self._score(graphman)
         self._sample_notes = ''
         self._sample_path_score_set = set()
-        if self.include_seed==False: # make sure that seed never appears,, may happen if there is nothing happening
+        if self.include_seed == False:  # make sure that seed never appears,, may happen if there is nothing happening
             self._sample_path_score_set.add(graphman._score)
 
-        #print 'sample init:',graphman
-        #draw.graphlearn_draw(graphman.graph())
+        # print 'sample init:',graphman
+        # draw.graphlearn_draw(graphman.graph())
 
         return graphman
 
@@ -520,11 +525,11 @@ class Sampler(object):
             if similarity meassure smaller than the limit, we stop
             because we dont want to drift further
         '''
-        graph=graphmanager.base_graph()
+        graph = graphmanager.base_graph()
         if self.similarity > 0:
             if self.step == 0:
                 self.vectorizer._reference_vec = self.vectorizer._convert_dict_to_sparse_matrix(
-                    self.vectorizer._transform(0, graph.copy()))
+                        self.vectorizer._transform(0, graph.copy()))
             else:
                 similarity = self.vectorizer._similarity(graph, [1])
                 if similarity < self.similarity:
@@ -537,8 +542,8 @@ class Sampler(object):
         we also set graph.score_nonlog and graph.score
         """
         if '_score' not in graphmanager.__dict__:
-            graphmanager._score= self.estimatorobject.score(graphmanager,keep_vector=self.accept_min_similarity)
-            self.monitorobject.info('score',graphmanager._score)
+            graphmanager._score = self.estimatorobject.score(graphmanager, keep_vector=self.accept_min_similarity)
+            self.monitorobject.info('score', graphmanager._score)
         return graphmanager._score
 
     def _accept(self, graphman_old, graphman_new):
@@ -554,10 +559,9 @@ class Sampler(object):
         score_graph_old = self._score(graphman_old)
         score_graph_new = self._score(graphman_new)
         if self.accept_min_similarity:
-            res=graphman_new.transformed_vector.dot(graphman_old.transformed_vector.T).todense()
+            res = graphman_new.transformed_vector.dot(graphman_old.transformed_vector.T).todense()
             prediction = res[0, 0]
             if prediction < self.accept_min_similarity:
-                
                 return False
 
         score_ratio = score_graph_new / score_graph_old
@@ -599,25 +603,23 @@ class Sampler(object):
         """
 
         if self.maxbacktrack > 0:
-            self.backtrack_graphman=self.last_graphman
-            self.last_graphman=graphman
-
+            self.backtrack_graphman = self.last_graphman
+            self.last_graphman = graphman
 
         graphman2 = self._propose_graph(graphman)
 
         if self.backtrack > 0 and not graphman2:
-            #print 'backtracking'
-            #draw.graphlearn([graphman.base_graph(),self.backtrack_graphman.base_graph()])
-            self.backtrack-=1
-            self.step-=1
-            self.monitorobject.info('backtrack to (score)',self.backtrack_graphman._score)
+            # print 'backtracking'
+            # draw.graphlearn([graphman.base_graph(),self.backtrack_graphman.base_graph()])
+            self.backtrack -= 1
+            self.step -= 1
+            self.monitorobject.info('backtrack to (score)', self.backtrack_graphman._score)
             graphman2 = self._propose_graph(self.backtrack_graphman)
 
         if graphman2:
             return graphman2
 
         raise Exception("propose failed.. usualy the problem is propose_single_cip")
-
 
     def _propose_graph(self, graphman):
         """
@@ -630,7 +632,6 @@ class Sampler(object):
         as soon as we found one replacement that works we are good and return.
         """
 
-
         for orig_cip_ctr, original_cip in enumerate(self.select_original_cip(graphman)):
             # for all cips we are allowed to find in the original graph:
 
@@ -642,28 +643,28 @@ class Sampler(object):
                 # count possible replacements for debug output
 
                 self.monitorobject.info('substitution', "root: %d , newcip: %d / %d" %
-                                        (original_cip.distance_dict[0][0], candidate_cip.interface_hash,candidate_cip.core_hash) )
-                new_graph = graphman.core_substitution( original_cip.graph, candidate_cip.graph)
+                                        (original_cip.distance_dict[0][0], candidate_cip.interface_hash,
+                                         candidate_cip.core_hash))
+                new_graph = graphman.core_substitution(original_cip.graph, candidate_cip.graph)
 
                 if self.feasibility_checker.check(new_graph):
                     new_graphmanager = self.postprocessor.re_transform_single(new_graph)
                     if new_graphmanager:
                         self.calc_proposal_probability(graphman, new_graphmanager, original_cip)
 
-                        self._samplelog("_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
-                                     (self.step, attempt, choices, orig_cip_ctr,graphman._base_graph.number_of_nodes()))
+                        self._samplelog(
+                            "_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
+                            (self.step, attempt, choices, orig_cip_ctr, graphman._base_graph.number_of_nodes()))
 
-                        new_graphmanager.clean() # i clean only here because i need the interface mark for reverse_dir_prob
+                        new_graphmanager.clean()  # i clean only here because i need the interface mark for reverse_dir_prob
                         return new_graphmanager
-                        #this codeblock successfuly susbstituted a cip, and create a new graphmanager w/o problems
-
+                        # this codeblock successfuly susbstituted a cip, and create a new graphmanager w/o problems
 
                 if self.quick_skip_orig_cip:
                     break
-                # we only try one substitution on each original cip.
-                # reason: if the first hit was not replaceable, due to a hash collision, it is faster to
-                # try the next orig cip, than to risk another collision
-
+                    # we only try one substitution on each original cip.
+                    # reason: if the first hit was not replaceable, due to a hash collision, it is faster to
+                    # try the next orig cip, than to risk another collision
 
     def calc_proposal_probability(self, graphman, graphman_new, cip):
         '''
@@ -672,34 +673,36 @@ class Sampler(object):
         :param cip: the old cip is enough since we mainly need the ids of the interface
         :return: options(interface,newgraph)+newgraphlength*average /  options(interface,graph)+oldgraphlen*average
         '''
+
         def ops(gman, cip_graph):
             counter = 0
-            interfacesize=0
+            interfacesize = 0
             for n, d in cip_graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
-                    cips = gman.rooted_core_interface_pairs(n, radius_list= self.radius_list, thickness_list=self.thickness_list,
-                                             hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check)
+                    cips = gman.rooted_core_interface_pairs(n, radius_list=self.radius_list,
+                                                            thickness_list=self.thickness_list,
+                                                            hash_bitmask=self.hash_bitmask,
+                                                            node_filter=self.node_entity_check)
                     for cip in cips:
                         if cip.interface_hash in self.lsgg.productions:
                             counter += len(self.lsgg.productions[cip.interface_hash])
-                    interfacesize+=1
+                    interfacesize += 1
             if interfacesize == 0:
-                raise Exception ('calc_proposal_probability: the proposed graph doesn\'t \
+                raise Exception('calc_proposal_probability: the proposed graph doesn\'t \
                     know which nodes were interfaces before; sampler parameters let you deactivate this operation')
             return counter, interfacesize
 
-
         if self.proposal_probability:
-            old_opts,interfacesize = ops(graphman, cip.graph)
-            new_opts,unused = ops(graphman_new, graphman_new.base_graph())
-            average_opts=float(old_opts+new_opts)/2
-            old_opts=max(1,old_opts)
-            new_opts=max(1,new_opts)
-            v1 = new_opts + average_opts* ( len(graphman_new.base_graph())-interfacesize)
-            v2 = old_opts + average_opts* ( len(graphman.base_graph())-interfacesize)
-            value = float(v1)/v2
-            self.proposal_probability_value= value
-            self._samplelog( 'reverse_direction_modifier: %f' % value , level=5)
+            old_opts, interfacesize = ops(graphman, cip.graph)
+            new_opts, unused = ops(graphman_new, graphman_new.base_graph())
+            average_opts = float(old_opts + new_opts) / 2
+            old_opts = max(1, old_opts)
+            new_opts = max(1, new_opts)
+            v1 = new_opts + average_opts * (len(graphman_new.base_graph()) - interfacesize)
+            v2 = old_opts + average_opts * (len(graphman.base_graph()) - interfacesize)
+            value = float(v1) / v2
+            self.proposal_probability_value = value
+            self._samplelog('reverse_direction_modifier: %f' % value, level=5)
 
     def _select_cips(self, cip, graphman):
         """
@@ -780,12 +783,11 @@ class Sampler(object):
         - accept_original_cip makes sure that the cip we got is indeed in the grammar
         """
         if self.target_orig_cip:
-            graphman.mark_median( inp='importance', out='is_good', estimator= self.estimatorobject.estimator )
+            graphman.mark_median(inp='importance', out='is_good', estimator=self.estimatorobject.estimator)
 
-
-        #draw.graphlearn(graphman.abstract_graph(), size=10)
-        #draw.graphlearn(graphman._abstract_graph, size=10)
-        #print graphman
+        # draw.graphlearn(graphman.abstract_graph(), size=10)
+        # draw.graphlearn(graphman._abstract_graph, size=10)
+        # print graphman
 
         failcount = 0
         nocip = 0
@@ -800,7 +802,7 @@ class Sampler(object):
                 continue
             cip = cip[0]
 
-            #print cip
+            # print cip
 
 
             if self._accept_original_cip(cip):
@@ -809,10 +811,10 @@ class Sampler(object):
                 failcount += 1
 
         self._samplelog(
-            'select_cip_for_substitution failed because no suiting interface was found, \
-            extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount))
+                'select_cip_for_substitution failed because no suiting interface was found, \
+                extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount))
 
-    def _get_original_cip(self,graphman):
+    def _get_original_cip(self, graphman):
         '''
 
         Parameters
@@ -826,9 +828,8 @@ class Sampler(object):
         USED ONLY IN SELECT_ORIGINAL_CIP
 
         '''
-        return graphman.random_core_interface_pair( radius_list=self.radius_list, thickness_list=self.thickness_list,
-                    hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check )
-
+        return graphman.random_core_interface_pair(radius_list=self.radius_list, thickness_list=self.thickness_list,
+                                                   hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check)
 
     def _accept_original_cip(self, cip):
         '''
@@ -852,7 +853,7 @@ class Sampler(object):
         if len(self.lsgg.productions.get(cip.interface_hash, {})) > 1:
             in_grammar = True
 
-        self._samplelog( 'accept_orig_cip: %r %r' % (score_ok, in_grammar), level=5)
+        self._samplelog('accept_orig_cip: %r %r' % (score_ok, in_grammar), level=5)
 
         return in_grammar and score_ok
 
@@ -860,4 +861,8 @@ class Sampler(object):
 def _sample_multi(what):
     self = dill.loads(what[0])
     graphlist = dill.loads(what[1])
-    return [self._sample(g) for g in graphlist]
+    # if jobsize % batchsize != 0, sample will not give me a tuple,
+    # here i filter for these
+    result = [self._sample(g) for g in graphlist]
+    # print result
+    return [e for e in result if type(e) == type(())]

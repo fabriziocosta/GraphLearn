@@ -9,10 +9,7 @@ import random
 logger = logging.getLogger(__name__)
 
 
-
-
 class AbstractWrapper(object):
-
     def rooted_core_interface_pairs(self, root, **args):
         '''
         :param root: root node of the cips we want to have
@@ -60,7 +57,7 @@ class AbstractWrapper(object):
 
         :return: Nothing
         '''
-        logger.log(__debug__,'you may want to implement mark_median')
+        logger.log(__debug__, 'you may want to implement mark_median')
 
     def out(self):
         '''
@@ -70,9 +67,7 @@ class AbstractWrapper(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-
-
-    def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
+    def random_core_interface_pair(self, radius_list=None, thickness_list=None, **args):
         '''
         :param radius_list:
         :param thickness_list:
@@ -81,33 +76,27 @@ class AbstractWrapper(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-    def all_core_interface_pairs(self,**args):
+    def all_core_interface_pairs(self, **args):
         raise NotImplementedError("Should have implemented this")
 
 
-
-
-
-
 class Wrapper(AbstractWrapper):
-
     def __str__(self):
         return "base_graph size: %s" % len(self._base_graph)
 
-    def __init__(self,graph,vectorizer):
-        self.vectorizer=vectorizer
-        self._base_graph=graph
+    def __init__(self, graph, vectorizer):
+        self.vectorizer = vectorizer
+        self._base_graph = graph
 
     def base_graph(self):
         return self._base_graph
 
     def rooted_core_interface_pairs(self, root, **args):
-        return extract_core_and_interface(root,self._base_graph,vectorizer=self.vectorizer,**args)
+        return extract_core_and_interface(root, self._base_graph, vectorizer=self.vectorizer, **args)
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
-        graph=core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
-        return graph#self.__class__( graph, self.vectorizer,other=self)
-
+        graph = core_substitution(self._base_graph, orig_cip_graph, new_cip_graph)
+        return graph  # self.__class__( graph, self.vectorizer,other=self)
 
     def mark_median(self, inp='importance', out='is_good', estimator=None):
 
@@ -120,7 +109,6 @@ class Wrapper(AbstractWrapper):
 
         mark_median(self._base_graph, inp=inp, out=out)
 
-
     def clean(self):
         graph_clean(self._base_graph)
 
@@ -129,12 +117,12 @@ class Wrapper(AbstractWrapper):
 
     def out(self):
         # copy and  if digraph make graph
-        graph=nx.Graph(self._base_graph)
-        graph= self.vectorizer._revert_edge_to_vertex_transform(graph)
-        graph.graph['score']=self.__dict__.get("_score","?")
+        graph = nx.Graph(self._base_graph)
+        graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
+        graph.graph['score'] = self.__dict__.get("_score", "?")
         return graph
 
-    def random_core_interface_pair(self,radius_list=None,thickness_list=None, **args):
+    def random_core_interface_pair(self, radius_list=None, thickness_list=None, **args):
 
         node = random.choice(self._base_graph.nodes())
         if 'edge' in self._base_graph.node[node]:
@@ -145,20 +133,17 @@ class Wrapper(AbstractWrapper):
 
         return self.rooted_core_interface_pairs(node, **args)
 
+    def all_core_interface_pairs(self, **args):
 
-    def all_core_interface_pairs(self,**args):
-
-        graph=self._base_graph
+        graph = self._base_graph
         cips = []
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = self.rooted_core_interface_pairs(root_node,**args)
+            cip_list = self.rooted_core_interface_pairs(root_node, **args)
             if cip_list:
                 cips.append(cip_list)
         return cips
-
-
 
 
 def invert_dict(d):
@@ -361,7 +346,7 @@ def find_all_isomorphisms(home, other):
     if iso.faster_could_be_isomorphic(home, other):
 
         label_matcher = lambda x, y: x['distance_dependent_label'] == y['distance_dependent_label'] and \
-                                     x.get('shard',1)==y.get('shard',1)
+                                     x.get('shard', 1) == y.get('shard', 1)
 
         graph_label_matcher = iso.GraphMatcher(home, other, node_match=label_matcher)
         for index, mapping in enumerate(graph_label_matcher.isomorphisms_iter()):
@@ -391,7 +376,6 @@ def get_good_isomorphism(graph, orig_cip_graph, new_cip_graph, home, other):
     undate 29.07.15: with thickness .5 things go wrong when directed because the interfacenode
     just has no direction indicator
     '''
-
 
     if isinstance(home, nx.DiGraph):
         # for mapping in find_all_isomorphisms(home, other):
@@ -477,13 +461,13 @@ def core_substitution(graph, orig_cip_graph, new_cip_graph):
     # original_graph_core_nodes = [n for n, d in orig_cip_graph.nodes(data=True) if 'core' in d]
     original_graph_core_nodes = [n for n, d in orig_cip_graph.nodes(data=True) if 'core' in d]
 
-
     for n in original_graph_core_nodes:
         graph.remove_node(str(n))
 
     # merge interfaces
     for k, v in iso.iteritems():
-        graph.node[str(k)]['interface']=True  # i am marking the interface only for the backflow probability calculation in graphlearn, this is probably deleteable because we also do this in merge, also this line is superlong Ooo
+        graph.node[str(k)][
+            'interface'] = True  # i am marking the interface only for the backflow probability calculation in graphlearn, this is probably deleteable because we also do this in merge, also this line is superlong Ooo
         merge(graph, str(k), '-' + str(v))
     # unionizing killed my labels so we need to relabel
     return nx.convert_node_labels_to_integers(graph)
@@ -501,10 +485,6 @@ def graph_clean(graph):
         d.pop('core', None)
         d.pop('interface', None)
         d.pop('root', None)
-
-
-
-
 
 
 def mark_median(graph, inp='importance', out='is_good'):

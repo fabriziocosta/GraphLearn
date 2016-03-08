@@ -1,6 +1,3 @@
-
-
-
 class Monitor(object):
     '''
     will save a list of dicts, one for each sampling step.
@@ -8,9 +5,7 @@ class Monitor(object):
     tick(graph , id) starts a new sampling step.
     '''
 
-
-
-    def __getitem__(self,key):
+    def __getitem__(self, key):
         '''
         Parameters
         ----------
@@ -25,14 +20,14 @@ class Monitor(object):
         this allows us to conveniently accessing the list of dictionary
         '''
         return self.content[key]
+
     def __len__(self):
         '''
         python builtin len
         '''
         return len(self.content)
 
-
-    def __init__(self,active):
+    def __init__(self, active):
         '''
         Parameters
         ----------
@@ -41,11 +36,11 @@ class Monitor(object):
 
 
         '''
-        self.active=active
-        self.content=[]
-        self.current_dict={}
+        self.active = active
+        self.content = []
+        self.current_dict = {}
 
-    def tick(self,graphwrapper,ID):
+    def tick(self, graphwrapper, ID):
         '''
         Parameters
         ----------
@@ -60,12 +55,12 @@ class Monitor(object):
         -------
         '''
         if self.active:
-            self.current_dict['id']=ID
-            self.current_dict['graphwrapper']=graphwrapper
+            self.current_dict['id'] = ID
+            self.current_dict['graphwrapper'] = graphwrapper
             self.content.append(self.current_dict)
-            self.current_dict={}
+            self.current_dict = {}
 
-    def info(self,key,val):
+    def info(self, key, val):
         '''
         Parameters
         ----------
@@ -85,10 +80,7 @@ class Monitor(object):
             if key in self.current_dict:
                 self.current_dict[key].append(val)
             else:
-                self.current_dict[key]=[val]
-
-
-
+                self.current_dict[key] = [val]
 
     def _to_string(self, d):
         '''
@@ -103,12 +95,12 @@ class Monitor(object):
         "key:value\n"
         for every entry
         '''
-        s=''
-        for k,v in d.items():
-            s+= "%s : %s\n" % (k,str(v))
+        s = ''
+        for k, v in d.items():
+            s += "%s : %s\n" % (k, str(v))
         return s
 
-    def format(self,start=-5):
+    def format(self, start=-5):
         '''
         Parameters
         ----------
@@ -120,13 +112,13 @@ class Monitor(object):
         -------
         list of pairs (accepted_graph_description, [accepted_graph, failed spawn,failed spawn, .. ]
         '''
-        retlist=[]
+        retlist = []
         d = self.content[0]
-        current=[self._to_string(d), [d['graphwrapper'].base_graph()]]
+        current = [self._to_string(d), [d['graphwrapper'].base_graph()]]
         for d in self.content[1:]:
-            if d.get('accepted:',[False])[0] == True:
+            if d.get('accepted:', [False])[0] == True:
                 retlist.append(current)
-                current=[self._to_string(d), [d['graphwrapper'].base_graph()]]
+                current = [self._to_string(d), [d['graphwrapper'].base_graph()]]
             else:
                 current[1].append(d['graphwrapper'].base_graph())
         else:

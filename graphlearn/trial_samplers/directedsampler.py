@@ -7,8 +7,8 @@ from eden.util import selection_iterator
 from sklearn.metrics.pairwise import cosine_distances as distance
 import copy
 
-class directedSampler(GraphLearnSampler):
 
+class directedSampler(GraphLearnSampler):
     '''
     ok here is the plan:
 
@@ -49,36 +49,35 @@ class directedSampler(GraphLearnSampler):
     def get_nearest_neighbor_iterable(self, graphlist, start_graphs, start_is_subset=True):
 
         # vectorize all
-        graphlist= list(graphlist)
+        graphlist = list(graphlist)
         graphlist_ = copy.deepcopy(graphlist)
         X = self.vectorizer.transform_single(graphlist_)
 
-
-        start_graphs= list(start_graphs)
-        graphlist_= copy.deepcopy(start_graphs)
+        start_graphs = list(start_graphs)
+        graphlist_ = copy.deepcopy(start_graphs)
         Y = self.vectorizer.transform_single(graphlist_)
-        
-        
+
         forest = LSHForest()
         forest.fit(X)
-        #http://scikit-learn.org/stable/modules/neighbors.html
+        # http://scikit-learn.org/stable/modules/neighbors.html
         distances, indices = forest.kneighbors(Y, n_neighbors=2)
 
         # we just assume that this is short...
         index = 0
         if start_is_subset:
             index += 1
-        
-        #matches= ( X_index ,Y_index, distance  )
+
+        # matches= ( X_index ,Y_index, distance  )
         matches = [(indices[i, index], i, distances[i, index]) for i in range(len(indices))]
         matches.sort()
 
         # this looks super confusing....
-        #for index, graph in enumerate(selection_iterator(graphlist, [a[0] for a in matches])):
+        # for index, graph in enumerate(selection_iterator(graphlist, [a[0] for a in matches])):
         #    yield ((graph, start_graphs[matches[index][1]], X[matches[index][0]]))
         # so i wrote this:,,, you may even get rid of the matches variable i think.. and use indices directly
-        for Xi,Yi,dist in matches:
-            yield ((start_graphs[Yi],graphlist[Xi],X[Xi]))
+        for Xi, Yi, dist in matches:
+            yield ((start_graphs[Yi], graphlist[Xi], X[Xi]))
+
     '''
         # iterate over graphs
         graphlist, graphlist_ = itertools.tee(graphlist)
@@ -99,24 +98,22 @@ class directedSampler(GraphLearnSampler):
 
     def _stop_condition(self, graph):
 
-        #if len(self.sample_path) == 1 and self.goal_graph:
+        # if len(self.sample_path) == 1 and self.goal_graph:
         #    self.sample_path.append(self.goal_graph)
         if '_score' in graph.__dict__:
             if graph._score > 0.99:
                 self._sample_notes += ';edge %d %d;' % (self.starthash, self.finhash)
 
-                #print graph._score
-                #draw.draw_graph_set_graphlearn(self.
+                # print graph._score
+                # draw.draw_graph_set_graphlearn(self.
                 raise Exception('goal reached')
 
-
-
-    def get_average_vector(self,graphiter):
+    def get_average_vector(self, graphiter):
         all = self.vectorizer.transform_single(graphiter)
         return all.mean(axis=0)
 
-
-    def sample(self, graph_iter,target_graph=None, start_graphs=None,target_vector=None, start_gr_in_graph_iter=None,**kwargs):
+    def sample(self, graph_iter, target_graph=None, start_graphs=None, target_vector=None, start_gr_in_graph_iter=None,
+               **kwargs):
         '''
             graph iter are the background graphs that are always there.
             if we set a target_graph, all the graphs move towrd that one.
@@ -127,18 +124,16 @@ class directedSampler(GraphLearnSampler):
             graphiter = self.get_nearest_neighbor_iterable(graph_iter, start_graphs, start_gr_in_graph_iter)
 
         elif target_graph:
-            target_copy= nx.Graph(target_graph)
-            target_vector= self.vectorizer.transform_single(target_copy)
-            graphiter = itertools.izip(graph_iter,itertools.repeat(target_graph),itertools.repeat(target_vector))
+            target_copy = nx.Graph(target_graph)
+            target_vector = self.vectorizer.transform_single(target_copy)
+            graphiter = itertools.izip(graph_iter, itertools.repeat(target_graph), itertools.repeat(target_vector))
 
         elif target_vector is not None:
-            graphiter = itertools.izip(graph_iter,itertools.repeat(None),itertools.repeat(target_vector))
-
+            graphiter = itertools.izip(graph_iter, itertools.repeat(None), itertools.repeat(target_vector))
 
         # graphiter = itertools.islice(graphiter, doXgraphs)
-        for e in super(directedSampler, self).sample(graphiter,**kwargs):
+        for e in super(directedSampler, self).sample(graphiter, **kwargs):
             yield e
-
 
     def _sample(self, g_pair):
         # g_pair = (startgraph, zie;graph, zielvector)
@@ -146,8 +141,8 @@ class directedSampler(GraphLearnSampler):
         self.finhash = hash(g_pair[2])
         self.startgraph = g_pair[0]
         self.goal = g_pair[2]
-        self.goal_graph = g_pair[1] # may be none oO
-        #self.goal_size = len(self.vectorizer._edge_to_vertex_transform(self.goal_graph))
+        self.goal_graph = g_pair[1]  # may be none oO
+        # self.goal_size = len(self.vectorizer._edge_to_vertex_transform(self.goal_graph))
         return super(directedSampler, self)._sample(g_pair[0])
 
     def _score(self, graphmanager):
@@ -156,11 +151,11 @@ class directedSampler(GraphLearnSampler):
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
 
-            #print self.goal.shape
-            #print transformed_graph.shape
+            # print self.goal.shape
+            # print transformed_graph.shape
 
-            graphmanager._score = transformed_graph.dot(self.goal.T)[0,0]
-            #graph._score=  (1 - distance(transformed_graph,self.goal))[0,0]
+            graphmanager._score = transformed_graph.dot(self.goal.T)[0, 0]
+            # graph._score=  (1 - distance(transformed_graph,self.goal))[0,0]
 
             # print graph._score
             # graph.score -= .007*abs( self.goal_size - len(graph) )

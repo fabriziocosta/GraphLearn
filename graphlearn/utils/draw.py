@@ -7,14 +7,7 @@ from collections import defaultdict
 import logging
 import copy
 
-
 logger = logging.getLogger(__name__)
-
-
-
-
-
-
 
 
 def calc_stats_from_grammar(grammar):
@@ -31,6 +24,7 @@ def calc_stats_from_grammar(grammar):
             corecounter[ch] += count
             intercounter[ih] += count
     return count_corehashes, count_interfacehashes, corecounter, intercounter
+
 
 '''
     functions to draw graphs:
@@ -182,19 +176,19 @@ def set_ids(graph):
 
 
 def graphlearn(graphs,
-                    size=6,
-                    font_size=15,
-                    node_size=200,
-                    node_border=False,
-                    show_direction=False,
-                    abstract_color=None,
-                    edge_color=None,
-                    contract=False,
-                    vertex_color=None,
-                    vertex_label='label',
-                    edge_label=None,
-                    edge_alpha=.5,
-                    **args):
+               size=6,
+               font_size=15,
+               node_size=200,
+               node_border=False,
+               show_direction=False,
+               abstract_color=None,
+               edge_color=None,
+               contract=False,
+               vertex_color=None,
+               vertex_label='label',
+               edge_label=None,
+               edge_alpha=.5,
+               **args):
     if isinstance(graphs, nx.Graph):
         graphs = [graphs]
 
@@ -213,21 +207,21 @@ def graphlearn(graphs,
                     ne = graph.neighbors(n)
                     for e in ne:
                         graph[n][e]['color'] = 1
-        if abstract_color!=None:
-            for a,b,d in graph.edges(data=True):
+        if abstract_color != None:
+            for a, b, d in graph.edges(data=True):
                 if 'contracted' in graph.node[a] and 'contracted' in graph.node[b]:
-                    d['color']=abstract_color
+                    d['color'] = abstract_color
                 else:
-                    d['color']='gray'
+                    d['color'] = 'gray'
 
-        if vertex_label == 'id' or args.get("secondary_vertex_label","no")== 'id':
+        if vertex_label == 'id' or args.get("secondary_vertex_label", "no") == 'id':
             set_ids(graph)
             # now we need to change the attribute
             # because there is a label collission in json graph saving
             if vertex_label == 'id':
-                vertex_label='id_LABEL'
-            if args.get("secondary_vertex_label","no")== 'id':
-                args["secondary_vertex_label"]='id_LABEL'
+                vertex_label = 'id_LABEL'
+            if args.get("secondary_vertex_label", "no") == 'id':
+                args["secondary_vertex_label"] = 'id_LABEL'
 
     if vertex_color is None:
         vertex_color = 'col'
@@ -237,12 +231,11 @@ def graphlearn(graphs,
         edge_alpha = 1.0
 
     if contract:
-        #tmp=[]
-        #for graph in graphs:
+        # tmp=[]
+        # for graph in graphs:
         #    tmp.append(  contract_edges(graph) )
-        #graphs=tmp
-        graphs= [contract_edges(g) for g in graphs]
-
+        # graphs=tmp
+        graphs = [contract_edges(g) for g in graphs]
 
     draw_graph_set(graphs,
                    size=size,
@@ -269,7 +262,7 @@ def set_colors(g, key='col'):
             d[key] = 0
 
 
-def cip_to_drawable_graph(cips=[], graphs=[],mark_root=False):
+def cip_to_drawable_graph(cips=[], graphs=[], mark_root=False):
     regraphs = []
     if not graphs:
         for cip in cips:
@@ -283,9 +276,9 @@ def cip_to_drawable_graph(cips=[], graphs=[],mark_root=False):
             remove_colors(g)
             graph_clean(g)
             g2 = g.copy()
-            d = {0 : 'core'}
+            d = {0: 'core'}
             if mark_root:
-                d = {0 : 'root'}
+                d = {0: 'root'}
             index = 1
             for r in range(c.radius - 1):
                 d[index] = 'core'
@@ -309,9 +302,8 @@ def draw_grammar(grammar,
                  abstract_interface=False,
                  title_key='frequency',
                  **args):
-
     if abstract_interface:
-        n_graphs_per_production -=1
+        n_graphs_per_production -= 1
 
     if n_productions is None:
         n_productions = len(grammar)
@@ -320,8 +312,8 @@ def draw_grammar(grammar,
         n_productions = len(grammar)
 
     most_prolific_productions = sorted(
-        [(len(grammar[interface]), interface) for interface in grammar],
-        reverse=True)
+            [(len(grammar[interface]), interface) for interface in grammar],
+            reverse=True)
 
     for i in range(n_productions):
         interface = most_prolific_productions[i][1]
@@ -335,7 +327,7 @@ def draw_grammar(grammar,
 
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True)
         graphs = [cip.graph for count, cip in most_frequent_cips]
-        #graphs =[cip.abstract_view for count, cip in most_frequent_cips]
+        # graphs =[cip.abstract_view for count, cip in most_frequent_cips]
 
 
         graphs = graphs[:n_graphs_per_production]
@@ -343,24 +335,21 @@ def draw_grammar(grammar,
         # if i < 5]
         print('interface id: %s [%d options]' % (interface, len(grammar[interface])))
 
-
         # uebersampler gets to do this because he is the uebersampler
         if abstract_interface:
             if 'abstract_view' in cips[0].__dict__:
-                graphs= [most_frequent_cips[0][1].abstract_view]+graphs
+                graphs = [most_frequent_cips[0][1].abstract_view] + graphs
 
         graphlearn(graphs,
-                        n_graphs_per_line=n_graphs_per_line,
-                        size=size,
-                        title_key=title_key,
-                        **args)
-
+                   n_graphs_per_line=n_graphs_per_line,
+                   size=size,
+                   title_key=title_key,
+                   **args)
 
 
 def remove_colors(g, key='col'):
     for n, d in g.nodes(data=True):
         d[key] = 'white'
-
 
 
 def contract_edges(original_graph):
@@ -371,9 +360,9 @@ def contract_edges(original_graph):
         i still want to see them :)
     """
     # start from 0a copy of the original graph
-    #graph = nx.Graph(original_graph)
+    # graph = nx.Graph(original_graph)
 
-    graph=original_graph.copy()
+    graph = original_graph.copy()
     # re-wire the endpoints of edge-vertices
     for n, d in original_graph.nodes_iter(data=True):
         if d.get('edge', False) is True:
@@ -382,23 +371,22 @@ def contract_edges(original_graph):
             if len(endpoints) == 2:
                 u = endpoints[0]
                 v = endpoints[1]
-            elif len(endpoints) == 1: # support for digraph
-                u=endpoints[0]
-                v=original_graph.predecessors(n)[0]
+            elif len(endpoints) == 1:  # support for digraph
+                u = endpoints[0]
+                v = original_graph.predecessors(n)[0]
             else:
-                print "DRAW:SOMETHING IS WRONG IN CONTRACT EDGES  ends:",len(endpoints),n
+                print "DRAW:SOMETHING IS WRONG IN CONTRACT EDGES  ends:", len(endpoints), n
                 continue
 
             # add the corresponding edge
-            nd={}
-            #ATTENTION
-            #i update the edge first, so that d can overwrite an eventual existing label attribute
-            #also i think the info from the node (d) is most important and should no be overwritten by the edge (og[n][u])
-            nd.update( original_graph[n][u])
+            nd = {}
+            # ATTENTION
+            # i update the edge first, so that d can overwrite an eventual existing label attribute
+            # also i think the info from the node (d) is most important and should no be overwritten by the edge (og[n][u])
+            nd.update(original_graph[n][u])
             nd.update(d)
 
-
-            #print nd,d,original_graph[n][u]
+            # print nd,d,original_graph[n][u]
             graph.add_edge(v, u, nd)
             # remove the edge-vertex
             graph.remove_node(n)

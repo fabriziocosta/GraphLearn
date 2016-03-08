@@ -1,4 +1,3 @@
-
 from abstract import AbstractWrapper
 from collections import defaultdict
 import eden
@@ -6,15 +5,13 @@ from graphlearn.processing import PreProcessor
 import networkx as nx
 import graphlearn.utils.draw as draw
 
-
-
 '''
 contains: a preprocessor that takes care of molecular graps with circleabstraction
 '''
 
-class PreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2]):
+class PreProcessor(PreProcessor):
+    def __init__(self, base_thickness_list=[2]):
         '''
         Args:
             base_thickness_list: [int]
@@ -24,10 +21,9 @@ class PreProcessor(PreProcessor):
         Returns: void
 
         '''
-        self.base_thickness_list= base_thickness_list
+        self.base_thickness_list = base_thickness_list
 
-
-    def wrap(self,graph):
+    def wrap(self, graph):
         '''
 
         Args:
@@ -36,20 +32,18 @@ class PreProcessor(PreProcessor):
         Returns: wrapped graph
 
         '''
-        graph=self.vectorizer._edge_to_vertex_transform(graph)
-        return AbstractWrapper(graph,vectorizer=self.vectorizer,base_thickness_list = self.base_thickness_list, abstract_graph=self.abstract(graph))
+        graph = self.vectorizer._edge_to_vertex_transform(graph)
+        return AbstractWrapper(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
+                               abstract_graph=self.abstract(graph))
 
-
-
-    def  abstract(self,graph):
-        tmpgraph=self.vectorizer._revert_edge_to_vertex_transform(graph)
+    def abstract(self, graph):
+        tmpgraph = self.vectorizer._revert_edge_to_vertex_transform(graph)
         abstract_graph = make_abstract(tmpgraph)
-        _abstract_graph= self.vectorizer._edge_to_vertex_transform(abstract_graph)
+        _abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
 
         for n, d in _abstract_graph.nodes(data=True):
             if 'contracted' not in d:
                 d['contracted'] = set()
-
 
         getabstr = {contra: node for node, d in _abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
 
@@ -77,6 +71,8 @@ class PreProcessor(PreProcessor):
 '''
 here we invent the abstractor function
 '''
+
+
 def make_abstract(graph):
     '''
 
@@ -87,19 +83,17 @@ def make_abstract(graph):
         the abstraction
 
     '''
+
     # prepare fast hash function
     def fhash(stuff):
         return eden.fast_hash(stuff, 2 ** 20 - 1)
-
 
     # all nodes get their cycle calculated
     for n, d in graph.nodes(data=True):
         d['cycle'] = list(node_to_cycle(graph, n))
         d['cycle'].sort()
-        #if 'parent'in d:
+        # if 'parent'in d:
         #    d.pop('parent')
-
-
 
     # make sure most of the abstract nodes are created.
     abstract_graph = nx.Graph()
@@ -117,14 +111,10 @@ def make_abstract(graph):
                     node['parent'] = set()
                 node['parent'].add(cyclash)
 
-
-
-    #  HERE THE ACTUAL ABSTRACTION BEGINS
+    # HERE THE ACTUAL ABSTRACTION BEGINS
 
     # connect nodes in the abstract graph
     get_element = lambda x: list(x)[0]
-
-
 
     # FOR ALL ABSTRACT NODES
     for n, d in abstract_graph.nodes(data=True):
@@ -137,8 +127,6 @@ def make_abstract(graph):
         else:
             d['label'] = graph.node[get_element(d['contracted'])]['label']
 
-
-
         # THEN LOOK AT ALL CONTRACTED NODES TO FIND OUT WHAT CONNECTION WE HAVE TO OUR NEIGHBORS
         for base_node in d['contracted']:
             base_neighbors = graph.neighbors(base_node)
@@ -149,18 +137,18 @@ def make_abstract(graph):
 
                     for other in graph.node[neigh]['parent']:
                         if other != n:
-                            #l = [other, n]
-                            #l.sort()
-                            #connector = fhash(l)
+                            # l = [other, n]
+                            # l.sort()
+                            # connector = fhash(l)
                             shared_nodes = abstract_graph.node[other]['contracted'] & d['contracted']
-                            if len(shared_nodes)==0:
-                                label='e'
+                            if len(shared_nodes) == 0:
+                                label = 'e'
                             else:
                                 labels = [ord(graph.node[sid]['label']) for sid in shared_nodes]
                                 labels.sort()
                                 share_hash = fhash(labels)
-                                label='share:'+str(share_hash)
-                            abstract_graph.add_edge(other,n,label=label)
+                                label = 'share:' + str(share_hash)
+                            abstract_graph.add_edge(other, n, label=label)
                             '''
                             if connector not in abstract_graph.node:
                                 # we need to consider making the edge the actual intersect of the two...
@@ -187,7 +175,6 @@ def make_abstract(graph):
     return abstract_graph
 
 
-
 def node_to_cycle(graph, n, min_cycle_size=3):
     """
     :param graph:
@@ -209,6 +196,7 @@ def node_to_cycle(graph, n, min_cycle_size=3):
         '''
             we found a cycle, but that does not say that the root node is part of that cycle..S
         '''
+
         def extend_path_to_root(work_list, parent_dict, root):
             """
             :param work_list: list with start node
@@ -248,8 +236,6 @@ def node_to_cycle(graph, n, min_cycle_size=3):
             paths.add(root)
             return paths
         return False
-
-
 
     # START OF ACTUAL FUNCTION
     no_cycle_default = set([n])
