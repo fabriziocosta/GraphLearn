@@ -1,5 +1,4 @@
 class CoreInterfacePair:
-
     """
     this is referred to throughout the code as cip
     it contains the cip-graph and several pieces of information about it.
@@ -20,9 +19,9 @@ class CoreInterfacePair:
         self.radius = radius
         self.thickness = thickness
         self.core_nodes_count = core_nodes_count
-        self.count = count   # will be used to count how often we see this during grammar creation
+        self.count = count  # will be used to count how often we see this during grammar creation
         self.distance_dict = distance_dict  # this attribute is slightly questionable. maybe remove it?
 
     def __str__(self):
         return 'cip: int:%d, cor:%d, rad:%d, thi:%d, rot:%d' % \
-               (self.interface_hash , self.core_hash, self.radius,self.thickness, min(self.distance_dict.get(0,[999])))
+               (self.interface_hash, self.core_hash, self.radius, self.thickness, min(self.distance_dict.get(0, [999])))

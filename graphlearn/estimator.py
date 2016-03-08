@@ -16,22 +16,20 @@ class Wrapper:
     and then you score() graphmanagers or graphs
     '''
 
-    def __init__(self, nu=.5, cv=2, n_jobs=-1,calibrate=True):
-        self.status='new'
-        self.nu=nu
-        self.cv=cv
-        self.n_jobs=n_jobs
-        self.calibrate=calibrate
+    def __init__(self, nu=.5, cv=2, n_jobs=-1, calibrate=True):
+        self.status = 'new'
+        self.nu = nu
+        self.cv = cv
+        self.n_jobs = n_jobs
+        self.calibrate = calibrate
 
     def fit(self, graphmanagers, vectorizer=None, random_state=None):
-        self.vectorizer=vectorizer
+        self.vectorizer = vectorizer
         if random_state is not None:
             random.seed(random_state)
 
-
         # convert to sklearn compatible format
         data_matrix = vectorizer.fit_transform(self.mass_unwrap(graphmanagers))
-
 
         # fit
         self.estimator = self.fit_estimator(data_matrix, n_jobs=self.n_jobs, cv=self.cv, random_state=random_state)
@@ -39,7 +37,7 @@ class Wrapper:
         # calibrate
         self.cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=self.nu, cv=self.cv)
 
-        self.status='trained'
+        self.status = 'trained'
         return self
 
     '''
@@ -68,7 +66,6 @@ class Wrapper:
         # esti.fit( vstack[ X,Y], numpy.asarray([1]*X.shape[0] + [0]*Y.shape[0]))
         return estimator
     '''
-
 
     def fit_estimator(self, data_matrix, n_jobs=-1, cv=2, random_state=42):
         '''
@@ -107,13 +104,13 @@ class Wrapper:
 
         return estimator
 
-    def score(self,graphmanager,keep_vector=False):
+    def score(self, graphmanager, keep_vector=False):
 
         transformed_graph = self.vectorizer.transform_single(self.unwrap(graphmanager))
         # slow so dont do it..
         # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
         if keep_vector:
-            graphmanager.transformed_vector=transformed_graph
+            graphmanager.transformed_vector = transformed_graph
         if self.calibrate:
             return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
         return self.cal_estimator.decision_function(transformed_graph)[0]
@@ -125,11 +122,12 @@ class Wrapper:
         - eden destroys graphs it uses, so we copy
         - eden cant handle directed graphs, so we make graphs undirected
     '''
-    def mass_unwrap(self,graphmanagers):
+
+    def mass_unwrap(self, graphmanagers):
         for gm in graphmanagers:
             yield self.unwrap(gm)
 
-    def unwrap(self,graphmanager):
+    def unwrap(self, graphmanager):
         '''
         Args:
             graphmanager: a graphmanager, graph or digraph
@@ -137,13 +135,13 @@ class Wrapper:
         Returns:
             graph
         '''
-        if type(graphmanager)==nx.Graph or type(graphmanager)==nx.DiGraph:
-            graph=graphmanager.copy()
+        if type(graphmanager) == nx.Graph or type(graphmanager) == nx.DiGraph:
+            graph = graphmanager.copy()
 
         else:
             graph = self.get_graph(graphmanager)
         if type(graph) == nx.DiGraph:
-            graph=nx.Graph(graph)
+            graph = nx.Graph(graph)
         return graph
 
     def get_graph(self, graphmanager):

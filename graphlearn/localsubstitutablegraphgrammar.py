@@ -6,17 +6,18 @@ from eden import grouper
 from eden.graph import Vectorizer
 import logging
 import traceback
+
 logger = logging.getLogger(__name__)
 
 
 class LocalSubstitutableGraphGrammar(object):
-
     """
     the grammar.
         can learn from graphs
         will save all the cips in neat dictionaries
         contains also convenience functions to make it nicely usable
     """
+
     # move all the things here that are needed to extract grammar
 
     def __init__(self, radius_list=None, thickness_list=None, min_cip_count=3,
@@ -49,7 +50,6 @@ class LocalSubstitutableGraphGrammar(object):
 
         logger.debug('preprocessing grammar')
 
-
         if max_core_size_diff > -1:
             if self.prep_is_outdated or 'core_size' not in self.__dict__:
                 self._add_core_size_quicklookup()
@@ -62,8 +62,6 @@ class LocalSubstitutableGraphGrammar(object):
 
         if n_jobs > 1:
             self._multicore_transform()
-
-
 
     def fit(self, graphmanagerlist, n_jobs=4, batch_size=10):
 
@@ -254,14 +252,14 @@ class LocalSubstitutableGraphGrammar(object):
                                       self._multi_process_argbuilder(graphs, batch_size=batch_size))
 
         # the resulting chips can now be put intro the grammar
-        jobs_done=0
+        jobs_done = 0
         for batch in results:
             for exci in batch:
                 if exci:  # exci might be None because the grouper fills up with empty problems
                     for exci_result_per_node in exci:
                         for cip in exci_result_per_node:
                             self._add_core_interface_data(cip)
-                jobs_done+=1
+                jobs_done += 1
                 if jobs_done == self.multiprocess_jobcount and self.mp_prepared:
                     pool.terminate()
         pool.close()
@@ -271,12 +269,13 @@ class LocalSubstitutableGraphGrammar(object):
 
         args = self._get_args()
         function = self.get_cip_extractor()
-        self.multiprocess_jobcount=0
-        self.mp_prepared=False
+        self.multiprocess_jobcount = 0
+        self.mp_prepared = False
         for batch in grouper(graphs, batch_size):
-            self.multiprocess_jobcount+=batch_size
+            self.multiprocess_jobcount += batch_size
             yield dill.dumps((function, args, batch))
         self.mp_prepared = True
+
     '''
     these 2 let you easily change the cip extraction process...
 
@@ -294,12 +293,11 @@ class LocalSubstitutableGraphGrammar(object):
         return extract_cores_and_interfaces
 
 
-
-
-
 '''
 these are external  for multiprocessing reasons.
 '''
+
+
 def extract_cips(what):
     '''
     :param what: unpacks and runs jobs that were packed by the _multi_process_argbuilder
@@ -315,11 +313,11 @@ def extract_cores_and_interfaces(parameters):
         return None
     try:
         # unpack arguments, expand the graph
-        graphmanager, radius_list, thickness_list,  hash_bitmask, node_entity_check = parameters
-        d={'radius_list':radius_list,
-        'thickness_list':thickness_list,
-        'hash_bitmask':hash_bitmask,
-        'node_filter':node_entity_check}
+        graphmanager, radius_list, thickness_list, hash_bitmask, node_entity_check = parameters
+        d = {'radius_list': radius_list,
+             'thickness_list': thickness_list,
+             'hash_bitmask': hash_bitmask,
+             'node_filter': node_entity_check}
 
         return graphmanager.all_core_interface_pairs(**d)
 
@@ -331,6 +329,5 @@ def extract_cores_and_interfaces(parameters):
         # logger.info( "extract_cores_and_interfaces_died" )
         # logger.info( parameters )
 
-
-#def extract_core_and_interface_single_root(**kwargs):
+# def extract_core_and_interface_single_root(**kwargs):
 #    return graphtools.extract_core_and_interface(**kwargs)

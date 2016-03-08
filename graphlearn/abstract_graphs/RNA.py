@@ -12,9 +12,9 @@ from graphlearn.graphlearn import Sampler
 from graphlearn.processing import PreProcessor
 import eden.RNA
 import logging
+
 logger = logging.getLogger(__name__)
 from graphlearn.processing import PostProcessor
-
 
 '''
 contains:
@@ -27,14 +27,12 @@ tools to call the infernal/cmsearch
 
 
 class PostProcessor(PostProcessor):
-
     def re_transform_single(self, input):
         return self.pp.re_transform_single(input)
 
 
 class PreProcessor(PreProcessor):
-
-    def __init__(self,base_thickness_list=[2],structure_mod=True,include_base=False,ignore_inserts=False):
+    def __init__(self, base_thickness_list=[2], structure_mod=True, include_base=False, ignore_inserts=False):
         '''
 
         Parameters
@@ -52,10 +50,10 @@ class PreProcessor(PreProcessor):
         -------
 
         '''
-        self.ignore_inserts=ignore_inserts
-        self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
-        self.structure_mod= structure_mod
-        self.include_base=include_base
+        self.ignore_inserts = ignore_inserts
+        self.base_thickness_list = [thickness * 2 for thickness in base_thickness_list]
+        self.structure_mod = structure_mod
+        self.include_base = include_base
 
     def fit(self, inputs, vectorizer):
         '''
@@ -102,7 +100,7 @@ class PreProcessor(PreProcessor):
 
         sequence = sequence.replace("F", '')
         trans = self.transform([sequence])[0]
-        #if trans._base_graph.graph['energy'] > -10:
+        # if trans._base_graph.graph['energy'] > -10:
         #    return None
         return trans
 
@@ -120,34 +118,34 @@ class PreProcessor(PreProcessor):
         result = []
         for sequence in sequences:
 
-                # if we eat a tupple, it musst be a (name, sequence) type :)  we only want a sequence
-                if type(sequence)== type(()):
-                    logger.warning( 'YOUR INPUT IS A TUPPLE, GIVE ME A SEQUENCE, SINCERELY -- YOUR RNA PREPROCESSOR')
+            # if we eat a tupple, it musst be a (name, sequence) type :)  we only want a sequence
+            if type(sequence) == type(()):
+                logger.warning('YOUR INPUT IS A TUPPLE, GIVE ME A SEQUENCE, SINCERELY -- YOUR RNA PREPROCESSOR')
 
-                # get structure
-                structure,energy = self.NNmodel.transform_single(('fake',sequence))
-                if structure==None:
-                    result.append(None)
-                    continue
+            # get structure
+            structure, energy = self.NNmodel.transform_single(('fake', sequence))
+            if structure == None:
+                result.append(None)
+                continue
 
-                # the consensus structure is not meant to be used as a folding plan for individual sequences
-                # so we do the best we can to get a valid structure
-                if self.structure_mod:
-                    structure,sequence= fix_structure(structure,sequence)
+            # the consensus structure is not meant to be used as a folding plan for individual sequences
+            # so we do the best we can to get a valid structure
+            if self.structure_mod:
+                structure, sequence = fix_structure(structure, sequence)
 
-                # built base_graph
-                base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
-                base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
-                base_graph = expanded_rna_graph_to_digraph(base_graph)
-                base_graph.graph['energy']=energy
-                result.append(
-                    RnaWrapper(sequence, structure,base_graph, self.vectorizer, self.base_thickness_list,include_base=self.include_base, ignore_inserts=self.ignore_inserts)
-                    )
+            # built base_graph
+            base_graph = converter.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
+            base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
+            base_graph = expanded_rna_graph_to_digraph(base_graph)
+            base_graph.graph['energy'] = energy
+            result.append(
+                    RnaWrapper(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list,
+                               include_base=self.include_base, ignore_inserts=self.ignore_inserts)
+            )
         return result
 
 
 class RnaWrapper(AbstractWrapper):
-
     # def core_substitution(self, orig_cip_graph, new_cip_graph):
     #    graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
     #    return self.__class__( graph, self.vectorizer , self.some_thickness_list)
@@ -159,7 +157,7 @@ class RnaWrapper(AbstractWrapper):
         if self._abstract_graph is None:
 
             # create the abstract graph and populate the contracted set
-            abstract_graph = forgi.get_abstr_graph(self.structure,ignore_inserts=self.ignore_inserts)
+            abstract_graph = forgi.get_abstr_graph(self.structure, ignore_inserts=self.ignore_inserts)
             abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
             self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph_base_graph)
 
@@ -176,10 +174,8 @@ class RnaWrapper(AbstractWrapper):
 
         return self._abstract_graph
 
-
-
-    def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,
-                 abstract_graph=None,include_base=False,ignore_inserts=False):
+    def __init__(self, sequence, structure, base_graph, vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,
+                 abstract_graph=None, include_base=False, ignore_inserts=False):
         '''
 
         Args:
@@ -206,15 +202,14 @@ class RnaWrapper(AbstractWrapper):
 
         '''
 
-        self.ignore_inserts=ignore_inserts
-        self.some_thickness_list=base_thickness_list
-        self.vectorizer=vectorizer
-        self._abstract_graph= abstract_graph
-        self._base_graph= base_graph
-        self.sequence=sequence
-        self.structure=structure
-        self.include_base=include_base
-
+        self.ignore_inserts = ignore_inserts
+        self.some_thickness_list = base_thickness_list
+        self.vectorizer = vectorizer
+        self._abstract_graph = abstract_graph
+        self._base_graph = base_graph
+        self.sequence = sequence
+        self.structure = structure
+        self.include_base = include_base
 
         # self._base_graph = converter.sequence_dotbracket_to_graph(
         #                                      seq_info=self.sequence, seq_struct=self.structure)
@@ -242,8 +237,7 @@ class RnaWrapper(AbstractWrapper):
 
         ciplist = super(self.__class__, self).rooted_core_interface_pairs(root, thickness, **args)
 
-
-        #numbering shards if cip graphs not connected
+        # numbering shards if cip graphs not connected
         for cip in ciplist:
             if not nx.is_weakly_connected(cip.graph):
                 comps = [list(node_list) for node_list in nx.weakly_connected_components(cip.graph)]
@@ -270,79 +264,74 @@ class RnaWrapper(AbstractWrapper):
 
         return ciplist
 
-
     def out(self):
         # copy and  if digraph make graph
         return self.base_graph()
-        #sequence=get_sequence(self.base_graph())
-        #return ('',sequence.replace("F",""))
+        # sequence=get_sequence(self.base_graph())
+        # return ('',sequence.replace("F",""))
 
-    def graph(self, nested=True,fcorrect=False,base_only=False):
+    def graph(self, nested=True, fcorrect=False, base_only=False):
         '''
 
         '''
-        g= nx.disjoint_union(nx.Graph(self._base_graph), self.abstract_graph())
+        g = nx.disjoint_union(nx.Graph(self._base_graph), self.abstract_graph())
         if base_only:
-            g=self.base_graph().copy()
-        node_id= len(g)
-        delset=[]
+            g = self.base_graph().copy()
+        node_id = len(g)
+        delset = []
         if nested:
-            for n,d in g.nodes(data=True):
+            for n, d in g.nodes(data=True):
                 if 'contracted' in d and 'edge' not in d:
                     for e in d['contracted']:
-                        if 'edge' not in g.node[e] and not(g.node[e]['label']=='F' and fcorrect): # think about this
+                        if 'edge' not in g.node[e] and not (g.node[e]['label'] == 'F' and fcorrect):  # think about this
 
                             # we want an edge from n to e
-                            g.add_node(node_id,edge=True,label='e')
-                            g.add_edge( n, node_id, nesting=True)
-                            g.add_edge( node_id, e, nesting=True)
-                            #g.add_edge( n, e, nesting=True)
-                            node_id+=1
+                            g.add_node(node_id, edge=True, label='e')
+                            g.add_edge(n, node_id, nesting=True)
+                            g.add_edge(node_id, e, nesting=True)
+                            # g.add_edge( n, e, nesting=True)
+                            node_id += 1
 
         if fcorrect:
-            for n,d in g.nodes(data=True):
-                if d['label']=="F":
-                    down=self.nextnode(g,n)
-                    up=self.nextnode(g,n,down_direction=False)
-                    delset.append( (n,down,up) )
+            for n, d in g.nodes(data=True):
+                if d['label'] == "F":
+                    down = self.nextnode(g, n)
+                    up = self.nextnode(g, n, down_direction=False)
+                    delset.append((n, down, up))
 
-            for r,d,u in delset:
+            for r, d, u in delset:
+                # print g.node[d[0]]
+                # we copy the label of the adjacent edge to r
+                g.node[r] = g.node[d[0]].copy()
+                # print g.node[r]
 
-                    #print g.node[d[0]]
-                    # we copy the label of the adjacent edge to r
-                    g.node[r]=g.node[d[0]].copy()
-                    #print g.node[r]
+                # g.node[r]={"label":'-','edge':True}
+                # delete neighbors
+                g.remove_nodes_from([d[0], u[0]])
 
-                    #g.node[r]={"label":'-','edge':True}
-                    #delete neighbors
-                    g.remove_nodes_from([d[0],u[0]])
-
-                    #rewire neighbors of neighbors
-                    g.add_edge(r,d[1])
-                    g.add_edge(u[1],r)
-                    #print r,d,u
-
-
+                # rewire neighbors of neighbors
+                g.add_edge(r, d[1])
+                g.add_edge(u[1], r)
+                # print r,d,u
 
         return g
 
-    def nextnode(self,g,n,down_direction=True):
+    def nextnode(self, g, n, down_direction=True):
         '''
         goto the nextnext node in a direction
         '''
         if down_direction:
-            f=g.successors
+            f = g.successors
         else:
-            f=g.predecessors
-        next=f(n)[0]
-        return next,f(next)[0]
-
-
+            f = g.predecessors
+        next = f(n)[0]
+        return next, f(next)[0]
 
 
 '''
 a few handy graph tools :)
 '''
+
 
 def get_sequence(digraph):
     if type(digraph) == str:
@@ -361,6 +350,7 @@ def _getsucc(graph, root):
     :param root:
     :return: [ edge node , nodenode ] along the 'right' path   [edge node, nodenode  ] along the wroong path
     '''
+
     def post(graph, root):
         p = graph.neighbors(root)
         for e in p:
@@ -439,6 +429,8 @@ def expanded_rna_graph_to_digraph(graph):
 '''
 rna feasibility checker
 '''
+
+
 def is_rna(graph):
     graph = graph.copy()
     # remove structure
@@ -535,20 +527,19 @@ class NearestNeighborFolding(object):
 
 
 class EdenNNF(NearestNeighborFolding):
-
     def fit(self, sequencelist):
         self.eden_rna_vectorizer = eden.RNA.Vectorizer(n_neighbors=self.n_neighbors)
         self.eden_rna_vectorizer.fit(sequencelist)
 
         # after the initial thing: settting min enery high so we never do mfe
-        #self.eden_rna_vectorizer.min_energy= -10
+        # self.eden_rna_vectorizer.min_energy= -10
         return self
 
     def transform_single(self, sequence):
-        s,neigh = self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
-        head,seq,stru,en = self.eden_rna_vectorizer._align_sequence_structure(s,neigh,structure_deletions=True)
-        #stru = self._clean_structure(seq,stru) # this is a way to limit the deleted bracket count, idea does not work well
-        return stru,en
+        s, neigh = self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
+        head, seq, stru, en = self.eden_rna_vectorizer._align_sequence_structure(s, neigh, structure_deletions=True)
+        # stru = self._clean_structure(seq,stru) # this is a way to limit the deleted bracket count, idea does not work well
+        return stru, en
 
     def _clean_structure(self, seq, stru):
         '''
@@ -563,7 +554,7 @@ class EdenNNF(NearestNeighborFolding):
         the structure given may not respect deletions in the sequence.
         we transform the structure to one that does
         '''
-        DELETED_BRACKETS=0
+        DELETED_BRACKETS = 0
 
         # find  deletions in sequence
         ids = []
@@ -575,21 +566,19 @@ class EdenNNF(NearestNeighborFolding):
         pairdict = self._pairs(stru)
         for i in ids:
             stru[pairdict[i]] = '.'
-            DELETED_BRACKETS+=1
+            DELETED_BRACKETS += 1
         # delete deletions in structure
         ids.reverse()
         for i in ids:
             del stru[i]
         stru = ''.join(stru)
 
-
-
         if "(())" in stru:
-            DELETED_BRACKETS+=4
+            DELETED_BRACKETS += 4
         if "(..)" in stru:
-            DELETED_BRACKETS+=2
+            DELETED_BRACKETS += 2
         if "(.)" in stru:
-            DELETED_BRACKETS+=2
+            DELETED_BRACKETS += 2
         # removing obvious mistakes
         stru = stru.replace("(())", "....")
         stru = stru.replace("(.)", "...")
@@ -626,7 +615,6 @@ default method if no nearest neighbor folding class is provided
 
 
 def callRNAshapes(sequence):
-
     cmd = 'RNAshapes %s' % sequence
     out = sp.check_output(cmd, shell=True)
     s = out.strip().split('\n')
@@ -690,21 +678,20 @@ Here we see stuff that we use for INFERNAL scores
 
 
 class AbstractSampler(Sampler):
-
     def _sample_path_append(self, graph, force=False):
         self._sample_notes += graph.sequence + "n"
         super(self.__class__, self)._sample_path_append(graph, force=force)
 
 
-def infernal_checker(sequence_list,cmfile='rf00005.cm', cmsearchbinarypath='../toolsdata/cmsearch'):
+def infernal_checker(sequence_list, cmfile='rf00005.cm', cmsearchbinarypath='../toolsdata/cmsearch'):
     '''
     :param sequences: a bunch of rna sequences
     :return: get evaluation from cmsearch
     '''
-    write_fasta(sequence_list,filename='temp.fa')
-    sequence_list = [ s for s in sequence_list if is_sequence(s.replace('F',''))  ]
-    #print sequence_list
-    return call_cm_search(cmfile,'temp.fa',len(sequence_list),cmsearchbinarypath)
+    write_fasta(sequence_list, filename='temp.fa')
+    sequence_list = [s for s in sequence_list if is_sequence(s.replace('F', ''))]
+    # print sequence_list
+    return call_cm_search(cmfile, 'temp.fa', len(sequence_list), cmsearchbinarypath)
 
 
 def is_sequence(seq):
@@ -728,9 +715,8 @@ def write_fasta(sequences, filename='asdasd'):
         f.write(fasta)
 
 
-def call_cm_search(cmfile,filename, count,cmsearchbinpath):
-
-    out = sp.check_output('%s -g --noali --incT 0  %s %s' %(cmsearchbinpath,cmfile, filename), shell=True)
+def call_cm_search(cmfile, filename, count, cmsearchbinpath):
+    out = sp.check_output('%s -g --noali --incT 0  %s %s' % (cmsearchbinpath, cmfile, filename), shell=True)
     # -g global
     # --noali, we dont want to see the alignment, score is enough
     # --incT 0 we want to see everything with score > 0

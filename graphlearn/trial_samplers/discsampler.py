@@ -7,10 +7,10 @@ import heapq
 from eden.graph import Vectorizer
 import copy
 
-#from graphlearn.utils import draw
-#from graphlearn utils.draw import draw_grammar
-class DiscSampler():
 
+# from graphlearn.utils import draw
+# from graphlearn utils.draw import draw_grammar
+class DiscSampler():
     '''
     '''
 
@@ -25,23 +25,23 @@ class DiscSampler():
         and the forest ist just a nearest neighbor from sklearn
         '''
 
-
         graphs = list(griter)
-        graphs2= copy.deepcopy(graphs)
+        graphs2 = copy.deepcopy(graphs)
         # transform doess mess up the graph objects
         X = self.vectorizer.transform(graphs)
 
         forest = LSHForest()
         forest.fit(X)
         print 'got forest'
-        
+
         heap = []
         for vector, graph in zip(X, graphs2):
             graph2 = nx.Graph(graph)
             heapq.heappush(heap, (
-                self.sampler.estimator.predict_proba(self.sampler.vectorizer.transform_single(graph2))[0][1], # score ~ dist from hyperplane
-                k + 1, # making sure that the counter is high so we dont output the startgraphz at the end
-                graph)) # at last the actual graph
+                self.sampler.estimator.predict_proba(self.sampler.vectorizer.transform_single(graph2))[0][1],
+                # score ~ dist from hyperplane
+                k + 1,  # making sure that the counter is high so we dont output the startgraphz at the end
+                graph))  # at last the actual graph
 
         print 'got heap'
         distances, unused = forest.kneighbors(X, n_neighbors=2)
@@ -50,7 +50,6 @@ class DiscSampler():
         print 'got dist'
 
         return heap, forest, avg_dist
-
 
     '''
     def sample_simple(self,graphiter,iterneg):
@@ -95,7 +94,7 @@ class DiscSampler():
 
             # let the sampler do the sampling
             graphz = [e[2] for e in todo]
-            #draw.draw_graph_set_graphlearn(graphz)
+            # draw.draw_graph_set_graphlearn(graphz)
             work = self.sampler.sample(graphz,
                                        batch_size=1,
                                        n_jobs=0,
@@ -134,8 +133,6 @@ class DiscSampler():
                 # go back to the heap!
                 heapq.heappush(heap, (task[0], task[1] + len(graphlist), task[2]))
 
-
-
         return result
 
     '''
@@ -145,22 +142,19 @@ class DiscSampler():
         self.estimator=self.sampler.estimator
     '''
 
-
     def fit_sampler(self, iter_pos, iter_neg):
         # getting the sampler ready:
-        self.sampler = MySampler(radius_list=[0, 1],thickness_list=[0.5,1, 2])
+        self.sampler = MySampler(radius_list=[0, 1], thickness_list=[0.5, 1, 2])
         iter_pos, pos, pos_ = itertools.tee(iter_pos, 3)
         self.estimator = self.sampler.estimatorobject.fit_2(iter_pos, iter_neg, self.sampler.vectorizer)
         print 'got estimeetaaa'
         self.sampler.local_substitutable_graph_grammar.fit(pos, grammar_n_jobs=-1, grammar_batch_size=8)
         self.sampler.estimator = self.estimator
         print 'got grammar:grammar is there oO'
-        #draw_grammar(self.sampler.local_substitutable_graph_grammar.grammar,n_productions=5)
-        
+        # draw_grammar(self.sampler.local_substitutable_graph_grammar.grammar,n_productions=5)
 
 
 class MySampler(GraphLearnSampler):
-
     def _stop_condition(self, graph):
         '''
         i accept 2 versions oOo
@@ -186,11 +180,12 @@ class MySampler(GraphLearnSampler):
         #        res_list+= GraphLearnSampler._sample(self,inp).graph['sampling_info']['graphs_history'][1:-1]
         #    return res_list
 
-def sample(self,**kwargs):
-        '''
 
-        '''
+def sample(self, **kwargs):
+    '''
 
-        #self.vectorizer=Vectorizer(nbits=self.nbits)
-        for e in super(MySampler, self).sample(**kwargs):
-            yield e
+    '''
+
+    # self.vectorizer=Vectorizer(nbits=self.nbits)
+    for e in super(MySampler, self).sample(**kwargs):
+        yield e

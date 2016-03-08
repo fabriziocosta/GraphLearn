@@ -14,8 +14,8 @@ from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
 from utils import draw
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 '''
 This is a minimal version of the graph sampler, i tried to remove as much as possible so one can more easily see how it works.
@@ -27,10 +27,7 @@ WATCH OUT FOR UPERCASE COMMENTS
 '''
 
 
-
 class GraphLearnSampler(object):
-
-
     '''
     HERE PREPARATIONS FOR SAMPLING ARE TAKEN CARE OF
     
@@ -53,7 +50,6 @@ class GraphLearnSampler(object):
                  complexity=3,
                  vectorizer=Vectorizer(complexity=3),
                  estimator=estimator_wrapper.estimator_wrapper()):
-
 
         self.complexity = complexity
         self.feasibility_checker = FeasibilityChecker()
@@ -80,12 +76,12 @@ class GraphLearnSampler(object):
         self.sample_path = None
 
         self.local_substitutable_graph_grammar = LocalSubstitutableGraphGrammar(self.radius_list,
-                                                                                    self.thickness_list,
-                                                                                    complexity=self.complexity,
-                                                                                    cip_remove_threshold=core_interface_pair_remove_threshold,
-                                                                                    interface_remove_threshold=interface_remove_threshold,
-                                                                                    nbit=20)
-        
+                                                                                self.thickness_list,
+                                                                                complexity=self.complexity,
+                                                                                cip_remove_threshold=core_interface_pair_remove_threshold,
+                                                                                interface_remove_threshold=interface_remove_threshold,
+                                                                                nbit=20)
+
     def save(self, file_name):
         self.local_substitutable_graph_grammar._revert_multicore_transform()
         dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
@@ -108,13 +104,11 @@ class GraphLearnSampler(object):
         self.estimator = self.estimatorobject.fit(graphs_, vectorizer=self.vectorizer, nu=nu)
         self.local_substitutable_graph_grammar.fit(graphs)
 
-
-
-
     '''
       ENTRY POINT FOR SAMPLING. THE ACTUAL WORK WILL BE DONE BY _SAMPLE
       
     '''
+
     def sample(self, graph_iter,
                n_samples=10,
                n_steps=50,
@@ -123,12 +117,12 @@ class GraphLearnSampler(object):
             input: graph iterator
             output: yield (sampled_graph,{dictionary of info about sampling process}
         """
-        self.sampling_interval= 99999
+        self.sampling_interval = 99999
         if n_samples:
             self.sampling_interval = int(n_steps / n_samples) + 1
         self.n_steps = n_steps
         self.select_cip_max_tries = select_cip_max_tries
-   
+
         # sampling
         for graph in graph_iter:
             sampled_graph = self._sample(graph)
@@ -140,12 +134,12 @@ class GraphLearnSampler(object):
         # after _sample we need to decide what to yield...
         yield sample_product
 
-
     '''
     
     HERE ALL THE SAMPLING HAPPENS EXCEPT THE GRAPH PROPOSITION WHICH IS DESCRIBED BELOW
     
     '''
+
     def _sample(self, graph):
         '''
             we sample a single graph.
@@ -203,7 +197,7 @@ class GraphLearnSampler(object):
 
     def _stop_condition(self, graph):
         pass
-        
+
     def _score(self, graph):
         """
         :param graph: a graph
@@ -214,7 +208,7 @@ class GraphLearnSampler(object):
             transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-            graph._score = self.estimator.predict_proba(transformed_graph)[0,1]
+            graph._score = self.estimator.predict_proba(transformed_graph)[0, 1]
         return graph._score
 
     def _accept(self, graph_old, graph_new):
@@ -233,15 +227,10 @@ class GraphLearnSampler(object):
             return True
         return score_ratio > random.random()
 
-
-
-
     '''
         FIRST WE PICK A CIP FROM THE ORIGINAL GRPAH (SEE BELOW)
         THEN WE DECIDE ON A CIP TO REPLACE IT WITH
     '''
-
-
 
     def _propose(self, graph):
         '''
@@ -269,7 +258,6 @@ class GraphLearnSampler(object):
                 graph_clean(graph_new)
                 return self.postprocessor.postprocess(graph_new)
 
-
     def _select_cips(self, cip):
         """
         :param cip: the cip we selected from the graph
@@ -279,8 +267,7 @@ class GraphLearnSampler(object):
         """
         core_hashes = self._get_valid_core_hashes(cip)
         for core_hash in core_hashes:
-                yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
-
+            yield self.local_substitutable_graph_grammar.grammar[cip.interface_hash][core_hash]
 
     def _get_valid_core_hashes(self, cip):
         '''
@@ -310,15 +297,14 @@ class GraphLearnSampler(object):
             if not cip:
                 continue
             cip = cip[0]
-            
+
             # return if the cip is good.
             if self._accept_original_cip(cip):
                 return cip
 
         raise Exception('select_cip_for_substitution failed')
 
-
-    def  _original_cip_extraction(self,graph):
+    def _original_cip_extraction(self, graph):
         '''
         selects the next candidate.
         '''
@@ -331,7 +317,6 @@ class GraphLearnSampler(object):
         thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
         return extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer)
 
-
     def _accept_original_cip(self, cip):
         '''
         :param cip: the cip we need to judge
@@ -341,4 +326,3 @@ class GraphLearnSampler(object):
         if cip.interface_hash in self.local_substitutable_graph_grammar.grammar:
             return True
         return False
-

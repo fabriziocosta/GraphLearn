@@ -61,7 +61,7 @@ class PreProcessor(PreProcessor):
         # now comes the second part in which i try to find a name for those minor nodes.
         from graphlearn.utils import draw
         if self.learned_node_names:
-            print 'start learned stuff'
+
             parts = []
             # for all minor nodes:
             for graph in inputs:
@@ -95,7 +95,7 @@ class PreProcessor(PreProcessor):
         Returns:
             will fit self.kmeans
         """
-        li=[]
+        li = []
         for graph in inputs:
             g = self.vectorizer.annotate([graph], estimator=self.rawgraph_estimator.estimator).next()
             for n, d in g.nodes(data=True):
