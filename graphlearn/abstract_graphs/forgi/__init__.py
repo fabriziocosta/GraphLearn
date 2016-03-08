@@ -7,7 +7,6 @@ import eden.modifier.rna.lib_forgi as lib_forgi
 
 def get_abstr_graph(struct, ignore_inserts=False):
     '''
-
     Parameters
     ----------
     struct: basestring

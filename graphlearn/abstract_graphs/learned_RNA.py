@@ -16,12 +16,34 @@ see learned.py
 
 class RnaPreProcessor(PreProcessor):
 
-    def __init__(self,base_thickness_list=[2], kmeans_clusters=2,structure_mod=True):
+    def __init__(self,base_thickness_list=[2], kmeans_clusters=2,structure_mod=False):
+        '''
+        Args:
+            base_thickness_list: [int]
+                thicknesslist
+            kmeans_clusters: int
+                how many clusters
+            structure_mod: bool
+                should structuremod be applied?
+                this will introduce "F" nodes in critical parts..
+                should not be necessary for learned RNA
+        Returns: void
+
+        '''
         self.base_thickness_list= [thickness*2 for thickness in base_thickness_list]
         self.kmeans_clusters=kmeans_clusters
         self.structure_mod=structure_mod
 
+
     def fit(self, inputs, vectorizer):
+        '''
+        Args:
+            inputs: [rna seq]
+            vectorizer:  a vectorizer
+
+        Returns: self
+
+        '''
         self.vectorizer = vectorizer
         self.NNmodel = rna.EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
@@ -38,13 +60,11 @@ class RnaPreProcessor(PreProcessor):
 
     def fit_transform(self,inputs):
         '''
-        Parameters
-        ----------
-        input : many inputs
+        Args:
+            inputs: [rna seq]
 
-        Returns
-        -------
-        graphwrapper iterator
+        Returns: [graphwrapper]
+
         '''
 
         inputs=list(inputs)
@@ -54,14 +74,10 @@ class RnaPreProcessor(PreProcessor):
 
     def re_transform_single(self, graph):
         '''
+        Args:
+            graph:  digraph
 
-        Parameters
-        ----------
-        graphwrapper
-
-        Returns
-        -------
-        a postprocessed graphwrapper
+        Returns: wrapped graph
         '''
         try:
             sequence = rna.get_sequence(graph)
@@ -78,6 +94,14 @@ class RnaPreProcessor(PreProcessor):
 
 
     def _sequence_to_base_graph(self, sequence):
+        '''
+
+        Args:
+            sequence: rna sequence
+
+        Returns: raw graph
+
+        '''
 
         structure = self.NNmodel.transform_single(sequence)
         if self.structure_mod:
@@ -96,7 +120,7 @@ class RnaPreProcessor(PreProcessor):
 
         Returns
         -------
-        list of RnaGraphWrappers
+            list of RnaGraphWrappers
         """
 
         result=[]

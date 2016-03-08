@@ -159,14 +159,15 @@ class Sampler(object):
         graphmanagers = self.preprocessor.fit_transform(input)
 
         self.postprocessor.fit(self.preprocessor)
+        self._train_estimator(graphmanagers)
+        self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
+        return self
+
+    def _train_estimator(self, graphmanagers):
         if self.estimatorobject.status != 'trained':
             self.estimatorobject.fit(graphmanagers,
                                                       vectorizer=self.vectorizer,
                                                       random_state=self.random_state)
-        self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
-        return self
-
-
 
     def sample(self, graph_iter,
 
@@ -318,8 +319,8 @@ class Sampler(object):
 
         if score_core_choice:
             self.score_core_choice_dict = {}
-            for interface in self.lsgg.productions:
-                for core in self.lsgg.productions[interface]:
+            for interface in self.lsgg.productions.keys():
+                for core in self.lsgg.productions[interface].keys():
                     gr = self.lsgg.productions[interface][core].graph.copy()
                     transformed_graph = self.vectorizer.transform_single(gr)
                     score = self.estimatorobject.cal_estimator.predict_proba(transformed_graph)[0, 1]
@@ -343,12 +344,26 @@ class Sampler(object):
                 pool = Pool(processes=n_jobs)
             else:
                 pool = Pool()
+
+
             sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
 
+
+            jobs_done=0
             for batch in sampled_graphs:
-                for graph,moni in batch:
-                    for new_graph in self.return_formatter(graph,moni):
+                for graphlist,moni in batch:
+                    #print type(graph)
+                    # currently formatter only returns one element and thats fine, one day this may be changed
+
+                    for new_graph in self.return_formatter(graphlist,moni):
                         yield new_graph
+
+                    # forcing termination once the results are in.
+                    jobs_done+=1
+                    # python is already starting jobs while not all are in the queue
+                    if jobs_done == self.multiprocess_jobcount and self.multiprocess_all_prepared:
+                        pool.terminate()
+
             pool.close()
             pool.join()
             # for pair in graphlearn_utils.multiprocess(graph_iter,\
@@ -362,10 +377,15 @@ class Sampler(object):
     def _argbuilder(self, problem_iter):
         # for multiprocessing  divide task into small multiprocessable bites
         s = dill.dumps(self)
+        self.multiprocess_jobcount = 0
+        self.multiprocess_all_prepared = False
         for e in grouper(problem_iter, self.batch_size):
+            # cant just take batch size here because output of nons will be suppressed
+            problems=[1 for problem in e if problem != None]
+            self.multiprocess_jobcount += sum(problems)
             batch = dill.dumps(e)
             yield (s, batch)
-
+        self.multiprocess_all_prepared = True
 
 
     def _samplelog(self,msg,level=10):
@@ -861,4 +881,8 @@ class Sampler(object):
 def _sample_multi(what):
     self = dill.loads(what[0])
     graphlist = dill.loads(what[1])
-    return [self._sample(g) for g in graphlist]
+    # if jobsize % batchsize != 0, sample will not give me a tuple,
+    # here i filter for these
+    result = [self._sample(g) for g in graphlist]
+    #print result
+    return [e for e in result if type(e)== type(())]

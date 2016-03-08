@@ -58,6 +58,14 @@ class PreProcessor(PreProcessor):
         self.include_base=include_base
 
     def fit(self, inputs, vectorizer):
+        '''
+
+        Args:
+            inputs: sequence list
+            vectorizer: a vectorizer
+
+        Returns: self
+        '''
         self.vectorizer = vectorizer
         self.NNmodel = EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
@@ -65,13 +73,12 @@ class PreProcessor(PreProcessor):
 
     def fit_transform(self, inputs):
         '''
-        Parameters
-        ----------
-        input : many inputs
 
-        Returns
-        -------
-        graphwrapper iterator
+        Args:
+            inputs:  sequences
+
+        Returns:
+            wrapped graphs
         '''
         inputs = list(inputs)
         self.fit(inputs, self.vectorizer)
@@ -80,14 +87,11 @@ class PreProcessor(PreProcessor):
 
     def re_transform_single(self, graph):
         '''
+        Args:
+            graph: digraph
 
-        Parameters
-        ----------
-        graph
+        Returns: wrapped graph
 
-        Returns
-        -------
-        a postprocessed graphwrapper
         '''
         try:
             sequence = get_sequence(graph)
@@ -157,7 +161,7 @@ class RnaWrapper(AbstractWrapper):
             # create the abstract graph and populate the contracted set
             abstract_graph = forgi.get_abstr_graph(self.structure,ignore_inserts=self.ignore_inserts)
             abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
-            self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph)
+            self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph_base_graph)
 
             # eden is forcing us to set a label and a contracted attribute.. lets do this
             for n, d in self._abstract_graph.nodes(data=True):
@@ -176,6 +180,31 @@ class RnaWrapper(AbstractWrapper):
 
     def __init__(self,sequence,structure,base_graph,vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,
                  abstract_graph=None,include_base=False,ignore_inserts=False):
+        '''
+
+        Args:
+            sequence: string
+                rna sequence
+            structure: string
+                dotbracket
+            base_graph: raw graph
+                base graph
+            vectorizer: vectorizer
+                a vectorizer
+            base_thickness_list: [int]
+                thickness for the base graph interface
+            abstract_graph: graph
+                the abstracted graph
+            include_base: bool
+                an additional layer of CIPs will be produced
+                those cips use the radius_list on the base graph oOo
+                this feature needs more work
+            ignore_inserts: bool
+                bulges will be one with their associated stem
+
+        Returns:
+
+        '''
 
         self.ignore_inserts=ignore_inserts
         self.some_thickness_list=base_thickness_list
@@ -201,13 +230,20 @@ class RnaWrapper(AbstractWrapper):
 
     def rooted_core_interface_pairs(self, root, thickness=None, **args):
         '''
-        we will name the SHARDS of the cip grpahs are not connected
-        '''
-        ciplist = super(self.__class__, self).rooted_core_interface_pairs(root, thickness, **args)
+
+        Args:
+            root: int
+            thickness:  
+            **args:
+
+        Returns:
 
         '''
-        numbering shards if cip graphs not connected
-        '''
+
+        ciplist = super(self.__class__, self).rooted_core_interface_pairs(root, thickness, **args)
+
+
+        #numbering shards if cip graphs not connected
         for cip in ciplist:
             if not nx.is_weakly_connected(cip.graph):
                 comps = [list(node_list) for node_list in nx.weakly_connected_components(cip.graph)]

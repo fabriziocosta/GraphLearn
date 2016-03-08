@@ -87,7 +87,15 @@ class PreProcessor(PreProcessor):
             logger.debug(report_base_statistics(cluster_ids).replace('\t', '\n'))
 
     def make_kmeans(self, inputs):
-        li = []
+        """
+
+        Args:
+            inputs: [graph]
+
+        Returns:
+            will fit self.kmeans
+        """
+        li=[]
         for graph in inputs:
             g = self.vectorizer.annotate([graph], estimator=self.rawgraph_estimator.estimator).next()
             for n, d in g.nodes(data=True):
@@ -100,7 +108,7 @@ class PreProcessor(PreProcessor):
         '''
         Parameters
         ----------
-        input : many inputs
+        input : graphs
 
         Returns
         -------
@@ -218,13 +226,11 @@ class PreProcessor(PreProcessor):
     def transform(self, inputs):
         '''
 
-        Parameters
-        ----------
-        inputs : list of things
+        Args:
+            inputs: [graph]
 
-        Returns
-        -------
-        graphwrapper : iterator
+        Returns: [graphwrapper]
+
         '''
         return [AbstractWrapper(self.vectorizer._edge_to_vertex_transform(i),
                                 vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
