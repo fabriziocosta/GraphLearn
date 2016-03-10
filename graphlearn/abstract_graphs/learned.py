@@ -1,4 +1,5 @@
 from eden.modifier.graph.structure import contraction
+from collections import defaultdict
 from sklearn.cluster import KMeans
 from graphlearn.abstract_graphs.abstract import AbstractWrapper
 from graphlearn.estimator import Wrapper as estimartorwrapper
@@ -7,6 +8,9 @@ from graphlearn.utils import draw
 import eden
 import networkx as nx
 import logging
+from itertools import izip
+from sklearn.cluster import MiniBatchKMeans
+from eden.util import report_base_statistics
 
 logger = logging.getLogger(__name__)
 '''
@@ -23,7 +27,7 @@ appear during sampling.
 
 
 class PreProcessor(PreProcessor):
-    def __init__(self, base_thickness_list=[2], kmeans_clusters=4, learned_node_names_clusters=0):
+    def __init__(self, base_thickness_list=[2], kmeans_clusters=4, learned_node_names_clusters=0, save_graphclusters=False):
         '''
 
         Parameters
@@ -35,10 +39,14 @@ class PreProcessor(PreProcessor):
         kmeans_clusters: int, 4
             split nodes of the graphs into this many groups (by rating provided by an estimator)
 
+
         learned_node_names: bool False
             nodes that that belong to the same group (see above) and are adjacent
             form a minor node, if this option is enabled, we try to learn a name for
             this combined node.
+
+        save_graphclusters: bool, False
+            saving learned_node_names clusters in self.graphclusters
 
         Returns
         -------
@@ -46,9 +54,12 @@ class PreProcessor(PreProcessor):
         '''
         self.base_thickness_list = base_thickness_list
         self.kmeans_clusters = kmeans_clusters
+        self.save_graphclusters = save_graphclusters
         if learned_node_names_clusters > 1:
             self.learned_node_names = True
             self.learned_node_names_clusters = learned_node_names_clusters
+        elif self.save_graphclusters:
+            print "save_graphclusters will be ignored because learned_node_names_clusters is not set or too low."
 
     def fit(self, inputs):
 
@@ -76,15 +87,17 @@ class PreProcessor(PreProcessor):
             # draw.graphlearn(parts[:5], contract=False)
             # code from annotation-components.ipynb:
             data_matrix = self.vectorizer.transform(parts)
-
-            from sklearn.cluster import MiniBatchKMeans
             self.clust = MiniBatchKMeans(n_clusters=self.learned_node_names_clusters)
             self.clust.fit(data_matrix)
             cluster_ids = self.clust.predict(data_matrix)
-
             logger.debug('num clusters: %d' % max(cluster_ids))
-            from eden.util import report_base_statistics
             logger.debug(report_base_statistics(cluster_ids).replace('\t', '\n'))
+
+            if self.save_graphclusters:
+                self.graphclusters = defaultdict(list)
+                for cluster_id, graph in izip(cluster_ids, parts):
+                    self.graphclusters[cluster_id].append(graph)
+
 
     def make_kmeans(self, inputs):
         """
