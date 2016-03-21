@@ -138,6 +138,8 @@ class PreProcessor(PreProcessor):
             base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
             base_graph = expanded_rna_graph_to_digraph(base_graph)
             base_graph.graph['energy'] = energy
+            base_graph.graph['sequence'] = sequence
+            base_graph.graph['structure'] = structure
             result.append(
                     RnaWrapper(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list,
                                include_base=self.include_base, ignore_inserts=self.ignore_inserts)
