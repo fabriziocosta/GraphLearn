@@ -1,6 +1,6 @@
 from eden.modifier.graph.structure import contraction
 from collections import defaultdict
-from sklearn.cluster import KMeans
+
 from graphlearn.abstract_graphs.abstract import AbstractWrapper
 from graphlearn.estimator import Wrapper as estimartorwrapper
 from graphlearn.processing import PreProcessor
@@ -10,6 +10,7 @@ import networkx as nx
 import logging
 from itertools import izip
 from sklearn.cluster import MiniBatchKMeans
+from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,10 @@ appear during sampling.
 
 
 class PreProcessor(PreProcessor):
-    def __init__(self, base_thickness_list=[2], kmeans_clusters=4, learned_node_names_clusters=0, save_graphclusters=False):
+    def __init__(self, base_thickness_list=[2],
+                 shape_cluster=KMeans(n_clusters=4),
+                 name_cluster=MiniBatchKMeans(n_clusters=5),
+                 save_graphclusters=False):
         '''
 
         Parameters
@@ -53,13 +57,13 @@ class PreProcessor(PreProcessor):
         void
         '''
         self.base_thickness_list = base_thickness_list
-        self.kmeans_clusters = kmeans_clusters
         self.save_graphclusters = save_graphclusters
-        if learned_node_names_clusters > 1:
-            self.learned_node_names = True
-            self.learned_node_names_clusters = learned_node_names_clusters
-        elif self.save_graphclusters:
-            print "save_graphclusters will be ignored because learned_node_names_clusters is not set or too low."
+
+
+        self.name_cluster = name_cluster
+        self.shape_cluster = shape_cluster
+
+
 
     def fit(self, inputs):
 
@@ -69,10 +73,13 @@ class PreProcessor(PreProcessor):
         self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
         self.make_kmeans(inputs)
 
+
+        self._abstract=graph_to_abstract()
+        self._abstract.set_parmas(estimator=self.rawgraph_estimator, grouper=self.shape_cluster, vectorizer=self.vectorizer)
+
         # now comes the second part in which i try to find a name for those minor nodes.
         from graphlearn.utils import draw
-        if self.learned_node_names:
-
+        if self.name_cluster:
             parts = []
             # for all minor nodes:
             for graph in inputs:
@@ -87,9 +94,11 @@ class PreProcessor(PreProcessor):
             # draw.graphlearn(parts[:5], contract=False)
             # code from annotation-components.ipynb:
             data_matrix = self.vectorizer.transform(parts)
-            self.clust = MiniBatchKMeans(n_clusters=self.learned_node_names_clusters)
-            self.clust.fit(data_matrix)
-            cluster_ids = self.clust.predict(data_matrix)
+
+
+
+            self.name_cluster.fit(data_matrix)
+            cluster_ids = self.name_cluster.predict(data_matrix)
             logger.debug('num clusters: %d' % max(cluster_ids))
             logger.debug(report_base_statistics(cluster_ids).replace('\t', '\n'))
 
@@ -97,6 +106,8 @@ class PreProcessor(PreProcessor):
                 self.graphclusters = defaultdict(list)
                 for cluster_id, graph in izip(cluster_ids, parts):
                     self.graphclusters[cluster_id].append(graph)
+
+
 
 
     def make_kmeans(self, inputs):
@@ -114,8 +125,10 @@ class PreProcessor(PreProcessor):
             for n, d in g.nodes(data=True):
                 li.append([d['importance']])
 
-        self.kmeans = KMeans(n_clusters=self.kmeans_clusters)
-        self.kmeans.fit(li)
+        self.shape_cluster.fit(li)
+
+
+
 
     def fit_transform(self, inputs):
         '''
@@ -151,7 +164,9 @@ class PreProcessor(PreProcessor):
                                abstract_graph=abstract)
 
     def abstract(self, graph, score_attribute='importance', group='class', debug=False):
-        abst = self._abstract(graph, score_attribute, group, debug)
+
+        abst = self._abstract._transform_single(graph, score_attribute, group, debug)
+
         if 'clust' not in self.__dict__:
             return abst
         else:
@@ -161,7 +176,7 @@ class PreProcessor(PreProcessor):
                     # get the subgraph induced by it (if it is not trivial)
                     tmpgraph = nx.Graph(graph.subgraph(d['contracted']))
                     vector = self.vectorizer.transform_single(tmpgraph)
-                    d['label'] = "C_" + str(self.clust.predict(vector))
+                    d['label'] = "C_" + str(self.name_cluster.predict(vector))
 
                 elif len(d['contracted']) == 1 and 'edge' not in d:
                     # get the subgraph induced by it (if it is not trivial)
@@ -172,7 +187,45 @@ class PreProcessor(PreProcessor):
                     d['label'] = "F_should_not_happen"
             return abst
 
-    def _abstract(self, graph, score_attribute='importance', group='class', debug=False):
+
+
+
+    def transform(self, inputs):
+        '''
+
+        Args:
+            inputs: [graph]
+
+        Returns: [graphwrapper]
+
+        '''
+        return [AbstractWrapper(self.vectorizer._edge_to_vertex_transform(i),
+                                vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
+                                abstract_graph=self.abstract(i)) for i in inputs]
+
+
+
+class graph_to_abstract(object):
+
+    def __init__(self):
+        pass
+
+    def set_parmas(self,**kwargs):
+        '''
+
+        Parameters
+        ----------
+        kwargs:
+            vectorizer = a vectorizer to edge_vertex transform
+            estimator = estimator object to assign scores to nodes
+            grouper =  object with predict(score) function to assign clusterid to nodes
+        Returns
+        -------
+
+        '''
+        self.__dict__.update(kwargs)
+
+    def _transform_single(self, graph, score_attribute='importance', group='class', debug=False):
         '''
         Parameters
         ----------
@@ -184,6 +237,8 @@ class PreProcessor(PreProcessor):
         -------
         '''
 
+
+        # graph expanded and unexpanded
         graph_exp = self.vectorizer._edge_to_vertex_transform(graph)
         graph2 = self.vectorizer._revert_edge_to_vertex_transform(graph_exp)
 
@@ -191,31 +246,24 @@ class PreProcessor(PreProcessor):
             print 'abstr here1'
             draw.graphlearn(graph2)
 
-        graph2 = self.vectorizer.annotate([graph2], estimator=self.rawgraph_estimator.estimator).next()
 
+        # annotate with scores, then transform scores to clusterid
+        graph2 = self.vectorizer.annotate([graph2], estimator=self.estimator.estimator).next()
         for n, d in graph2.nodes(data=True):
-            d[group] = str(self.kmeans.predict(d[score_attribute])[0])
+            d[group] = str(self.grouper.predict(d[score_attribute])[0])
 
         if debug:
             print 'abstr here'
             draw.graphlearn(graph2, vertex_label='class')
 
+        # contract and expand
         graph2 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
-
-        ''' THIS LISTS ALL THE LABELS AND HASHES THEM
-        for n,d in graph2.nodes(data=True):
-            names=[]
-            for node in d['contracted']:
-                names.append(graph.node[node]['label'])
-            names.sort()
-            names=''.join(names)
-            d['label']=str(hash(names))
-        '''
-
         graph2 = self.vectorizer._edge_to_vertex_transform(graph2)
 
-        #  is this mainly for coloring?
+        #  make a dictionary that maps from base_graph_node -> node in contracted graph
         getabstr = {contra: node for node, d in graph2.nodes(data=True) for contra in d.get('contracted', [])}
+
+        # so this basically assigns edges in the base_graph to nodes in the abstract graph.
         for n, d in graph_exp.nodes(data=True):
             if 'edge' in d:
                 # if we have found an edge node...
@@ -236,15 +284,6 @@ class PreProcessor(PreProcessor):
 
         return graph2
 
-    def transform(self, inputs):
-        '''
-
-        Args:
-            inputs: [graph]
-
-        Returns: [graphwrapper]
-
-        '''
-        return [AbstractWrapper(self.vectorizer._edge_to_vertex_transform(i),
-                                vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
-                                abstract_graph=self.abstract(i)) for i in inputs]
+    def transform(self, graphs, score_attribute='importance', group='class', debug=False):
+        for graph in graphs:
+            yield self._transform_single(graph, score_attribute=score_attribute,group=group,debug=debug)

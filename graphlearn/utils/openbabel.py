@@ -1,10 +1,13 @@
-
 import pybel
 import networkx as nx
 from IPython.display import display, HTML, Image
+import math
+
+import eden.graph as eg
+VECTOR=eg.Vectorizer()
 
 
-def draw(graphs, n_graphs_per_line=5, size=200, d3=False,title_key=None):
+def draw(graphs, n_graphs_per_line=5, size=200, d3=False, title_key=None):
     '''
 
     Parameters
@@ -18,6 +21,10 @@ def draw(graphs, n_graphs_per_line=5, size=200, d3=False,title_key=None):
     d3: bool (false)
         will result in 3d images
 
+    title_key: basestring, None
+        graph.graph[titles_key] will be displayed as graph title
+
+
     Returns
     -------
         void
@@ -27,59 +34,48 @@ def draw(graphs, n_graphs_per_line=5, size=200, d3=False,title_key=None):
     if isinstance(graphs, nx.Graph):
         graphs = [graphs]
 
-
     # d3 is false for now.
     pybel.ipython_3d = d3
-
-
-    #overwrite size attribute
-    svg_header='<svg xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" height="%d" ' \
-               'stroke="rgb(0,0,0)" stroke-linecap="round" stroke-width="2" ' \
-               'viewBox="0 0 401.214 357.723" width="%d" x="0" y="0">' % (size,size)
 
     while graphs:
         some_graphs = graphs[:n_graphs_per_line]
 
         # printing one line...
-        headers=[]
-        graph_texts=[]
+        headers = []
+        graph_texts = []
 
         for graph in some_graphs:
 
-            headers.append(graph.graph.get(title_key,''))
-            babelgraph=nx_to_pybel(graph)
+            headers.append(graph.graph.get(title_key, ''))
+            babelgraph = nx_to_pybel(graph)
 
-            if d3==False:
-                svgtext=babelgraph._repr_svg_()
-                svgtext=svgtext.split("\n")
-                svgtext[0]=svg_header
-                svgtext='\n'.join(svgtext)
+            if d3 == False:
+                svgtext = babelgraph._repr_svg_()
+                svgtext = svgtext.split("\n")
+                svg_header = svgtext[0]
+                svg_header = svg_header.replace('height="100"', 'height="%d"' % size)
+                svg_header = svg_header.replace('width="100"', 'width="%d"' % size)
+                svgtext = [svg_header] + svgtext[1:]
+                svgtext = '\n'.join(svgtext)
                 graph_texts.append(svgtext)
             else:
-                svgtext=babelgraph._repr_html_()
+                svgtext = babelgraph._repr_html_()
                 graph_texts.append(svgtext)
 
-        html=['<table>']
+        html = ['<table>']
         if title_key is not None:
             html += ["<th>{}</th>".format(h) for h in headers] + ["</tr><tr>"]
 
-        #html=["<table><tr>"]
+        # html=["<table><tr>"]
         for svg in graph_texts:
-            html.append("<td>"+svg+"</td>")
+            html.append("<td>" + svg + "</td>")
         html.append("</tr></table>")
         display(HTML(''.join(html)))
 
         graphs = graphs[n_graphs_per_line:]
 
 
-
-
-
-
-
-
 def graph_to_molfile(graph):
-
     '''
     Parameters
     ----------
@@ -212,6 +208,8 @@ def graph_to_molfile(graph):
                '117': 'Uus',
                '118': 'Uuo'}
 
+    graph=VECTOR._revert_edge_to_vertex_transform(graph)
+    graph = nx.convert_node_labels_to_integers(graph, first_label=0, ordering='default', label_attribute=None)
     # creating an SDF file from graph:
     # The header block, i.e. the first three lines, may be empty:
     sdf_string = "Networkx graph to molfile\n\n\n"
@@ -241,7 +239,7 @@ def graph_to_molfile(graph):
         atom_line += '    0.0000    0.0000    0.0000 '
         # Atom symbol: it should be the entry from the periodic table, using
         # atom type for now
-        #atom_line += symbols.get(d['discrete_label']).ljust(3)
+        # atom_line += symbols.get(d['discrete_label']).ljust(3)
         atom_line += d['label'].ljust(3)
         # Lots of unnecessary atomic information:
         atom_line += ' 0  0  0  0  0  0  0  0  0  0  0  0\n'
@@ -252,20 +250,21 @@ def graph_to_molfile(graph):
         edge_line = ''
         # Use the stored atom ids for the bonds, plus one
         edge_line += str(i + 1).rjust(3) + \
-            str(j + 1).rjust(3) + k['label'].rjust(3)
+                     str(j + 1).rjust(3) + k['label'].rjust(3)
         # More information
         edge_line += '  0  0  0  0\n'
         sdf_string += edge_line
 
-    sdf_string += 'M END\n\n$$$$'
+    sdf_string += 'M END'
+    # sdf_string += 'M END\n\n$$$$'
+
 
     return sdf_string
 
 
-
 def nx_to_pybel(graph):
-    #from  eden.converter.molecule.obabel  import graph_to_molfile
+    # from  eden.converter.molecule.obabel  import graph_to_molfile
     molstring = graph_to_molfile(graph)
-    thing=pybel.readstring('sdf',molstring)
+    # thing=pybel.readstring('sdf',molstring)
+    thing = pybel.readstring('mol', molstring)
     return thing
-
