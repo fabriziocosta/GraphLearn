@@ -53,14 +53,16 @@ class PreProcessor(PreProcessor):
         void
         '''
         self.base_thickness_list = base_thickness_list
-        self.kmeans_clusters = kmeans_clusters
         self.save_graphclusters = save_graphclusters
-        self.learned_node_names=False
-        if learned_node_names_clusters > 1:
-            self.learned_node_names = True
-            self.learned_node_names_clusters = learned_node_names_clusters
-        elif self.save_graphclusters:
-            print "save_graphclusters will be ignored because learned_node_names_clusters is not set or too low."
+        self.kmeans_clusters = kmeans_clusters
+        #self.learned_node_names=False
+        #if learned_node_names_clusters > 1:
+        #    self.learned_node_names = True
+        #    self.learned_node_names_clusters = learned_node_names_clusters
+        #elif self.save_graphclusters:
+        #    print "save_graphclusters will be ignored because learned_node_names_clusters is not set or too low."
+
+
 
     def fit(self, inputs):
 
@@ -103,6 +105,8 @@ class PreProcessor(PreProcessor):
                     self.graphclusters[cluster_id].append(graph)
 
 
+
+
     def make_kmeans(self, inputs):
         """
 
@@ -120,6 +124,9 @@ class PreProcessor(PreProcessor):
 
         self.kmeans = KMeans(n_clusters=self.kmeans_clusters)
         self.kmeans.fit(li)
+
+
+
 
     def fit_transform(self, inputs):
         '''
@@ -178,58 +185,7 @@ class PreProcessor(PreProcessor):
                     d['label'] = "F_should_not_happen"
             return abst
 
-    '''
-    def _abstract(self, graph, score_attribute='importance', group='class', debug=False):
 
-
-
-        # graph expanded and unexpanded
-        graph_exp = self.vectorizer._edge_to_vertex_transform(graph)
-        graph2 = self.vectorizer._revert_edge_to_vertex_transform(graph_exp)
-
-        if debug:
-            print 'abstr here1'
-            draw.graphlearn(graph2)
-
-
-        # annotate with scores, then transform scores to clusterid
-        graph2 = self.vectorizer.annotate([graph2], estimator=self.rawgraph_estimator.estimator).next()
-        for n, d in graph2.nodes(data=True):
-            d[group] = str(self.kmeans.predict(d[score_attribute])[0])
-
-        if debug:
-            print 'abstr here'
-            draw.graphlearn(graph2, vertex_label='class')
-
-        # contract and expand
-        graph2 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
-        graph2 = self.vectorizer._edge_to_vertex_transform(graph2)
-
-        #  make a dictionary that maps from base_graph_node -> node in contracted graph
-        getabstr = {contra: node for node, d in graph2.nodes(data=True) for contra in d.get('contracted', [])}
-
-        # so this basically assigns edges in the base_graph to nodes in the abstract graph.
-        for n, d in graph_exp.nodes(data=True):
-            if 'edge' in d:
-                # if we have found an edge node...
-                # lets see whos left and right of it:
-                n1, n2 = graph_exp.neighbors(n)
-                # case1: ok those belong to the same gang so we most likely also belong there.
-                if getabstr[n1] == getabstr[n2]:
-                    graph2.node[getabstr[n1]]['contracted'].add(n)
-
-                # case2: neighbors belong to different gangs...
-                else:
-                    blub = set(graph2.neighbors(getabstr[n1])) & set(graph2.neighbors(getabstr[n2]))
-                    for blob in blub:
-                        if 'contracted' in graph2.node[blob]:
-                            graph2.node[blob]['contracted'].add(n)
-                        else:
-                            graph2.node[blob]['contracted'] = set([n])
-
-        return graph2
-
-    '''
 
 
     def transform(self, inputs):
