@@ -14,8 +14,11 @@ see learned.py
 '''
 
 
+from sklearn.cluster import KMeans
+
+
 class RnaPreProcessor(PreProcessor):
-    def __init__(self, base_thickness_list=[2], kmeans_clusters=2, structure_mod=False):
+    def __init__(self, base_thickness_list=[2], shape_cluster=KMeans(n_clusters=2), structure_mod=False,name_cluser=False, save_graphclusters=False):
         '''
         Args:
             base_thickness_list: [int]
@@ -29,8 +32,9 @@ class RnaPreProcessor(PreProcessor):
         Returns: void
 
         '''
+        #super(RnaPreProcessor, self).__init__(base_thickness_list=base_thickness_list,kmeans_clusters=kmeans_clusters)
         self.base_thickness_list = [thickness * 2 for thickness in base_thickness_list]
-        self.kmeans_clusters = kmeans_clusters
+        self.shape_clusters = shape_cluster
         self.structure_mod = structure_mod
 
     def fit(self, inputs, vectorizer):
@@ -49,7 +53,7 @@ class RnaPreProcessor(PreProcessor):
         # abstr_input = [ self._sequence_to_base_graph(seq) for seq in inputs ]
 
         abstr_input = list(self.NNmodel.eden_rna_vectorizer.graphs(inputs))
-        self.make_abstract = default_preprocessor(self.base_thickness_list, self.kmeans_clusters)
+        self.make_abstract = default_preprocessor(base_thickness_list= self.base_thickness_list, shape_cluster= self.shape_clusters, name_cluster=False)
         self.make_abstract.set_param(self.vectorizer)
         self.make_abstract.fit(abstr_input)
         print "fit pp done"
@@ -126,9 +130,13 @@ class RnaPreProcessor(PreProcessor):
                     structure, sequence = rna.fix_structure(structure, sequence)
                 base_graph = rna.converter.sequence_dotbracket_to_graph(seq_info=sequence, \
                                                                         seq_struct=structure)
+                base_graph.graph['sequence']=sequence
+                base_graph.graph['structure']=structure
 
                 abstract_graph = self.make_abstract.abstract(base_graph.copy())
+
                 base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
+
                 base_graph = rna.expanded_rna_graph_to_digraph(base_graph)
 
                 result.append(rna.RnaWrapper(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list, \

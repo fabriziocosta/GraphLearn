@@ -1,6 +1,6 @@
 from eden.modifier.graph.structure import contraction
 from collections import defaultdict
-from sklearn.cluster import KMeans
+
 from graphlearn.abstract_graphs.abstract import AbstractWrapper
 from graphlearn.estimator import Wrapper as estimartorwrapper
 from graphlearn.processing import PreProcessor
@@ -10,6 +10,7 @@ import networkx as nx
 import logging
 from itertools import izip
 from sklearn.cluster import MiniBatchKMeans
+from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,10 @@ appear during sampling.
 
 
 class PreProcessor(PreProcessor):
-    def __init__(self, base_thickness_list=[2], kmeans_clusters=4, learned_node_names_clusters=0, save_graphclusters=False):
+    def __init__(self, base_thickness_list=[2],
+                 shape_cluster=KMeans(n_clusters=4),
+                 name_cluster=MiniBatchKMeans(n_clusters=5),
+                 save_graphclusters=False):
         '''
 
         Parameters
@@ -54,13 +58,10 @@ class PreProcessor(PreProcessor):
         '''
         self.base_thickness_list = base_thickness_list
         self.save_graphclusters = save_graphclusters
-        self.kmeans_clusters = kmeans_clusters
-        #self.learned_node_names=False
-        #if learned_node_names_clusters > 1:
-        #    self.learned_node_names = True
-        #    self.learned_node_names_clusters = learned_node_names_clusters
-        #elif self.save_graphclusters:
-        #    print "save_graphclusters will be ignored because learned_node_names_clusters is not set or too low."
+
+
+        self.name_cluster = name_cluster
+        self.shape_cluster = shape_cluster
 
 
 
@@ -74,11 +75,11 @@ class PreProcessor(PreProcessor):
 
 
         self._abstract=graph_to_abstract()
-        self._abstract.set_parmas(estimator=self.rawgraph_estimator, grouper=self.kmeans, vectorizer=self.vectorizer)
+        self._abstract.set_parmas(estimator=self.rawgraph_estimator, grouper=self.shape_cluster, vectorizer=self.vectorizer)
 
         # now comes the second part in which i try to find a name for those minor nodes.
         from graphlearn.utils import draw
-        if self.learned_node_names:
+        if self.name_cluster:
             parts = []
             # for all minor nodes:
             for graph in inputs:
@@ -93,9 +94,11 @@ class PreProcessor(PreProcessor):
             # draw.graphlearn(parts[:5], contract=False)
             # code from annotation-components.ipynb:
             data_matrix = self.vectorizer.transform(parts)
-            self.clust = MiniBatchKMeans(n_clusters=self.learned_node_names_clusters)
-            self.clust.fit(data_matrix)
-            cluster_ids = self.clust.predict(data_matrix)
+
+
+
+            self.name_cluster.fit(data_matrix)
+            cluster_ids = self.name_cluster.predict(data_matrix)
             logger.debug('num clusters: %d' % max(cluster_ids))
             logger.debug(report_base_statistics(cluster_ids).replace('\t', '\n'))
 
@@ -122,8 +125,7 @@ class PreProcessor(PreProcessor):
             for n, d in g.nodes(data=True):
                 li.append([d['importance']])
 
-        self.kmeans = KMeans(n_clusters=self.kmeans_clusters)
-        self.kmeans.fit(li)
+        self.shape_cluster.fit(li)
 
 
 
@@ -174,7 +176,7 @@ class PreProcessor(PreProcessor):
                     # get the subgraph induced by it (if it is not trivial)
                     tmpgraph = nx.Graph(graph.subgraph(d['contracted']))
                     vector = self.vectorizer.transform_single(tmpgraph)
-                    d['label'] = "C_" + str(self.clust.predict(vector))
+                    d['label'] = "C_" + str(self.name_cluster.predict(vector))
 
                 elif len(d['contracted']) == 1 and 'edge' not in d:
                     # get the subgraph induced by it (if it is not trivial)
