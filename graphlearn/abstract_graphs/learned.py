@@ -27,13 +27,124 @@ appear during sampling.
 '''
 
 
+
+def assign_values_to_nodelabel(graph, label):
+
+    startid=max([   float(d.get(label,-99999999))   for n,d in graph.nodes(data=True)  ])
+    for n,d in graph.nodes(data=True):
+        if label not in d:
+            d[label]=str(startid)
+            startid+=1
+
+class graph_to_abstract(object):
+
+    def __init__(self, vectorizer=False,estimator=False,grouper=False, score_threshold=0, min_size=0, debug=False):
+        self.grouper=grouper
+        self.estimator=estimator
+        self.vectorizer=vectorizer
+        self.score_threshold=score_threshold
+        self.min_size=min_size
+        self.debug=debug
+
+    def set_parmas(self,**kwargs):
+        '''
+
+        Parameters
+        ----------
+        kwargs:
+            vectorizer = a vectorizer to edge_vertex transform
+            estimator = estimator object to assign scores to nodes
+            grouper =  object with predict(score) function to assign clusterid to nodes
+        Returns
+        -------
+        '''
+        self.__dict__.update(kwargs)
+
+    def _transform_single(self, graph, score_attribute='importance', group='class'):
+        '''
+        Parameters
+        ----------
+        score_attribute: string
+            name of the attribute used
+        group: string
+            annnotate in this field
+        Returns
+        -------
+        '''
+
+        # graph expanded and unexpanded
+        graph_exp = self.vectorizer._edge_to_vertex_transform(graph)
+        graph2 = self.vectorizer._revert_edge_to_vertex_transform(graph_exp)
+
+
+        # annotate with scores, then transform scores to clusterid
+        graph2 = self.vectorizer.annotate([graph2], estimator=self.estimator.estimator).next()
+        for n, d in graph2.nodes(data=True):
+            if d[score_attribute] > self.score_threshold:
+                d[group] = str(self.grouper.predict(d[score_attribute])[0])
+
+        if self.debug:
+            print 'graph2: after score annotation, N/A-> value below thresh'
+            draw.graphlearn(graph2, vertex_label=group)
+
+        # contract , we do this once, to weed out structures that are too small for us to care.
+        assign_values_to_nodelabel(graph2, group)
+        graph3 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
+        for n,d in graph3.nodes(data=True):
+            if len(d['contracted']) < self.min_size:
+                for n in d['contracted']:
+                    graph2.node[n].pop(group)
+        assign_values_to_nodelabel(graph2, group)
+        if self.debug:
+            print 'weed out more nodes because the clusters are too small'
+            print '[contraction, actually interesting thing]'
+            draw.graphlearn([graph3,graph2], vertex_label=group)
+        graph2 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
+        if self.debug:
+            print 'contracts to this:'
+            draw.graphlearn(graph2, vertex_label=group)
+        # expand
+        graph2 = self.vectorizer._edge_to_vertex_transform(graph2)
+        #  make a dictionary that maps from base_graph_node -> node in contracted graph
+        getabstr = {contra: node for node, d in graph2.nodes(data=True) for contra in d.get('contracted', [])}
+
+        # so this basically assigns edges in the base_graph to nodes in the abstract graph.
+        for n, d in graph_exp.nodes(data=True):
+            if 'edge' in d:
+                # if we have found an edge node...
+                # lets see whos left and right of it:
+                n1, n2 = graph_exp.neighbors(n)
+                # case1: ok those belong to the same gang so we most likely also belong there.
+                if getabstr[n1] == getabstr[n2]:
+                    graph2.node[getabstr[n1]]['contracted'].add(n)
+
+                # case2: neighbors belong to different gangs...
+                else:
+                    blub = set(graph2.neighbors(getabstr[n1])) & set(graph2.neighbors(getabstr[n2]))
+                    for blob in blub:
+                        if 'contracted' in graph2.node[blob]:
+                            graph2.node[blob]['contracted'].add(n)
+                        else:
+                            graph2.node[blob]['contracted'] = set([n])
+
+        return graph2
+
+    def transform(self, graphs, score_attribute='importance', group='class', debug=False):
+        for graph in graphs:
+            yield self._transform_single(graph, score_attribute=score_attribute,group=group,debug=debug)
+
+
+
+
+
+
 class PreProcessor(PreProcessor):
     def __init__(self, base_thickness_list=[2],
                  shape_cluster=KMeans(n_clusters=4),
                  name_cluster=MiniBatchKMeans(n_clusters=5),
-                 save_graphclusters=False):
+                 save_graphclusters=False,
+                 graph_to_minor=graph_to_abstract()):
         '''
-
         Parameters
         ----------
         base_thickness_list: list of int, [2]
@@ -62,28 +173,27 @@ class PreProcessor(PreProcessor):
 
         self.name_cluster = name_cluster
         self.shape_cluster = shape_cluster
-
-
+        self._abstract=graph_to_minor
 
     def fit(self, inputs):
 
         # this k means is over the values resulting from annotation
         # and determine how a graph will be split intro minor nodes.
         self.rawgraph_estimator = estimartorwrapper(nu=.3, n_jobs=4)
+
         self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
+
         self.make_kmeans(inputs)
 
-
-        self._abstract=graph_to_abstract()
+        #self._abstract=graph_to_abstract()
         self._abstract.set_parmas(estimator=self.rawgraph_estimator, grouper=self.shape_cluster, vectorizer=self.vectorizer)
 
         # now comes the second part in which i try to find a name for those minor nodes.
-        from graphlearn.utils import draw
         if self.name_cluster:
             parts = []
             # for all minor nodes:
             for graph in inputs:
-                abstr = self.abstract(graph, score_attribute='importance', group='class', debug=False)
+                abstr = self.abstract(graph, score_attribute='importance', group='class')
                 for n, d in abstr.nodes(data=True):
                     if len(d['contracted']) > 1 and 'edge' not in d:
                         # get the subgraph induced by it (if it is not trivial)
@@ -164,10 +274,30 @@ class PreProcessor(PreProcessor):
                                abstract_graph=abstract)
 
     def abstract(self, graph, score_attribute='importance', group='class', debug=False):
+        '''
 
-        abst = self._abstract._transform_single(graph, score_attribute, group, debug)
+        Parameters
+        ----------
+        graph: nx.graph
+        score_attribute: string, 'importance'
+            attribute in which we write the score
+        group: string, 'class'
+            where to write clusterid
+        debug: bool, False
+            draw abstracted graphs
 
-        if 'clust' not in self.__dict__:
+        Returns
+        -------
+            nx.graph: a graph minor
+            if named_cluster is present, we the minor graph nodes will be named accordingly
+        '''
+
+
+        # generate abstract graph
+        abst = self._abstract._transform_single(graph, score_attribute, group)
+
+        # try to find names for the nodes
+        if self.name_cluster == False:
             return abst
         else:
             graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
@@ -205,85 +335,3 @@ class PreProcessor(PreProcessor):
 
 
 
-class graph_to_abstract(object):
-
-    def __init__(self):
-        pass
-
-    def set_parmas(self,**kwargs):
-        '''
-
-        Parameters
-        ----------
-        kwargs:
-            vectorizer = a vectorizer to edge_vertex transform
-            estimator = estimator object to assign scores to nodes
-            grouper =  object with predict(score) function to assign clusterid to nodes
-        Returns
-        -------
-
-        '''
-        self.__dict__.update(kwargs)
-
-    def _transform_single(self, graph, score_attribute='importance', group='class', debug=False):
-        '''
-        Parameters
-        ----------
-        score_attribute: string
-            name of the attribute used
-        group: string
-            annnotate in this field
-        Returns
-        -------
-        '''
-
-
-        # graph expanded and unexpanded
-        graph_exp = self.vectorizer._edge_to_vertex_transform(graph)
-        graph2 = self.vectorizer._revert_edge_to_vertex_transform(graph_exp)
-
-        if debug:
-            print 'abstr here1'
-            draw.graphlearn(graph2)
-
-
-        # annotate with scores, then transform scores to clusterid
-        graph2 = self.vectorizer.annotate([graph2], estimator=self.estimator.estimator).next()
-        for n, d in graph2.nodes(data=True):
-            d[group] = str(self.grouper.predict(d[score_attribute])[0])
-
-        if debug:
-            print 'abstr here'
-            draw.graphlearn(graph2, vertex_label='class')
-
-        # contract and expand
-        graph2 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
-        graph2 = self.vectorizer._edge_to_vertex_transform(graph2)
-
-        #  make a dictionary that maps from base_graph_node -> node in contracted graph
-        getabstr = {contra: node for node, d in graph2.nodes(data=True) for contra in d.get('contracted', [])}
-
-        # so this basically assigns edges in the base_graph to nodes in the abstract graph.
-        for n, d in graph_exp.nodes(data=True):
-            if 'edge' in d:
-                # if we have found an edge node...
-                # lets see whos left and right of it:
-                n1, n2 = graph_exp.neighbors(n)
-                # case1: ok those belong to the same gang so we most likely also belong there.
-                if getabstr[n1] == getabstr[n2]:
-                    graph2.node[getabstr[n1]]['contracted'].add(n)
-
-                # case2: neighbors belong to different gangs...
-                else:
-                    blub = set(graph2.neighbors(getabstr[n1])) & set(graph2.neighbors(getabstr[n2]))
-                    for blob in blub:
-                        if 'contracted' in graph2.node[blob]:
-                            graph2.node[blob]['contracted'].add(n)
-                        else:
-                            graph2.node[blob]['contracted'] = set([n])
-
-        return graph2
-
-    def transform(self, graphs, score_attribute='importance', group='class', debug=False):
-        for graph in graphs:
-            yield self._transform_single(graph, score_attribute=score_attribute,group=group,debug=debug)
