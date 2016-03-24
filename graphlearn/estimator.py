@@ -154,4 +154,4 @@ class Wrapper:
         Returns:
             a graph
         '''
-        return graphmanager.graph().copy()
+        return graphmanager.pre_vectorizer_graph().copy()

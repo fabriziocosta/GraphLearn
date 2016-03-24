@@ -272,7 +272,7 @@ class RnaWrapper(AbstractWrapper):
         # sequence=get_sequence(self.base_graph())
         # return ('',sequence.replace("F",""))
 
-    def graph(self, nested=True, fcorrect=False, base_only=False):
+    def pre_vectorizer_graph(self, nested=True, fcorrect=False, base_only=False):
         '''
 
         '''

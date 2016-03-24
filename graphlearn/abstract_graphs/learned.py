@@ -1,6 +1,5 @@
 from eden.modifier.graph.structure import contraction
 from collections import defaultdict
-
 from graphlearn.abstract_graphs.abstract import AbstractWrapper
 from graphlearn.estimator import Wrapper as estimartorwrapper
 from graphlearn.processing import PreProcessor
@@ -30,7 +29,7 @@ appear during sampling.
 
 def assign_values_to_nodelabel(graph, label):
 
-    startid=max([   float(d.get(label,-99999999))   for n,d in graph.nodes(data=True)  ])
+    startid=max([ float(d.get(label,-99999999))   for n,d in graph.nodes(data=True)  ])
     for n,d in graph.nodes(data=True):
         if label not in d:
             d[label]=str(startid)
@@ -140,7 +139,7 @@ class graph_to_abstract(object):
 
 class PreProcessor(PreProcessor):
     def __init__(self, base_thickness_list=[2],
-                 shape_cluster=KMeans(n_clusters=4),
+                 core_shape_cluster=KMeans(n_clusters=4),
                  name_cluster=MiniBatchKMeans(n_clusters=5),
                  save_graphclusters=False,
                  graph_to_minor=graph_to_abstract()):
@@ -172,7 +171,7 @@ class PreProcessor(PreProcessor):
 
 
         self.name_cluster = name_cluster
-        self.shape_cluster = shape_cluster
+        self.core_shape_cluster = core_shape_cluster
         self._abstract=graph_to_minor
 
     def fit(self, inputs):
@@ -186,7 +185,7 @@ class PreProcessor(PreProcessor):
         self.make_kmeans(inputs)
 
         #self._abstract=graph_to_abstract()
-        self._abstract.set_parmas(estimator=self.rawgraph_estimator, grouper=self.shape_cluster, vectorizer=self.vectorizer)
+        self._abstract.set_parmas(estimator=self.rawgraph_estimator, grouper=self.core_shape_cluster, vectorizer=self.vectorizer)
 
         # now comes the second part in which i try to find a name for those minor nodes.
         if self.name_cluster:
@@ -235,7 +234,7 @@ class PreProcessor(PreProcessor):
             for n, d in g.nodes(data=True):
                 li.append([d['importance']])
 
-        self.shape_cluster.fit(li)
+        self.core_shape_cluster.fit(li)
 
 
 

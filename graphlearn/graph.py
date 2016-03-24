@@ -41,7 +41,7 @@ class AbstractWrapper(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-    def graph(self):
+    def pre_vectorizer_graph(self):
         '''
         :return: the graph that will be vectorized to work with the estimator
         '''
@@ -112,7 +112,7 @@ class Wrapper(AbstractWrapper):
     def clean(self):
         graph_clean(self._base_graph)
 
-    def graph(self):
+    def pre_vectorizer_graph(self):
         return self._base_graph
 
     def out(self):
