@@ -142,7 +142,8 @@ class PreProcessor(PreProcessor):
                  core_shape_cluster=KMeans(n_clusters=4),
                  name_cluster=MiniBatchKMeans(n_clusters=5),
                  save_graphclusters=False,
-                 graph_to_minor=graph_to_abstract()):
+                 graph_to_minor=graph_to_abstract(),
+                 estimator=estimartorwrapper(nu=.3, n_jobs=4)):
         '''
         Parameters
         ----------
@@ -173,20 +174,16 @@ class PreProcessor(PreProcessor):
         self.name_cluster = name_cluster
         self.core_shape_cluster = core_shape_cluster
         self._abstract=graph_to_minor
+        self.rawgraph_estimator = estimator
+
 
     def fit(self, inputs):
-
         # this k means is over the values resulting from annotation
         # and determine how a graph will be split intro minor nodes.
-        self.rawgraph_estimator = estimartorwrapper(nu=.3, n_jobs=4)
-
         self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
-
         self.make_kmeans(inputs)
-
         #self._abstract=graph_to_abstract()
         self._abstract.set_parmas(estimator=self.rawgraph_estimator, grouper=self.core_shape_cluster, vectorizer=self.vectorizer)
-
         # now comes the second part in which i try to find a name for those minor nodes.
         if self.name_cluster:
             parts = []
