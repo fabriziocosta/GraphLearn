@@ -1,4 +1,4 @@
-import graph as gt
+import decompose as gt
 
 
 class PreProcessor(object):
@@ -48,7 +48,7 @@ class PreProcessor(object):
         return [self.wrap(self.vectorizer._edge_to_vertex_transform(i)) for i in inputs]
 
     def wrap(self, graph):
-        return gt.Wrapper(graph, self.vectorizer)
+        return gt.Decomposer(graph, self.vectorizer)
 
 
 class PostProcessor(object):

@@ -4,7 +4,7 @@
 
 
 
-from graphlearn.graph import Wrapper as GraphWrap
+from graphlearn.decompose import Decomposer as GraphWrap
 from graphlearn.graphlearn import GraphLearnSampler
 from graphlearn.estimator import Wrapper as EstiWrap
 from graphlearn.coreinterfacepair import CoreInterfacePair

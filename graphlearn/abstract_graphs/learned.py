@@ -1,6 +1,6 @@
 from eden.modifier.graph.structure import contraction
 from collections import defaultdict
-from graphlearn.abstract_graphs.abstract import AbstractWrapper
+from graphlearn.abstract_graphs.abstract import MinorDecomposer
 from graphlearn.estimator import Wrapper as estimartorwrapper
 from graphlearn.processing import PreProcessor
 from graphlearn.utils import draw
@@ -266,7 +266,7 @@ class PreProcessor(PreProcessor):
         # print len(graph)
         abstract = self.abstract(graph, debug=False)
         # draw.graphlearn([graph,abstract])
-        return AbstractWrapper(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
+        return MinorDecomposer(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
                                abstract_graph=abstract)
 
     def abstract(self, graph, score_attribute='importance', group='class', debug=False):
@@ -325,7 +325,7 @@ class PreProcessor(PreProcessor):
         Returns: [graphwrapper]
 
         '''
-        return [AbstractWrapper(self.vectorizer._edge_to_vertex_transform(i),
+        return [MinorDecomposer(self.vectorizer._edge_to_vertex_transform(i),
                                 vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
                                 abstract_graph=self.abstract(i)) for i in inputs]
 

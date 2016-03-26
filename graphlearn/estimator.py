@@ -133,7 +133,7 @@ class Wrapper:
             graphmanager: a graphmanager, graph or digraph
             graphmanager will be transformed to graph and used
         Returns:
-            graph
+            decompose
         '''
         if type(graphmanager) == nx.Graph or type(graphmanager) == nx.DiGraph:
             graph = graphmanager.copy()

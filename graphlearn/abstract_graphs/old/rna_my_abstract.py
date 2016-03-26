@@ -2,7 +2,7 @@ import networkx as nx
 from eden.modifier.graph.structure import contraction
 
 from graphlearn.abstract_graphs.rna_graphmanager import get_sequence, getsucc, post
-import graphlearn.graph as gt
+import graphlearn.decompose as gt
 import graphlearn
 
 '''

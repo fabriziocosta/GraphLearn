@@ -1,7 +1,7 @@
 from eden.modifier.graph import vertex_attributes
 from eden.modifier.graph.structure import contraction
-import graphlearn.graph as graphtools
-from graphlearn.graph import Wrapper
+import graphlearn.decompose as graphtools
+from graphlearn.decompose import Decomposer
 import random
 import logging
 
@@ -16,7 +16,7 @@ this file contains the abstract wrapper only.
 '''
 
 
-class AbstractWrapper(Wrapper):
+class MinorDecomposer(Decomposer):
     '''
     a wrapper normally wraps a graph.
     here we wrap a graph and also take care of its minor.

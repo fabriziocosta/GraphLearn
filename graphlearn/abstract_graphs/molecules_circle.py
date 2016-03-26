@@ -1,4 +1,4 @@
-from abstract import AbstractWrapper
+from abstract import MinorDecomposer
 from collections import defaultdict
 import eden
 from graphlearn.processing import PreProcessor
@@ -33,7 +33,7 @@ class PreProcessor(PreProcessor):
 
         '''
         graph = self.vectorizer._edge_to_vertex_transform(graph)
-        return AbstractWrapper(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
+        return MinorDecomposer(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
                                abstract_graph=self.abstract(graph))
 
     def abstract(self, graph):

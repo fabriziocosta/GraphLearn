@@ -1,4 +1,4 @@
-from abstract import AbstractWrapper
+from abstract import MinorDecomposer
 import eden
 import networkx as nx
 import subprocess as sp
@@ -147,7 +147,7 @@ class PreProcessor(PreProcessor):
         return result
 
 
-class RnaWrapper(AbstractWrapper):
+class RnaWrapper(MinorDecomposer):
     # def core_substitution(self, orig_cip_graph, new_cip_graph):
     #    graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
     #    return self.__class__( graph, self.vectorizer , self.some_thickness_list)

@@ -9,7 +9,7 @@ import random
 logger = logging.getLogger(__name__)
 
 
-class AbstractWrapper(object):
+class AbstractDecomposer(object):
     def rooted_core_interface_pairs(self, root, **args):
         '''
         :param root: root node of the cips we want to have
@@ -80,7 +80,7 @@ class AbstractWrapper(object):
         raise NotImplementedError("Should have implemented this")
 
 
-class Wrapper(AbstractWrapper):
+class Decomposer(AbstractDecomposer):
     def __str__(self):
         return "base_graph size: %s" % len(self._base_graph)
 
@@ -95,6 +95,18 @@ class Wrapper(AbstractWrapper):
         return extract_core_and_interface(root, self._base_graph, vectorizer=self.vectorizer, **args)
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
+        '''
+
+        Parameters
+        ----------
+        orig_cip_graph: nx.graph that is a subgraph of the base_graph
+        new_cip_graph: nx.graph that is congruent (interface hash matches) to orig_cip_graph
+
+        Returns
+        -------
+            nx.Graph or nx.DiGraph
+            a graph with the new core.
+        '''
         graph = core_substitution(self._base_graph, orig_cip_graph, new_cip_graph)
         return graph  # self.__class__( graph, self.vectorizer,other=self)
 
@@ -434,6 +446,8 @@ def core_substitution(graph, orig_cip_graph, new_cip_graph):
     subgraph is the interfaceregrion in that we will transplant
     new_cip_graph which is the interface and the new core
     """
+    assert( set(orig_cip_graph.nodes()) - set(graph.nodes()) == set([]) ), 'orig_cip_graph not in graph'
+
     # select only the interfaces of the cips
     new_graph_interface_nodes = [n for n, d in new_cip_graph.nodes(data=True) if 'core' not in d]
     new_cip_interface_graph = nx.subgraph(new_cip_graph, new_graph_interface_nodes)
