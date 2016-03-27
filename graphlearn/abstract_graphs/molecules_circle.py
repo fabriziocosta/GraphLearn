@@ -1,7 +1,7 @@
-from abstract import MinorDecomposer
+from minortransform import MinorDecomposer
 from collections import defaultdict
 import eden
-from graphlearn.processing import PreProcessor
+from graphlearn.transform import GraphTransformer
 import networkx as nx
 import graphlearn.utils.draw as draw
 
@@ -10,7 +10,7 @@ contains: a preprocessor that takes care of molecular graps with circleabstracti
 '''
 
 
-class PreProcessor(PreProcessor):
+class GraphTransformerCircles(GraphTransformer):
     def __init__(self, base_thickness_list=[2]):
         '''
         Args:

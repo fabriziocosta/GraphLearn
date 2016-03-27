@@ -1,6 +1,6 @@
 import RNA as rna
-from graphlearn.processing import PreProcessor
-from graphlearn.abstract_graphs.learned import PreProcessor as default_preprocessor
+from graphlearn.transform import GraphTransformer
+from graphlearn.abstract_graphs.learned import GraphTransformerMinorDecomp as default_preprocessor
 from graphlearn.utils import draw
 import logging
 
@@ -17,7 +17,7 @@ see learned.py
 from sklearn.cluster import KMeans
 
 
-class RnaPreProcessor(PreProcessor):
+class GraphTransformerRNA(GraphTransformer):
     def __init__(self, base_thickness_list=[2], shape_cluster=KMeans(n_clusters=2), structure_mod=False,name_cluser=False, save_graphclusters=False):
         '''
         Args:
@@ -53,7 +53,7 @@ class RnaPreProcessor(PreProcessor):
         # abstr_input = [ self._sequence_to_base_graph(seq) for seq in inputs ]
 
         abstr_input = list(self.NNmodel.eden_rna_vectorizer.graphs(inputs))
-        self.make_abstract = default_preprocessor(base_thickness_list= self.base_thickness_list, shape_cluster= self.shape_clusters, name_cluster=False)
+        self.make_abstract = default_preprocessor(base_thickness_list= self.base_thickness_list, core_shape_cluster= self.shape_clusters, name_cluster=False)
         self.make_abstract.set_param(self.vectorizer)
         self.make_abstract.fit(abstr_input)
         print "fit pp done"
@@ -139,8 +139,8 @@ class RnaPreProcessor(PreProcessor):
 
                 base_graph = rna.expanded_rna_graph_to_digraph(base_graph)
 
-                result.append(rna.RnaWrapper(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list, \
-                                             abstract_graph=abstract_graph))
+                result.append(rna.RnaDecomposer(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list, \
+                                                abstract_graph=abstract_graph))
 
             # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
             # needs some changing obviously

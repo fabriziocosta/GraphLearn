@@ -1,4 +1,4 @@
-from graphlearn.processing import PreProcessor
+from graphlearn.transform import GraphTransformer
 from graphlearn.decompose import Decomposer
 import graphlearn
 
@@ -15,7 +15,7 @@ class mywrap(Decomposer):
         graphlearn.decompose.graph_clean(self._base_graph)
 
 
-class simple_pp(PreProcessor):
+class simple_pp(GraphTransformer):
     def wrap(self, graph):
         return mywrap(graph, self.vectorizer)
 

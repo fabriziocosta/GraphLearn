@@ -1,8 +1,8 @@
 from eden.modifier.graph.structure import contraction
 from collections import defaultdict
-from graphlearn.abstract_graphs.abstract import MinorDecomposer
+from graphlearn.abstract_graphs.minortransform import MinorDecomposer
 from graphlearn.estimator import Wrapper as estimartorwrapper
-from graphlearn.processing import PreProcessor
+from graphlearn.transform import GraphTransformer
 from graphlearn.utils import draw
 import eden
 import networkx as nx
@@ -137,7 +137,7 @@ class graph_to_abstract(object):
 
 
 
-class PreProcessor(PreProcessor):
+class GraphTransformerMinorDecomp(GraphTransformer):
     def __init__(self, base_thickness_list=[2],
                  core_shape_cluster=KMeans(n_clusters=4),
                  name_cluster=MiniBatchKMeans(n_clusters=5),
@@ -189,7 +189,8 @@ class PreProcessor(PreProcessor):
             parts = []
             # for all minor nodes:
             for graph in inputs:
-                abstr = self.abstract(graph, score_attribute='importance', group='class')
+                #       self._abstract._transform_single(graph, score_attribute, group)
+                abstr = self._abstract._transform_single(graph, score_attribute='importance', group='class')
                 for n, d in abstr.nodes(data=True):
                     if len(d['contracted']) > 1 and 'edge' not in d:
                         # get the subgraph induced by it (if it is not trivial)
@@ -292,26 +293,23 @@ class PreProcessor(PreProcessor):
         # generate abstract graph
         abst = self._abstract._transform_single(graph, score_attribute, group)
 
-        # try to find names for the nodes
-        if self.name_cluster == False:
-            return abst
-        else:
-            graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
-            for n, d in abst.nodes(data=True):
-                if len(d['contracted']) > 1 and 'edge' not in d:
-                    # get the subgraph induced by it (if it is not trivial)
-                    tmpgraph = nx.Graph(graph.subgraph(d['contracted']))
-                    vector = self.vectorizer.transform_single(tmpgraph)
-                    d['label'] = "C_" + str(self.name_cluster.predict(vector))
 
-                elif len(d['contracted']) == 1 and 'edge' not in d:
-                    # get the subgraph induced by it (if it is not trivial)
-                    d['label'] = graph.node[list(d['contracted'])[0]]['label']
+        graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
+        for n, d in abst.nodes(data=True):
+            if len(d['contracted']) > 1 and 'edge' not in d:
+                # get the subgraph induced by it (if it is not trivial)
+                tmpgraph = nx.Graph(graph.subgraph(d['contracted']))
+                vector = self.vectorizer.transform_single(tmpgraph)
+                d['label'] = "C_" + str(self.name_cluster.predict(vector))
+
+            elif len(d['contracted']) == 1 and 'edge' not in d:
+                # get the subgraph induced by it (if it is not trivial)
+                d['label'] = graph.node[list(d['contracted'])[0]]['label']
 
 
-                elif 'edge' not in d:
-                    d['label'] = "F_should_not_happen"
-            return abst
+            elif 'edge' not in d:
+                d['label'] = "F_should_not_happen"
+        return abst
 
 
 

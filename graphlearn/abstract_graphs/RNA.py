@@ -1,4 +1,4 @@
-from abstract import MinorDecomposer
+from minortransform import MinorDecomposer
 import eden
 import networkx as nx
 import subprocess as sp
@@ -9,12 +9,12 @@ import sklearn
 import os
 import textwrap
 from graphlearn.graphlearn import Sampler
-from graphlearn.processing import PreProcessor
+from graphlearn.transform import GraphTransformer
 import eden.RNA
 import logging
 
 logger = logging.getLogger(__name__)
-from graphlearn.processing import PostProcessor
+from graphlearn.transform import PostProcessor
 
 '''
 contains:
@@ -31,7 +31,7 @@ class PostProcessor(PostProcessor):
         return self.pp.re_transform_single(input)
 
 
-class PreProcessor(PreProcessor):
+class PreProcessor(GraphTransformer):
     def __init__(self, base_thickness_list=[2], structure_mod=True, include_base=False, ignore_inserts=False):
         '''
 
@@ -141,13 +141,13 @@ class PreProcessor(PreProcessor):
             base_graph.graph['sequence'] = sequence
             base_graph.graph['structure'] = structure
             result.append(
-                    RnaWrapper(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list,
-                               include_base=self.include_base, ignore_inserts=self.ignore_inserts)
+                    RnaDecomposer(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list,
+                                  include_base=self.include_base, ignore_inserts=self.ignore_inserts)
             )
         return result
 
 
-class RnaWrapper(MinorDecomposer):
+class RnaDecomposer(MinorDecomposer):
     # def core_substitution(self, orig_cip_graph, new_cip_graph):
     #    graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
     #    return self.__class__( graph, self.vectorizer , self.some_thickness_list)

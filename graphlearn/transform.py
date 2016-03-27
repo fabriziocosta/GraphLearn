@@ -1,7 +1,7 @@
 import decompose as gt
 
 
-class PreProcessor(object):
+class GraphTransformer(object):
     def set_param(self, vectorizer):
         self.vectorizer = vectorizer
 

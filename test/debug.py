@@ -52,7 +52,7 @@ import graphlearn.abstract_graphs.RNA as rna
 from graphlearn import feasibility
 feas=feasibility.FeasibilityChecker(checklist=[feasibility.default_check,rna.is_rna])
 graphs = get_sequences_with_names(150)
-pp=learned.RnaPreProcessor(base_thickness_list=[2],kmeans_clusters=3,structure_mod=False)
+pp=learned.GraphTransformerRNA(base_thickness_list=[2], kmeans_clusters=3, structure_mod=False)
 sampler=rna.AbstractSampler(radius_list=[0,1],thickness_list=[1], min_cip_count=2, min_interface_count=2,feasibility_checker=feas, preprocessor=pp)
 sampler.fit(graphs,grammar_n_jobs=1,grammar_batch_size=1)
 

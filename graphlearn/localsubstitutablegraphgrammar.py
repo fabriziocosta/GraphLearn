@@ -314,12 +314,11 @@ def extract_cores_and_interfaces(parameters):
     try:
         # unpack arguments, expand the graph
         graphmanager, radius_list, thickness_list, hash_bitmask, node_entity_check = parameters
-        d = {'radius_list': radius_list,
-             'thickness_list': thickness_list,
-             'hash_bitmask': hash_bitmask,
-             'node_filter': node_entity_check}
 
-        return graphmanager.all_core_interface_pairs(**d)
+        return graphmanager.all_core_interface_pairs(radius_list=radius_list,
+                                                     thickness_list=thickness_list,
+                                                     hash_bitmask=hash_bitmask,
+                                                     node_filter= node_entity_check)
 
     except Exception:
         logger.debug(traceback.format_exc(10))

@@ -12,7 +12,7 @@ from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
 from utils import draw
-import processing
+import transform
 
 logger = logging.getLogger(__name__)
 import utils.monitor as monitor
@@ -26,8 +26,8 @@ class Sampler(object):
                  random_state=None,
 
                  estimator=estimator.Wrapper(nu=.5, cv=2, n_jobs=-1),
-                 preprocessor=processing.PreProcessor(),
-                 postprocessor=processing.PostProcessor(),
+                 preprocessor=transform.GraphTransformer(),
+                 postprocessor=transform.PostProcessor(),
                  feasibility_checker=feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],

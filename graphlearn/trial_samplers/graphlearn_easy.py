@@ -1,7 +1,7 @@
 import networkx as nx
 import itertools
 import random
-import processing
+import transform
 import estimator_wrapper
 from graphlearn.decompose import extract_core_and_interface, core_substitution, graph_clean
 from graphlearn.feasibility import FeasibilityChecker
@@ -53,7 +53,7 @@ class GraphLearnSampler(object):
 
         self.complexity = complexity
         self.feasibility_checker = FeasibilityChecker()
-        self.postprocessor = processing.PostProcessor()
+        self.postprocessor = transform.PostProcessor()
         self.vectorizer = vectorizer
         # lists of int
         self.radius_list = [int(2 * r) for r in radius_list]
