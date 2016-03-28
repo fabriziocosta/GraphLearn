@@ -9,8 +9,6 @@ logger = logging.getLogger(__name__)
 def default_check(graph):
     '''
     this is the default feasibility check...
-    :param graph:
-    :return:
     '''
     # check if graph exists
     if len(graph) < 1:

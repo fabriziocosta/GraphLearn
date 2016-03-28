@@ -19,33 +19,45 @@ from sklearn.cluster import KMeans
 
 class GraphTransformerRNA(GraphTransformer):
     def __init__(self, base_thickness_list=[2], shape_cluster=KMeans(n_clusters=2), structure_mod=False,name_cluser=False, save_graphclusters=False):
-        '''
-        Args:
-            base_thickness_list: [int]
-                thicknesslist
-            kmeans_clusters: int
-                how many clusters
-            structure_mod: bool
-                should structuremod be applied?
-                this will introduce "F" nodes in critical parts..
-                should not be necessary for learned RNA
-        Returns: void
+        """
 
-        '''
+        Parameters
+        ----------
+        base_thickness_list: list of int
+            thickness of the base graph
+        shape_cluster: clasifier
+            used to determine the shape of the subgraphs
+        structure_mod: bool
+            some changes to the RNA graph, that help us do the substitutions.
+            this is mainly interesting if you use the forgi abstraction method
+        name_cluser:bool
+            learn to label clusters
+        save_graphclusters:bool
+            does nothing
+
+
+        Returns
+        -------
+            void
+        """
         #super(RnaPreProcessor, self).__init__(base_thickness_list=base_thickness_list,kmeans_clusters=kmeans_clusters)
         self.base_thickness_list = [thickness * 2 for thickness in base_thickness_list]
         self.shape_clusters = shape_cluster
         self.structure_mod = structure_mod
 
     def fit(self, inputs, vectorizer):
-        '''
-        Args:
-            inputs: [rna seq]
-            vectorizer:  a vectorizer
+        """
 
-        Returns: self
+        Parameters
+        ----------
+        inputs: [rna seq]
+        vectorizer:  a vectorizer
 
-        '''
+        Returns
+        -------
+        self
+        """
+
         self.vectorizer = vectorizer
         self.NNmodel = rna.EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
@@ -56,17 +68,22 @@ class GraphTransformerRNA(GraphTransformer):
         self.make_abstract = default_preprocessor(base_thickness_list= self.base_thickness_list, core_shape_cluster= self.shape_clusters, name_cluster=False)
         self.make_abstract.set_param(self.vectorizer)
         self.make_abstract.fit(abstr_input)
-        print "fit pp done"
+        logger.debug( "fit pp done" )
         return self
 
     def fit_transform(self, inputs):
-        '''
-        Args:
-            inputs: [rna seq]
+        """
 
-        Returns: [graphwrapper]
+        Parameters
+        ----------
+        inputs: [rna seq]
 
-        '''
+        Returns
+        -------
+        list of graphdecomposer
+        """
+
+
 
         inputs = list(inputs)
         self.fit(inputs, self.vectorizer)
@@ -74,12 +91,16 @@ class GraphTransformerRNA(GraphTransformer):
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
-        '''
-        Args:
-            graph:  digraph
+        """
 
-        Returns: wrapped graph
-        '''
+        Parameters
+        ----------
+        graph:  digraph
+
+        Returns
+        -------
+        wrapped graph
+        """
         try:
             sequence = rna.get_sequence(graph)
         except:
@@ -95,13 +116,14 @@ class GraphTransformerRNA(GraphTransformer):
     def _sequence_to_base_graph(self, sequence):
         '''
 
-        Args:
-            sequence: rna sequence
+        Parameters
+        ----------
+        sequence: rna sequence
 
-        Returns: raw graph
-
+        Returns
+        -------
+        nx.graph
         '''
-
         structure = self.NNmodel.transform_single(sequence)
         if self.structure_mod:
             structure, sequence = rna.fix_structure(structure, sequence)
@@ -111,7 +133,6 @@ class GraphTransformerRNA(GraphTransformer):
 
     def transform(self, sequences):
         """
-
         Parameters
         ----------
         sequences : iterable over rna sequences

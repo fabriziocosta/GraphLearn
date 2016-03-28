@@ -28,6 +28,20 @@ appear during sampling.
 
 
 def assign_values_to_nodelabel(graph, label):
+    '''
+    check all nodes:
+    if label-attribute is not present, set attribute to unique string
+
+    Parameters
+    ----------
+    graph:  nx.graph
+    label:  attribute name
+
+    Returns
+    -------
+    void
+
+    '''
 
     startid=max([ float(d.get(label,-99999999))   for n,d in graph.nodes(data=True)  ])
     for n,d in graph.nodes(data=True):
@@ -36,8 +50,26 @@ def assign_values_to_nodelabel(graph, label):
             startid+=1
 
 class graph_to_abstract(object):
-
     def __init__(self, vectorizer=False,estimator=False,grouper=False, score_threshold=0, min_size=0, debug=False):
+        '''
+
+        Parameters
+        ----------
+        vectorizer  eden.graph.vectorizer
+        estimator   estimator to assign scores
+        grouper
+            object with predict(score) function to assign clusterid to nodes
+        score_threshold
+            ignore nodes with score < thresh
+        min_size
+            min size for clusters
+        debug
+            debug mode?
+
+        Returns
+        -------
+
+        '''
         self.grouper=grouper
         self.estimator=estimator
         self.vectorizer=vectorizer
@@ -178,10 +210,20 @@ class GraphTransformerMinorDecomp(GraphTransformer):
 
 
     def fit(self, inputs):
+        '''
+
+        Parameters
+        ----------
+        inputs many nx.graph
+
+        Returns
+        -------
+
+        '''
         # this k means is over the values resulting from annotation
         # and determine how a graph will be split intro minor nodes.
         self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
-        self.make_kmeans(inputs)
+        self.train_core_shape_cluster(inputs)
         #self._abstract=graph_to_abstract()
         self._abstract.set_parmas(estimator=self.rawgraph_estimator, grouper=self.core_shape_cluster, vectorizer=self.vectorizer)
         # now comes the second part in which i try to find a name for those minor nodes.
@@ -217,15 +259,18 @@ class GraphTransformerMinorDecomp(GraphTransformer):
 
 
 
-    def make_kmeans(self, inputs):
-        """
+    def train_core_shape_cluster(self, inputs):
+        '''
 
-        Args:
-            inputs: [graph]
+        Parameters
+        ----------
+        inputs: [graph]
 
-        Returns:
-            will fit self.kmeans
-        """
+        Returns
+        -------
+
+        '''
+
         li = []
         for graph in inputs:
             g = self.vectorizer.annotate([graph], estimator=self.rawgraph_estimator.estimator).next()
@@ -272,7 +317,6 @@ class GraphTransformerMinorDecomp(GraphTransformer):
 
     def abstract(self, graph, score_attribute='importance', group='class', debug=False):
         '''
-
         Parameters
         ----------
         graph: nx.graph
@@ -317,12 +361,15 @@ class GraphTransformerMinorDecomp(GraphTransformer):
     def transform(self, inputs):
         '''
 
-        Args:
-            inputs: [graph]
+        Parameters
+        ----------
+        inputs: [graph]
 
-        Returns: [graphwrapper]
-
+        Returns
+        -------
+            list of decomposers
         '''
+
         return [MinorDecomposer(self.vectorizer._edge_to_vertex_transform(i),
                                 vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
                                 abstract_graph=self.abstract(i)) for i in inputs]

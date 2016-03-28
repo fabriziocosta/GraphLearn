@@ -56,41 +56,52 @@ class PreProcessor(GraphTransformer):
         self.include_base = include_base
 
     def fit(self, inputs, vectorizer):
-        '''
+        """
 
-        Args:
-            inputs: sequence list
-            vectorizer: a vectorizer
+        Parameters
+        ----------
+        inputs: sequence list
+        vectorizer: a vectorizer
 
-        Returns: self
-        '''
+        Returns
+        -------
+        self
+        """
+
         self.vectorizer = vectorizer
         self.NNmodel = EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
         return self
 
     def fit_transform(self, inputs):
-        '''
+        """
 
-        Args:
-            inputs:  sequences
+        Parameters
+        ----------
+        inputs: sequences
 
-        Returns:
-            wrapped graphs
-        '''
+        Returns
+        -------
+        many graphdecomposers
+        """
+
         inputs = list(inputs)
         self.fit(inputs, self.vectorizer)
         inputs = [b for a, b in inputs]
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
-        '''
-        Args:
-            graph: digraph
+        """
 
-        Returns: wrapped graph
+        Parameters
+        ----------
+        graph: digraph
 
-        '''
+        Returns
+        -------
+        graph decomposer
+        """
+
         try:
             sequence = get_sequence(graph)
         except:
@@ -180,27 +191,30 @@ class RnaDecomposer(MinorDecomposer):
                  abstract_graph=None, include_base=False, ignore_inserts=False):
         '''
 
-        Args:
-            sequence: string
-                rna sequence
-            structure: string
-                dotbracket
-            base_graph: raw graph
-                base graph
-            vectorizer: vectorizer
-                a vectorizer
-            base_thickness_list: [int]
-                thickness for the base graph interface
-            abstract_graph: graph
-                the abstracted graph
-            include_base: bool
-                an additional layer of CIPs will be produced
-                those cips use the radius_list on the base graph oOo
-                this feature needs more work
-            ignore_inserts: bool
-                bulges will be one with their associated stem
+        Parameters
+        ----------
+        sequence: string
+            rna sequence
+        structure: string
+            dotbracket
+        base_graph: raw graph
+            base graph
+        vectorizer: vectorizer
+            a vectorizer
+        base_thickness_list: [int]
+            thickness for the base graph interface
+        abstract_graph: graph
+            the abstracted graph
+        include_base: bool
+            an additional layer of CIPs will be produced
+            those cips use the radius_list on the base graph oOo
+            this feature needs more work
+        ignore_inserts: bool
+            bulges will be one with their associated stem
 
-        Returns:
+        Returns
+        -------
+
 
         '''
 
@@ -226,16 +240,18 @@ class RnaDecomposer(MinorDecomposer):
         self._mod_dict = {s: 696969, e: 123123123}
 
     def rooted_core_interface_pairs(self, root, thickness=None, **args):
-        '''
+        """
 
-        Args:
-            root: int
-            thickness:  
-            **args:
+        Parameters
+        ----------
+        root:
+        thickness:
+        args:
 
-        Returns:
+        Returns
+        -------
 
-        '''
+        """
 
         ciplist = super(self.__class__, self).rooted_core_interface_pairs(root, thickness, **args)
 
@@ -273,9 +289,20 @@ class RnaDecomposer(MinorDecomposer):
         # return ('',sequence.replace("F",""))
 
     def pre_vectorizer_graph(self, nested=True, fcorrect=False, base_only=False):
-        '''
+        """
 
-        '''
+        Parameters
+        ----------
+        nested: nested minor + base graph
+        fcorrect: introduce nodes that aid the forgi abstraction
+        base_only: only return the base graph
+
+
+        Returns
+        -------
+            nx.graph
+        """
+
         g = nx.disjoint_union(nx.Graph(self._base_graph), self.abstract_graph())
         if base_only:
             g = self.base_graph().copy()

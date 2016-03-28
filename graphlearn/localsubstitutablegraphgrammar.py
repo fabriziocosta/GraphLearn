@@ -39,14 +39,27 @@ class LocalSubstitutableGraphGrammar(object):
                       n_jobs=0,
                       max_core_size_diff=0,
                       probabilistic_core_choice=False):
-        """Preprocess need to be done before sampling.
-
-        Args:
-            n_jobs: number of jobs to run for the task
-            same_radius: creates same radius data structure
-            same_core: creates same core data structure
-            probabilistic_core_choice: creates probabilistic core data structure
         """
+        Preprocess need to be done before sampling.
+
+        Parameters
+        ----------
+        n_jobs: int
+            how many jobs to use
+        max_core_size_diff: int
+            pass
+        probabilistic_core_choice: bool
+            choose cores according to frequency
+            creates probabilistic core data structure
+
+        Returns
+        -------
+
+        """
+
+
+
+
 
         logger.debug('preprocessing grammar')
 
@@ -299,10 +312,17 @@ these are external  for multiprocessing reasons.
 
 
 def extract_cips(what):
-    '''
-    :param what: unpacks and runs jobs that were packed by the _multi_process_argbuilder
-    :return:  [extract_cores_and_interfaces(stuff),extract_cores_and_interfaces(stuff), ...]
-    '''
+    """
+
+    Parameters
+    ----------
+    what: unpacks and runs jobs that were packed by the _multi_process_argbuilder
+
+    Returns
+    -------
+        [extract_cores_and_interfaces(stuff),extract_cores_and_interfaces(stuff), ...]
+    """
+
     f, args, graph_batch = dill.loads(what)
     return [f([y] + args) for y in graph_batch]
 

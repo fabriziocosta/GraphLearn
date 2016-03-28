@@ -537,10 +537,17 @@ class Sampler(object):
 
     def _score(self, graphmanager):
         """
-        :param graphmanager: a graph
-        :return: score of graph
+
+        Parameters
+        ----------
+        graphmanager: a graphdecomposer
+
+        Returns
+        -------
+        score of graph
         we also set graph.score_nonlog and graph.score
         """
+
         if '_score' not in graphmanager.__dict__:
             graphmanager._score = self.estimatorobject.score(graphmanager, keep_vector=self.accept_min_similarity)
             self.monitorobject.info('score', graphmanager._score)
@@ -667,12 +674,21 @@ class Sampler(object):
                     # try the next orig cip, than to risk another collision
 
     def calc_proposal_probability(self, graphman, graphman_new, cip):
-        '''
-        :param graph:  the old graph
-        :param graph_new: the new graph
-        :param cip: the old cip is enough since we mainly need the ids of the interface
-        :return: options(interface,newgraph)+newgraphlength*average /  options(interface,graph)+oldgraphlen*average
-        '''
+        """
+
+        Parameters
+        ----------
+        graphman: nx.Graph
+            old graph
+        graphman_new: nx.Graph
+            mew graph
+        cip: CoreInterfacePair
+            the old cip is enough since we mainly need the ids of the interface
+
+        Returns
+        -------
+
+        """
 
         def ops(gman, cip_graph):
             counter = 0
@@ -706,11 +722,18 @@ class Sampler(object):
 
     def _select_cips(self, cip, graphman):
         """
-        :param cip: the cip we selected from the graph
-        :yields: cips found in the grammar that can replace the input cip
 
-        log to debug on fail
+        Parameters
+        ----------
+        cip: CoreInterfacePair
+            the cip we selected from the graph
+        graphmancips: CIPs
+            found in the grammar that can replace the input cip
+        Returns
+        -------
+        yields CIPs
         """
+
         if not cip:
             raise Exception('select randomized cips from grammar got bad cip')
 
@@ -832,10 +855,16 @@ class Sampler(object):
                                                    hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check)
 
     def _accept_original_cip(self, cip):
-        '''
-        :param cip: the cip we need to judge
-        :return: good or nogood (bool)
-        '''
+        """
+
+        Parameters
+        ----------
+        cip: the cip we need to judge
+
+        Returns
+        -------
+        good or nogood (bool)
+        """
         score_ok = True
         if self.target_orig_cip:
             imp = []
