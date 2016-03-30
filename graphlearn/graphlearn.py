@@ -1,6 +1,6 @@
 import itertools
 import random
-import estimator
+import estimate
 # from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -25,7 +25,7 @@ class Sampler(object):
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
 
-                 estimator=estimator.Wrapper(nu=.5, cv=2, n_jobs=-1),
+                 estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
                  preprocessor=transform.GraphTransformer(),
                  postprocessor=transform.PostProcessor(),
                  feasibility_checker=feasibility.FeasibilityChecker(),

@@ -7,13 +7,9 @@ import random
 import networkx as nx
 
 
-class Wrapper:
+class OneClassEstimator:
     '''
-
-    this is the interface between graphmanagers and edens machine learning
-
-    you just fit() with graphmanagers
-    and then you score() graphmanagers or graphs
+    there might be a bug connected to nx.digraph..
     '''
 
     def __init__(self, nu=.5, cv=2, n_jobs=-1, calibrate=True):
@@ -23,13 +19,13 @@ class Wrapper:
         self.n_jobs = n_jobs
         self.calibrate = calibrate
 
-    def fit(self, graphmanagers, vectorizer=None, random_state=None):
+    def fit(self, graphs, vectorizer=None, random_state=None):
         self.vectorizer = vectorizer
         if random_state is not None:
             random.seed(random_state)
 
         # convert to sklearn compatible format
-        data_matrix = vectorizer.fit_transform(self.mass_unwrap(graphmanagers))
+        data_matrix = vectorizer.fit_transform(graphs)
 
         # fit
         self.estimator = self.fit_estimator(data_matrix, n_jobs=self.n_jobs, cv=self.cv, random_state=random_state)
@@ -104,54 +100,14 @@ class Wrapper:
 
         return estimator
 
-    def score(self, graphmanager, keep_vector=False):
+    def score(self, graph, keep_vector=False):
 
-        transformed_graph = self.vectorizer.transform_single(self.unwrap(graphmanager))
+        transformed_graph = self.vectorizer.transform_single(graph)
         # slow so dont do it..
         # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
         if keep_vector:
-            graphmanager.transformed_vector = transformed_graph
+            graph.transformed_vector = transformed_graph
         if self.calibrate:
             return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
         return self.cal_estimator.decision_function(transformed_graph)[0]
 
-    '''
-    unwrappers do:
-    1. unwrap graphmanagers into eden understandable format
-    2. while doing so work around edens problems
-        - eden destroys graphs it uses, so we copy
-        - eden cant handle directed graphs, so we make graphs undirected
-    '''
-
-    def mass_unwrap(self, graphmanagers):
-        for gm in graphmanagers:
-            yield self.unwrap(gm)
-
-    def unwrap(self, graphmanager):
-        '''
-        Args:
-            graphmanager: a graphmanager, graph or digraph
-            graphmanager will be transformed to graph and used
-        Returns:
-            decompose
-        '''
-        if type(graphmanager) == nx.Graph or type(graphmanager) == nx.DiGraph:
-            graph = graphmanager.copy()
-
-        else:
-            graph = self.get_graph(graphmanager)
-        if type(graph) == nx.DiGraph:
-            graph = nx.Graph(graph)
-        return graph
-
-    def get_graph(self, graphmanager):
-        '''
-        abstract graph wrappers may have the option of getting a nested graph
-
-        Args:
-            graphmanager:  a graph manager
-
-        Returns:
-            a graph
-        '''
-        return graphmanager.pre_vectorizer_graph().copy()

@@ -1,17 +1,17 @@
 from eden.modifier.graph.structure import contraction
 from collections import defaultdict
 from graphlearn.abstract_graphs.minortransform import MinorDecomposer
-from graphlearn.estimator import Wrapper as estimartorwrapper
+from graphlearn.estimate import OneClassEstimator as estimartorwrapper
 from graphlearn.transform import GraphTransformer
 from graphlearn.utils import draw
-import eden
+
 import networkx as nx
 import logging
 from itertools import izip
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
-
+0
 logger = logging.getLogger(__name__)
 '''
 file contains:
