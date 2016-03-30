@@ -102,7 +102,11 @@ class MinorDecomposer(Decomposer):
         self._mod_dict = {}  # this is the default.
         self.include_base = include_base  # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
 
-    def rooted_core_interface_pairs(self, root, thickness=None, for_base=False, **args):
+    def rooted_core_interface_pairs(self, root, thickness=None, for_base=False,
+                                        hash_bitmask=None,
+                                      radius_list=[],
+                                      thickness_list=None,
+                                      node_filter=lambda x, y: True):
         '''
              get cips for a root
         Parameters
@@ -128,11 +132,28 @@ class MinorDecomposer(Decomposer):
 
         if for_base == False:
 
-            return extract_cips(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict, **args)
+            return extract_cips(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict,
+                                        hash_bitmask=hash_bitmask,
+                                      radius_list=radius_list,
+                                      thickness_list=thickness_list,
+                                      node_filter=node_filter)
         else:
-            return extract_cips_base(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict, **args)
+            return extract_cips_base(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict,
+                                      hash_bitmask=hash_bitmask,
+                                      radius_list=radius_list,
+                                      thickness_list=thickness_list,
+                                      node_filter=node_filter)
 
-    def all_core_interface_pairs(self, **args):
+    def all_core_interface_pairs(self,
+
+
+         thickness=None,
+            for_base=False,
+         hash_bitmask=None,
+      radius_list=[],
+      thickness_list=None,
+      node_filter=lambda x, y: True
+        ):
         '''
 
         Parameters
@@ -148,7 +169,13 @@ class MinorDecomposer(Decomposer):
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = self.rooted_core_interface_pairs(root_node, **args)
+            cip_list = self.rooted_core_interface_pairs(root_node,
+                                                        thickness=thickness,
+            for_base=for_base,
+         hash_bitmask=hash_bitmask,
+      radius_list=radius_list,
+      thickness_list=thickness_list,
+      node_filter=node_filter)
             if cip_list:
                 cips.append(cip_list)
 
@@ -157,13 +184,19 @@ class MinorDecomposer(Decomposer):
             for root_node in graph.nodes_iter():
                 if 'edge' in graph.node[root_node]:
                     continue
-                cip_list = self.rooted_core_interface_pairs(root_node, for_base=self.include_base, **args)
+                cip_list = self.rooted_core_interface_pairs(root_node, for_base=self.include_base,
+                                                        thickness=thickness,
+                                                     hash_bitmask=hash_bitmask,
+                                                  radius_list=radius_list,
+                                                  thickness_list=thickness_list,
+                                                  node_filter=node_filter)
                 if cip_list:
                     cips.append(cip_list)
 
         return cips
 
-    def random_core_interface_pair(self, radius_list=None, thickness_list=None, **args):
+    def random_core_interface_pair(self, radius_list=None, thickness_list=None, hash_bitmask=None,
+                                   node_filter=lambda x, y: True):
         '''
         get a random cip  rooted in the minor
         Parameters
@@ -181,12 +214,17 @@ class MinorDecomposer(Decomposer):
         if 'edge' in self._abstract_graph.node[node]:
             node = random.choice(self._abstract_graph.neighbors(node))
             # random radius and thickness
-        args['radius_list'] = [random.choice(radius_list)]
-        args['thickness_list'] = [random.choice(thickness_list)]
+        radius_list = [random.choice(radius_list)]
+        thickness_list = [random.choice(thickness_list)]
         random_something = [random.choice(self.some_thickness_list)]
-        return self.rooted_core_interface_pairs(node, thickness=random_something, **args)
+        return self.rooted_core_interface_pairs(node, thickness=random_something,
+                                        for_base=False,
+                                        hash_bitmask=hash_bitmask,
+                                      radius_list=radius_list,
+                                      thickness_list=thickness_list,
+                                      node_filter=node_filter)
 
-    def random_core_interface_pair_base(self, radius_list=None, thickness_list=None, **args):
+    def random_core_interface_pair_base(self, radius_list=None, thickness_list=None, hash_bitmask=None,node_filter=lambda x, y: True):
         '''
         get a random cip, rooted in the base graph
         Parameters
@@ -205,10 +243,14 @@ class MinorDecomposer(Decomposer):
         if 'edge' in self._base_graph.node[node]:
             node = random.choice(self._base_graph.neighbors(node))
             # random radius and thickness
-        args['radius_list'] = [random.choice(radius_list)]
-        args['thickness_list'] = [random.choice(thickness_list)]
+        radius_list = [random.choice(radius_list)]
+        thickness_list = [random.choice(thickness_list)]
         random_something = [random.choice(self.some_thickness_list)]
-        return self.rooted_core_interface_pairs(node, thickness=random_something, for_base=True, **args)
+        return self.rooted_core_interface_pairs(node, thickness=random_something, for_base=True,
+                                            hash_bitmask=hash_bitmask,
+                                          radius_list=radius_list,
+                                          thickness_list=thickness_list,
+                                          node_filter=node_filter  )
 
 
 def check_and_draw(base_graph, abstr):
@@ -310,7 +352,12 @@ def extract_cips(node,
                  base_thickness_list=None,
                  hash_bitmask=None,
                  mod_dict={},
-                 **argz):
+
+                  radius_list=[],
+                  thickness_list=None,
+                  node_filter=lambda x, y: True
+
+               ):
     '''
 
     Parameters
@@ -344,19 +391,21 @@ def extract_cips(node,
                                                           abstract_graph,
                                                           vectorizer=vectorizer,
                                                           hash_bitmask=hash_bitmask,
-                                                          **argz)
+                                                          node_filter=node_filter,
+                                                          radius_list=radius_list,
+                                                          thickness_list=thickness_list)
 
     # VOR EVERY ABSTRACT CIP: MERGE CORE IN BASE GRAPH AND APPLY CIP EXTRACTON
     cips = []
     for abstract_cip in abstract_cips:
         base_copy, mergeids = merge_core(base_graph.copy(), abstract_graph, abstract_cip)
-        argz['thickness_list'] = base_thickness_list
-        argz['radius_list'] = [0]
         base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
                                                                 base_copy,
                                                                 vectorizer=vectorizer,
                                                                 hash_bitmask=hash_bitmask,
-                                                                **argz)
+                                                                node_filter=node_filter,
+                                                                radius_list=[],
+                                                                thickness_list=base_thickness_list)
 
         # VOR EVERY BASE CIP: RESTORE CORE  AND  MERGE INFORMATION WITH ABSTRACT CIP
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
@@ -479,7 +528,9 @@ def extract_cips_base(node,
                       base_thickness_list=None,
                       hash_bitmask=None,
                       mod_dict={},
-                      **argz):
+                      radius_list=[],
+                      thickness_list=None,
+                      node_filter=lambda x, y: True):
     '''
     Parameters
     ----------
@@ -527,24 +578,27 @@ def extract_cips_base(node,
             break
     else:
         raise Exception("IMPOSSIBLE NODE")
-    radiuslist_backup = argz['radius_list']
-    argz['radius_list'] = [0]
-    abstract_cips = graphtools.extract_core_and_interface(abs_node,
-                                                          abstract_graph,
+
+
+    abstract_cips = graphtools.extract_core_and_interface(root_node=abs_node,
+                                                          graph=abstract_graph,
                                                           vectorizer=vectorizer,
                                                           hash_bitmask=hash_bitmask,
-                                                          **argz)
+                                                          radius_list=[0],
+                                                          thickness_list=thickness_list,
+                                                          node_filter=node_filter )
 
     # VOR EVERY ABSTRACT CIP: EXTRACT BASE CIP
     cips = []
-    argz['radius_list'] = radiuslist_backup
+
     for abstract_cip in abstract_cips:
-        argz['thickness_list'] = base_thickness_list
+
         base_level_cips = graphtools.extract_core_and_interface(node,
                                                                 base_graph,
                                                                 vectorizer=vectorizer,
                                                                 hash_bitmask=hash_bitmask,
-                                                                **argz)
+                                                                radius_list=radius_list,
+                                                                thickness_list=base_thickness_list )
         # VOR EVERY BASE CIP: hash interfaces and save the abstract view
         for base_cip in base_level_cips:
             cores = [n for n, d in base_cip.graph.nodes(data=True) if 'interface' not in d]
@@ -556,3 +610,15 @@ def extract_cips_base(node,
             cips.append(base_cip)
 
     return cips
+root_node=None,
+
+'''
+graphtools.extract_core_and_interface:
+            root_node=None,
+            graph=None,
+            vectorizer=Vectorizer(),
+            hash_bitmask=2 ** 20 - 1,
+            radius_list=None,
+            thickness_list=None,
+            node_filter=lambda x, y: True
+'''

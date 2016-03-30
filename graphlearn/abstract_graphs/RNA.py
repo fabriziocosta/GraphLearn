@@ -239,7 +239,11 @@ class RnaDecomposer(MinorDecomposer):
         s, e = get_start_and_end_node(self.base_graph())
         self._mod_dict = {s: 696969, e: 123123123}
 
-    def rooted_core_interface_pairs(self, root, thickness=None, **args):
+    def rooted_core_interface_pairs(self, root, thickness=None,  for_base=False,
+                                        hash_bitmask=None,
+                                      radius_list=[],
+                                      thickness_list=None,
+                                      node_filter=lambda x, y: True):
         """
 
         Parameters
@@ -253,7 +257,13 @@ class RnaDecomposer(MinorDecomposer):
 
         """
 
-        ciplist = super(self.__class__, self).rooted_core_interface_pairs(root, thickness, **args)
+        ciplist = super(self.__class__, self).rooted_core_interface_pairs(root, thickness, for_base=for_base,
+                                        hash_bitmask=hash_bitmask,
+                                      radius_list=radius_list,
+                                      thickness_list=thickness_list,
+                                      node_filter=node_filter)
+
+
 
         # numbering shards if cip graphs not connected
         for cip in ciplist:
