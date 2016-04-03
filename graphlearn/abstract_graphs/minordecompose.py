@@ -404,7 +404,7 @@ def extract_cips(node,
                                                                 vectorizer=vectorizer,
                                                                 hash_bitmask=hash_bitmask,
                                                                 node_filter=node_filter,
-                                                                radius_list=[],
+                                                                radius_list=[0],
                                                                 thickness_list=base_thickness_list)
 
         # VOR EVERY BASE CIP: RESTORE CORE  AND  MERGE INFORMATION WITH ABSTRACT CIP

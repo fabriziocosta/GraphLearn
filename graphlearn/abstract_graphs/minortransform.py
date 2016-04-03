@@ -336,6 +336,8 @@ class GraphTransformerMinorDecomp(GraphTransformer):
         # generate abstract graph
         abst = self._abstract._transform_single(graph, score_attribute, group)
 
+        if self.name_cluster==False:
+            return abst
 
         graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
         for n, d in abst.nodes(data=True):

@@ -105,9 +105,10 @@ class OneClassEstimator:
         transformed_graph = self.vectorizer.transform_single(graph)
         # slow so dont do it..
         # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-        if keep_vector:
-            graph.transformed_vector = transformed_graph
+
+        f= lambda x: (x,transformed_graph) if keep_vector  else x
+
         if self.calibrate:
-            return self.cal_estimator.predict_proba(transformed_graph)[0, 1]
-        return self.cal_estimator.decision_function(transformed_graph)[0]
+            return f(self.cal_estimator.predict_proba(transformed_graph)[0, 1])
+        return f(self.cal_estimator.decision_function(transformed_graph)[0])
 

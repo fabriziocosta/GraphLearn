@@ -152,16 +152,18 @@ class Sampler(object):
           use input to fit the grammar and fit the estimator
         """
         self.preprocessor.set_param(self.vectorizer)
-        graphmanagers = self.preprocessor.fit_transform(input)
+        decomposers = self.preprocessor.fit_transform(input)
 
         self.postprocessor.fit(self.preprocessor)
-        self._train_estimator(graphmanagers)
-        self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
+        self._train_estimator(decomposers)
+        self.lsgg.fit(decomposers, grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 
-    def _train_estimator(self, graphmanagers):
+    def _train_estimator(self, decomposers):
         if self.estimatorobject.status != 'trained':
-            self.estimatorobject.fit(graphmanagers,
+            graphs=[  d.pre_vectorizer_graph()  for d in decomposers  ]
+
+            self.estimatorobject.fit(graphs,
                                      vectorizer=self.vectorizer,
                                      random_state=self.random_state)
 
@@ -549,7 +551,8 @@ class Sampler(object):
         """
 
         if '_score' not in graphmanager.__dict__:
-            graphmanager._score = self.estimatorobject.predict(graphmanager, keep_vector=self.accept_min_similarity)
+            graphmanager._score, graphmanager.transformed_vector = self.estimatorobject.predict(graphmanager.pre_vectorizer_graph(),keep_vector=True)
+
             self.monitorobject.info('score', graphmanager._score)
         return graphmanager._score
 

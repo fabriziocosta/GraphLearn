@@ -1,6 +1,6 @@
 import logging
-
-from graphlearn.abstract_graphs.minortransforme import GraphTransformerMinorDecomp as default_preprocessor
+import RNA
+from graphlearn.abstract_graphs.minortransform import GraphTransformerMinorDecomp as default_preprocessor
 from graphlearn.transform import GraphTransformer
 
 logger = logging.getLogger(__name__)
