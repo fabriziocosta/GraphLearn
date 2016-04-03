@@ -1,8 +1,7 @@
-import RNA as rna
-from graphlearn.transform import GraphTransformer
-from graphlearn.abstract_graphs.learned import GraphTransformerMinorDecomp as default_preprocessor
-from graphlearn.utils import draw
 import logging
+
+from graphlearn.abstract_graphs.minortransforme import GraphTransformerMinorDecomp as default_preprocessor
+from graphlearn.transform import GraphTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +58,7 @@ class GraphTransformerRNA(GraphTransformer):
         """
 
         self.vectorizer = vectorizer
-        self.NNmodel = rna.EdenNNF(n_neighbors=4)
+        self.NNmodel = RNA.EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
 
         # abstr_input = [ self._sequence_to_base_graph(seq) for seq in inputs ]
@@ -102,7 +101,7 @@ class GraphTransformerRNA(GraphTransformer):
         wrapped graph
         """
         try:
-            sequence = rna.get_sequence(graph)
+            sequence = RNA.get_sequence(graph)
         except:
             logger.debug('sequenceproblem: this is not an rna')
             # from graphlearn.utils import draw
@@ -126,8 +125,8 @@ class GraphTransformerRNA(GraphTransformer):
         '''
         structure = self.NNmodel.transform_single(sequence)
         if self.structure_mod:
-            structure, sequence = rna.fix_structure(structure, sequence)
-        base_graph = rna.converter.sequence_dotbracket_to_graph(seq_info=sequence, \
+            structure, sequence = RNA.fix_structure(structure, sequence)
+        base_graph = RNA.converter.sequence_dotbracket_to_graph(seq_info=sequence, \
                                                                 seq_struct=structure)
         return base_graph
 
@@ -148,8 +147,8 @@ class GraphTransformerRNA(GraphTransformer):
                 structure, energy = self.NNmodel.transform_single(('fake', sequence))
                 # print structure
                 if self.structure_mod:
-                    structure, sequence = rna.fix_structure(structure, sequence)
-                base_graph = rna.converter.sequence_dotbracket_to_graph(seq_info=sequence, \
+                    structure, sequence = RNA.fix_structure(structure, sequence)
+                base_graph = RNA.converter.sequence_dotbracket_to_graph(seq_info=sequence, \
                                                                         seq_struct=structure)
                 base_graph.graph['sequence']=sequence
                 base_graph.graph['structure']=structure
@@ -158,10 +157,11 @@ class GraphTransformerRNA(GraphTransformer):
 
                 base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
 
-                base_graph = rna.expanded_rna_graph_to_digraph(base_graph)
+                base_graph = RNA.expanded_rna_graph_to_digraph(base_graph)
 
-                result.append(rna.RnaDecomposer(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list, \
-                                                abstract_graph=abstract_graph))
+                result.append(
+                    RNA.RnaDecomposer(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list, \
+                                      abstract_graph=abstract_graph))
 
             # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
             # needs some changing obviously

@@ -1,6 +1,6 @@
 from eden.modifier.graph.structure import contraction
 from collections import defaultdict
-from graphlearn.abstract_graphs.minortransform import MinorDecomposer
+from graphlearn.abstract_graphs.minordecompose import MinorDecomposer
 from graphlearn.estimate import OneClassEstimator as estimartorwrapper
 from graphlearn.transform import GraphTransformer
 from graphlearn.utils import draw
@@ -11,7 +11,7 @@ from itertools import izip
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
-0
+
 logger = logging.getLogger(__name__)
 '''
 file contains:
@@ -42,7 +42,6 @@ def assign_values_to_nodelabel(graph, label):
     void
 
     '''
-
     startid=max([ float(d.get(label,-99999999))   for n,d in graph.nodes(data=True)  ])
     for n,d in graph.nodes(data=True):
         if label not in d:

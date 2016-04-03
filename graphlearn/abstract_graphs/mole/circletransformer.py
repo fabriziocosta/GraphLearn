@@ -1,4 +1,4 @@
-from minortransform import MinorDecomposer
+from graphlearn.abstract_graphs.minordecompose import MinorDecomposer
 from collections import defaultdict
 import eden
 from graphlearn.transform import GraphTransformer
