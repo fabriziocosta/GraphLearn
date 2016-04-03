@@ -549,7 +549,7 @@ class Sampler(object):
         """
 
         if '_score' not in graphmanager.__dict__:
-            graphmanager._score = self.estimatorobject.score(graphmanager, keep_vector=self.accept_min_similarity)
+            graphmanager._score = self.estimatorobject.predict(graphmanager, keep_vector=self.accept_min_similarity)
             self.monitorobject.info('score', graphmanager._score)
         return graphmanager._score
 

@@ -87,8 +87,8 @@ class DeepSampler(GraphLearnSampler):
             for j, raw_graph in enumerate(r):
                 # for each resulting graph
                 raw_graph.graph.pop('graph',None)
-                score= tempest.score(raw_graph)
-                if score > tempest.score(cips[j].graph):
+                score= tempest.predict(raw_graph)
+                if score > tempest.predict(cips[j].graph):
                     # check if the score is good enough, then add to grammar
                     self.lsgg.productions[interface_hash][score]=CoreInterfacePair(
                          interface_hash=cips[j].interface_hash,

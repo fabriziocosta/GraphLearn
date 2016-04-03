@@ -100,7 +100,7 @@ class OneClassEstimator:
 
         return estimator
 
-    def score(self, graph, keep_vector=False):
+    def predict(self, graph, keep_vector=False):
 
         transformed_graph = self.vectorizer.transform_single(graph)
         # slow so dont do it..
