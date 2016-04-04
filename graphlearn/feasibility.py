@@ -9,8 +9,6 @@ logger = logging.getLogger(__name__)
 def default_check(graph):
     '''
     this is the default feasibility check...
-    :param graph:
-    :return:
     '''
     # check if graph exists
     if len(graph) < 1:
@@ -36,13 +34,11 @@ def default_check(graph):
             if len(graph.neighbors(node_id)) != 2:
                 logger.log(5, 'feasibility edge check failed')
                 return False
-
     return True
 
 
 class FeasibilityChecker():
     def __init__(self, checklist=[default_check], draw_problem=False):
-
         self.checklist = checklist
         self.draw_problem = draw_problem
 

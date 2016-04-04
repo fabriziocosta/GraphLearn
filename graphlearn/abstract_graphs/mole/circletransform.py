@@ -1,7 +1,7 @@
-from abstract import AbstractWrapper
+from graphlearn.abstract_graphs.minordecompose import MinorDecomposer
 from collections import defaultdict
 import eden
-from graphlearn.processing import PreProcessor
+from graphlearn.transform import GraphTransformer
 import networkx as nx
 import graphlearn.utils.draw as draw
 
@@ -10,30 +10,36 @@ contains: a preprocessor that takes care of molecular graps with circleabstracti
 '''
 
 
-class PreProcessor(PreProcessor):
+class GraphTransformerCircles(GraphTransformer):
     def __init__(self, base_thickness_list=[2]):
-        '''
-        Args:
-            base_thickness_list: [int]
+        """
+
+        Parameters
+        ----------
+        base_thickness_list: [int]
                 list of thicknesses for the base graph.   radius_list and thickness_list for abstract graph are
                 those that are handled by graphlearn
 
-        Returns: void
-
-        '''
+        Returns
+        -------
+        void
+        """
         self.base_thickness_list = base_thickness_list
 
     def wrap(self, graph):
-        '''
+        """
 
-        Args:
-            graph: raw graph
+        Parameters
+        ----------
+        graph: nx.graph
 
-        Returns: wrapped graph
+        Returns
+        -------
+        graphdecomposer
+        """
 
-        '''
         graph = self.vectorizer._edge_to_vertex_transform(graph)
-        return AbstractWrapper(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
+        return MinorDecomposer(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
                                abstract_graph=self.abstract(graph))
 
     def abstract(self, graph):
@@ -71,7 +77,6 @@ class PreProcessor(PreProcessor):
 '''
 here we invent the abstractor function
 '''
-
 
 def make_abstract(graph):
     '''

@@ -9,8 +9,11 @@ import random
 logger = logging.getLogger(__name__)
 
 
-class AbstractWrapper(object):
-    def rooted_core_interface_pairs(self, root, **args):
+class AbstractDecomposer(object):
+    def rooted_core_interface_pairs(self, root, radius_list=None,
+                                           thickness_list=None,
+                                           hash_bitmask=2 ** 20 - 1,
+                                           node_filter=lambda x, y: True):
         '''
         :param root: root node of the cips we want to have
         :param args: specifies radius, thickness and stuff, depends a on implementation
@@ -41,7 +44,7 @@ class AbstractWrapper(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-    def graph(self):
+    def pre_vectorizer_graph(self):
         '''
         :return: the graph that will be vectorized to work with the estimator
         '''
@@ -67,7 +70,9 @@ class AbstractWrapper(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-    def random_core_interface_pair(self, radius_list=None, thickness_list=None, **args):
+    def random_core_interface_pair(self,radius_list=None, thickness_list=None,
+                                           hash_bitmask=2 ** 20 - 1,
+                                           node_filter=lambda x, y: True):
         '''
         :param radius_list:
         :param thickness_list:
@@ -76,11 +81,14 @@ class AbstractWrapper(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-    def all_core_interface_pairs(self, **args):
+    def all_core_interface_pairs(self,   radius_list=None,
+                                           thickness_list=None,
+                                           hash_bitmask=2 ** 20 - 1,
+                                           node_filter=lambda x, y: True):
         raise NotImplementedError("Should have implemented this")
 
 
-class Wrapper(AbstractWrapper):
+class Decomposer(AbstractDecomposer):
     def __str__(self):
         return "base_graph size: %s" % len(self._base_graph)
 
@@ -91,10 +99,30 @@ class Wrapper(AbstractWrapper):
     def base_graph(self):
         return self._base_graph
 
-    def rooted_core_interface_pairs(self, root, **args):
-        return extract_core_and_interface(root, self._base_graph, vectorizer=self.vectorizer, **args)
+    def rooted_core_interface_pairs(self, root, radius_list=None,
+                                           thickness_list=None,
+                                           hash_bitmask=2 ** 20 - 1,
+                                           node_filter=lambda x, y: True):
+        return extract_core_and_interface(root_node=root, graph=self._base_graph, vectorizer=self.vectorizer,
+                                           radius_list=radius_list,
+                                           thickness_list=thickness_list,
+                                           hash_bitmask=hash_bitmask,
+                                           node_filter=node_filter
+                                          )
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
+        '''
+
+        Parameters
+        ----------
+        orig_cip_graph: nx.graph that is a subgraph of the base_graph
+        new_cip_graph: nx.graph that is congruent (interface hash matches) to orig_cip_graph
+
+        Returns
+        -------
+            nx.Graph or nx.DiGraph
+            a graph with the new core.
+        '''
         graph = core_substitution(self._base_graph, orig_cip_graph, new_cip_graph)
         return graph  # self.__class__( graph, self.vectorizer,other=self)
 
@@ -112,7 +140,7 @@ class Wrapper(AbstractWrapper):
     def clean(self):
         graph_clean(self._base_graph)
 
-    def graph(self):
+    def pre_vectorizer_graph(self):
         return self._base_graph
 
     def out(self):
@@ -122,25 +150,35 @@ class Wrapper(AbstractWrapper):
         graph.graph['score'] = self.__dict__.get("_score", "?")
         return graph
 
-    def random_core_interface_pair(self, radius_list=None, thickness_list=None, **args):
+    def random_core_interface_pair(self, radius_list=None, thickness_list=None,
+                                           hash_bitmask=2 ** 20 - 1,
+                                           node_filter=lambda x, y: True
+                                   ):
 
         node = random.choice(self._base_graph.nodes())
         if 'edge' in self._base_graph.node[node]:
             node = random.choice(self._base_graph.neighbors(node))
             # random radius and thickness
-        args['radius_list'] = [random.choice(radius_list)]
-        args['thickness_list'] = [random.choice(thickness_list)]
+        radius_list = [random.choice(radius_list)]
+        thickness_list = [random.choice(thickness_list)]
 
-        return self.rooted_core_interface_pairs(node, **args)
+        return self.rooted_core_interface_pairs(node, radius_list=radius_list, thickness_list=thickness_list,
+                                           hash_bitmask=hash_bitmask,
+                                           node_filter=node_filter)
 
-    def all_core_interface_pairs(self, **args):
+    def all_core_interface_pairs(self,     radius_list=None,
+                                           thickness_list=None,
+                                           hash_bitmask=2 ** 20 - 1,
+                                           node_filter=lambda x, y: True):
 
         graph = self._base_graph
         cips = []
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = self.rooted_core_interface_pairs(root_node, **args)
+            cip_list = self.rooted_core_interface_pairs(root_node, radius_list=radius_list, thickness_list=thickness_list,
+                                           hash_bitmask=hash_bitmask,
+                                           node_filter=node_filter)
             if cip_list:
                 cips.append(cip_list)
         return cips
@@ -434,6 +472,8 @@ def core_substitution(graph, orig_cip_graph, new_cip_graph):
     subgraph is the interfaceregrion in that we will transplant
     new_cip_graph which is the interface and the new core
     """
+    assert( set(orig_cip_graph.nodes()) - set(graph.nodes()) == set([]) ), 'orig_cip_graph not in graph'
+
     # select only the interfaces of the cips
     new_graph_interface_nodes = [n for n, d in new_cip_graph.nodes(data=True) if 'core' not in d]
     new_cip_interface_graph = nx.subgraph(new_cip_graph, new_graph_interface_nodes)

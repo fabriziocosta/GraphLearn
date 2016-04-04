@@ -1,20 +1,20 @@
-from abstract import AbstractWrapper
+from graphlearn.abstract_graphs.minordecompose import MinorDecomposer
 import eden
 import networkx as nx
 import subprocess as sp
-import forgi
+import graphlearn.abstract_graphs.forgi
 import eden.converter.rna as converter
 from eden import path
 import sklearn
 import os
 import textwrap
 from graphlearn.graphlearn import Sampler
-from graphlearn.processing import PreProcessor
+from graphlearn.transform import GraphTransformer
 import eden.RNA
 import logging
 
 logger = logging.getLogger(__name__)
-from graphlearn.processing import PostProcessor
+from graphlearn.transform import PostProcessor
 
 '''
 contains:
@@ -31,7 +31,7 @@ class PostProcessor(PostProcessor):
         return self.pp.re_transform_single(input)
 
 
-class PreProcessor(PreProcessor):
+class PreProcessor(GraphTransformer):
     def __init__(self, base_thickness_list=[2], structure_mod=True, include_base=False, ignore_inserts=False):
         '''
 
@@ -56,41 +56,52 @@ class PreProcessor(PreProcessor):
         self.include_base = include_base
 
     def fit(self, inputs, vectorizer):
-        '''
+        """
 
-        Args:
-            inputs: sequence list
-            vectorizer: a vectorizer
+        Parameters
+        ----------
+        inputs: sequence list
+        vectorizer: a vectorizer
 
-        Returns: self
-        '''
+        Returns
+        -------
+        self
+        """
+
         self.vectorizer = vectorizer
         self.NNmodel = EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
         return self
 
     def fit_transform(self, inputs):
-        '''
+        """
 
-        Args:
-            inputs:  sequences
+        Parameters
+        ----------
+        inputs: sequences
 
-        Returns:
-            wrapped graphs
-        '''
+        Returns
+        -------
+        many graphdecomposers
+        """
+
         inputs = list(inputs)
         self.fit(inputs, self.vectorizer)
         inputs = [b for a, b in inputs]
         return self.transform(inputs)
 
     def re_transform_single(self, graph):
-        '''
-        Args:
-            graph: digraph
+        """
 
-        Returns: wrapped graph
+        Parameters
+        ----------
+        graph: digraph
 
-        '''
+        Returns
+        -------
+        graph decomposer
+        """
+
         try:
             sequence = get_sequence(graph)
         except:
@@ -141,13 +152,13 @@ class PreProcessor(PreProcessor):
             base_graph.graph['sequence'] = sequence
             base_graph.graph['structure'] = structure
             result.append(
-                    RnaWrapper(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list,
-                               include_base=self.include_base, ignore_inserts=self.ignore_inserts)
+                    RnaDecomposer(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list,
+                                  include_base=self.include_base, ignore_inserts=self.ignore_inserts)
             )
         return result
 
 
-class RnaWrapper(AbstractWrapper):
+class RnaDecomposer(MinorDecomposer):
     # def core_substitution(self, orig_cip_graph, new_cip_graph):
     #    graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
     #    return self.__class__( graph, self.vectorizer , self.some_thickness_list)
@@ -159,9 +170,9 @@ class RnaWrapper(AbstractWrapper):
         if self._abstract_graph is None:
 
             # create the abstract graph and populate the contracted set
-            abstract_graph = forgi.get_abstr_graph(self.structure, ignore_inserts=self.ignore_inserts)
+            abstract_graph = graphlearn.abstract_graphs.forgi.get_abstr_graph(self.structure, ignore_inserts=self.ignore_inserts)
             abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
-            self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph)
+            self._abstract_graph = graphlearn.abstract_graphs.forgi.edge_parent_finder(abstract_graph, self._base_graph)
 
             # eden is forcing us to set a label and a contracted attribute.. lets do this
             for n, d in self._abstract_graph.nodes(data=True):
@@ -180,27 +191,30 @@ class RnaWrapper(AbstractWrapper):
                  abstract_graph=None, include_base=False, ignore_inserts=False):
         '''
 
-        Args:
-            sequence: string
-                rna sequence
-            structure: string
-                dotbracket
-            base_graph: raw graph
-                base graph
-            vectorizer: vectorizer
-                a vectorizer
-            base_thickness_list: [int]
-                thickness for the base graph interface
-            abstract_graph: graph
-                the abstracted graph
-            include_base: bool
-                an additional layer of CIPs will be produced
-                those cips use the radius_list on the base graph oOo
-                this feature needs more work
-            ignore_inserts: bool
-                bulges will be one with their associated stem
+        Parameters
+        ----------
+        sequence: string
+            rna sequence
+        structure: string
+            dotbracket
+        base_graph: raw graph
+            base graph
+        vectorizer: vectorizer
+            a vectorizer
+        base_thickness_list: [int]
+            thickness for the base graph interface
+        abstract_graph: graph
+            the abstracted graph
+        include_base: bool
+            an additional layer of CIPs will be produced
+            those cips use the radius_list on the base graph oOo
+            this feature needs more work
+        ignore_inserts: bool
+            bulges will be one with their associated stem
 
-        Returns:
+        Returns
+        -------
+
 
         '''
 
@@ -225,19 +239,31 @@ class RnaWrapper(AbstractWrapper):
         s, e = get_start_and_end_node(self.base_graph())
         self._mod_dict = {s: 696969, e: 123123123}
 
-    def rooted_core_interface_pairs(self, root, thickness=None, **args):
-        '''
+    def rooted_core_interface_pairs(self, root, thickness=None,  for_base=False,
+                                        hash_bitmask=None,
+                                      radius_list=[],
+                                      thickness_list=None,
+                                      node_filter=lambda x, y: True):
+        """
 
-        Args:
-            root: int
-            thickness:  
-            **args:
+        Parameters
+        ----------
+        root:
+        thickness:
+        args:
 
-        Returns:
+        Returns
+        -------
 
-        '''
+        """
 
-        ciplist = super(self.__class__, self).rooted_core_interface_pairs(root, thickness, **args)
+        ciplist = super(self.__class__, self).rooted_core_interface_pairs(root, thickness, for_base=for_base,
+                                        hash_bitmask=hash_bitmask,
+                                      radius_list=radius_list,
+                                      thickness_list=thickness_list,
+                                      node_filter=node_filter)
+
+
 
         # numbering shards if cip graphs not connected
         for cip in ciplist:
@@ -272,10 +298,21 @@ class RnaWrapper(AbstractWrapper):
         # sequence=get_sequence(self.base_graph())
         # return ('',sequence.replace("F",""))
 
-    def graph(self, nested=True, fcorrect=False, base_only=False):
-        '''
+    def pre_vectorizer_graph(self, nested=True, fcorrect=False, base_only=False):
+        """
 
-        '''
+        Parameters
+        ----------
+        nested: nested minor + base graph
+        fcorrect: introduce nodes that aid the forgi abstraction
+        base_only: only return the base graph
+
+
+        Returns
+        -------
+            nx.graph
+        """
+
         g = nx.disjoint_union(nx.Graph(self._base_graph), self.abstract_graph())
         if base_only:
             g = self.base_graph().copy()

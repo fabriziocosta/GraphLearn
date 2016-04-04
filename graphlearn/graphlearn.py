@@ -1,6 +1,6 @@
 import itertools
 import random
-import estimator
+import estimate
 # from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -12,7 +12,7 @@ from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
 from utils import draw
-import processing
+import transform
 
 logger = logging.getLogger(__name__)
 import utils.monitor as monitor
@@ -25,9 +25,9 @@ class Sampler(object):
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
 
-                 estimator=estimator.Wrapper(nu=.5, cv=2, n_jobs=-1),
-                 preprocessor=processing.PreProcessor(),
-                 postprocessor=processing.PostProcessor(),
+                 estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
+                 preprocessor=transform.GraphTransformer(),
+                 postprocessor=transform.PostProcessor(),
                  feasibility_checker=feasibility.FeasibilityChecker(),
 
                  radius_list=[0, 1],
@@ -152,16 +152,18 @@ class Sampler(object):
           use input to fit the grammar and fit the estimator
         """
         self.preprocessor.set_param(self.vectorizer)
-        graphmanagers = self.preprocessor.fit_transform(input)
+        decomposers = self.preprocessor.fit_transform(input)
 
         self.postprocessor.fit(self.preprocessor)
-        self._train_estimator(graphmanagers)
-        self.lsgg.fit(graphmanagers, grammar_n_jobs, batch_size=grammar_batch_size)
+        self._train_estimator(decomposers)
+        self.lsgg.fit(decomposers, grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 
-    def _train_estimator(self, graphmanagers):
+    def _train_estimator(self, decomposers):
         if self.estimatorobject.status != 'trained':
-            self.estimatorobject.fit(graphmanagers,
+            graphs=[  d.pre_vectorizer_graph()  for d in decomposers  ]
+
+            self.estimatorobject.fit(graphs,
                                      vectorizer=self.vectorizer,
                                      random_state=self.random_state)
 
@@ -537,12 +539,20 @@ class Sampler(object):
 
     def _score(self, graphmanager):
         """
-        :param graphmanager: a graph
-        :return: score of graph
+
+        Parameters
+        ----------
+        graphmanager: a graphdecomposer
+
+        Returns
+        -------
+        score of graph
         we also set graph.score_nonlog and graph.score
         """
+
         if '_score' not in graphmanager.__dict__:
-            graphmanager._score = self.estimatorobject.score(graphmanager, keep_vector=self.accept_min_similarity)
+            graphmanager._score, graphmanager.transformed_vector = self.estimatorobject.predict(graphmanager.pre_vectorizer_graph(),keep_vector=True)
+
             self.monitorobject.info('score', graphmanager._score)
         return graphmanager._score
 
@@ -667,12 +677,21 @@ class Sampler(object):
                     # try the next orig cip, than to risk another collision
 
     def calc_proposal_probability(self, graphman, graphman_new, cip):
-        '''
-        :param graph:  the old graph
-        :param graph_new: the new graph
-        :param cip: the old cip is enough since we mainly need the ids of the interface
-        :return: options(interface,newgraph)+newgraphlength*average /  options(interface,graph)+oldgraphlen*average
-        '''
+        """
+
+        Parameters
+        ----------
+        graphman: nx.Graph
+            old graph
+        graphman_new: nx.Graph
+            mew graph
+        cip: CoreInterfacePair
+            the old cip is enough since we mainly need the ids of the interface
+
+        Returns
+        -------
+
+        """
 
         def ops(gman, cip_graph):
             counter = 0
@@ -706,11 +725,18 @@ class Sampler(object):
 
     def _select_cips(self, cip, graphman):
         """
-        :param cip: the cip we selected from the graph
-        :yields: cips found in the grammar that can replace the input cip
 
-        log to debug on fail
+        Parameters
+        ----------
+        cip: CoreInterfacePair
+            the cip we selected from the graph
+        graphmancips: CIPs
+            found in the grammar that can replace the input cip
+        Returns
+        -------
+        yields CIPs
         """
+
         if not cip:
             raise Exception('select randomized cips from grammar got bad cip')
 
@@ -832,10 +858,16 @@ class Sampler(object):
                                                    hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check)
 
     def _accept_original_cip(self, cip):
-        '''
-        :param cip: the cip we need to judge
-        :return: good or nogood (bool)
-        '''
+        """
+
+        Parameters
+        ----------
+        cip: the cip we need to judge
+
+        Returns
+        -------
+        good or nogood (bool)
+        """
         score_ok = True
         if self.target_orig_cip:
             imp = []

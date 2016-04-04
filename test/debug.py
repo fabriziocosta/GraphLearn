@@ -3,10 +3,9 @@ from itertools import islice
 '''
 Create a function that is able to deliver a graph iterator
 '''
-from eden.converter.fasta import fasta_to_sequence
 from eden.converter.rna.rnafold import rnafold_to_eden
 
-from eden.graph import Vectorizer
+
 def rfam_uri(family_id):
     return 'http://rfam.xfam.org/family/%s/alignment?acc=%s&format=fastau&download=0'%(family_id,family_id)
 
@@ -47,12 +46,11 @@ def get_sequences_with_names(size=9999):
 '''
 learning a grammar
 '''
-import graphlearn.abstract_graphs.learned_RNA as learned
-import graphlearn.abstract_graphs.RNA as rna
+import graphlearn.abstract_graphs.rna.rnatransform as learned
 from graphlearn import feasibility
-feas=feasibility.FeasibilityChecker(checklist=[feasibility.default_check,rna.is_rna])
+feas=feasibility.FeasibilityChecker(checklist=[feasibility.default_check, RNA.is_rna])
 graphs = get_sequences_with_names(150)
-pp=learned.RnaPreProcessor(base_thickness_list=[2],kmeans_clusters=3,structure_mod=False)
-sampler=rna.AbstractSampler(radius_list=[0,1],thickness_list=[1], min_cip_count=2, min_interface_count=2,feasibility_checker=feas, preprocessor=pp)
+pp=learned.GraphTransformerRNA(base_thickness_list=[2], kmeans_clusters=3, structure_mod=False)
+sampler= RNA.AbstractSampler(radius_list=[0, 1], thickness_list=[1], min_cip_count=2, min_interface_count=2, feasibility_checker=feas, preprocessor=pp)
 sampler.fit(graphs,grammar_n_jobs=1,grammar_batch_size=1)
 
