@@ -81,20 +81,29 @@ class AbstractDecomposer(object):
         '''
         raise NotImplementedError("Should have implemented this")
 
-    def all_core_interface_pairs(self,   radius_list=None,
+    def all_core_interface_pairs(self, radius_list=None,
                                            thickness_list=None,
                                            hash_bitmask=2 ** 20 - 1,
                                            node_filter=lambda x, y: True):
         raise NotImplementedError("Should have implemented this")
+
+    def change_basegraph(self,transformerdata):
+        raise NotImplementedError("Should have implemented this")
+
 
 
 class Decomposer(AbstractDecomposer):
     def __str__(self):
         return "base_graph size: %s" % len(self._base_graph)
 
-    def __init__(self, graph, vectorizer):
+    def __init__(self,  vectorizer, data):
         self.vectorizer = vectorizer
-        self._base_graph = graph
+        self._base_graph = data
+
+
+    def change_basegraph(self,transformerdata):
+        self._base_graph=transformerdata
+
 
     def base_graph(self):
         return self._base_graph

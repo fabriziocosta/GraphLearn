@@ -34,10 +34,11 @@ class RnaDecomposer(MinorDecomposer):
 
         return self._abstract_graph
 
-    def __init__(self, sequence, structure, base_graph, vectorizer=eden.graph.Vectorizer(), base_thickness_list=None,
-                 abstract_graph=None, include_base=False, ignore_inserts=False):
+    def __init__(self, vectorizer,data,
+                    base_thickness_list=[2],
+                    include_base=False,
+                    ignore_inserts=False):
         '''
-
         Parameters
         ----------
         sequence: string
@@ -62,6 +63,12 @@ class RnaDecomposer(MinorDecomposer):
         Returns
         -------
         '''
+
+        sequence = data[0]
+        structure = data[1]
+        base_graph = data [2]
+        abstract_graph = data[3]
+
 
         self.ignore_inserts = ignore_inserts
         self.some_thickness_list = base_thickness_list

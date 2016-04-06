@@ -69,8 +69,10 @@ class MinorDecomposer(Decomposer):
             self._abstract_graph = make_abstract(self._base_graph, self.vectorizer)
         return self._abstract_graph
 
-    def __init__(self, graph, vectorizer=eden.graph.Vectorizer(), include_base=False, base_thickness_list=None,
-                 abstract_graph=None):
+
+    def __init__(self, vectorizer ,data,
+                       include_base=False,
+                       base_thickness_list=[2]):
         '''
 
         Parameters
@@ -93,12 +95,13 @@ class MinorDecomposer(Decomposer):
         Returns
         -------
         '''
+        #print "asd",data
         self.some_thickness_list = base_thickness_list
         self.vectorizer = vectorizer
-        self._base_graph = graph
-        if len(graph) > 0:
+        self._base_graph = data[0]
+        if len(self._base_graph) > 0:
             self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
-        self._abstract_graph = abstract_graph
+        self._abstract_graph = data[1]
         self._mod_dict = {}  # this is the default.
         self.include_base = include_base  # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
 
