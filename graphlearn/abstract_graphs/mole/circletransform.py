@@ -48,6 +48,7 @@ class GraphTransformerCircles(GraphTransformer):
         return [(self.vectorizer._edge_to_vertex_transform(i),self.abstract(i)) for i in inputs]
 
     def abstract(self, graph):
+        graph = self.vectorizer._edge_to_vertex_transform(graph)
         tmpgraph = self.vectorizer._revert_edge_to_vertex_transform(graph)
         abstract_graph = make_abstract(tmpgraph)
         _abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
