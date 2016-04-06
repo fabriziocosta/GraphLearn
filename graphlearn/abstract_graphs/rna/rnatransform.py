@@ -3,7 +3,7 @@ import eden.converter.rna as converter
 import graphlearn.abstract_graphs.rna
 import graphlearn.abstract_graphs.rna.fold
 import graphlearn.abstract_graphs.rna.rnadecomposer
-from graphlearn.abstract_graphs.minortransform import GraphTransformerMinorDecomp as default_preprocessor
+from graphlearn.abstract_graphs.minortransform import GraphMinorTransformer as default_preprocessor
 from graphlearn.transform import GraphTransformer
 from sklearn.cluster import KMeans
 logger = logging.getLogger(__name__)

@@ -156,17 +156,17 @@ class Sampler(object):
         """
         self.graphtransformer.set_param(self.vectorizer)
 
-        decomposers = [ self.decomposer_generator(data)
+        decomposed_graphs = [ self.decomposer_generator(data)
                         for data in  self.graphtransformer.fit_transform(input)]
 
         self.postprocessor.fit(self.graphtransformer)
-        self._train_estimator(decomposers)
-        self.lsgg.fit(decomposers, grammar_n_jobs, batch_size=grammar_batch_size)
+        self._train_estimator(decomposed_graphs)
+        self.lsgg.fit(decomposed_graphs, n_jobs = grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 
     def _train_estimator(self, decomposers):
         if self.estimatorobject.status != 'trained':
-            graphs=[  d.pre_vectorizer_graph()  for d in decomposers  ]
+            graphs = [  d.pre_vectorizer_graph()  for d in decomposers  ]
             assert isinstance(graphs[0],nx.Graph), 'not a graph...'+str(graphs[0])
             self.estimatorobject.fit(graphs,
                                      vectorizer=self.vectorizer,
@@ -345,6 +345,7 @@ class Sampler(object):
             if n_jobs > 1:
                 pool = Pool(processes=n_jobs)
             else:
+                # -1
                 pool = Pool()
 
             sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))

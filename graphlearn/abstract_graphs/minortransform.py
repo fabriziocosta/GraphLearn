@@ -48,7 +48,7 @@ def assign_values_to_nodelabel(graph, label):
             d[label]=str(startid)
             startid+=1
 
-class graph_to_abstract(object):
+class GraphToAbstractTransformer(object):
     def __init__(self, vectorizer=False,estimator=False,grouper=False, score_threshold=0, min_size=0, debug=False):
         '''
 
@@ -168,11 +168,11 @@ class graph_to_abstract(object):
 
 
 
-class GraphTransformerMinorDecomp(GraphTransformer):
+class GraphMinorTransformer(GraphTransformer):
     def __init__(self, core_shape_cluster=KMeans(n_clusters=4),
                  name_cluster=MiniBatchKMeans(n_clusters=5),
                  save_graphclusters=False,
-                 graph_to_minor=graph_to_abstract(),
+                 graph_to_minor=GraphToAbstractTransformer(),
                  estimator=estimartorwrapper(nu=.3, n_jobs=4)):
         '''
         Parameters
@@ -264,7 +264,6 @@ class GraphTransformerMinorDecomp(GraphTransformer):
         -------
 
         '''
-
         li = []
         for graph in inputs:
             g = self.vectorizer.annotate([graph], estimator=self.rawgraph_estimator.estimator).next()

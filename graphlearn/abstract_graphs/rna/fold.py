@@ -6,6 +6,11 @@ from eden import path
 from graphlearn.abstract_graphs.rna import write_fasta, _pairs
 from eden.RNA import Vectorizer as EdenRnaVectorizer
 
+
+'''
+consensus folding for rna sequences
+'''
+
 class NearestNeighborFolding(object):
     '''
     fit: many structures,  nn model will be build
