@@ -15,11 +15,6 @@ class mywrap(Decomposer):
         graphlearn.decompose.graph_clean(self._base_graph)
 
 
-class simple_pp(GraphTransformer):
-    def wrap(self, graph):
-        return mywrap(graph, self.vectorizer)
-
-
 # this file is here to hide the uglyness from the notebooks
 
 def setparameters(sampler):

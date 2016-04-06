@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class GraphTransformerRNA(GraphTransformer):
-    def __init__(self, base_thickness_list=[2],
+    def __init__(self,
                        shape_cluster=KMeans(n_clusters=2),
                        structure_mod=False,
                        name_cluser=False,
@@ -34,7 +34,7 @@ class GraphTransformerRNA(GraphTransformer):
             void
         """
         #super(RnaPreProcessor, self).__init__(base_thickness_list=base_thickness_list,kmeans_clusters=kmeans_clusters)
-        self.base_thickness_list = [thickness * 2 for thickness in base_thickness_list]
+
         self.shape_clusters = shape_cluster
         self.structure_mod = structure_mod
 
@@ -58,8 +58,7 @@ class GraphTransformerRNA(GraphTransformer):
         # abstr_input = [ self._sequence_to_base_graph(seq) for seq in inputs ]
 
         abstr_input = list(self.NNmodel.eden_rna_vectorizer.graphs(inputs))
-        self.make_abstract = default_preprocessor(base_thickness_list= self.base_thickness_list,
-                                                  core_shape_cluster= self.shape_clusters,
+        self.make_abstract = default_preprocessor(core_shape_cluster= self.shape_clusters,
                                                   name_cluster=False)
         self.make_abstract.set_param(self.vectorizer)
         self.make_abstract.fit(abstr_input)
@@ -148,12 +147,7 @@ class GraphTransformerRNA(GraphTransformer):
 
                 base_graph = graphlearn.abstract_graphs.rna.expanded_rna_graph_to_digraph(base_graph)
 
-                result.append(graphlearn.abstract_graphs.rna.rnadecomposer.RnaDecomposer(sequence,
-                                                                                         structure,
-                                                                                         base_graph,
-                                                                                         self.vectorizer,
-                                                                                         self.base_thickness_list,
-                                                                                         abstract_graph=abstract_graph))
+                result.append((sequence,structure,base_graph,abstract_graph))
 
             # up: normal preprocessing case, down: hack to avoid overwriting the postprocessor
             # needs some changing obviously

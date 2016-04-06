@@ -22,7 +22,7 @@ class GraphTransformer(object):
         self.fit(inputs)
         return self.transform(inputs)
 
-    def re_transform_single(self, graphwrapper):
+    def re_transform_single(self, graph):
         '''
         Parameters
         ----------
@@ -33,7 +33,7 @@ class GraphTransformer(object):
         a postprocessed graphwrapper
         '''
         # mabe a copy?
-        return self.wrap(graphwrapper)
+        return self.transform([graph])[0]
 
     def transform(self, inputs):
         '''
@@ -45,9 +45,10 @@ class GraphTransformer(object):
         -------
         graphwrapper : iterator
         '''
-        return [self.wrap(self.vectorizer._edge_to_vertex_transform(i)) for i in inputs]
+        return [self.vectorizer._edge_to_vertex_transform(i) for i in inputs]
 
     def wrap(self, graph):
+        raise "OMG OMG OMG somebody tried to call wrap, but we dont wrap anymore."
         return gt.Decomposer(graph, self.vectorizer)
 
 

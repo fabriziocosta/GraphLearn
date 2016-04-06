@@ -13,10 +13,10 @@ from eden.util import serialize_dict
 import logging
 from utils import draw
 import transform
-
+import decompose
 logger = logging.getLogger(__name__)
 import utils.monitor as monitor
-
+import networkx as nx
 
 class Sampler(object):
     def __init__(self,
@@ -26,9 +26,10 @@ class Sampler(object):
                  random_state=None,
 
                  estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
-                 preprocessor=transform.GraphTransformer(),
+                 graphtransformer=transform.GraphTransformer(),
                  postprocessor=transform.PostProcessor(),
                  feasibility_checker=feasibility.FeasibilityChecker(),
+                 decomposer=decompose.Decomposer,
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -51,7 +52,7 @@ class Sampler(object):
         estimator : estimator.wrapper
             an estimator trained or untrained oOo
 
-        preprocessor : graphlearn.processing.preprocessor
+        graphtransformer : graphlearn.processing.preprocessor
         postprocessor : graphlearn.processing.postprocessor
         feasibility_checker : feasibility.FeasibilityChecker()
             can determine if a graph is valid
@@ -69,7 +70,9 @@ class Sampler(object):
         an initialized sampler
         '''
 
-        self.preprocessor = preprocessor
+        self.decomposer_generator=lambda data: decomposer(vectorizer, data)
+
+        self.graphtransformer = graphtransformer
         self.feasibility_checker = feasibility_checker
         self.postprocessor = postprocessor
 
@@ -151,10 +154,12 @@ class Sampler(object):
         """
           use input to fit the grammar and fit the estimator
         """
-        self.preprocessor.set_param(self.vectorizer)
-        decomposers = self.preprocessor.fit_transform(input)
+        self.graphtransformer.set_param(self.vectorizer)
 
-        self.postprocessor.fit(self.preprocessor)
+        decomposers = [ self.decomposer_generator(data)
+                        for data in  self.graphtransformer.fit_transform(input)]
+
+        self.postprocessor.fit(self.graphtransformer)
         self._train_estimator(decomposers)
         self.lsgg.fit(decomposers, grammar_n_jobs, batch_size=grammar_batch_size)
         return self
@@ -162,7 +167,7 @@ class Sampler(object):
     def _train_estimator(self, decomposers):
         if self.estimatorobject.status != 'trained':
             graphs=[  d.pre_vectorizer_graph()  for d in decomposers  ]
-
+            assert isinstance(graphs[0],nx.Graph), 'not a graph...'+str(graphs[0])
             self.estimatorobject.fit(graphs,
                                      vectorizer=self.vectorizer,
                                      random_state=self.random_state)
@@ -497,7 +502,8 @@ class Sampler(object):
         self.backtrack = self.maxbacktrack
         self.last_graphman = None
 
-        graphman = self.preprocessor.transform([graph])[0]
+        graphman = self.decomposer_generator(data=self.graphtransformer.transform([graph])[0])
+
         graph = graphman.base_graph()
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
@@ -512,7 +518,7 @@ class Sampler(object):
 
         return graphman
 
-    def _stop_condition(self, graphmanager):
+    def _stop_condition(self, decomposer):
         '''
         stop conditioni is per default implemented as a similarity checker, to stop if a certain distance from
         the start graph is reached.
@@ -527,7 +533,7 @@ class Sampler(object):
             if similarity meassure smaller than the limit, we stop
             because we dont want to drift further
         '''
-        graph = graphmanager.base_graph()
+        graph = decomposer.base_graph()
         if self.similarity > 0:
             if self.step == 0:
                 self.vectorizer._reference_vec = self.vectorizer._convert_dict_to_sparse_matrix(
@@ -631,7 +637,7 @@ class Sampler(object):
 
         raise Exception("propose failed.. usualy the problem is propose_single_cip")
 
-    def _propose_graph(self, graphman):
+    def _propose_graph(self, decomposer):
         """
         so here is the whole procedure:
 
@@ -642,10 +648,10 @@ class Sampler(object):
         as soon as we found one replacement that works we are good and return.
         """
 
-        for orig_cip_ctr, original_cip in enumerate(self.select_original_cip(graphman)):
+        for orig_cip_ctr, original_cip in enumerate(self.select_original_cip(decomposer)):
             # for all cips we are allowed to find in the original graph:
 
-            candidate_cips = self._select_cips(original_cip, graphman)
+            candidate_cips = self._select_cips(original_cip, decomposer)
             for attempt, candidate_cip in enumerate(candidate_cips):
                 # look at all possible replacements
 
@@ -655,19 +661,19 @@ class Sampler(object):
                 self.monitorobject.info('substitution', "root: %d , newcip: %d / %d" %
                                         (original_cip.distance_dict[0][0], candidate_cip.interface_hash,
                                          candidate_cip.core_hash))
-                new_graph = graphman.core_substitution(original_cip.graph, candidate_cip.graph)
+                new_graph = decomposer.core_substitution(original_cip.graph, candidate_cip.graph)
 
                 if self.feasibility_checker.check(new_graph):
-                    new_graphmanager = self.postprocessor.re_transform_single(new_graph)
-                    if new_graphmanager:
-                        self.calc_proposal_probability(graphman, new_graphmanager, original_cip)
+                    new_decomposer = self.decomposer_generator(self.postprocessor.re_transform_single(new_graph))
+                    if new_decomposer:
+                        self.calc_proposal_probability(decomposer, new_decomposer, original_cip)
 
                         self._samplelog(
                             "_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
-                            (self.step, attempt, choices, orig_cip_ctr, graphman._base_graph.number_of_nodes()))
+                            (self.step, attempt, choices, orig_cip_ctr, decomposer._base_graph.number_of_nodes()))
 
-                        new_graphmanager.clean()  # i clean only here because i need the interface mark for reverse_dir_prob
-                        return new_graphmanager
+                        new_decomposer.clean()  # i clean only here because i need the interface mark for reverse_dir_prob
+                        return new_decomposer
                         # this codeblock successfuly susbstituted a cip, and create a new graphmanager w/o problems
 
                 if self.quick_skip_orig_cip:
@@ -676,14 +682,14 @@ class Sampler(object):
                     # reason: if the first hit was not replaceable, due to a hash collision, it is faster to
                     # try the next orig cip, than to risk another collision
 
-    def calc_proposal_probability(self, graphman, graphman_new, cip):
+    def calc_proposal_probability(self, decomposer, decomposer_new, cip):
         """
 
         Parameters
         ----------
-        graphman: nx.Graph
+        decomposer: nx.Graph
             old graph
-        graphman_new: nx.Graph
+        decomposer_new: nx.Graph
             mew graph
         cip: CoreInterfacePair
             the old cip is enough since we mainly need the ids of the interface
@@ -693,15 +699,15 @@ class Sampler(object):
 
         """
 
-        def ops(gman, cip_graph):
+        def ops(decomposer, cip_graph):
             counter = 0
             interfacesize = 0
             for n, d in cip_graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
-                    cips = gman.rooted_core_interface_pairs(n, radius_list=self.radius_list,
-                                                            thickness_list=self.thickness_list,
-                                                            hash_bitmask=self.hash_bitmask,
-                                                            node_filter=self.node_entity_check)
+                    cips = decomposer.rooted_core_interface_pairs(n, radius_list=self.radius_list,
+                                                                  thickness_list=self.thickness_list,
+                                                                  hash_bitmask=self.hash_bitmask,
+                                                                  node_filter=self.node_entity_check)
                     for cip in cips:
                         if cip.interface_hash in self.lsgg.productions:
                             counter += len(self.lsgg.productions[cip.interface_hash])
@@ -712,18 +718,18 @@ class Sampler(object):
             return counter, interfacesize
 
         if self.proposal_probability:
-            old_opts, interfacesize = ops(graphman, cip.graph)
-            new_opts, unused = ops(graphman_new, graphman_new.base_graph())
+            old_opts, interfacesize = ops(decomposer, cip.graph)
+            new_opts, unused = ops(decomposer_new, decomposer_new.base_graph())
             average_opts = float(old_opts + new_opts) / 2
             old_opts = max(1, old_opts)
             new_opts = max(1, new_opts)
-            v1 = new_opts + average_opts * (len(graphman_new.base_graph()) - interfacesize)
-            v2 = old_opts + average_opts * (len(graphman.base_graph()) - interfacesize)
+            v1 = new_opts + average_opts * (len(decomposer_new.base_graph()) - interfacesize)
+            v2 = old_opts + average_opts * (len(decomposer.base_graph()) - interfacesize)
             value = float(v1) / v2
             self.proposal_probability_value = value
             self._samplelog('reverse_direction_modifier: %f' % value, level=5)
 
-    def _select_cips(self, cip, graphman):
+    def _select_cips(self, cip, decomposer):
         """
 
         Parameters
@@ -746,7 +752,7 @@ class Sampler(object):
             core_hashes.remove(cip.core_hash)
 
         # get values and yield accordingly
-        values = self._core_values(cip, core_hashes, graphman.base_graph())
+        values = self._core_values(cip, core_hashes, decomposer.base_graph())
 
         for core_hash in self.probabilistic_choice(values, core_hashes):
             # print values,'choose:', values[core_hashes.index(core_hash)]

@@ -11,7 +11,7 @@ contains: a preprocessor that takes care of molecular graps with circleabstracti
 
 
 class GraphTransformerCircles(GraphTransformer):
-    def __init__(self, base_thickness_list=[2]):
+    def __init__(self):
         """
 
         Parameters
@@ -24,7 +24,7 @@ class GraphTransformerCircles(GraphTransformer):
         -------
         void
         """
-        self.base_thickness_list = base_thickness_list
+        pass
 
     def wrap(self, graph):
         """
@@ -39,8 +39,13 @@ class GraphTransformerCircles(GraphTransformer):
         """
 
         graph = self.vectorizer._edge_to_vertex_transform(graph)
-        return MinorDecomposer(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
-                               abstract_graph=self.abstract(graph))
+        return (graph,self.abstract(graph))
+        #return MinorDecomposer(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
+        #                       abstract_graph=self.abstract(graph))
+
+
+    def transform(self, inputs):
+        return [(self.vectorizer._edge_to_vertex_transform(i),self.abstract(i)) for i in inputs]
 
     def abstract(self, graph):
         tmpgraph = self.vectorizer._revert_edge_to_vertex_transform(graph)
@@ -80,7 +85,6 @@ here we invent the abstractor function
 
 def make_abstract(graph):
     '''
-
     Args:
         graph: unexpanded graph
 
@@ -88,15 +92,17 @@ def make_abstract(graph):
         the abstraction
 
     '''
-
     # prepare fast hash function
     def fhash(stuff):
         return eden.fast_hash(stuff, 2 ** 20 - 1)
+
+
 
     # all nodes get their cycle calculated
     for n, d in graph.nodes(data=True):
         d['cycle'] = list(node_to_cycle(graph, n))
         d['cycle'].sort()
+        d.pop('parent',None)
         # if 'parent'in d:
         #    d.pop('parent')
 

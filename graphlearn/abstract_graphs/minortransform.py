@@ -169,8 +169,7 @@ class graph_to_abstract(object):
 
 
 class GraphTransformerMinorDecomp(GraphTransformer):
-    def __init__(self, base_thickness_list=[2],
-                 core_shape_cluster=KMeans(n_clusters=4),
+    def __init__(self, core_shape_cluster=KMeans(n_clusters=4),
                  name_cluster=MiniBatchKMeans(n_clusters=5),
                  save_graphclusters=False,
                  graph_to_minor=graph_to_abstract(),
@@ -198,10 +197,7 @@ class GraphTransformerMinorDecomp(GraphTransformer):
         -------
         void
         '''
-        self.base_thickness_list = base_thickness_list
         self.save_graphclusters = save_graphclusters
-
-
         self.name_cluster = name_cluster
         self.core_shape_cluster = core_shape_cluster
         self._abstract=graph_to_minor
@@ -217,7 +213,6 @@ class GraphTransformerMinorDecomp(GraphTransformer):
 
         Returns
         -------
-
         '''
         # this k means is over the values resulting from annotation
         # and determine how a graph will be split intro minor nodes.
@@ -309,10 +304,10 @@ class GraphTransformerMinorDecomp(GraphTransformer):
 
         # draw.graphlearn(graph)
         # print len(graph)
-        abstract = self.abstract(graph, debug=False)
+        #abstract = self.abstract(graph, debug=False)
         # draw.graphlearn([graph,abstract])
-        return MinorDecomposer(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
-                               abstract_graph=abstract)
+        return self.transform([graph])[0]
+
 
     def abstract(self, graph, score_attribute='importance', group='class', debug=False):
         '''
@@ -371,9 +366,7 @@ class GraphTransformerMinorDecomp(GraphTransformer):
             list of decomposers
         '''
 
-        return [MinorDecomposer(self.vectorizer._edge_to_vertex_transform(i),
-                                vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
-                                abstract_graph=self.abstract(i)) for i in inputs]
+        return [ (self.vectorizer._edge_to_vertex_transform(graph),self.abstract(graph)) for graph in inputs ]
 
 
 

@@ -17,9 +17,10 @@ class PostProcessor(PostProcessor):
 
 
 class GraphTransformerForgi(GraphTransformer):
-    def __init__(self, base_thickness_list=[2], structure_mod=True, include_base=False, ignore_inserts=False):
-        '''
+    def __init__(self,  structure_mod=True):
 
+
+        '''
         Parameters
         ----------
         base_thickness_list: list of int
@@ -30,15 +31,12 @@ class GraphTransformerForgi(GraphTransformer):
             if asked for all cips, i will also yield   "normal" cips (whose core is not radius of abstract, but radius of base graph)
         ignore_inserts:
             bolges will be ignored and merged to their adjacend stems
-
         Returns
         -------
 
         '''
-        self.ignore_inserts = ignore_inserts
-        self.base_thickness_list = [thickness * 2 for thickness in base_thickness_list]
         self.structure_mod = structure_mod
-        self.include_base = include_base
+
 
     def fit(self, inputs, vectorizer):
         """
@@ -133,9 +131,9 @@ class GraphTransformerForgi(GraphTransformer):
             base_graph.graph['sequence'] = sequence
             base_graph.graph['structure'] = structure
             result.append(
-                    RnaDecomposer(sequence, structure, base_graph, self.vectorizer, self.base_thickness_list,
-                                  include_base=self.include_base, ignore_inserts=self.ignore_inserts)
+                   (sequence, structure, base_graph, None)
             )
+
         return result
 
 
