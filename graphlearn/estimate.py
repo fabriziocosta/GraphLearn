@@ -5,6 +5,7 @@ from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier
 import random
 import networkx as nx
+from utils import draw
 
 
 class OneClassEstimator:
@@ -101,11 +102,13 @@ class OneClassEstimator:
         return estimator
 
     def predict(self, graph, keep_vector=False):
-
+        #draw.graphlearn(graph)
         transformed_graph = self.vectorizer.transform_single(graph)
+        # work around broken eden versions:
+        #transformed_graph = self.vectorizer.transform([graph])
+
         # slow so dont do it..
         # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-
         f= lambda x: (x,transformed_graph) if keep_vector  else x
 
         if self.calibrate:

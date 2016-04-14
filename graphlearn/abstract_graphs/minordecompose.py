@@ -15,6 +15,11 @@ this file contains the abstract wrapper only.
 '''
 
 
+def make_decomposer(include_base=False, base_thickness_list=[2]):
+    return lambda v, d: MinorDecomposer(v, d,
+                                include_base=include_base,
+                                base_thickness_list=base_thickness_list)
+
 class MinorDecomposer(Decomposer):
     '''
     a wrapper normally wraps a graph.
@@ -614,14 +619,3 @@ def extract_cips_base(node,
 
     return cips
 root_node=None,
-
-'''
-graphtools.extract_core_and_interface:
-            root_node=None,
-            graph=None,
-            vectorizer=Vectorizer(),
-            hash_bitmask=2 ** 20 - 1,
-            radius_list=None,
-            thickness_list=None,
-            node_filter=lambda x, y: True
-'''

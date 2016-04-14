@@ -27,9 +27,9 @@ class Sampler(object):
 
                  estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
                  graphtransformer=transform.GraphTransformer(),
-                 postprocessor=transform.PostProcessor(),
+
                  feasibility_checker=feasibility.FeasibilityChecker(),
-                 decomposer=decompose.Decomposer,
+                 make_decomposer=decompose.Decomposer,
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -70,11 +70,11 @@ class Sampler(object):
         an initialized sampler
         '''
 
-        self.decomposer_generator=lambda data: decomposer(vectorizer, data)
+        self.decomposer_generator=lambda data: make_decomposer(vectorizer, data)
 
         self.graphtransformer = graphtransformer
         self.feasibility_checker = feasibility_checker
-        self.postprocessor = postprocessor
+
 
         self.vectorizer = vectorizer
 
@@ -154,23 +154,25 @@ class Sampler(object):
         """
           use input to fit the grammar and fit the estimator
         """
+        # build decomposers
         self.graphtransformer.set_param(self.vectorizer)
-
         decomposed_graphs = [ self.decomposer_generator(data)
                         for data in  self.graphtransformer.fit_transform(input)]
 
-        self.postprocessor.fit(self.graphtransformer)
-        self._train_estimator(decomposed_graphs)
-        self.lsgg.fit(decomposed_graphs, n_jobs = grammar_n_jobs, batch_size=grammar_batch_size)
-        return self
-
-    def _train_estimator(self, decomposers):
+        # train esti if needed
         if self.estimatorobject.status != 'trained':
-            graphs = [  d.pre_vectorizer_graph()  for d in decomposers  ]
-            assert isinstance(graphs[0],nx.Graph), 'not a graph...'+str(graphs[0])
+            graphs = [d.pre_vectorizer_graph() for d in decomposed_graphs]
+            assert isinstance(graphs[0], nx.Graph), 'not a graph...' + str(graphs[0])
             self.estimatorobject.fit(graphs,
                                      vectorizer=self.vectorizer,
                                      random_state=self.random_state)
+
+        # train grammar
+        self.lsgg.fit(decomposed_graphs, n_jobs = grammar_n_jobs, batch_size=grammar_batch_size)
+        return self
+
+
+
 
     def sample(self, graph_iter,
 
@@ -200,6 +202,20 @@ class Sampler(object):
                monitor=False):
 
         '''
+
+        to emulate MCMC sampling use these options:
+        probabilistic_core_choice=False?
+        score_core_choice=False
+        max_size_diff=-1
+        proposal_probability=False
+        target_orig_cip=False
+        improving_threshold=-1
+        improving_linear_start=1
+        accept_static_penalty=0.0
+        burnin=0
+        backtrack=0
+
+
 
         Parameters
         ----------
@@ -321,13 +337,7 @@ class Sampler(object):
                                 probabilistic_core_choice)
 
         if score_core_choice:
-            self.score_core_choice_dict = {}
-            for interface in self.lsgg.productions.keys():
-                for core in self.lsgg.productions[interface].keys():
-                    gr = self.lsgg.productions[interface][core].graph.copy()
-                    transformed_graph = self.vectorizer.transform_single(gr)
-                    score = self.estimatorobject.cal_estimator.predict_proba(transformed_graph)[0, 1]
-                    self.score_core_choice_dict[core] = score
+            self._prep_score_core_choice()
 
         logger.debug(serialize_dict(self.__dict__))
 
@@ -335,41 +345,58 @@ class Sampler(object):
             random.seed(self.random_state)
         # sampling
         if n_jobs in [0, 1]:
-            for graph in graph_iter:
-                # sampled_graph = self._sample(graph)
-                # yield sampled_graph
-                a, b = self._sample(graph)
-                for new_graph in self.return_formatter(a, b):
-                    yield new_graph
+            for o in self._single_process(graph_iter):
+                yield o
         else:
-            if n_jobs > 1:
-                pool = Pool(processes=n_jobs)
-            else:
-                # -1
-                pool = Pool()
+            for o in self._multi_process(n_jobs,graph_iter):
+                yield o
 
-            sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
+    def _multi_process(self,n_jobs,graph_iter):
+        if n_jobs > 1:
+            pool = Pool(processes=n_jobs)
+        else:
+            # -1
+            pool = Pool()
 
-            jobs_done = 0
-            for batch in sampled_graphs:
-                for graphlist, moni in batch:
-                    # print type(graph)
-                    # currently formatter only returns one element and thats fine, one day this may be changed
+        sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
 
-                    for new_graph in self.return_formatter(graphlist, moni):
-                        yield new_graph
+        jobs_done = 0
+        for batch in sampled_graphs:
+            for graphlist, moni in batch:
+                # print type(graph)
+                # currently formatter only returns one element and thats fine, one day this may be changed
 
-                    # forcing termination once the results are in.
-                    jobs_done += 1
-                    # python is already starting jobs while not all are in the queue
-                    if jobs_done == self.multiprocess_jobcount and self.multiprocess_all_prepared:
-                        pool.terminate()
+                for new_graph in self.return_formatter(graphlist, moni):
+                    yield new_graph
 
-            pool.close()
-            pool.join()
-            # for pair in graphlearn_utils.multiprocess(graph_iter,\
-            #                                           _sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
-            #    yield pair
+                # forcing termination once the results are in.
+                jobs_done += 1
+                # python is already starting jobs while not all are in the queue
+                if jobs_done == self.multiprocess_jobcount and self.multiprocess_all_prepared:
+                    pool.terminate()
+
+        pool.close()
+        pool.join()
+        # for pair in graphlearn_utils.multiprocess(graph_iter,\
+        #                                           _sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
+        #    yield pair
+
+    def _single_process(self,graph_iter):
+        for graph in graph_iter:
+            # sampled_graph = self._sample(graph)
+            # yield sampled_graph
+            a, b = self._sample(graph)
+            for new_graph in self.return_formatter(a, b):
+                yield new_graph
+
+    def _prep_score_core_choice(self):
+        self.score_core_choice_dict = {}
+        for interface in self.lsgg.productions.keys():
+            for core in self.lsgg.productions[interface].keys():
+                gr = self.lsgg.productions[interface][core].graph.copy()
+                transformed_graph = self.vectorizer.transform_single(gr)
+                score = self.estimatorobject.cal_estimator.predict_proba(transformed_graph)[0, 1]
+                self.score_core_choice_dict[core] = score
 
     def return_formatter(self, graphlist, mon):
         self.monitors.append(mon)
@@ -665,7 +692,7 @@ class Sampler(object):
                 new_graph = decomposer.core_substitution(original_cip.graph, candidate_cip.graph)
 
                 if self.feasibility_checker.check(new_graph):
-                    new_decomposer = self.decomposer_generator(self.postprocessor.re_transform_single(new_graph))
+                    new_decomposer = self.decomposer_generator(self.graphtransformer.re_transform_single(new_graph))
                     if new_decomposer:
                         self.calc_proposal_probability(decomposer, new_decomposer, original_cip)
 

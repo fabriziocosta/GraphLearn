@@ -49,6 +49,10 @@ def assign_values_to_nodelabel(graph, label):
             startid+=1
 
 class GraphToAbstractTransformer(object):
+    '''
+    makes abstractions that are based on the score of an estimator
+    '''
+
     def __init__(self, vectorizer=False,estimator=False,grouper=False, score_threshold=0, min_size=0, debug=False):
         '''
 
@@ -173,7 +177,7 @@ class GraphMinorTransformer(GraphTransformer):
                  name_cluster=MiniBatchKMeans(n_clusters=5),
                  save_graphclusters=False,
                  graph_to_minor=GraphToAbstractTransformer(),
-                 estimator=estimartorwrapper(nu=.3, n_jobs=4)):
+                 estimator=estimartorwrapper(nu=.5, n_jobs=4)):
         '''
         Parameters
         ----------

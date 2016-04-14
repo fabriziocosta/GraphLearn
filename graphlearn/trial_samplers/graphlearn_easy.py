@@ -53,7 +53,7 @@ class GraphLearnSampler(object):
 
         self.complexity = complexity
         self.feasibility_checker = FeasibilityChecker()
-        self.postprocessor = transform.PostProcessor()
+
         self.vectorizer = vectorizer
         # lists of int
         self.radius_list = [int(2 * r) for r in radius_list]

@@ -8,12 +8,9 @@ from graphlearn.abstract_graphs.rna.rnadecomposer import RnaDecomposer
 from graphlearn.transform import GraphTransformer
 
 logger = logging.getLogger(__name__)
-from graphlearn.transform import PostProcessor
 
 
-class PostProcessor(PostProcessor):
-    def re_transform_single(self, input):
-        return self.pp.re_transform_single(input)
+
 
 
 class GraphTransformerForgi(GraphTransformer):

@@ -1,4 +1,4 @@
-import decompose as gt
+import decompose
 
 
 class GraphTransformer(object):
@@ -49,20 +49,6 @@ class GraphTransformer(object):
 
     def wrap(self, graph):
         raise "OMG OMG OMG somebody tried to call wrap, but we dont wrap anymore."
-        return gt.Decomposer(graph, self.vectorizer)
+        return decompose.Decomposer(graph, self.vectorizer)
 
 
-class PostProcessor(object):
-    def fit(self, preprocessor):
-        self.pp = preprocessor
-        return self
-
-    def fit_transform(self, preprocessor, inputs):
-        self.fit(preprocessor)
-        return self.transform(inputs)
-
-    def re_transform_single(self, input):
-        return self.transform([input])[0]
-
-    def transform(self, inputs):
-        return self.pp.transform(inputs)
