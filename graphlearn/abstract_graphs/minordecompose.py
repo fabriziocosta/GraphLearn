@@ -1,3 +1,8 @@
+'''
+decomposer for graphs and their minors.
+extends the cips a normal decomposer is working with by cips that
+take care of the minor graphs.
+'''
 from eden.modifier.graph import vertex_attributes
 from eden.modifier.graph.structure import contraction
 import graphlearn.decompose as graphtools
@@ -10,12 +15,10 @@ import eden.util.display as edraw
 import eden
 logger = logging.getLogger(__name__)
 
-'''
-this file contains the abstract wrapper only.
-'''
 
 
-def make_decomposer(include_base=False, base_thickness_list=[2]):
+
+def make_decomposergen(include_base=False, base_thickness_list=[2]):
     return lambda v, d: MinorDecomposer(v, d,
                                 include_base=include_base,
                                 base_thickness_list=base_thickness_list)

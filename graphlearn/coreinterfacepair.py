@@ -1,3 +1,8 @@
+'''
+datastructure for CoreInterfacePairs.
+
+a cip is a graph, but we collect more information like the hash of the core-part
+'''
 class CoreInterfacePair:
     """
     this is referred to throughout the code as cip

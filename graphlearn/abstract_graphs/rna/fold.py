@@ -1,15 +1,17 @@
-import os
-import subprocess as sp
-import eden
-import sklearn
-from eden import path
-from graphlearn.abstract_graphs.rna import write_fasta, _pairs
-from eden.RNA import Vectorizer as EdenRnaVectorizer
-
-
 '''
 consensus folding for rna sequences
+
+NearestNeighborFolding is using mlocarna
+EdenNNF is aligning and then folding
 '''
+
+import os
+import subprocess as sp
+import sklearn
+from eden import path
+from eden.RNA import Vectorizer as EdenRnaVectorizer
+from graphlearn.abstract_graphs.rna import write_fasta, _pairs
+
 
 class NearestNeighborFolding(object):
     '''
@@ -91,9 +93,9 @@ class NearestNeighborFolding(object):
 
 
 class EdenNNF(NearestNeighborFolding):
-    def __init__(self, n_neighbors=4, structure_mod=False):
+    def __init__(self, n_neighbors=4):
         self.n_neighbors = n_neighbors
-        self.structure_mod=structure_mod
+
 
     def fit(self, sequencelist):
         self.eden_rna_vectorizer = EdenRnaVectorizer(n_neighbors=self.n_neighbors)
@@ -108,8 +110,7 @@ class EdenNNF(NearestNeighborFolding):
         head, seq, stru, en = self.eden_rna_vectorizer._align_sequence_structure(s, neigh, structure_deletions=True)
         # stru = self._clean_structure(seq,stru) # this is a way to limit the deleted bracket count, idea does not work well
         sequence=sequence[1]
-        if self.structure_mod:
-            stru,sequence = fix_structure(stru,sequence)
+
         return stru, en, sequence
 
     def _clean_structure(self, seq, stru):
@@ -158,54 +159,4 @@ class EdenNNF(NearestNeighborFolding):
         if DELETED_BRACKETS > 4:
             return None
         return stru
-    """
-    def _pairs(self, struct):
-        '''
-        Parameters
-        ----------
-        struct : basestring
-        Returns
-        -------
-        dictionary of ids in the struct, that are bond pairs
-        '''
-        unpaired = []
-        pairs = {}
-        for i, c in enumerate(struct):
-            if c == '(':
-                unpaired.append(i)
-            if c == ')':
-                partner = unpaired.pop()
-                pairs[i] = partner
-                pairs[partner] = i
-        return pairs
-    """
 
-
-def fix_structure(stru, stri):
-    '''
-    structure mod is for forgi transformation..
-    in forgi, core nodes dont have to be adjacent ->  dont know why currently...
-    anyway we fix this by introducing nodes with an F label.
-
-    the problem is to check every (( and )) .
-    if the bonding partners are not next to each other we know that we need to act.
-    '''
-    p = _pairs(stru)
-    lastchar = "."
-    problems = []
-    for i, c in enumerate(stru):
-        # checking for )) and ((
-        if c == lastchar and c != '.':
-            if abs(p[i] - p[i - 1]) != 1:  # the partners are not next to each other
-                problems.append(i)
-        # )( provlem
-        elif c == '(':
-            if lastchar == ')':
-                problems.append(i)
-        lastchar = c
-    problems.sort(reverse=True)
-    for i in problems:
-        stru = stru[:i] + '.' + stru[i:]
-        stri = stri[:i] + 'F' + stri[i:]
-
-    return stru, stri

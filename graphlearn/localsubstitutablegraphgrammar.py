@@ -1,3 +1,9 @@
+'''
+a library for cips.
+cips with same interface are grouped together.
+=> they are congruent and their cores can be replaced
+'''
+
 from multiprocessing import Pool, Manager
 from itertools import tee
 import decompose

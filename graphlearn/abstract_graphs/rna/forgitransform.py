@@ -1,20 +1,21 @@
+'''
+
+
+transform: sequence -> (sequence, structure, base_graph, None)
+'''
+
 import logging
-
 import eden.converter.rna as converter
-
-from graphlearn.abstract_graphs.rna import expanded_rna_graph_to_digraph, get_sequence
+from graphlearn.abstract_graphs.rna import expanded_rna_graph_to_digraph, get_sequence, _pairs
 from graphlearn.abstract_graphs.rna.fold import EdenNNF
-from graphlearn.abstract_graphs.rna.rnadecomposer import RnaDecomposer
 from graphlearn.transform import GraphTransformer
-
 logger = logging.getLogger(__name__)
 
 
 
 
-
 class GraphTransformerForgi(GraphTransformer):
-    def __init__(self,  structure_mod=True):
+    def __init__(self):
 
 
         '''
@@ -32,7 +33,6 @@ class GraphTransformerForgi(GraphTransformer):
         -------
 
         '''
-        self.structure_mod = structure_mod
 
 
     def fit(self, inputs, vectorizer):
@@ -49,7 +49,7 @@ class GraphTransformerForgi(GraphTransformer):
         """
 
         self.vectorizer = vectorizer
-        self.NNmodel = EdenNNF(n_neighbors=4,structure_mod=self.structure_mod)
+        self.NNmodel = EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
         return self
 
@@ -115,6 +115,8 @@ class GraphTransformerForgi(GraphTransformer):
 
             # get structure
             structure, energy, sequence = self.NNmodel.transform_single(('fake', sequence))
+            # FIXING STRUCTURE
+            structure, sequence = fix_structure(structure, sequence)
             if structure == None:
                 result.append(None)
                 continue
@@ -149,6 +151,31 @@ def callRNAshapes(sequence):
         return shape
 '''
 
+def fix_structure(stru, stri):
+    '''
+    structure mod is for forgi transformation..
+    in forgi, core nodes dont have to be adjacent ->  dont know why currently...
+    anyway we fix this by introducing nodes with an F label.
 
+    the problem is to check every (( and )) .
+    if the bonding partners are not next to each other we know that we need to act.
+    '''
+    p = _pairs(stru)
+    lastchar = "."
+    problems = []
+    for i, c in enumerate(stru):
+        # checking for )) and ((
+        if c == lastchar and c != '.':
+            if abs(p[i] - p[i - 1]) != 1:  # the partners are not next to each other
+                problems.append(i)
+        # )( provlem
+        elif c == '(':
+            if lastchar == ')':
+                problems.append(i)
+        lastchar = c
+    problems.sort(reverse=True)
+    for i in problems:
+        stru = stru[:i] + '.' + stru[i:]
+        stri = stri[:i] + 'F' + stri[i:]
 
-
+    return stru, stri

@@ -1,13 +1,17 @@
-from graphlearn.abstract_graphs.minordecompose import MinorDecomposer
+'''
+graphtransformer to generate a minorgraph based on the cycles found.
+
+transoform: graph -> (graph,abstract_graph)
+'''
+
+
 from collections import defaultdict
 import eden
 from graphlearn.transform import GraphTransformer
 import networkx as nx
 import graphlearn.utils.draw as draw
 
-'''
-contains: a preprocessor that takes care of molecular graps with circleabstraction
-'''
+
 
 
 class GraphTransformerCircles(GraphTransformer):

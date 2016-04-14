@@ -5,8 +5,6 @@ from graphlearn.abstract_graphs.minordecompose import MinorDecomposer
 from graphlearn.abstract_graphs.rna import get_start_and_end_node
 import forgi
 
-
-
 class RnaDecomposer(MinorDecomposer):
     # def core_substitution(self, orig_cip_graph, new_cip_graph):
     #    graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
@@ -17,7 +15,6 @@ class RnaDecomposer(MinorDecomposer):
         we need to make an abstraction Ooo
         '''
         if self._abstract_graph is None:
-
             # create the abstract graph and populate the contracted set
             abstract_graph = forgi.get_abstr_graph(self.structure, ignore_inserts=self.ignore_inserts)
             abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)

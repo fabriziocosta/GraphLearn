@@ -1,3 +1,6 @@
+'''
+OneClassEstimator
+'''
 from eden.util import fit_estimator as eden_fit_estimator
 import numpy
 from sklearn.calibration import CalibratedClassifierCV

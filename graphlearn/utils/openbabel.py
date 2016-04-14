@@ -1,7 +1,15 @@
+'''
+comfortably use openbabel:
+
+draw for drawing graphs
+
+graph_to_molfile() is closely related to a eden function that does
+nearly the same but is broken for our purposes at least.
+'''
+
 import pybel
 import networkx as nx
-from IPython.display import display, HTML, Image
-import math
+from IPython.display import display, HTML
 
 import eden.graph as eg
 VECTOR=eg.Vectorizer()

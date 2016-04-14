@@ -1,11 +1,11 @@
-import subprocess as sp
-
-from graphlearn.abstract_graphs.rna import write_fasta, is_sequence
-from graphlearn.graphlearn import Sampler
-
 '''
 here we find items that are needed to get the infernal scores
 '''
+import subprocess as sp
+from graphlearn.abstract_graphs.rna import write_fasta, is_sequence
+from graphlearn.graphlearn import Sampler
+
+
 class AbstractSampler(Sampler):
     def _sample_path_append(self, graph, force=False):
         self._sample_notes += graph.sequence + "n"

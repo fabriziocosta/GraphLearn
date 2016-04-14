@@ -1,3 +1,8 @@
+'''
+feasibility checker for graphs druing sampling.
+easily extendable by custom checks
+'''
+
 import utils.draw as draw
 import logging
 import networkx as nx

@@ -1,29 +1,20 @@
+"""
+here we learn how to generate a graph minor such that
+later transform:graph->(graph,graphminor)
+"""
 from eden.modifier.graph.structure import contraction
 from collections import defaultdict
-from graphlearn.abstract_graphs.minordecompose import MinorDecomposer
 from graphlearn.estimate import OneClassEstimator as estimartorwrapper
 from graphlearn.transform import GraphTransformer
 from graphlearn.utils import draw
-
 import networkx as nx
 import logging
 from itertools import izip
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
-
 logger = logging.getLogger(__name__)
-'''
-file contains:
-    a preprocessor that takes care of abstraction
 
-the idea here is to learn how to create the graph minor.
-
-the preprocessor usualy gets all the input graphs in the beginning.
-with those it tries to find out how to make a graph minor.
-the peprocessor object will then be used to create minors for all the graphs that
-appear during sampling.
-'''
 
 
 

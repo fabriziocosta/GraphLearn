@@ -1,5 +1,10 @@
-import decompose
+'''
+sometimes input graphs or graphs after a substitution need a
+little fixing to be able to be used by graphlearn.
 
+graphtransformer: graph -> object the decomposer unterstands how to use
+'''
+import decompose
 
 class GraphTransformer(object):
     def set_param(self, vectorizer):

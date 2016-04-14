@@ -1,7 +1,8 @@
-import itertools
+'''
+graphsampler, takes graphs in input and generates graphs with similar properties
+'''
 import random
 import estimate
-# from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool
@@ -29,7 +30,7 @@ class Sampler(object):
                  graphtransformer=transform.GraphTransformer(),
 
                  feasibility_checker=feasibility.FeasibilityChecker(),
-                 make_decomposer=decompose.Decomposer,
+                 decomposergen=decompose.Decomposer,
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -70,7 +71,7 @@ class Sampler(object):
         an initialized sampler
         '''
 
-        self.decomposer_generator=lambda data: make_decomposer(vectorizer, data)
+        self.decomposer_generator=lambda data: decomposergen(vectorizer, data)
 
         self.graphtransformer = graphtransformer
         self.feasibility_checker = feasibility_checker

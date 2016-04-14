@@ -1,10 +1,11 @@
-from graphlearn.transform import GraphTransformer
+'''
+allws interactive sampling.
+works with the associated notebook.
+'''
 from graphlearn.decompose import Decomposer
 import graphlearn
 
-'''
-first we generate a preprocesser where we can define when the cleaning happens.
-'''
+
 
 
 class mywrap(Decomposer):

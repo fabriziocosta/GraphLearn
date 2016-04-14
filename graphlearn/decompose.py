@@ -1,3 +1,8 @@
+'''
+provides cip related operations for a graph.
+
+a cip is a part of a graph, cips can be extracted or replaced.
+'''
 import networkx as nx
 from networkx.algorithms import isomorphism as iso
 from eden import fast_hash

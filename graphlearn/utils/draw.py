@@ -1,3 +1,7 @@
+'''
+make graphics of any kind ( mostly graphs)
+'''
+
 import pylab as plt
 from eden.util.display import draw_graph_set
 import networkx as nx
