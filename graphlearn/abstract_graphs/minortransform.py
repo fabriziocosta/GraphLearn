@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 
-
+"""
 def assign_values_to_nodelabel(graph, label):
     '''
     check all nodes:
@@ -37,7 +37,8 @@ def assign_values_to_nodelabel(graph, label):
     for n,d in graph.nodes(data=True):
         if label not in d:
             d[label]=str(startid)
-            startid+=1
+            startid+=1.0
+"""
 
 class GraphToAbstractTransformer(object):
     '''
@@ -99,39 +100,45 @@ class GraphToAbstractTransformer(object):
 
         # graph expanded and unexpanded
         graph_exp = self.vectorizer._edge_to_vertex_transform(graph)
-        graph2 = self.vectorizer._revert_edge_to_vertex_transform(graph_exp)
+        graph_unexp = self.vectorizer._revert_edge_to_vertex_transform(graph_exp)
 
 
         # annotate with scores, then transform scores to clusterid
-        graph2 = self.vectorizer.annotate([graph2], estimator=self.estimator.estimator).next()
-        for n, d in graph2.nodes(data=True):
+        graph_unexp = self.vectorizer.annotate([graph_unexp], estimator=self.estimator.estimator).next()
+        for n, d in graph_unexp.nodes(data=True):
             if d[score_attribute] > self.score_threshold:
                 d[group] = str(self.grouper.predict(d[score_attribute])[0])
+            else:d[group]="-"
 
         if self.debug:
-            print 'graph2: after score annotation, N/A-> value below thresh'
-            draw.graphlearn(graph2, vertex_label=group)
+            print 'graph2: after score annotation, "-"-> value below thresh'
+            draw.graphlearn(graph_unexp, vertex_label=group)
 
-        # contract , we do this once, to weed out structures that are too small for us to care.
-        assign_values_to_nodelabel(graph2, group)
-        graph3 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
+        # weed out groups that are too small
+        # assign_values_to_nodelabel(graph_unexp, group)
+        graph3 = contraction([graph_unexp], contraction_attribute=group, modifiers=[], nesting=False).next()
         for n,d in graph3.nodes(data=True):
             if len(d['contracted']) < self.min_size:
                 for n in d['contracted']:
-                    graph2.node[n].pop(group)
-        assign_values_to_nodelabel(graph2, group)
+                    graph_unexp.node[n].pop(group)
+                    graph_unexp.node[n][group]='-'
+
+        #assign_values_to_nodelabel(graph_unexp, group)
         if self.debug:
             print 'weed out more nodes because the clusters are too small'
             print '[contraction, actually interesting thing]'
-            draw.graphlearn([graph3,graph2], vertex_label=group)
-        graph2 = contraction([graph2], contraction_attribute=group, modifiers=[], nesting=False).next()
+            draw.graphlearn([graph3,graph_unexp], vertex_label=group)
+        graph_unexp = contraction([graph_unexp], contraction_attribute=group, modifiers=[], nesting=False).next()
+        for n,d in graph_unexp.nodes(data=True):
+            if d[group]=='-':
+                d['APPROVEDABSTRACTNODE'] = False
         if self.debug:
             print 'contracts to this:'
-            draw.graphlearn(graph2, vertex_label=group)
+            draw.graphlearn(graph_unexp, vertex_label=group)
         # expand
-        graph2 = self.vectorizer._edge_to_vertex_transform(graph2)
+        graph_reexp = self.vectorizer._edge_to_vertex_transform(graph_unexp)
         #  make a dictionary that maps from base_graph_node -> node in contracted graph
-        getabstr = {contra: node for node, d in graph2.nodes(data=True) for contra in d.get('contracted', [])}
+        getabstr = {contra: node for node, d in graph_reexp.nodes(data=True) for contra in d.get('contracted', [])}
 
         # so this basically assigns edges in the base_graph to nodes in the abstract graph.
         for n, d in graph_exp.nodes(data=True):
@@ -141,18 +148,18 @@ class GraphToAbstractTransformer(object):
                 n1, n2 = graph_exp.neighbors(n)
                 # case1: ok those belong to the same gang so we most likely also belong there.
                 if getabstr[n1] == getabstr[n2]:
-                    graph2.node[getabstr[n1]]['contracted'].add(n)
+                    graph_reexp.node[getabstr[n1]]['contracted'].add(n)
 
                 # case2: neighbors belong to different gangs...
                 else:
-                    blub = set(graph2.neighbors(getabstr[n1])) & set(graph2.neighbors(getabstr[n2]))
+                    blub = set(graph_reexp.neighbors(getabstr[n1])) & set(graph_reexp.neighbors(getabstr[n2]))
                     for blob in blub:
-                        if 'contracted' in graph2.node[blob]:
-                            graph2.node[blob]['contracted'].add(n)
+                        if 'contracted' in graph_reexp.node[blob]:
+                            graph_reexp.node[blob]['contracted'].add(n)
                         else:
-                            graph2.node[blob]['contracted'] = set([n])
+                            graph_reexp.node[blob]['contracted'] = set([n])
 
-        return graph2
+        return graph_reexp
 
     def transform(self, graphs, score_attribute='importance', group='class', debug=False):
         for graph in graphs:
@@ -199,6 +206,7 @@ class GraphMinorTransformer(GraphTransformer):
         self.rawgraph_estimator = estimator
 
 
+
     def fit(self, inputs):
         '''
 
@@ -223,7 +231,7 @@ class GraphMinorTransformer(GraphTransformer):
                 #       self._abstract._transform_single(graph, score_attribute, group)
                 abstr = self._abstract._transform_single(graph, score_attribute='importance', group='class')
                 for n, d in abstr.nodes(data=True):
-                    if len(d['contracted']) > 1 and 'edge' not in d:
+                    if len(d['contracted']) > 1 and 'edge' not in d and d.get('APPROVEDABSTRACTNODE',True):
                         # get the subgraph induced by it (if it is not trivial)
                         tmpgraph = nx.Graph(graph.subgraph(d['contracted']))
                         parts.append(tmpgraph)

@@ -169,7 +169,8 @@ class Decomposer(AbstractDecomposer):
                                            node_filter=lambda x, y: True
                                    ):
 
-        node = random.choice(self._base_graph.nodes())
+
+        node = random.choice(filter( lambda x:node_filter(self._base_graph,x), self._base_graph.nodes()))
         if 'edge' in self._base_graph.node[node]:
             node = random.choice(self._base_graph.neighbors(node))
             # random radius and thickness
