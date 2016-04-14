@@ -1,9 +1,7 @@
 '''
-
-
 transform: sequence -> (sequence, structure, base_graph, None)
 '''
-
+import forgi
 import logging
 import eden.converter.rna as converter
 from graphlearn.abstract_graphs.rna import expanded_rna_graph_to_digraph, get_sequence, _pairs
@@ -95,6 +93,29 @@ class GraphTransformerForgi(GraphTransformer):
         #    return None
         return trans
 
+    def abstract_graph(self):
+        '''
+        we need to make an abstraction Ooo
+        '''
+
+        # create the abstract graph and populate the contracted set
+        abstract_graph = forgi.get_abstr_graph(self.structure, ignore_inserts=self.ignore_inserts)
+        abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
+        completed_abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph)
+
+        # eden is forcing us to set a label and a contracted attribute.. lets do this
+        for n, d in completed_abstract_graph.nodes(data=True):
+            if 'edge' in d:
+                d['label'] = 'e'
+        # in the abstract graph , all the edge nodes need to have a contracted attribute.
+        # originaly this happens naturally but since we make multiloops into one loop
+        # there are some left out
+        for n, d in completed_abstract_graph.nodes(data=True):
+            if 'contracted' not in d:
+                d['contracted'] = set()
+        return completed_abstract_graph
+
+
     def transform(self, sequences):
         """
 
@@ -130,7 +151,7 @@ class GraphTransformerForgi(GraphTransformer):
             base_graph.graph['sequence'] = sequence
             base_graph.graph['structure'] = structure
             result.append(
-                   (sequence, structure, base_graph, None)
+                   (sequence, structure, base_graph, self.abstract_graph(base_graph))
             )
 
         return result

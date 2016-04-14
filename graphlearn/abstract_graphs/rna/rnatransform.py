@@ -1,3 +1,9 @@
+'''
+extends minor transformer with sequence refolding functionality.
+
+currently:  transform:sequence->rnadecomposer_food
+what makes more sense:  transform:sequence->MINORdecomposer_food
+'''
 import logging
 import eden.converter.rna as converter
 import graphlearn.abstract_graphs.rna

@@ -1,37 +1,22 @@
-import eden
+'''
+we extend the minor decomposer by 2 properties for forgi abstractions:
+Fnodes: when two contracted nodes are next to each other and the subgraph of one is dicsonnected
+        problems may arise. to fix this F nodes may be introduced
+fcorrect: remove F nodes from backbone when printing
+'''
+
+
 import networkx as nx
-import graphlearn.abstract_graphs
 from graphlearn.abstract_graphs.minordecompose import MinorDecomposer
 from graphlearn.abstract_graphs.rna import get_start_and_end_node
-import forgi
+
 
 class RnaDecomposer(MinorDecomposer):
     # def core_substitution(self, orig_cip_graph, new_cip_graph):
     #    graph=graphtools.core_substitution( self._base_graph, orig_cip_graph ,new_cip_graph )
     #    return self.__class__( graph, self.vectorizer , self.some_thickness_list)
 
-    def abstract_graph(self):
-        '''
-        we need to make an abstraction Ooo
-        '''
-        if self._abstract_graph is None:
-            # create the abstract graph and populate the contracted set
-            abstract_graph = forgi.get_abstr_graph(self.structure, ignore_inserts=self.ignore_inserts)
-            abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
-            self._abstract_graph = forgi.edge_parent_finder(abstract_graph, self._base_graph)
 
-            # eden is forcing us to set a label and a contracted attribute.. lets do this
-            for n, d in self._abstract_graph.nodes(data=True):
-                if 'edge' in d:
-                    d['label'] = 'e'
-            # in the abstract graph , all the edge nodes need to have a contracted attribute.
-            # originaly this happens naturally but since we make multiloops into one loop
-            # there are some left out
-            for n, d in self._abstract_graph.nodes(data=True):
-                if 'contracted' not in d:
-                    d['contracted'] = set()
-
-        return self._abstract_graph
 
     def __init__(self, vectorizer,data,
                     base_thickness_list=[2],
@@ -142,13 +127,13 @@ class RnaDecomposer(MinorDecomposer):
         '''
 
         return ciplist
-
+    '''
     def out(self):
         # copy and  if digraph make graph
         return self.base_graph()
         # sequence=get_sequence(self.base_graph())
         # return ('',sequence.replace("F",""))
-
+    '''
     def pre_vectorizer_graph(self, nested=True, fcorrect=False, base_only=False):
         """
 
