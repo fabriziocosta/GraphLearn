@@ -4,7 +4,7 @@ later transform:graph->(graph,graphminor)
 """
 from eden.modifier.graph.structure import contraction
 from collections import defaultdict
-from graphlearn.estimate import OneClassEstimator as estimartorwrapper
+from graphlearn.estimate import OneClassEstimator
 from graphlearn.transform import GraphTransformer
 from graphlearn.utils import draw
 import networkx as nx
@@ -43,6 +43,8 @@ def assign_values_to_nodelabel(graph, label):
 class GraphToAbstractTransformer(object):
     '''
     makes abstractions that are based on the score of an estimator
+
+    this class is just a helper for minor transform.
     '''
 
     def __init__(self, vectorizer=False,estimator=False,grouper=False, score_threshold=0, min_size=0, debug=False):
@@ -71,7 +73,7 @@ class GraphToAbstractTransformer(object):
         self.score_threshold=score_threshold
         self.min_size=min_size
         self.debug=debug
-
+    """
     def set_parmas(self,**kwargs):
         '''
 
@@ -85,7 +87,7 @@ class GraphToAbstractTransformer(object):
         -------
         '''
         self.__dict__.update(kwargs)
-
+    """
     def _transform_single(self, graph, score_attribute='importance', group='class'):
         '''
         Parameters
@@ -171,40 +173,47 @@ class GraphToAbstractTransformer(object):
 
 
 class GraphMinorTransformer(GraphTransformer):
-    def __init__(self, core_shape_cluster=KMeans(n_clusters=4),
+    def __init__(self,
+                 core_shape_cluster=KMeans(n_clusters=4),
                  name_cluster=MiniBatchKMeans(n_clusters=5),
                  save_graphclusters=False,
-                 graph_to_minor=GraphToAbstractTransformer(),
-                 estimator=estimartorwrapper(nu=.5, n_jobs=4)):
+                 #graph_to_minor=GraphToAbstractTransformer(),
+                 estimator=OneClassEstimator(nu=.5, n_jobs=4),
+                 shape_min_size=1,
+                 shape_score_threshold=0):
         '''
+
         Parameters
         ----------
-        base_thickness_list: list of int, [2]
-            thickness for the base graph
-            thickness and radius for the minor are provided to the graphlearn.sampler
+        core_shape_cluster: KMeans()
+            fittable cluster algo that clusters estimator scores
+            you may also just use raw scores which works best with the shape_* parameters
+        name_cluster: MiniBatchKMeans()
+            fitable cluster algo that will run on core_shape_clusters
 
-        kmeans_clusters: int, 4
-            split nodes of the graphs into this many groups (by rating provided by an estimator)
+        save_graphclusters:
+            saving the extracted core_shape_clusters
+            ans order them by their name_cluster
+        estimator
+            oneclass estimator that will work on vectorized whole graphs
 
-
-        learned_node_names: bool False
-            nodes that that belong to the same group (see above) and are adjacent
-            form a minor node, if this option is enabled, we try to learn a name for
-            this combined node.
-
-        save_graphclusters: bool, False
-            saving learned_node_names clusters in self.graphclusters
+        shape_min_size:
+            influencing how a core(minor node) may look like, here we set a minimum size for the code
+        shape_score_threshold:
+            influencing how a core(minor node) may look like,
+            here we set a minimum score for the core.
 
         Returns
         -------
-        void
+
         '''
         self.save_graphclusters = save_graphclusters
         self.name_cluster = name_cluster
         self.core_shape_cluster = core_shape_cluster
-        self._abstract=graph_to_minor
+        #self._abstract=graph_to_minor
         self.rawgraph_estimator = estimator
-
+        self.shape_score_threshold=shape_score_threshold
+        self.shape_min_size=shape_min_size
 
 
     def fit(self, inputs):
@@ -221,8 +230,15 @@ class GraphMinorTransformer(GraphTransformer):
         # and determine how a graph will be split intro minor nodes.
         self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
         self.train_core_shape_cluster(inputs)
-        #self._abstract=graph_to_abstract()
-        self._abstract.set_parmas(estimator=self.rawgraph_estimator, grouper=self.core_shape_cluster, vectorizer=self.vectorizer)
+
+        self._abstract=GraphToAbstractTransformer(score_threshold=self.shape_score_threshold,
+                                                  min_size=self.shape_min_size,
+                                                  debug=False,
+                                                  estimator=self.rawgraph_estimator,
+                                                  grouper=self.core_shape_cluster,
+                                                  vectorizer=self.vectorizer)
+
+
         # now comes the second part in which i try to find a name for those minor nodes.
         if self.name_cluster:
             parts = []
