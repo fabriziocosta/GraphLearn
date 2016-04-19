@@ -47,9 +47,6 @@ class GraphToAbstractTransformer(object):
     this class is just a helper for minor transform.
     '''
 
-    def __neg__(self):
-        self.estimator.predict = lambda x: 1 - self.estimator.predict(x)
-        return self
 
     def __init__(self, vectorizer=False,estimator=False,grouper=False, score_threshold=0, min_size=0, debug=False):
         '''

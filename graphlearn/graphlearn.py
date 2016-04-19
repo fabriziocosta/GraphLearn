@@ -20,6 +20,21 @@ import utils.monitor as monitor
 import networkx as nx
 
 class Sampler(object):
+
+
+    def __neg__(self):
+        self.estimator._predict = lambda x: 1 - self.estimator._predict(x)
+        return self
+
+    def __mul__(self,other):
+        # other musst be int oO
+        # ==> also apply to its children
+        self.multi=other
+        return self
+
+
+    #def __sub__(self,other):
+
     def __init__(self,
                  nbit=20,
 
