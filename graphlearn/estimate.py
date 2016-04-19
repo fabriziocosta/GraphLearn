@@ -16,12 +16,13 @@ class OneClassEstimator:
     there might be a bug connected to nx.digraph..
     '''
 
-    def __init__(self, nu=.5, cv=2, n_jobs=-1, calibrate=True):
+    def __init__(self, nu=.5, cv=2, n_jobs=-1, calibrate=True,classifier=SGDClassifier(loss='log')):
         self.status = 'new'
         self.nu = nu
         self.cv = cv
         self.n_jobs = n_jobs
         self.calibrate = calibrate
+        self.classifier=classifier
 
     def fit(self, graphs, vectorizer=None, random_state=None):
         self.vectorizer = vectorizer
@@ -77,7 +78,7 @@ class OneClassEstimator:
         data_matrix_neg = data_matrix.multiply(-1)
         # i hope loss is log.. not 100% sure..
         # probably calibration will fix this#
-        return eden_fit_estimator(SGDClassifier(loss='log'), positive_data_matrix=data_matrix,
+        return eden_fit_estimator(self.classifier, positive_data_matrix=data_matrix,
                                   negative_data_matrix=data_matrix_neg,
                                   cv=cv,
                                   n_jobs=n_jobs,
@@ -104,17 +105,33 @@ class OneClassEstimator:
 
         return estimator
 
+
+
+    def _predict(self, vectorized_graph):
+        '''
+        Parameters
+        ----------
+        vectorized_graph: a graph, vectorized by eden
+
+        Returns
+        -------
+            score
+        '''
+        if self.calibrate:
+            return self.cal_estimator.predict_proba(vectorized_graph)[0, 1]
+        return self.cal_estimator.decision_function(vectorized_graph)[0]
+
+
     def predict(self, graph, keep_vector=False):
         #draw.graphlearn(graph)
-        transformed_graph = self.vectorizer.transform_single(graph)
+        vectorized_graph = self.vectorizer.transform_single(graph)
         # work around broken eden versions:
         #transformed_graph = self.vectorizer.transform([graph])
 
         # slow so dont do it..
         # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-        f= lambda x: (x,transformed_graph) if keep_vector  else x
+        f= lambda x: (x,vectorized_graph) if keep_vector  else x
+        return f(self._predict(vectorized_graph))
 
-        if self.calibrate:
-            return f(self.cal_estimator.predict_proba(transformed_graph)[0, 1])
-        return f(self.cal_estimator.decision_function(transformed_graph)[0])
+
 

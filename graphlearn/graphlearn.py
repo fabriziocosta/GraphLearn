@@ -137,7 +137,7 @@ class Sampler(object):
 
 
 
-        # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
+        # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW
 
     def save(self, file_name):
         self.lsgg._revert_multicore_transform()
