@@ -24,16 +24,30 @@ class Sampler(object):
 
     def __neg__(self):
         self.estimator._predict = lambda x: 1 - self.estimator._predict(x)
-        return self
 
+        if 'spawn_list' in self.__dict__:
+            for spawn in self.spawn_list:
+                spawn.__neg__()
+        return self
     def __mul__(self,other):
         # other musst be int oO
         # ==> also apply to its children
-        self.multi=other
+        if 'multiplier' in self.__dict__:
+            self.multiplier*=other
+        else:
+            self.multiplier=other
+        if 'spawn_list' in self.__dict__:
+            for spawn in self.spawn_list:
+                spawn.__multi__(other)
         return self
+    def __sub__(self,other):
+        return self.__add__(other.__neg__())
+    def __add__(self,other):
+        if 'spawn_list' not in self.__dict__:
+            self.spawn_list=[]
+        self.spawn_list.append(other)
 
 
-    #def __sub__(self,other):
 
     def __init__(self,
                  nbit=20,
