@@ -23,7 +23,7 @@ class Sampler(object):
 
 
     def __neg__(self):
-        self.estimator._predict = lambda x: 1 - self.estimator._predict(x)
+        self.estimator.predict = lambda x: 1 - self.estimator.predict(x)
 
         if 'spawn_list' in self.__dict__:
             for spawn in self.spawn_list:
@@ -193,8 +193,7 @@ class Sampler(object):
         if self.estimatorobject.status != 'trained':
             graphs = [d.pre_vectorizer_graph() for d in decomposed_graphs]
             assert isinstance(graphs[0], nx.Graph), 'not a graph...' + str(graphs[0])
-            self.estimatorobject.fit(graphs,
-                                     vectorizer=self.vectorizer,
+            self.estimatorobject.fit(self.vectorizer.transform(graphs),
                                      random_state=self.random_state)
 
         # train grammar
@@ -425,7 +424,7 @@ class Sampler(object):
             for core in self.lsgg.productions[interface].keys():
                 gr = self.lsgg.productions[interface][core].graph.copy()
                 transformed_graph = self.vectorizer.transform_single(gr)
-                score = self.estimatorobject.cal_estimator.predict_proba(transformed_graph)[0, 1]
+                score = self.estimatorobject.predict(transformed_graph)#cal_estimator.predict_proba(transformed_graph)[0, 1]
                 self.score_core_choice_dict[core] = score
 
     def return_formatter(self, graphlist, mon):
@@ -601,24 +600,27 @@ class Sampler(object):
                 if similarity < self.similarity:
                     raise Exception('similarity stop condition reached')
 
-    def _score(self, graphmanager):
+    def _score(self, graphdecomposer):
         """
 
         Parameters
         ----------
-        graphmanager: a graphdecomposer
+        graphdecomposer: a graphdecomposer
 
         Returns
         -------
         score of graph
-        we also set graph.score_nonlog and graph.score
+        also some infromation is cached in the decomposer oOo
+
+
         """
+        if 'transformed_vector' not in graphdecomposer.__dict__:
+            graphdecomposer.transformed_vector= self.vectorizer.transform_single(graphdecomposer.pre_vectorizer_graph())
 
-        if '_score' not in graphmanager.__dict__:
-            graphmanager._score, graphmanager.transformed_vector = self.estimatorobject.predict(graphmanager.pre_vectorizer_graph(),keep_vector=True)
-
-            self.monitorobject.info('score', graphmanager._score)
-        return graphmanager._score
+        if '_score' not in graphdecomposer.__dict__:
+            graphdecomposer._score  = self.estimatorobject.predict(graphdecomposer.transformed_graph)
+            self.monitorobject.info('score', graphdecomposer._score)
+        return graphdecomposer._score
 
     def _accept(self, graphman_old, graphman_new):
         '''

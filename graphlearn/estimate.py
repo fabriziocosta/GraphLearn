@@ -24,13 +24,13 @@ class OneClassEstimator:
         self.calibrate = calibrate
         self.classifier=classifier
 
-    def fit(self, graphs, vectorizer=None, random_state=None):
-        self.vectorizer = vectorizer
+    def fit(self, vectorized_graphs, random_state=None):
+
         if random_state is not None:
             random.seed(random_state)
 
         # convert to sklearn compatible format
-        data_matrix = vectorizer.fit_transform(graphs)
+        data_matrix = vectorized_graphs
 
         # fit
         self.estimator = self.fit_estimator(data_matrix, n_jobs=self.n_jobs, cv=self.cv, random_state=random_state)
@@ -102,36 +102,12 @@ class OneClassEstimator:
             data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
             estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
             estimator.fit(data_matrix_binary, data_y)
-
         return estimator
 
-
-
-    def _predict(self, vectorized_graph):
-        '''
-        Parameters
-        ----------
-        vectorized_graph: a graph, vectorized by eden
-
-        Returns
-        -------
-            score
-        '''
+    def predict(self, vectorized_graph):
         if self.calibrate:
             return self.cal_estimator.predict_proba(vectorized_graph)[0, 1]
         return self.cal_estimator.decision_function(vectorized_graph)[0]
-
-
-    def predict(self, graph, keep_vector=False):
-        #draw.graphlearn(graph)
-        vectorized_graph = self.vectorizer.transform_single(graph)
-        # work around broken eden versions:
-        #transformed_graph = self.vectorizer.transform([graph])
-
-        # slow so dont do it..
-        # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-        f= lambda x: (x,vectorized_graph) if keep_vector  else x
-        return f(self._predict(vectorized_graph))
 
 
 
