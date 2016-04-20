@@ -15,28 +15,36 @@ class OneClassEstimator:
     '''
     there might be a bug connected to nx.digraph..
     '''
-
-    def __init__(self, nu=.5, cv=2, n_jobs=-1, calibrate=True,classifier=SGDClassifier(loss='log')):
+    def __init__(self, nu=.5, cv=2, n_jobs=-1, move_bias_calibrate=True, classifier=SGDClassifier(loss='log')):
+        '''
+        Parameters
+        ----------
+        nu: part of graphs that will be placed in the negative set (0~1)
+        cv:
+        n_jobs: jobs for fitting
+        move_bias_calibrate: after moving the bias we can recalibrate
+        classifier: calssifier object
+        Returns
+        -------
+        '''
         self.status = 'new'
         self.nu = nu
         self.cv = cv
         self.n_jobs = n_jobs
-        self.calibrate = calibrate
+        self.move_bias_recalibrate = move_bias_calibrate
         self.classifier=classifier
 
-    def fit(self, vectorized_graphs, random_state=None):
+    def fit(self, data_matrix, random_state=None):
 
         if random_state is not None:
             random.seed(random_state)
 
-        # convert to sklearn compatible format
-        data_matrix = vectorized_graphs
 
-        # fit
+        # use eden to fitoooOoO
         self.estimator = self.fit_estimator(data_matrix, n_jobs=self.n_jobs, cv=self.cv, random_state=random_state)
 
-        # calibrate
-        self.cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=self.nu, cv=self.cv)
+        # move bias to obtain oneclassestimator
+        self.cal_estimator = self.move_bias(data_matrix, estimator=self.estimator, nu=self.nu, cv=self.cv)
 
         self.status = 'trained'
         return self
@@ -85,7 +93,7 @@ class OneClassEstimator:
                                   n_iter_search=10,
                                   random_state=random_state)
 
-    def calibrate_estimator(self, data_matrix, estimator=None, nu=.5, cv=2):
+    def move_bias(self, data_matrix, estimator=None, nu=.5, cv=2):
         '''
             move bias until nu of data_matrix are in the negative class
             then use scikits calibrate to calibrate self.estimator around the input
@@ -97,7 +105,7 @@ class OneClassEstimator:
         estimator.intercept_ -= l[element][0]
 
         # calibrate
-        if self.calibrate:
+        if self.move_bias_recalibrate:
             data_matrix_binary = vstack([a[1] for a in l])
             data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
             estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
@@ -105,9 +113,6 @@ class OneClassEstimator:
         return estimator
 
     def predict(self, vectorized_graph):
-        if self.calibrate:
+        if self.move_bias_recalibrate:
             return self.cal_estimator.predict_proba(vectorized_graph)[0, 1]
         return self.cal_estimator.decision_function(vectorized_graph)[0]
-
-
-
