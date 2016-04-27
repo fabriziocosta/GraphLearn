@@ -11,6 +11,7 @@ import logging
 from eden.graph import Vectorizer
 import random
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -108,7 +109,7 @@ class Decomposer(AbstractDecomposer):
 
     def change_basegraph(self,transformerdata):
         self._base_graph=transformerdata
-
+        # ??? why is this here?
 
     def base_graph(self):
         return self._base_graph
@@ -155,7 +156,9 @@ class Decomposer(AbstractDecomposer):
         graph_clean(self._base_graph)
 
     def pre_vectorizer_graph(self):
-        return self._base_graph
+        # for some reason that i cant see, eden will alter the graph...
+        # -> return a copy
+        return self._base_graph.copy()
 
     def out(self):
         # copy and  if digraph make graph
@@ -286,9 +289,13 @@ def extract_core_and_interface(root_node=None,
         if DEBUG:
             print 'filta'
         return []
-    if 'hlabel' not in graph.node[graph.nodes()[-1]]:
-        vectorizer._label_preprocessing(graph)
-
+    #print "HELLo!"
+    #for n, d in graph.nodes(data=True):
+    #    print d
+    #if 'hlabel' not in graph.node[graph.nodes()[-1]]:
+    vectorizer._label_preprocessing(graph)
+    #for n,d in graph.nodes(data=True):
+    #    print d
     # which nodes are in the relevant radius
     # print root_node,max(radius_list) + max(thickness_list)
     # myutils.display(graph,vertex_label='id',size=15)
@@ -361,7 +368,7 @@ def extract_core_and_interface(root_node=None,
                                               distance_dict=node_dict))
     return cip_list
 
-
+''' probably unused .. also the name is problematic, overwriting filter which is used in this file
 def filter(graph, nodes):
     # we say true if the graph is ok
     # root node?
@@ -375,7 +382,7 @@ def filter(graph, nodes):
             if 'not_in_core' in graph.node[node]:
                 return False
         return True
-
+'''
 
 def merge(graph, node, node2):
     '''

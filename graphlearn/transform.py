@@ -52,8 +52,5 @@ class GraphTransformer(object):
         '''
         return [self.vectorizer._edge_to_vertex_transform(i) for i in inputs]
 
-    def wrap(self, graph):
-        raise "OMG OMG OMG somebody tried to call wrap, but we dont wrap anymore."
-        return decompose.Decomposer(graph, self.vectorizer)
 
 
