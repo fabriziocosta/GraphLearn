@@ -181,7 +181,12 @@ class Sampler(object):
     def grammar(self):
         return self.lsgg
 
-    def fit(self, input, negative_input=None,lsgg_include_negatives=False, grammar_n_jobs=-1, grammar_batch_size=10):
+    def fit(self,
+            input=None,
+            negative_input=None,
+            lsgg_include_negatives=False,
+            grammar_n_jobs=-1,
+            grammar_batch_size=10):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -206,7 +211,7 @@ class Sampler(object):
                 self.estimatorobject.fit(self.vectorizer.transform(graphs),self.vectorizer.transform(neg_graphs),
                                          random_state=self.random_state)
 
-        if negative_input!=None:
+        if negative_input!=None and lsgg_include_negatives:
             decomposable_graphs += decomposable_negative_graphs
 
         # train grammar
