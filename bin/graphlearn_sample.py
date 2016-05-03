@@ -2,7 +2,7 @@
 
 text='''verbose=1 # sets verbose level, is not passed to sampler
 startgraphs="asd",
-num_graphs=10,
+num_graphs=10,# number of graphs used
 model="model.gs",
 out="sdf",
 graph_iter=None,
@@ -29,20 +29,20 @@ keep_duplicates=False,
 monitor=False,
 init_only=False,'''
 
-########################################################################
-# BUILD ARGPARSER BASED ON THAT OPTIONLIST
-########################################################################
 
+# arg parse busines
 import makeparser
 parser= makeparser.makeparser(text)
-
 args=vars(parser.parse_args())
-
 import os.path
 if not os.path.isfile(args['startgraphs']):
     parser.print_usage()
     print 'at least provide a path to input'
     exit()
+
+print "*raw args"
+print "*" * 80
+print args
 
 # verbosity
 from eden.util import configure_logging
@@ -50,7 +50,7 @@ import logging
 configure_logging(logging.getLogger(),verbosity=args['verbose'])
 args.pop('verbose')
 
-#graphs
+# graphs
 from eden.converter.graph.gspan import gspan_to_eden
 from itertools import islice
 args['graph_iter'] = islice(gspan_to_eden(args.pop('startgraphs')),args.pop('num_graphs'))
