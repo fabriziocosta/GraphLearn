@@ -10,12 +10,11 @@ import eden
 from graphlearn.transform import GraphTransformer
 import networkx as nx
 import graphlearn.utils.draw as draw
-
-
+from eden.graph import Vectorizer
 
 
 class GraphTransformerCircles(GraphTransformer):
-    def __init__(self):
+    def __init__(self,vectorizer=Vectorizer(complexity=3)):
         """
 
         Parameters
@@ -28,7 +27,7 @@ class GraphTransformerCircles(GraphTransformer):
         -------
         void
         """
-        pass
+        self.vectorizer=vectorizer
 
     def wrap(self, graph):
         """
@@ -45,7 +44,7 @@ class GraphTransformerCircles(GraphTransformer):
         graph = self.vectorizer._edge_to_vertex_transform(graph)
         return (graph,self.abstract(graph))
         #return MinorDecomposer(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
-        #                       abstract_graph=self.abstract(graph))
+        #  abstract_graph=self.abstract(graph))
 
 
     def transform(self, inputs):

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 text='''verbose=1 # sets verbose level, is not passed to sampler
-startgraphs="asd",
+start_graphs="asd",
 num_graphs=10,# number of graphs used
 model="model.gs",
 out="sdf",
@@ -35,7 +35,7 @@ import makeparser
 parser= makeparser.makeparser(text)
 args=vars(parser.parse_args())
 import os.path
-if not os.path.isfile(args['startgraphs']):
+if not os.path.isfile(args['start_graphs']):
     parser.print_usage()
     print 'at least provide a path to input'
     exit()
@@ -53,7 +53,7 @@ args.pop('verbose')
 # graphs
 from eden.converter.graph.gspan import gspan_to_eden
 from itertools import islice
-args['graph_iter'] = islice(gspan_to_eden(args.pop('startgraphs')),args.pop('num_graphs'))
+args['graph_iter'] = islice(gspan_to_eden(args.pop('start_graphs')),args.pop('num_graphs'))
 
 
 #output

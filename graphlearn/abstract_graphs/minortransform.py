@@ -14,7 +14,7 @@ from sklearn.cluster import MiniBatchKMeans
 from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
 logger = logging.getLogger(__name__)
-
+from eden.graph import Vectorizer
 
 
 """
@@ -181,7 +181,8 @@ class GraphMinorTransformer(GraphTransformer):
                  #graph_to_minor=GraphToAbstractTransformer(),
                  estimator=OneClassEstimator(nu=.5, n_jobs=4),
                  shape_min_size=1,
-                 shape_score_threshold=0):
+                 shape_score_threshold=0,
+                 vectorizer=Vectorizer(complexity=3)):
         '''
 
         Parameters
@@ -215,6 +216,7 @@ class GraphMinorTransformer(GraphTransformer):
         self.rawgraph_estimator = estimator
         self.shape_score_threshold=shape_score_threshold
         self.shape_min_size=shape_min_size
+        self.vectorizer = vectorizer
 
 
     def fit(self, inputs):
@@ -229,7 +231,10 @@ class GraphMinorTransformer(GraphTransformer):
         '''
         # this k means is over the values resulting from annotation
         # and determine how a graph will be split intro minor nodes.
-        self.rawgraph_estimator.fit(inputs, vectorizer=self.vectorizer)
+        vectorized_inputs= self.vectorizer.transform(inputs)
+        self.rawgraph_estimator.fit(vectorized_inputs)
+
+
         self.train_core_shape_cluster(inputs)
 
         self._abstract=GraphToAbstractTransformer(score_threshold=self.shape_score_threshold,
