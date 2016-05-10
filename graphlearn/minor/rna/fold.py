@@ -10,7 +10,7 @@ import subprocess as sp
 import sklearn
 from eden import path
 from eden.RNA import Vectorizer as EdenRnaVectorizer
-from graphlearn.abstract_graphs.rna import write_fasta, _pairs
+from graphlearn.minor.rna import write_fasta, _pairs
 
 
 class NearestNeighborFolding(object):

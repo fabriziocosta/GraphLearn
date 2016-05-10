@@ -1,7 +1,7 @@
 import networkx as nx
 from eden.modifier.graph.structure import contraction
 
-from graphlearn.abstract_graphs.rna_graphmanager import get_sequence, getsucc, post
+from graphlearn.minor.rna_graphmanager import get_sequence, getsucc, post
 import graphlearn.decompose as gt
 import graphlearn
 
@@ -98,7 +98,7 @@ def direct_abstractor(graph,v):
     :return: contracted graph
     '''
 
-    n,not_used= graphlearn.abstract_graphs.rnaabstract.get_start_and_end_node(graph)
+    n,not_used= graphlearn.minor.rnaabstract.get_start_and_end_node(graph)
     tasks=[n]
     result = nx.Graph()
 
@@ -282,7 +282,7 @@ class PostProcessor:
         #print 'seq:',seq
         graph = rnafold_to_eden([('emptyheader',seq)], shape_type=5, energy_range=30, max_num=3).next()
         expanded_graph = self.vectorizer._edge_to_vertex_transform(graph)
-        ex_di_graph = graphlearn.abstract_graphs.rnaabstract.expanded_rna_graph_to_digraph(expanded_graph)
+        ex_di_graph = graphlearn.minor.rnaabstract.expanded_rna_graph_to_digraph(expanded_graph)
         ex_di_graph.graph['sequence']= seq
         #abstract_graph = directedgraphtools.direct_abstraction_wrapper(graph,0)
         return ex_di_graph

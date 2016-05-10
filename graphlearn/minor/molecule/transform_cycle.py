@@ -16,7 +16,6 @@ from eden.graph import Vectorizer
 class GraphTransformerCircles(GraphTransformer):
     def __init__(self,vectorizer=Vectorizer(complexity=3)):
         """
-
         Parameters
         ----------
         base_thickness_list: [int]

@@ -2,7 +2,7 @@
 here we find items that are needed to get the infernal scores
 '''
 import subprocess as sp
-from graphlearn.abstract_graphs.rna import write_fasta, is_sequence
+from graphlearn.minor.rna import write_fasta, is_sequence
 from graphlearn.graphlearn import Sampler
 
 

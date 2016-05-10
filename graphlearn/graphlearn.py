@@ -18,15 +18,19 @@ import decompose
 logger = logging.getLogger(__name__)
 import utils.monitor as monitor
 import networkx as nx
-
+import copy
 class Sampler(object):
 
     def __neg__(self):
-        self.estimatorobject.inverse_prediction=  not self.estimatorobject.inverse_prediction
+        duplicate = copy.deepcopy(self)
+        duplicate.nocopy_negate()
+        return duplicate
+
+    def nocopy_negate(self):
+        self.estimatorobject.inverse_prediction = not self.estimatorobject.inverse_prediction
         if 'spawn_list' in self.__dict__:
             for spawn in self.spawn_list:
-                spawn.__neg__()
-        return self
+                spawn.nocopy_negate()
 
     def __mul__(self,other):
         # other musst be int oO
@@ -41,14 +45,16 @@ class Sampler(object):
         #return self
 
     def __sub__(self,other):
-        return self.__add__(other.__neg__())
+        duplicate = copy.deepcopy(self)
+        return duplicate.__add__(other.__neg__())
 
     def __add__(self,other):
-        assert(other!=self,'no self adding allowed')
-        if 'spawn_list' not in self.__dict__:
-            self.spawn_list=[]
-        self.spawn_list.append(other)
-        return self
+        duplicate = copy.deepcopy(self)
+        if 'spawn_list' not in duplicate.__dict__:
+            duplicate.spawn_list=[]
+        duplicate.spawn_list.append(other)
+        return duplicate
+
 
     def __init__(self,
                  nbit=20,
@@ -184,26 +190,58 @@ class Sampler(object):
     def fit(self,
             input=None,
             negative_input=None,
+            regression_targets=None,
             lsgg_include_negatives=False,
             grammar_n_jobs=-1,
             grammar_batch_size=10):
         """
-          use input to fit the grammar and fit the estimator
+        Parameters
+        ----------
+        input: graph iterator
+        negative_input: graph iterator
+            for negative class, if applicable
+        regression_targets: list of values for
+            regression. not yet supported
+        lsgg_include_negatives: bool, False
+            True: grammar will include cips from negative classes
+            False: use negative class only to train estimator
+        grammar_n_jobs: int, -1
+            number of processes to start
+        grammar_batch_size: int, 10
+            extract cips from this many graphs at once.
+            too low: processing overhead increases
+            too high: run out of memory
+
+        Returns
+        -------
+            self
         """
-        # build decomposers
+
+
+        # BUILD DECOMPOSERS FOR POSITIVE AND NEGATIVE GRAPHS
         self.graphtransformer.set_param(self.vectorizer)
         decomposable_graphs = [ self.decomposer_generator(data)
                         for data in  self.graphtransformer.fit_transform(input)]
 
+        negative_input_exists=False
         if negative_input!=None:
             decomposable_negative_graphs = [self.decomposer_generator(data)
                                    for data in self.graphtransformer.fit_transform(negative_input)]
+            negative_input_exists=True
 
-        # train esti if needed
+        if regression_targets!=None:
+            pass
+            # train esti :D
+            #(regression_targets,decomposable_graphs):
+
+
+
+
+        # TRAIN ESTIMATOR IF NEEDED
         if self.estimatorobject.status != 'trained':
             graphs = [d.pre_vectorizer_graph() for d in decomposable_graphs]
             assert isinstance(graphs[0], nx.Graph), 'not a graph...' + str(graphs[0])
-            if negative_input==None:
+            if negative_input_exists==False:
                 self.estimatorobject.fit(self.vectorizer.transform(graphs),
                                          random_state=self.random_state)
             else:
@@ -211,10 +249,11 @@ class Sampler(object):
                 self.estimatorobject.fit(self.vectorizer.transform(graphs),self.vectorizer.transform(neg_graphs),
                                          random_state=self.random_state)
 
-        if negative_input!=None and lsgg_include_negatives:
-            decomposable_graphs += decomposable_negative_graphs
 
-        # train grammar
+
+        # HANDLE GRAMMAR
+        if negative_input_exists and  lsgg_include_negatives:
+            decomposable_graphs += decomposable_negative_graphs
         self.lsgg.fit(decomposable_graphs, n_jobs = grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 

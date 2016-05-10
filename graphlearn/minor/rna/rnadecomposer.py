@@ -7,8 +7,8 @@ fcorrect: remove F nodes from backbone when printing
 
 
 import networkx as nx
-from graphlearn.abstract_graphs.minordecompose import MinorDecomposer
-from graphlearn.abstract_graphs.rna import get_start_and_end_node
+from graphlearn.minor.decompose import MinorDecomposer
+from graphlearn.minor.rna import get_start_and_end_node
 
 
 class RnaDecomposer(MinorDecomposer):

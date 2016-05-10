@@ -6,7 +6,7 @@ from eden.modifier.graph.structure import contraction
 from collections import defaultdict
 from graphlearn.estimate import OneClassEstimator
 from graphlearn.transform import GraphTransformer
-from graphlearn.utils import draw
+import  graphlearn.utils.draw as draw
 import networkx as nx
 import logging
 from itertools import izip
@@ -16,29 +16,6 @@ from eden.util import report_base_statistics
 logger = logging.getLogger(__name__)
 from eden.graph import Vectorizer
 
-
-"""
-def assign_values_to_nodelabel(graph, label):
-    '''
-    check all nodes:
-    if label-attribute is not present, set attribute to unique string
-
-    Parameters
-    ----------
-    graph:  nx.graph
-    label:  attribute name
-
-    Returns
-    -------
-    void
-
-    '''
-    startid=max([ float(d.get(label,-99999999))   for n,d in graph.nodes(data=True)  ])
-    for n,d in graph.nodes(data=True):
-        if label not in d:
-            d[label]=str(startid)
-            startid+=1.0
-"""
 
 class GraphToAbstractTransformer(object):
     '''

@@ -7,7 +7,7 @@
 from graphlearn.decompose import Decomposer as GraphWrap
 from graphlearn.graphlearn import GraphLearnSampler
 from graphlearn.estimate import OneClassEstimator as EstiWrap
-from graphlearn.coreinterfacepair import CoreInterfacePair
+from graphlearn.core_interface_pair import CoreInterfacePair
 from graphlearn.utils import draw
 
 

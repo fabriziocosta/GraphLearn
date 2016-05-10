@@ -6,7 +6,7 @@ a cip is a part of a graph, cips can be extracted or replaced.
 import networkx as nx
 from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
-from coreinterfacepair import CoreInterfacePair
+from core_interface_pair import CoreInterfacePair
 import logging
 from eden.graph import Vectorizer
 import random

@@ -27,64 +27,67 @@ num_graphs_neg=200'''
 import makeparser
 parser=makeparser.makeparser(text)
 
-# do argparse things:
-args=vars(parser.parse_args())
 
-import os.path
-if not os.path.isfile(args['input']):
-    parser.print_usage()
-    print 'at least provide a path to input'
-    exit()
+if __name__ == "__main__":
+        
+    # do argparse things:
+    args=vars(parser.parse_args())
 
-print "*raw args"
-print "*"*80
-print args
+    import os.path
+    if not os.path.isfile(args['input']):
+        parser.print_usage()
+        print 'at least provide a path to input'
+        exit()
 
-
-# verbosity
-from eden.util import configure_logging
-import logging
-configure_logging(logging.getLogger(),verbosity=args.pop('verbose'))
+    print "*raw args"
+    print "*"*80
+    print args
 
 
-# handle Vectorizer:
-from eden.graph import Vectorizer
-args['vectorizer'] = Vectorizer(args.pop('vectorizer_complexity'))
+    # verbosity
+    from eden.util import configure_logging
+    import logging
+    configure_logging(logging.getLogger(),verbosity=args.pop('verbose'))
 
 
-# estimator, if the user is providing a negative graph set, we use
-# the twoclass esti OO
-import graphlearn.estimate as estimate
-if args['negative_input']==None:
-    args['estimator']=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1)
-else:
-    args['estimator']=estimate.TwoClassEstimator( cv=2, n_jobs=-1)
-    
-#args for fitting:
-from eden.converter.graph.gspan import gspan_to_eden
-from itertools import islice
-fitargs={ k:args.pop(k) for k in ['lsgg_include_negatives','grammar_n_jobs','grammar_batch_size']}
+    # handle Vectorizer:
+    from eden.graph import Vectorizer
+    args['vectorizer'] = Vectorizer(args.pop('vectorizer_complexity'))
 
-if args['negative_input']!=None:
-    fitargs['negative_input'] = islice(gspan_to_eden(args.pop('negative_input')),args.pop('num_graphs_neg'))
-else:
-    args.pop('negative_input')
-    args.pop('num_graphs_neg')
 
-fitargs['input'] = islice(gspan_to_eden(args.pop('input')),args.pop('num_graphs'))
+    # estimator, if the user is providing a negative graph set, we use
+    # the twoclass esti OO
+    import graphlearn.estimate as estimate
+    if args['negative_input']==None:
+        args['estimator']=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1)
+    else:
+        args['estimator']=estimate.TwoClassEstimator( cv=2, n_jobs=-1)
+        
+    #args for fitting:
+    from eden.converter.graph.gspan import gspan_to_eden
+    from itertools import islice
+    fitargs={ k:args.pop(k) for k in ['lsgg_include_negatives','grammar_n_jobs','grammar_batch_size']}
 
-#output
-OUTFILE=args.pop('output')
+    if args['negative_input']!=None:
+        fitargs['negative_input'] = islice(gspan_to_eden(args.pop('negative_input')),args.pop('num_graphs_neg'))
+    else:
+        args.pop('negative_input')
+        args.pop('num_graphs_neg')
 
-print "*Sampler init"
-print "*"*80
-print args
+    fitargs['input'] = islice(gspan_to_eden(args.pop('input')),args.pop('num_graphs'))
 
-# CREATE SAMPLER, dumping the rest of the parsed args :) 
-from graphlearn.graphlearn import Sampler
-s=Sampler(**args)
-print "*fit"
-print "*"*80
-print fitargs
-s.fit(**fitargs)
-s.save(OUTFILE)
+    #output
+    OUTFILE=args.pop('output')
+
+    print "*Sampler init"
+    print "*"*80
+    print args
+
+    # CREATE SAMPLER, dumping the rest of the parsed args :) 
+    from graphlearn.graphlearn import Sampler
+    s=Sampler(**args)
+    print "*fit"
+    print "*"*80
+    print fitargs
+    s.fit(**fitargs)
+    s.save(OUTFILE)

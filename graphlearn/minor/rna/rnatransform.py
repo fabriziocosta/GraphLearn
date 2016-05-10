@@ -6,10 +6,10 @@ what makes more sense:  transform:sequence->MINORdecomposer_food
 '''
 import logging
 import eden.converter.rna as converter
-import graphlearn.abstract_graphs.rna
-import graphlearn.abstract_graphs.rna.fold
-import graphlearn.abstract_graphs.rna.rnadecomposer
-from graphlearn.abstract_graphs.minortransform import GraphMinorTransformer as default_preprocessor
+import graphlearn.minor.rna
+import graphlearn.minor.rna.fold
+import graphlearn.minor.rna.rnadecomposer
+from graphlearn.minor.transform import GraphMinorTransformer as default_preprocessor
 from graphlearn.transform import GraphTransformer
 from sklearn.cluster import KMeans
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class GraphTransformerRNA(GraphTransformer):
         """
 
         self.vectorizer = vectorizer
-        self.NNmodel = graphlearn.abstract_graphs.rna.fold.EdenNNF(n_neighbors=4)
+        self.NNmodel = graphlearn.minor.rna.fold.EdenNNF(n_neighbors=4)
         self.NNmodel.fit(inputs)
 
         # abstr_input = [ self._sequence_to_base_graph(seq) for seq in inputs ]
@@ -99,7 +99,7 @@ class GraphTransformerRNA(GraphTransformer):
         wrapped graph
         """
         try:
-            sequence = graphlearn.abstract_graphs.rna.get_sequence(graph)
+            sequence = graphlearn.minor.rna.get_sequence(graph)
         except:
             logger.debug('sequenceproblem: this is not an rna')
             # from graphlearn.utils import draw
@@ -151,7 +151,7 @@ class GraphTransformerRNA(GraphTransformer):
 
                 base_graph = self.vectorizer._edge_to_vertex_transform(base_graph)
 
-                base_graph = graphlearn.abstract_graphs.rna.expanded_rna_graph_to_digraph(base_graph)
+                base_graph = graphlearn.minor.rna.expanded_rna_graph_to_digraph(base_graph)
 
                 result.append((sequence,structure,base_graph,abstract_graph))
 

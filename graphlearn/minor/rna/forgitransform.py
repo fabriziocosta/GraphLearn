@@ -4,8 +4,8 @@ transform: sequence -> (sequence, structure, base_graph, None)
 import forgi
 import logging
 import eden.converter.rna as converter
-from graphlearn.abstract_graphs.rna import expanded_rna_graph_to_digraph, get_sequence, _pairs
-from graphlearn.abstract_graphs.rna.fold import EdenNNF
+from graphlearn.minor.rna import expanded_rna_graph_to_digraph, get_sequence, _pairs
+from graphlearn.minor.rna.fold import EdenNNF
 from graphlearn.transform import GraphTransformer
 logger = logging.getLogger(__name__)
 

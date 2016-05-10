@@ -7,8 +7,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier
 import random
-import networkx as nx
-from utils import draw
+
 
 
 class TwoClassEstimator:
