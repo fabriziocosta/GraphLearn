@@ -15,8 +15,8 @@ OBSOLETE... I LET THIS HERE BECAUSE I NEED TO COPY THE INFERNAL STUFF OVER TO TH
 
 
 
-import graphlearn.abstract_graphs.rna_my_abstract
-import graphlearn.abstract_graphs.rna_graphmanager
+import graphlearn.minor.rna_my_abstract
+import graphlearn.minor.rna_graphmanager
 from ubergraphlearn import UberSampler,UberGrammar
 import ubergraphlearn
 import networkx as nx

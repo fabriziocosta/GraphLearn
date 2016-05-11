@@ -92,7 +92,7 @@ class RnaGraphManager(object):
         # base_graph()
 
         if 'directed_base_graph' not in self.__dict__:
-            self.directed_base_graph = graphlearn.abstract_graphs.rna_graphmanager.expanded_rna_graph_to_digraph(self.base_graph)
+            self.directed_base_graph = graphlearn.minor.rna_graphmanager.expanded_rna_graph_to_digraph(self.base_graph)
 
         return self.directed_base_graph
 
@@ -156,7 +156,7 @@ def edge_parent_finder(abstract, graph):
 
 def get_sequence(digraph):
 
-    current,end= graphlearn.abstract_graphs.rna_graphmanager.get_start_and_end_node(digraph)
+    current,end= graphlearn.minor.rna_graphmanager.get_start_and_end_node(digraph)
     seq=digraph.node[current]['label']
 
     while current != end:

@@ -1,7 +1,8 @@
-import itertools
+'''
+graphsampler, takes graphs in input and generates graphs with similar properties
+'''
 import random
 import estimate
-# from graphtools import GraphWrapper #extract_core_and_interface, core_substitution, graph_clean, mark_median
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool
@@ -17,8 +18,44 @@ import decompose
 logger = logging.getLogger(__name__)
 import utils.monitor as monitor
 import networkx as nx
-
+import copy
 class Sampler(object):
+
+    def __neg__(self):
+        duplicate = copy.deepcopy(self)
+        duplicate.nocopy_negate()
+        return duplicate
+
+    def nocopy_negate(self):
+        self.estimatorobject.inverse_prediction = not self.estimatorobject.inverse_prediction
+        if 'spawn_list' in self.__dict__:
+            for spawn in self.spawn_list:
+                spawn.nocopy_negate()
+
+    def __mul__(self,other):
+        # other musst be int oO
+        # ==> also apply to its children
+        #if 'multiplier' not in self.__dict__:
+        #    self.multiplier=1
+        #self.multiplier*=other
+        raise Exception('multiplication is basically n_steps ooO')
+        #if 'spawn_list' in self.__dict__:
+        #    for spawn in self.spawn_list:
+        #        spawn.__multi__(other)
+        #return self
+
+    def __sub__(self,other):
+        duplicate = copy.deepcopy(self)
+        return duplicate.__add__(other.__neg__())
+
+    def __add__(self,other):
+        duplicate = copy.deepcopy(self)
+        if 'spawn_list' not in duplicate.__dict__:
+            duplicate.spawn_list=[]
+        duplicate.spawn_list.append(other)
+        return duplicate
+
+
     def __init__(self,
                  nbit=20,
 
@@ -27,9 +64,9 @@ class Sampler(object):
 
                  estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
                  graphtransformer=transform.GraphTransformer(),
-                 postprocessor=transform.PostProcessor(),
+
                  feasibility_checker=feasibility.FeasibilityChecker(),
-                 decomposer=decompose.Decomposer,
+                 decomposergen=decompose.Decomposer,
 
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
@@ -70,11 +107,11 @@ class Sampler(object):
         an initialized sampler
         '''
 
-        self.decomposer_generator=lambda data: decomposer(vectorizer, data)
+        self.decomposer_generator=lambda data: decomposergen(vectorizer, data)
 
         self.graphtransformer = graphtransformer
         self.feasibility_checker = feasibility_checker
-        self.postprocessor = postprocessor
+
 
         self.vectorizer = vectorizer
 
@@ -136,7 +173,7 @@ class Sampler(object):
 
 
 
-        # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW ONES
+        # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW
 
     def save(self, file_name):
         self.lsgg._revert_multicore_transform()
@@ -150,29 +187,80 @@ class Sampler(object):
     def grammar(self):
         return self.lsgg
 
-    def fit(self, input, grammar_n_jobs=-1, grammar_batch_size=10):
+    def fit(self,
+            input=None,
+            negative_input=None,
+            regression_targets=None,
+            lsgg_include_negatives=False,
+            grammar_n_jobs=-1,
+            grammar_batch_size=10):
         """
-          use input to fit the grammar and fit the estimator
-        """
-        self.graphtransformer.set_param(self.vectorizer)
+        Parameters
+        ----------
+        input: graph iterator
+        negative_input: graph iterator
+            for negative class, if applicable
+        regression_targets: list of values for
+            regression. not yet supported
+        lsgg_include_negatives: bool, False
+            True: grammar will include cips from negative classes
+            False: use negative class only to train estimator
+        grammar_n_jobs: int, -1
+            number of processes to start
+        grammar_batch_size: int, 10
+            extract cips from this many graphs at once.
+            too low: processing overhead increases
+            too high: run out of memory
 
-        decomposers = [ self.decomposer_generator(data)
+        Returns
+        -------
+            self
+        """
+
+
+        # BUILD DECOMPOSERS FOR POSITIVE AND NEGATIVE GRAPHS
+        self.graphtransformer.set_param(self.vectorizer)
+        decomposable_graphs = [ self.decomposer_generator(data)
                         for data in  self.graphtransformer.fit_transform(input)]
 
-        self.postprocessor.fit(self.graphtransformer)
-        self._train_estimator(decomposers)
-        self.lsgg.fit(decomposers, grammar_n_jobs, batch_size=grammar_batch_size)
+        negative_input_exists=False
+        if negative_input!=None:
+            decomposable_negative_graphs = [self.decomposer_generator(data)
+                                   for data in self.graphtransformer.fit_transform(negative_input)]
+            negative_input_exists=True
+
+        if regression_targets!=None:
+            pass
+            # train esti :D
+            #(regression_targets,decomposable_graphs):
+
+
+
+
+        # TRAIN ESTIMATOR IF NEEDED
+        if self.estimatorobject.status != 'trained':
+            graphs = [d.pre_vectorizer_graph() for d in decomposable_graphs]
+            assert isinstance(graphs[0], nx.Graph), 'not a graph...' + str(graphs[0])
+            if negative_input_exists==False:
+                self.estimatorobject.fit(self.vectorizer.transform(graphs),
+                                         random_state=self.random_state)
+            else:
+                neg_graphs=[d.pre_vectorizer_graph() for d in decomposable_negative_graphs]
+                self.estimatorobject.fit(self.vectorizer.transform(graphs),self.vectorizer.transform(neg_graphs),
+                                         random_state=self.random_state)
+
+
+
+        # HANDLE GRAMMAR
+        if negative_input_exists and  lsgg_include_negatives:
+            decomposable_graphs += decomposable_negative_graphs
+        self.lsgg.fit(decomposable_graphs, n_jobs = grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 
-    def _train_estimator(self, decomposers):
-        if self.estimatorobject.status != 'trained':
-            graphs=[  d.pre_vectorizer_graph()  for d in decomposers  ]
-            assert isinstance(graphs[0],nx.Graph), 'not a graph...'+str(graphs[0])
-            self.estimatorobject.fit(graphs,
-                                     vectorizer=self.vectorizer,
-                                     random_state=self.random_state)
 
-    def sample(self, graph_iter,
+
+
+    def sample(self, graph_iter=None,
 
                probabilistic_core_choice=True,
                score_core_choice=False,
@@ -197,9 +285,25 @@ class Sampler(object):
 
                include_seed=False,
                keep_duplicates=False,
-               monitor=False):
+
+               monitor=False,
+               init_only=False):
 
         '''
+
+        to emulate MCMC sampling use these options:
+        probabilistic_core_choice=False?
+        score_core_choice=False
+        max_size_diff=-1
+        proposal_probability=False
+        target_orig_cip=False
+        improving_threshold=-1
+        improving_linear_start=1
+        accept_static_penalty=0.0
+        burnin=0
+        backtrack=0
+
+
 
         Parameters
         ----------
@@ -264,12 +368,13 @@ class Sampler(object):
             are not interesting.
         monitor : bool
             enabling monitor accessible after  sampling. sampler.monitors will contain all the information
-
+        init_only: bool
+            we can just initialise without actually running..
+            this is nice if you want more controll over the actual running process
         Returns
         -------
         list of graphs
         '''
-
         self.maxbacktrack = backtrack
 
         self.monitor = monitor
@@ -278,6 +383,7 @@ class Sampler(object):
         self.proposal_probability = proposal_probability
 
         self.similarity = similarity
+
 
         if probabilistic_core_choice + score_core_choice + max_size_diff == -1 > 1:
             raise Exception('choose max one cip choice strategy')
@@ -321,54 +427,75 @@ class Sampler(object):
                                 probabilistic_core_choice)
 
         if score_core_choice:
-            self.score_core_choice_dict = {}
-            for interface in self.lsgg.productions.keys():
-                for core in self.lsgg.productions[interface].keys():
-                    gr = self.lsgg.productions[interface][core].graph.copy()
-                    transformed_graph = self.vectorizer.transform_single(gr)
-                    score = self.estimatorobject.cal_estimator.predict_proba(transformed_graph)[0, 1]
-                    self.score_core_choice_dict[core] = score
+            self._prep_score_core_choice()
 
         logger.debug(serialize_dict(self.__dict__))
 
         if self.random_state is not None:
             random.seed(self.random_state)
+
         # sampling
+        if  init_only:
+            yield 0
         if n_jobs in [0, 1]:
-            for graph in graph_iter:
-                # sampled_graph = self._sample(graph)
-                # yield sampled_graph
-                a, b = self._sample(graph)
-                for new_graph in self.return_formatter(a, b):
-                    yield new_graph
+            for o in self._single_process(graph_iter):
+                yield o
         else:
-            if n_jobs > 1:
-                pool = Pool(processes=n_jobs)
-            else:
-                pool = Pool()
+            for o in self._multi_process(n_jobs,graph_iter):
+                yield o
 
-            sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
+    def _multi_process(self,n_jobs,graph_iter):
+        if n_jobs > 1:
+            pool = Pool(processes=n_jobs)
+        else:
+            # -1
+            pool = Pool()
 
-            jobs_done = 0
-            for batch in sampled_graphs:
-                for graphlist, moni in batch:
-                    # print type(graph)
-                    # currently formatter only returns one element and thats fine, one day this may be changed
+        sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
 
-                    for new_graph in self.return_formatter(graphlist, moni):
-                        yield new_graph
+        jobs_done = 0
+        for batch in sampled_graphs:
+            for graphlist, moni in batch:
+                # print type(graph)
+                # currently formatter only returns one element and thats fine, one day this may be changed
 
-                    # forcing termination once the results are in.
-                    jobs_done += 1
-                    # python is already starting jobs while not all are in the queue
-                    if jobs_done == self.multiprocess_jobcount and self.multiprocess_all_prepared:
-                        pool.terminate()
+                for new_graph in self.return_formatter(graphlist, moni):
+                    yield new_graph
 
-            pool.close()
-            pool.join()
-            # for pair in graphlearn_utils.multiprocess(graph_iter,\
-            #                                           _sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
-            #    yield pair
+                # forcing termination once the results are in.
+                jobs_done += 1
+                # python is already starting jobs while not all are in the queue
+                if jobs_done == self.multiprocess_jobcount and self.multiprocess_all_prepared:
+                    pool.terminate()
+
+        pool.close()
+        pool.join()
+        # for pair in graphlearn_utils.multiprocess(graph_iter,\
+        #                                           _sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
+        #    yield pair
+
+    def _single_process(self,graph_iter):
+        for graph in graph_iter:
+            # sampled_graph = self._sample(graph)
+            # yield sampled_graph
+            a, b = self._sample(graph)
+            for new_graph in self.return_formatter(a, b):
+                yield new_graph
+
+    def _prep_score_core_choice(self):
+        self.score_core_choice_dict = {}
+        for interface in self.lsgg.productions.keys():
+            for core in self.lsgg.productions[interface].keys():
+                graph = self.lsgg.productions[interface][core].graph.copy()
+                # since latest eden, vectorizer will complain when transforming.. so we set hlabel..
+                #self.vectorizer._label_preprocessing(graph)
+                #graph.graph['debugthis']=True
+                #draw.graphlearn(graph,contract=False,vertex_label='hlabel')
+                #transformed_graph = self.vectorizer.transform_single(gr)
+                # transform single is badly maintained so lets try transform...
+                transformed_graph = self.vectorizer.transform([graph])
+                score = self.estimatorobject.predict(transformed_graph)#cal_estimator.predict_proba(transformed_graph)[0, 1]
+                self.score_core_choice_dict[core] = score
 
     def return_formatter(self, graphlist, mon):
         self.monitors.append(mon)
@@ -404,34 +531,35 @@ class Sampler(object):
             return None
         # prepare variables and graph
         try:
-            graph_manager = self._sample_init(graph)
+            graph_decomposer = self._sample_init(graph)
         except Exception as exc:
             logger.warning(exc)
             logger.warning(traceback.format_exc(10))
             return None
 
-        self._score_list = [graph_manager._score]
+        self._score_list = [graph_decomposer._score]
         self.sample_path = []
         accept_counter = 0
         self.step = 0
-        self.monitorobject.tick(graph_manager, self.step)
+        self.monitorobject.tick(graph_decomposer, self.step)
         try:
             while self.step < self.n_steps:
-                self._sample_path_append(graph_manager)
+                self._sample_path_append(graph_decomposer)
                 # check stop condition..
-                self._stop_condition(graph_manager)
+                self._stop_condition(graph_decomposer)
 
                 # get a proposal for a new graph
                 # keep it if we like it
-                candidate_graph_manager = self._propose(graph_manager)
 
-                if self._accept(graph_manager, candidate_graph_manager):
+                candidate_graph_decomposer = self._propose(graph_decomposer)
+
+                if self._accept(graph_decomposer, candidate_graph_decomposer):
                     accept_counter += 1
-                    graph_manager = candidate_graph_manager
+                    graph_decomposer = candidate_graph_decomposer
 
                 # save score
-                self._score_list_append(graph_manager)
-                self.monitorobject.tick(candidate_graph_manager, self.step + 1)
+                self._score_list_append(graph_decomposer)
+                self.monitorobject.tick(candidate_graph_decomposer, self.step + 1)
                 self.step += 1
 
         except Exception as exc:
@@ -443,19 +571,8 @@ class Sampler(object):
         self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
         # we put the result in the sample_path
         # and we return a nice graph as well as a dictionary of additional information
-        self._sample_path_append(graph_manager, force=True)
+        self._sample_path_append(graph_decomposer, force=True)
 
-        """ old way
-        sampled_graph = graph_manager.out()
-        sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
-                                                'score_history': self._score_list,
-                                                'accept_count': accept_counter,
-                                                'notes': self._sample_notes,
-                                                'monitor':self.monitorobject}
-        return sampled_graph
-        """
-        # sampled_graph = graph_manager.out()
-        # sampled_graph.graph['sampling_info'] = {'graphs_history': self.sample_path,
 
         sampling_info = {'score_history': self._score_list,
                          'accept_count': accept_counter,
@@ -497,26 +614,25 @@ class Sampler(object):
         - possibly we are in a multiprocessing process, and this class instance hasnt been used before,
           in this case we need to rebuild the postprocessing function .
         '''
-        self.monitorobject = monitor.Monitor(self.monitor)
-
+        self._sample_init_init_monitor()
         self.backtrack = self.maxbacktrack
         self.last_graphman = None
+        decomposer = self.decomposer_generator(data=self.graphtransformer.transform([graph])[0])
 
-        graphman = self.decomposer_generator(data=self.graphtransformer.transform([graph])[0])
-
-        graph = graphman.base_graph()
+        graph = decomposer.base_graph()
         if self.max_core_size_diff > -1:
             self.seed_size = len(graph)
-        self._score(graphman)
+        self._score(decomposer)
         self._sample_notes = ''
         self._sample_path_score_set = set()
         if self.include_seed == False:  # make sure that seed never appears,, may happen if there is nothing happening
-            self._sample_path_score_set.add(graphman._score)
-
+            self._sample_path_score_set.add(decomposer._score)
         # print 'sample init:',graphman
         # draw.graphlearn_draw(graphman.graph())
+        return decomposer
 
-        return graphman
+    def _sample_init_init_monitor(self):
+        self.monitorobject = monitor.Monitor(self.monitor)
 
     def _stop_condition(self, decomposer):
         '''
@@ -543,24 +659,29 @@ class Sampler(object):
                 if similarity < self.similarity:
                     raise Exception('similarity stop condition reached')
 
-    def _score(self, graphmanager):
+    def _score(self, graphdecomposer):
         """
 
         Parameters
         ----------
-        graphmanager: a graphdecomposer
+        graphdecomposer: a graphdecomposer
 
         Returns
         -------
         score of graph
-        we also set graph.score_nonlog and graph.score
+        also some infromation is cached in the decomposer oOo
+
+
         """
 
-        if '_score' not in graphmanager.__dict__:
-            graphmanager._score, graphmanager.transformed_vector = self.estimatorobject.predict(graphmanager.pre_vectorizer_graph(),keep_vector=True)
+        if 'vectorized_graph' not in graphdecomposer.__dict__:
+            graphdecomposer.vectorized_graph= self.vectorizer.transform([graphdecomposer.pre_vectorizer_graph()])
 
-            self.monitorobject.info('score', graphmanager._score)
-        return graphmanager._score
+        if '_score' not in graphdecomposer.__dict__:
+            graphdecomposer._score  = self.estimatorobject.predict(graphdecomposer.vectorized_graph)
+            self.monitorobject.info('score', graphdecomposer._score)
+
+        return graphdecomposer._score
 
     def _accept(self, graphman_old, graphman_new):
         '''
@@ -613,27 +734,27 @@ class Sampler(object):
         self.monitorobject.info('accepted:', accept_decision)
         return accept_decision
 
-    def _propose(self, graphman):
+    def _propose(self, decomposer):
         """
         we do the backtrack
         """
 
         if self.maxbacktrack > 0:
             self.backtrack_graphman = self.last_graphman
-            self.last_graphman = graphman
+            self.last_graphman = decomposer
 
-        graphman2 = self._propose_graph(graphman)
+        proposed_decomposer = self._propose_graph(decomposer)
 
-        if self.backtrack > 0 and not graphman2:
+        if self.backtrack > 0 and not proposed_decomposer:
             # print 'backtracking'
             # draw.graphlearn([graphman.base_graph(),self.backtrack_graphman.base_graph()])
             self.backtrack -= 1
             self.step -= 1
             self.monitorobject.info('backtrack to (score)', self.backtrack_graphman._score)
-            graphman2 = self._propose_graph(self.backtrack_graphman)
+            proposed_decomposer = self._propose_graph(self.backtrack_graphman)
 
-        if graphman2:
-            return graphman2
+        if proposed_decomposer:
+            return proposed_decomposer
 
         raise Exception("propose failed.. usualy the problem is propose_single_cip")
 
@@ -661,11 +782,14 @@ class Sampler(object):
                 self.monitorobject.info('substitution', "root: %d , newcip: %d / %d" %
                                         (original_cip.distance_dict[0][0], candidate_cip.interface_hash,
                                          candidate_cip.core_hash))
+
                 new_graph = decomposer.core_substitution(original_cip.graph, candidate_cip.graph)
 
+
                 if self.feasibility_checker.check(new_graph):
-                    new_decomposer = self.decomposer_generator(self.postprocessor.re_transform_single(new_graph))
-                    if new_decomposer:
+                    new_decomposer = self.decomposer_generator(self.graphtransformer.re_transform_single(new_graph))
+
+                if new_decomposer:
                         self.calc_proposal_probability(decomposer, new_decomposer, original_cip)
 
                         self._samplelog(

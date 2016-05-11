@@ -1,5 +1,10 @@
-import decompose as gt
+'''
+sometimes input graphs or graphs after a substitution need a
+little fixing to be able to be used by graphlearn.
 
+graphtransformer: graph -> object the decomposer unterstands how to use
+'''
+import decompose
 
 class GraphTransformer(object):
     def set_param(self, vectorizer):
@@ -47,22 +52,5 @@ class GraphTransformer(object):
         '''
         return [self.vectorizer._edge_to_vertex_transform(i) for i in inputs]
 
-    def wrap(self, graph):
-        raise "OMG OMG OMG somebody tried to call wrap, but we dont wrap anymore."
-        return gt.Decomposer(graph, self.vectorizer)
 
 
-class PostProcessor(object):
-    def fit(self, preprocessor):
-        self.pp = preprocessor
-        return self
-
-    def fit_transform(self, preprocessor, inputs):
-        self.fit(preprocessor)
-        return self.transform(inputs)
-
-    def re_transform_single(self, input):
-        return self.transform([input])[0]
-
-    def transform(self, inputs):
-        return self.pp.transform(inputs)

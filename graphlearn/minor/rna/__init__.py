@@ -1,3 +1,4 @@
+''' utility functions to deal with rna '''
 import textwrap
 import networkx as nx
 

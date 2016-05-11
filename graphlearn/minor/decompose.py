@@ -1,3 +1,8 @@
+'''
+decomposer for graphs and their minors.
+extends the cips a normal decomposer is working with by cips that
+take care of the minor graphs.
+'''
 from eden.modifier.graph import vertex_attributes
 from eden.modifier.graph.structure import contraction
 import graphlearn.decompose as graphtools
@@ -10,10 +15,13 @@ import eden.util.display as edraw
 import eden
 logger = logging.getLogger(__name__)
 
-'''
-this file contains the abstract wrapper only.
-'''
 
+
+
+def make_decomposergen(include_base=False, base_thickness_list=[2]):
+    return lambda v, d: MinorDecomposer(v, d,
+                                include_base=include_base,
+                                base_thickness_list=base_thickness_list)
 
 class MinorDecomposer(Decomposer):
     '''
@@ -102,7 +110,7 @@ class MinorDecomposer(Decomposer):
         if len(self._base_graph) > 0:
             self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
         self._abstract_graph = data[1]
-        self._mod_dict = {}  # this is the default.
+        self._mod_dict = self._abstract_graph.graph.get("mod_dict",{})  # this is the default.
         self.include_base = include_base  # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
 
     def rooted_core_interface_pairs(self, root, thickness=None, for_base=False,
@@ -148,15 +156,12 @@ class MinorDecomposer(Decomposer):
                                       node_filter=node_filter)
 
     def all_core_interface_pairs(self,
-
-
-         thickness=None,
-            for_base=False,
-         hash_bitmask=None,
-      radius_list=[],
-      thickness_list=None,
-      node_filter=lambda x, y: True
-        ):
+                                thickness=None,
+                                for_base=False,
+                                hash_bitmask=None,
+                                radius_list=[],
+                                thickness_list=None,
+                                node_filter=lambda x, y: True):
         '''
 
         Parameters
@@ -167,18 +172,21 @@ class MinorDecomposer(Decomposer):
         -------
 
         '''
-        graph = self.abstract_graph()
+        graph=self.abstract_graph()
+        nodes = filter(lambda x: node_filter(graph, x), graph.nodes())
+        nodes = filter(lambda x: graph.node[x].get('APPROVEDABSTRACTNODE',True),nodes)
+
         cips = []
-        for root_node in graph.nodes_iter():
+        for root_node in nodes:
             if 'edge' in graph.node[root_node]:
                 continue
             cip_list = self.rooted_core_interface_pairs(root_node,
                                                         thickness=thickness,
-            for_base=for_base,
-         hash_bitmask=hash_bitmask,
-      radius_list=radius_list,
-      thickness_list=thickness_list,
-      node_filter=node_filter)
+                                                        for_base=for_base,
+                                                        hash_bitmask=hash_bitmask,
+                                                        radius_list=radius_list,
+                                                        thickness_list=thickness_list,
+                                                        node_filter=node_filter)
             if cip_list:
                 cips.append(cip_list)
 
@@ -187,18 +195,22 @@ class MinorDecomposer(Decomposer):
             for root_node in graph.nodes_iter():
                 if 'edge' in graph.node[root_node]:
                     continue
-                cip_list = self.rooted_core_interface_pairs(root_node, for_base=self.include_base,
-                                                        thickness=thickness,
-                                                     hash_bitmask=hash_bitmask,
-                                                  radius_list=radius_list,
-                                                  thickness_list=thickness_list,
-                                                  node_filter=node_filter)
+                cip_list = self.rooted_core_interface_pairs(root_node,
+                                                            for_base=self.include_base,
+                                                            thickness=thickness,
+                                                            hash_bitmask=hash_bitmask,
+                                                            radius_list=radius_list,
+                                                            thickness_list=thickness_list,
+                                                            node_filter=node_filter)
                 if cip_list:
                     cips.append(cip_list)
 
         return cips
 
-    def random_core_interface_pair(self, radius_list=None, thickness_list=None, hash_bitmask=None,
+    def random_core_interface_pair(self,
+                                   radius_list=None,
+                                   thickness_list=None,
+                                   hash_bitmask=None,
                                    node_filter=lambda x, y: True):
         '''
         get a random cip  rooted in the minor
@@ -213,7 +225,9 @@ class MinorDecomposer(Decomposer):
         -------
             cip
         '''
-        node = random.choice(self.abstract_graph().nodes())
+        nodes = filter(lambda x: node_filter(self.abstract_graph(), x), self.abstract_graph().nodes())
+        nodes =  filter(lambda x: self.abstract_graph().node[x].get('APPROVEDABSTRACTNODE',True),nodes)
+        node = random.choice(nodes)
         if 'edge' in self._abstract_graph.node[node]:
             node = random.choice(self._abstract_graph.neighbors(node))
             # random radius and thickness
@@ -614,14 +628,3 @@ def extract_cips_base(node,
 
     return cips
 root_node=None,
-
-'''
-graphtools.extract_core_and_interface:
-            root_node=None,
-            graph=None,
-            vectorizer=Vectorizer(),
-            hash_bitmask=2 ** 20 - 1,
-            radius_list=None,
-            thickness_list=None,
-            node_filter=lambda x, y: True
-'''

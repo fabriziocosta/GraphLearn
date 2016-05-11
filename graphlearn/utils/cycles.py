@@ -1,5 +1,9 @@
-from collections import defaultdict
+'''
+tools for cycles in graphs.
 
+'''
+
+from collections import defaultdict
 
 # for the checking we need a function that takes a graph.. so we make one.. :)
 def cycles(max_cycle_size):

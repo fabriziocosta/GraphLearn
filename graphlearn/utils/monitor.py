@@ -1,3 +1,8 @@
+'''
+during sampling, in each step information is collected.
+this information is aquired and accessible through this Monitor
+'''
+
 class Monitor(object):
     '''
     will save a list of dicts, one for each sampling step.

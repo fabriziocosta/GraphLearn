@@ -1,0 +1,9 @@
+
+BUILD A MODEL:
+./graphlearn_fit.py --inp test.gspan 
+
+SAMPLE:
+./graphlearn_sample.py --start_graphs test.gspan
+
+
+

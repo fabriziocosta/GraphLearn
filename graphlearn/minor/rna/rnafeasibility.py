@@ -1,8 +1,8 @@
-import networkx as nx
-
 '''
 rna feasibility checker
 '''
+import networkx as nx
+
 def is_rna(graph):
     graph = graph.copy()
     # remove structure

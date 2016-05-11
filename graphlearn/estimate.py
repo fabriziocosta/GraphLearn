@@ -1,10 +1,62 @@
+'''
+OneClassEstimator
+'''
 from eden.util import fit_estimator as eden_fit_estimator
 import numpy
 from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier
 import random
-import networkx as nx
+
+
+
+class TwoClassEstimator:
+    '''
+    there might be a bug connected to nx.digraph..
+    '''
+    def __init__(self, cv=2, n_jobs=-1,recalibrate=False, classifier=SGDClassifier(loss='log')):
+        '''
+        Parameters
+        ----------
+        cv:
+        n_jobs: jobs for fitting
+        recalibrate: recalibration... not implemented, not sure if needed.
+        classifier: calssifier object
+
+        Returns
+        -------
+        '''
+        self.status = 'new'
+        self.cv = cv
+        self.n_jobs = n_jobs
+        self.classifier=classifier
+        self.inverse_prediction = False
+        self.recalibrate=recalibrate
+
+    def fit(self, data_matrix,data_matrix_neg, random_state=None):
+        if random_state is not None:
+            random.seed(random_state)
+        # use eden to fitoooOoO
+        self.estimator = eden_fit_estimator(self.classifier, positive_data_matrix=data_matrix,
+                           negative_data_matrix=data_matrix_neg,
+                           cv=self.cv,
+                           n_jobs=self.n_jobs,
+                           n_iter_search=10,
+                           random_state=random_state)
+        self.cal_estimator=self.estimator
+        self.status = 'trained'
+        return self
+
+    def predict(self, vectorized_graph):
+        if self.recalibrate:
+            result = self.cal_estimator.predict_proba(vectorized_graph)[0, 1]
+        else:
+            result = self.cal_estimator.decision_function(vectorized_graph)[0]
+
+        if self.inverse_prediction:
+            return 1 - result
+        return result
+
 
 
 class OneClassEstimator:
@@ -12,26 +64,36 @@ class OneClassEstimator:
     there might be a bug connected to nx.digraph..
     '''
 
-    def __init__(self, nu=.5, cv=2, n_jobs=-1, calibrate=True):
+    def __init__(self, nu=.5, cv=2, n_jobs=-1, move_bias_calibrate=True, classifier=SGDClassifier(loss='log')):
+        '''
+        Parameters
+        ----------
+        nu: part of graphs that will be placed in the negative set (0~1)
+        cv:
+        n_jobs: jobs for fitting
+        move_bias_calibrate: after moving the bias we can recalibrate
+        classifier: calssifier object
+        Returns
+        -------
+        '''
         self.status = 'new'
         self.nu = nu
         self.cv = cv
         self.n_jobs = n_jobs
-        self.calibrate = calibrate
+        self.move_bias_recalibrate = move_bias_calibrate
+        self.classifier = classifier
+        self.inverse_prediction = False
 
-    def fit(self, graphs, vectorizer=None, random_state=None):
-        self.vectorizer = vectorizer
+    def fit(self, data_matrix, random_state=None):
+
         if random_state is not None:
             random.seed(random_state)
 
-        # convert to sklearn compatible format
-        data_matrix = vectorizer.fit_transform(graphs)
-
-        # fit
+        # use eden to fitoooOoO
         self.estimator = self.fit_estimator(data_matrix, n_jobs=self.n_jobs, cv=self.cv, random_state=random_state)
 
-        # calibrate
-        self.cal_estimator = self.calibrate_estimator(data_matrix, estimator=self.estimator, nu=self.nu, cv=self.cv)
+        # move bias to obtain oneclassestimator
+        self.cal_estimator = self.move_bias(data_matrix, estimator=self.estimator, nu=self.nu, cv=self.cv)
 
         self.status = 'trained'
         return self
@@ -73,14 +135,14 @@ class OneClassEstimator:
         data_matrix_neg = data_matrix.multiply(-1)
         # i hope loss is log.. not 100% sure..
         # probably calibration will fix this#
-        return eden_fit_estimator(SGDClassifier(loss='log'), positive_data_matrix=data_matrix,
+        return eden_fit_estimator(self.classifier, positive_data_matrix=data_matrix,
                                   negative_data_matrix=data_matrix_neg,
                                   cv=cv,
                                   n_jobs=n_jobs,
                                   n_iter_search=10,
                                   random_state=random_state)
 
-    def calibrate_estimator(self, data_matrix, estimator=None, nu=.5, cv=2):
+    def move_bias(self, data_matrix, estimator=None, nu=.5, cv=2):
         '''
             move bias until nu of data_matrix are in the negative class
             then use scikits calibrate to calibrate self.estimator around the input
@@ -92,23 +154,19 @@ class OneClassEstimator:
         estimator.intercept_ -= l[element][0]
 
         # calibrate
-        if self.calibrate:
+        if self.move_bias_recalibrate:
             data_matrix_binary = vstack([a[1] for a in l])
             data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
             estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
             estimator.fit(data_matrix_binary, data_y)
-
         return estimator
 
-    def predict(self, graph, keep_vector=False):
+    def predict(self, vectorized_graph):
+        if self.move_bias_recalibrate:
+            result = self.cal_estimator.predict_proba(vectorized_graph)[0, 1]
+        else:
+            result = self.cal_estimator.decision_function(vectorized_graph)[0]
 
-        transformed_graph = self.vectorizer.transform_single(graph)
-        # slow so dont do it..
-        # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
-
-        f= lambda x: (x,transformed_graph) if keep_vector  else x
-
-        if self.calibrate:
-            return f(self.cal_estimator.predict_proba(transformed_graph)[0, 1])
-        return f(self.cal_estimator.decision_function(transformed_graph)[0])
-
+        if self.inverse_prediction:
+            return 1 - result
+        return result
