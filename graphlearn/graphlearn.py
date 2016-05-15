@@ -229,10 +229,6 @@ class Sampler(object):
                                    for data in self.graphtransformer.fit_transform(negative_input)]
             negative_input_exists=True
 
-        if regression_targets!=None:
-            pass
-            # train esti :D
-            #(regression_targets,decomposable_graphs):
 
 
 
@@ -244,6 +240,11 @@ class Sampler(object):
             if negative_input_exists==False:
                 self.estimatorobject.fit(self.vectorizer.transform(graphs),
                                          random_state=self.random_state)
+            elif regression_targets!=None:
+                #def fit(self, data_matrix, values, random_state=None):
+                self.esttimatorobject.fit(self.vectorizer.transform(graphs), regression_targets, random_state=self.random_state)
+
+            #(regression_targets,decomposable_graphs):
             else:
                 neg_graphs=[d.pre_vectorizer_graph() for d in decomposable_negative_graphs]
                 self.estimatorobject.fit(self.vectorizer.transform(graphs),self.vectorizer.transform(neg_graphs),
