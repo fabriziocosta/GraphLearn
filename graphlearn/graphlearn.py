@@ -237,13 +237,14 @@ class Sampler(object):
         if self.estimatorobject.status != 'trained':
             graphs = [d.pre_vectorizer_graph() for d in decomposable_graphs]
             assert isinstance(graphs[0], nx.Graph), 'not a graph...' + str(graphs[0])
-            if negative_input_exists==False:
-                self.estimatorobject.fit(self.vectorizer.transform(graphs),
-                                         random_state=self.random_state)
-            elif regression_targets!=None:
-                #def fit(self, data_matrix, values, random_state=None):
-                self.esttimatorobject.fit(self.vectorizer.transform(graphs), regression_targets, random_state=self.random_state)
 
+            if regression_targets!=None:
+                #def fit(self, data_matrix, values, random_state=None):
+                self.estimatorobject=estimate.Regressor()
+                self.estimatorobject.fit(self.vectorizer.transform(graphs), regression_targets, random_state=self.random_state)
+            elif negative_input_exists == False:
+                self.estimatorobject.fit(self.vectorizer.transform(graphs),
+                    random_state=self.random_state)
             #(regression_targets,decomposable_graphs):
             else:
                 neg_graphs=[d.pre_vectorizer_graph() for d in decomposable_negative_graphs]
