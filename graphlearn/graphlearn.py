@@ -386,7 +386,7 @@ class Sampler(object):
         self.similarity = similarity
 
 
-        if probabilistic_core_choice + score_core_choice + max_size_diff == -1 > 1:
+        if probabilistic_core_choice + score_core_choice + (max_size_diff > -1)  > 1:
             raise Exception('choose max one cip choice strategy')
 
         if n_samples:
