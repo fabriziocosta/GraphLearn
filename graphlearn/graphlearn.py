@@ -229,10 +229,6 @@ class Sampler(object):
                                    for data in self.graphtransformer.fit_transform(negative_input)]
             negative_input_exists=True
 
-        if regression_targets!=None:
-            pass
-            # train esti :D
-            #(regression_targets,decomposable_graphs):
 
 
 
@@ -241,9 +237,15 @@ class Sampler(object):
         if self.estimatorobject.status != 'trained':
             graphs = [d.pre_vectorizer_graph() for d in decomposable_graphs]
             assert isinstance(graphs[0], nx.Graph), 'not a graph...' + str(graphs[0])
-            if negative_input_exists==False:
+
+            if regression_targets!=None:
+                #def fit(self, data_matrix, values, random_state=None):
+                self.estimatorobject=estimate.Regressor()
+                self.estimatorobject.fit(self.vectorizer.transform(graphs), regression_targets, random_state=self.random_state)
+            elif negative_input_exists == False:
                 self.estimatorobject.fit(self.vectorizer.transform(graphs),
-                                         random_state=self.random_state)
+                    random_state=self.random_state)
+            #(regression_targets,decomposable_graphs):
             else:
                 neg_graphs=[d.pre_vectorizer_graph() for d in decomposable_negative_graphs]
                 self.estimatorobject.fit(self.vectorizer.transform(graphs),self.vectorizer.transform(neg_graphs),
@@ -385,7 +387,7 @@ class Sampler(object):
         self.similarity = similarity
 
 
-        if probabilistic_core_choice + score_core_choice + max_size_diff == -1 > 1:
+        if probabilistic_core_choice + score_core_choice + (max_size_diff > -1)  > 1:
             raise Exception('choose max one cip choice strategy')
 
         if n_samples:

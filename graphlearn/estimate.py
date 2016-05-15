@@ -5,8 +5,52 @@ from eden.util import fit_estimator as eden_fit_estimator
 import numpy
 from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
-from sklearn.linear_model import SGDClassifier
+from sklearn.linear_model import SGDClassifier,LinearRegression
 import random
+
+
+
+        # Train the model using the training sets
+
+
+
+class Regressor:
+    '''
+    there might be a bug connected to nx.digraph..
+    '''
+    def __init__(self,regressor=LinearRegression()):
+        '''
+        Parameters
+        ----------
+        regressor: regressor
+
+        Returns
+        -------
+        '''
+        self.status = 'new'
+        self.regressor=regressor
+        self.inverse_prediction = False
+
+
+    def fit(self, data_matrix,values, random_state=None):
+
+        if random_state is not None:
+            random.seed(random_state)
+        # use eden to fitoooOoO
+        self.estimator = self.regressor.fit(data_matrix, values)
+
+        self.mean = numpy.mean(self.estimator.predict(data_matrix))
+
+        self.cal_estimator=self.estimator
+        self.status = 'trained'
+        return self
+
+    def predict(self, vectorized_graph):
+        res= self.cal_estimator.predict(vectorized_graph)
+        if self.inverse_prediction:
+            res+=(self.mean-res)*2
+        return res
+
 
 
 
