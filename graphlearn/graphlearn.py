@@ -264,9 +264,11 @@ class Sampler(object):
 
     def sample(self, graph_iter=None,
 
+
+               size_diff_core_filter_max=-1,
                probabilistic_core_choice=True,
                score_core_choice=False,
-               max_size_diff=-1,
+               size_constrained_core_choice=-1,
 
                similarity=-1,
                n_samples=None,
@@ -313,11 +315,13 @@ class Sampler(object):
             the by nw trained preprocessor will turn them into  graphwrappers
 
 
+        size_diff_core_filter_max: int
+            filters the cores for size before the other core_choices are applied
         probabilistic_core_choice : bool
             cores are chosen according to their frequency in the grammar...
         score_core_choice : bool
             cores are chosen  probabilisticaly according to their score
-        max_size_diff : int
+        size_constrained_core_choice : int
             linear increasing penalty is applied to enforce that the graphs
             stays in the desired size range
 
@@ -387,8 +391,8 @@ class Sampler(object):
         self.similarity = similarity
 
 
-        if probabilistic_core_choice + score_core_choice + (max_size_diff > -1)  > 1:
-            raise Exception('choose max one cip choice strategy')
+        if probabilistic_core_choice + score_core_choice + (size_constrained_core_choice > -1)  > 1:
+            raise Exception('choose only one parameter core_choice')
 
         if n_samples:
             self.sampling_interval = int((n_steps - burnin) / (n_samples + include_seed - 1))
@@ -400,9 +404,10 @@ class Sampler(object):
         self.n_jobs = n_jobs
         self.target_orig_cip = target_orig_cip
 
+        self.size_diff_core_filter_max=size_diff_core_filter_max
         # the user doesnt know about edge nodes.. so this needs to be done
-        max_size_diff = max_size_diff * 2
-        self.max_core_size_diff = max_size_diff
+        size_constrained_core_choice = size_constrained_core_choice * 2
+        self.max_core_size_diff = size_constrained_core_choice
 
         #  calculating the actual steps for improving :)
         self.improving_threshold = improving_threshold
@@ -425,7 +430,7 @@ class Sampler(object):
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
         self.lsgg.preprocessing(n_jobs,
-                                max_size_diff,
+                                (self.max_core_size_diff+self.size_diff_core_filter_max )> -2,
                                 probabilistic_core_choice)
 
         if score_core_choice:
@@ -622,7 +627,7 @@ class Sampler(object):
         decomposer = self.decomposer_generator(data=self.graphtransformer.transform([graph])[0])
 
         graph = decomposer.base_graph()
-        if self.max_core_size_diff > -1:
+        if self.max_core_size_diff > -1 or self.size_diff_core_filter_max:
             self.seed_size = len(graph)
         self._score(decomposer)
         self._sample_notes = ''
@@ -887,6 +892,13 @@ class Sampler(object):
     def _core_values(self, cip, core_hashes, graph):
         core_weights = []
 
+        if self.size_diff_core_filter_max > -1:
+            # resultsizediff=  graphlen+new_core-oldcore-seed..
+            # x is that without the new_core size:)
+            x= len(graph)-self.seed_size-cip.core_nodes_count
+            sizecheck=lambda core: abs(x+self.lsgg.core_size[core]) <= self.size_diff_core_filter_max
+            core_hashes= [core_hash for core_hash in core_hashes if sizecheck(core_hash)]
+
         if self.probabilistic_core_choice:
             for core_hash in core_hashes:
                 core_weights.append(self.lsgg.frequency[cip.interface_hash][core_hash])
@@ -905,6 +917,7 @@ class Sampler(object):
                 predicted_size = self.lsgg.core_size[core] - cip.core_nodes_count + current_size
                 value = max(0, 100 - (abs(goal_size - predicted_size) * unit))
                 core_weights.append(value)
+
         else:
             core_weights = [1] * len(core_hashes)
 

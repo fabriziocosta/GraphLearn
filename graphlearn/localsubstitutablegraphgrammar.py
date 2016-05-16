@@ -43,7 +43,7 @@ class LocalSubstitutableGraphGrammar(object):
 
     def preprocessing(self,
                       n_jobs=0,
-                      max_core_size_diff=0,
+                      core_size_required=False,
                       probabilistic_core_choice=False):
         """
         Preprocess need to be done before sampling.
@@ -52,7 +52,7 @@ class LocalSubstitutableGraphGrammar(object):
         ----------
         n_jobs: int
             how many jobs to use
-        max_core_size_diff: int
+        core_size_required: int
             pass
         probabilistic_core_choice: bool
             choose cores according to frequency
@@ -69,7 +69,7 @@ class LocalSubstitutableGraphGrammar(object):
 
         logger.debug('preprocessing grammar')
 
-        if max_core_size_diff > -1:
+        if core_size_required:
             if self.prep_is_outdated or 'core_size' not in self.__dict__:
                 self._add_core_size_quicklookup()
 
