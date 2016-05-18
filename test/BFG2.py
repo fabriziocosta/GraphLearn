@@ -75,7 +75,7 @@ def sample(graphs):
     sampler.fit(graphs)
     return unpack(sampler.sample(graphs_,
                                  same_radius=False,
-                                 max_size_diff=False,
+                                 size_constrained_core_choice=False,
                                  sampling_interval=9999,
                                  select_cip_max_tries=100,
                                  batch_size=30,
