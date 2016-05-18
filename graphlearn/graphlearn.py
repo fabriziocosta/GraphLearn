@@ -265,7 +265,7 @@ class Sampler(object):
     def sample(self, graph_iter=None,
 
 
-               size_diff_core_filter_max=-1,
+               size_diff_core_filter=-1,
                probabilistic_core_choice=True,
                score_core_choice=False,
                size_constrained_core_choice=-1,
@@ -315,8 +315,9 @@ class Sampler(object):
             the by nw trained preprocessor will turn them into  graphwrappers
 
 
-        size_diff_core_filter_max: int
-            filters the cores for size before the other core_choices are applied
+        size_diff_core_filter: int
+            filters the cores for size before the other core_choices are applied.
+            i just hard-filter all the cips whose implantation would result in a graph thats not in +- arg of the seed
         probabilistic_core_choice : bool
             cores are chosen according to their frequency in the grammar...
         score_core_choice : bool
@@ -404,7 +405,7 @@ class Sampler(object):
         self.n_jobs = n_jobs
         self.target_orig_cip = target_orig_cip
 
-        self.size_diff_core_filter_max=size_diff_core_filter_max
+        self.size_diff_core_filter_max=size_diff_core_filter
         # the user doesnt know about edge nodes.. so this needs to be done
         size_constrained_core_choice = size_constrained_core_choice * 2
         self.max_core_size_diff = size_constrained_core_choice

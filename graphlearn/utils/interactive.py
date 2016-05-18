@@ -27,7 +27,8 @@ def setparameters(sampler):
     # this way we are flexible and dont have to think if future changes are incoming
     probabilistic_core_choice = True
     score_core_choice = False
-    max_core_size_diff = -1
+    size_constrained_core_choice = -1
+    size_diff_core_filter=-1
     similarity = -1
     n_samples = None
     proposal_probability = False
@@ -43,7 +44,7 @@ def setparameters(sampler):
     sampler.proposal_probability = proposal_probability
     sampler.similarity = similarity
 
-    if probabilistic_core_choice + score_core_choice + max_core_size_diff == -1 > 1:
+    if probabilistic_core_choice + score_core_choice + size_constrained_core_choice == -1 > 1:
         raise Exception('choose max one cip choice strategy')
 
     # if n_samples:
@@ -56,7 +57,8 @@ def setparameters(sampler):
     sampler.target_orig_cip = target_orig_cip
 
     # the user doesnt know about edge nodes.. so this needs to be done
-    max_core_size_diff = max_core_size_diff * 2
+    sampler.size_diff_core_filter_max = size_diff_core_filter
+    max_core_size_diff = size_constrained_core_choice * 2
     sampler.max_core_size_diff = max_core_size_diff
     sampler.select_cip_max_tries = select_cip_max_tries
     sampler.burnin = burnin
