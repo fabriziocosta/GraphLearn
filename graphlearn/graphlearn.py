@@ -276,7 +276,9 @@ class Sampler(object):
                batch_size=10,
                n_jobs=0,
 
-               target_orig_cip=False,
+               orig_cip_max_positives=1,
+               orig_cip_min_positives=0,
+
                n_steps=50,
                quick_skip_orig_cip=False,
                improving_threshold=-1,
@@ -339,8 +341,11 @@ class Sampler(object):
             (maybe i should calculate the max effective number and use that)
         n_jobs : int (-1)
             number of processes created used. -1 is cpu count
-        target_orig_cip : bool
-            omly replace low scoring parts of the graph.. see implementation for details
+        orig_cip_max_positives : float , -1
+        orig_cip_min_positives : float , -1
+            min/max positives is the ratio of allowed high-scoring nodes
+            in the core of the cip picked to be replaced.
+            .5-> 50% high scoring nodes in core of cip
 
         n_steps: int
             sample steps
@@ -403,7 +408,9 @@ class Sampler(object):
         self.n_steps = n_steps
         self.quick_skip_orig_cip = quick_skip_orig_cip
         self.n_jobs = n_jobs
-        self.target_orig_cip = target_orig_cip
+        self.orig_cip_max_positives = orig_cip_max_positives
+        self.orig_cip_min_positives = orig_cip_min_positives
+        self.orig_cip_score_tricks = self.orig_cip_max_positives != 1  or self.orig_cip_min_positives != 0
 
         self.size_diff_core_filter_max=size_diff_core_filter
         # the user doesnt know about edge nodes.. so this needs to be done
@@ -593,7 +600,9 @@ class Sampler(object):
 
     def _sample_path_append(self, graphmanager, force=False):
 
-        step0 = (self.step == 0 and self.include_seed is False)
+        # self.include_seed was checking for wfalse... wtf...
+        step0 = (self.step == 0 and self.include_seed is True)
+
         normal = self.step % self.sampling_interval == 0 and self.step != 0 and self.step > self.burnin
 
         # conditions meet?
@@ -954,7 +963,7 @@ class Sampler(object):
         - original_cip_extraction  takes care of extracting a cip
         - accept_original_cip makes sure that the cip we got is indeed in the grammar
         """
-        if self.target_orig_cip:
+        if self.orig_cip_score_tricks:
             graphman.mark_median(inp='importance', out='is_good', estimator=self.estimatorobject.estimator)
 
         # draw.graphlearn(graphman.abstract_graph(), size=10)
@@ -1014,19 +1023,19 @@ class Sampler(object):
         -------
         good or nogood (bool)
         """
+
+
         score_ok = True
-        if self.target_orig_cip:
+        if self.orig_cip_score_tricks:
             imp = []
             for n, d in cip.graph.nodes(data=True):
                 if 'interface' not in d and 'edge' not in d:
                     imp.append(d['is_good'])
 
-            if (float(sum(imp)) / len(imp)) > 0.9:
-                # print imp
-                # from utils import draw
-                # draw.draw_graph(cip.graph, vertex_label='is_good', secondary_vertex_label='importance')
+            if (float(sum(imp)) / len(imp)) > self.orig_cip_max_positives:
                 score_ok = False
-
+            if (float(sum(imp)) / len(imp)) < self.orig_cip_min_positives:
+                score_ok = False
         in_grammar = False
         if len(self.lsgg.productions.get(cip.interface_hash, {})) > 1:
             in_grammar = True
