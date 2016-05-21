@@ -7,3 +7,18 @@ Discriminative systems that can deal with graphs in input are known, however, ge
 
 # Reference
 Costa, Fabrizio. "Learning an efficient constructive sampler for graphs." Artificial Intelligence (2016). [link](http://www.sciencedirect.com/science/article/pii/S0004370216000138)
+
+
+# Examples
+See [here](https://github.com/costa/GraphLearn_examples) for more examples.
+
+* [Introduction to GraphLearn](https://github.com/costa/GraphLearn_examples/blob/master/Introduction.ipynb)
+
+* [CoreMorph -- enhanced grammar](https://github.com/costa/GraphLearn_examples/blob/master/Abstract/coremorph.ipynb)
+
+* [Interactive -- sample graphs step by step](https://github.com/costa/GraphLearn_examples/blob/master/simple_toys/interactive_creation.ipynb)
+
+* [MultiGoal -- optimize towards multiple goals](https://github.com/costa/GraphLearn_examples/blob/master/SamplerCombiner.ipynb)
+
+
+
