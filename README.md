@@ -14,7 +14,7 @@ See [here](https://github.com/fabriziocosta/GraphLearn_examples) for more exampl
 
 * [Introduction to GraphLearn](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/Introduction.ipynb)
 
-* [CoreMorph -- enhanced grammar](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/Abstract/coremorph.ipynb)
+* [CoreMorph -- enhanced grammar](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/Abstract/CoreMorph.ipynb)
 
 * [Interactive -- sample graphs step by step](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/simple_toys/interactive_creation.ipynb)
 
