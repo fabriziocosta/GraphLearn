@@ -10,15 +10,15 @@ Costa, Fabrizio. "Learning an efficient constructive sampler for graphs." Artifi
 
 
 # Examples
-See [here](https://github.com/costa/GraphLearn_examples) for more examples.
+See [here](https://github.com/fabriziocosta/GraphLearn_examples) for more examples.
 
-* [Introduction to GraphLearn](https://github.com/costa/GraphLearn_examples/blob/master/Introduction.ipynb)
+* [Introduction to GraphLearn](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/Introduction.ipynb)
 
-* [CoreMorph -- enhanced grammar](https://github.com/costa/GraphLearn_examples/blob/master/Abstract/coremorph.ipynb)
+* [CoreMorph -- enhanced grammar](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/Abstract/coremorph.ipynb)
 
-* [Interactive -- sample graphs step by step](https://github.com/costa/GraphLearn_examples/blob/master/simple_toys/interactive_creation.ipynb)
+* [Interactive -- sample graphs step by step](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/simple_toys/interactive_creation.ipynb)
 
-* [MultiGoal -- optimize towards multiple goals](https://github.com/costa/GraphLearn_examples/blob/master/SamplerCombiner.ipynb)
+* [MultiGoal -- optimize towards multiple goals](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/SamplerCombiner.ipynb)
 
 
 
