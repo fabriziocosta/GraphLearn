@@ -382,6 +382,7 @@ class Sampler(object):
         init_only: bool
             we can just initialise without actually running..
             this is nice if you want more controll over the actual running process
+            -> i should use this in the interactive creation.
         Returns
         -------
         list of graphs
