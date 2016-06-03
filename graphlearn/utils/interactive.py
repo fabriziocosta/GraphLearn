@@ -17,6 +17,7 @@ class mywrap(Decomposer):
 
 
 # this file is here to hide the uglyness from the notebooks
+# i should use the init_only flag in the sampler for initialisation.
 
 def setparameters(sampler):
     '''

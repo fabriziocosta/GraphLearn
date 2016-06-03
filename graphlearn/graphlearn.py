@@ -264,7 +264,6 @@ class Sampler(object):
 
     def sample(self, graph_iter=None,
 
-
                size_diff_core_filter=-1,
                probabilistic_core_choice=True,
                score_core_choice=False,
@@ -276,7 +275,9 @@ class Sampler(object):
                batch_size=10,
                n_jobs=0,
 
-               target_orig_cip=False,
+               orig_cip_max_positives=1,
+               orig_cip_min_positives=0,
+
                n_steps=50,
                quick_skip_orig_cip=False,
                improving_threshold=-1,
@@ -339,8 +340,11 @@ class Sampler(object):
             (maybe i should calculate the max effective number and use that)
         n_jobs : int (-1)
             number of processes created used. -1 is cpu count
-        target_orig_cip : bool
-            omly replace low scoring parts of the graph.. see implementation for details
+        orig_cip_max_positives : float , -1
+        orig_cip_min_positives : float , -1
+            min/max positives is the ratio of allowed high-scoring nodes
+            in the core of the cip picked to be replaced.
+            .5-> 50% high scoring nodes in core of cip
 
         n_steps: int
             sample steps
@@ -378,6 +382,7 @@ class Sampler(object):
         init_only: bool
             we can just initialise without actually running..
             this is nice if you want more controll over the actual running process
+            -> i should use this in the interactive creation.
         Returns
         -------
         list of graphs
@@ -403,7 +408,9 @@ class Sampler(object):
         self.n_steps = n_steps
         self.quick_skip_orig_cip = quick_skip_orig_cip
         self.n_jobs = n_jobs
-        self.target_orig_cip = target_orig_cip
+        self.orig_cip_max_positives = orig_cip_max_positives
+        self.orig_cip_min_positives = orig_cip_min_positives
+        self.orig_cip_score_tricks = self.orig_cip_max_positives != 1  or self.orig_cip_min_positives != 0
 
         self.size_diff_core_filter_max=size_diff_core_filter
         # the user doesnt know about edge nodes.. so this needs to be done
@@ -431,7 +438,7 @@ class Sampler(object):
         self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
         self.lsgg.preprocessing(n_jobs,
-                                (self.max_core_size_diff+self.size_diff_core_filter_max )> -2,
+                                (self.max_core_size_diff+self.size_diff_core_filter_max ) > -3,
                                 probabilistic_core_choice)
 
         if score_core_choice:
@@ -593,7 +600,9 @@ class Sampler(object):
 
     def _sample_path_append(self, graphmanager, force=False):
 
-        step0 = (self.step == 0 and self.include_seed is False)
+        # self.include_seed was checking for wfalse... wtf...
+        step0 = (self.step == 0 and self.include_seed is True)
+
         normal = self.step % self.sampling_interval == 0 and self.step != 0 and self.step > self.burnin
 
         # conditions meet?
@@ -628,7 +637,7 @@ class Sampler(object):
         decomposer = self.decomposer_generator(data=self.graphtransformer.transform([graph])[0])
 
         graph = decomposer.base_graph()
-        if self.max_core_size_diff > -1 or self.size_diff_core_filter_max:
+        if self.max_core_size_diff > -1 or self.size_diff_core_filter_max>-1:
             self.seed_size = len(graph)
         self._score(decomposer)
         self._sample_notes = ''
@@ -893,12 +902,7 @@ class Sampler(object):
     def _core_values(self, cip, core_hashes, graph):
         core_weights = []
 
-        if self.size_diff_core_filter_max > -1:
-            # resultsizediff=  graphlen+new_core-oldcore-seed..
-            # x is that without the new_core size:)
-            x= len(graph)-self.seed_size-cip.core_nodes_count
-            sizecheck=lambda core: abs(x+self.lsgg.core_size[core]) <= self.size_diff_core_filter_max
-            core_hashes= [core_hash for core_hash in core_hashes if sizecheck(core_hash)]
+
 
         if self.probabilistic_core_choice:
             for core_hash in core_hashes:
@@ -918,9 +922,18 @@ class Sampler(object):
                 predicted_size = self.lsgg.core_size[core] - cip.core_nodes_count + current_size
                 value = max(0, 100 - (abs(goal_size - predicted_size) * unit))
                 core_weights.append(value)
-
         else:
             core_weights = [1] * len(core_hashes)
+
+        if self.size_diff_core_filter_max > -1:
+            # resultsizediff=  graphlen+new_core-oldcore-seed..
+            # x is that without the new_core size:)
+            x = len(graph) - self.seed_size - cip.core_nodes_count
+            sizecheck = lambda core: abs(x + self.lsgg.core_size[core]) <= self.size_diff_core_filter_max
+            #core_hashes = [core_hash for core_hash in core_hashes if sizecheck(core_hash)]
+            for i,core in enumerate(core_hashes):
+                if sizecheck(core)==False:
+                    core_weights[i]=0
 
         return core_weights
 
@@ -954,7 +967,7 @@ class Sampler(object):
         - original_cip_extraction  takes care of extracting a cip
         - accept_original_cip makes sure that the cip we got is indeed in the grammar
         """
-        if self.target_orig_cip:
+        if self.orig_cip_score_tricks:
             graphman.mark_median(inp='importance', out='is_good', estimator=self.estimatorobject.estimator)
 
         # draw.graphlearn(graphman.abstract_graph(), size=10)
@@ -1014,19 +1027,19 @@ class Sampler(object):
         -------
         good or nogood (bool)
         """
+
+
         score_ok = True
-        if self.target_orig_cip:
+        if self.orig_cip_score_tricks:
             imp = []
             for n, d in cip.graph.nodes(data=True):
                 if 'interface' not in d and 'edge' not in d:
                     imp.append(d['is_good'])
 
-            if (float(sum(imp)) / len(imp)) > 0.9:
-                # print imp
-                # from utils import draw
-                # draw.draw_graph(cip.graph, vertex_label='is_good', secondary_vertex_label='importance')
+            if (float(sum(imp)) / len(imp)) > self.orig_cip_max_positives:
                 score_ok = False
-
+            if (float(sum(imp)) / len(imp)) < self.orig_cip_min_positives:
+                score_ok = False
         in_grammar = False
         if len(self.lsgg.productions.get(cip.interface_hash, {})) > 1:
             in_grammar = True

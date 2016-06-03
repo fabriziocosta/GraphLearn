@@ -9,8 +9,7 @@ from sklearn.linear_model import SGDClassifier,LinearRegression
 import random
 
 
-
-        # Train the model using the training sets
+# Train the model using the training sets
 
 
 
