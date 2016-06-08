@@ -108,10 +108,67 @@ class Sampler(object):
 
                  grammar=None,
                  min_cip_count=2,
-                 min_interface_count=2):
+                 min_interface_count=2,
+                 size_diff_core_filter=-1,
+                 probabilistic_core_choice=True,
+                 score_core_choice=False,
+                 size_constrained_core_choice=-1,
+
+                 similarity=-1,
+                 n_samples=None,
+                 proposal_probability=False,
+                 batch_size=10,
+                 n_jobs=0,
+
+                 orig_cip_max_positives=1,
+                 orig_cip_min_positives=0,
+
+                 n_steps=50,
+                 quick_skip_orig_cip=False,
+                 improving_threshold=-1,
+                 improving_linear_start=0,
+                 accept_static_penalty=0.0,
+                 accept_min_similarity=0.0,
+                 select_cip_max_tries=20,
+                 burnin=0,
+                 backtrack=0,
+
+                 include_seed=False,
+                 keep_duplicates=False,
+
+                 monitor=False
+
+
+
+
+
+
+
+
+
+
+
+                 ):
 
         '''
         init for graphlearn
+
+
+
+
+                to emulate MCMC sampling use these options:
+        probabilistic_core_choice=False?
+        score_core_choice=False
+        max_size_diff=-1
+        proposal_probability=False
+        target_orig_cip=False
+        improving_threshold=-1
+        improving_linear_start=1
+        accept_static_penalty=0.0
+        burnin=0
+        backtrack=0
+
+
 
         Parameters
         ----------
@@ -137,16 +194,101 @@ class Sampler(object):
             how often do i need to see a cip to accept it into the grammar
         min_interface_count: int
             how many cips need to be in an interface
-        Returns
+
+
+
+
+
+
+
+
+
+        graph_iter : iterator over networkx graphs
+            the by nw trained preprocessor will turn them into  graphwrappers
+
+
+        size_diff_core_filter: int
+            filters the cores for size before the other core_choices are applied.
+            i just hard-filter all the cips whose implantation would result in a graph thats not in +- arg of the seed
+        probabilistic_core_choice : bool
+            cores are chosen according to their frequency in the grammar...
+        score_core_choice : bool
+            cores are chosen  probabilisticaly according to their score
+        size_constrained_core_choice : int
+            linear increasing penalty is applied to enforce that the graphs
+            stays in the desired size range
+
+        similarity : float
+            stop condition for sampling, stop if desired similarity is reached,
+            similarity meassure is weired due to high dimensionality of eden vector, be warned
+        n_samples : int
+            collect this many samples for each seed graph
+        proposal_probability : bool
+            if you are not dealing with abstract graphs you get this option;
+            if you want to comply to Metropolis hastings
+        batch_size : int
+            this many graphs will be processed by one instance,
+            (maybe i should calculate the max effective number and use that)
+        n_jobs : int (-1)
+            number of processes created used. -1 is cpu count
+        orig_cip_max_positives : float , -1
+        orig_cip_min_positives : float , -1
+            eden will evaluate the graph and assign a score to each node.
+            all nodes in the better half are marked as high scoring nodes.
+            min/max positives is the ratio of allowed high-scoring nodes
+            in the core of the cip picked to be replaced.
+            .5-> 50% high scoring nodes in core of cip
+
+        n_steps: int
+            sample steps
+
+        quick_skip_orig_cip : bool
+            for each cip on the original graph, only try one entry from the grammar.
+
+        improving_threshold : float
+            starting from this fraction we only accept a graph if it is better
+        improving_linear_start : float
+            starting from this fraction there is a linearly increasing penalty
+            to the score until the improving_threshould value
+        accept_static_penalty : float
+            decrease probability of accepting a worse graph
+        accept_min_similarity : in [0,1]
+            acceptance requirement, graphs musst be at least this similar to be accepted..
+            zero is ignore this
+        select_cip_max_tries : int
+            try this many times to get a cip from the original graph before declaring
+            the seed dead.
+        burnin : int
+            ignore this many graphs until n_samples starts collecting
+        backtrack : int
+            sometimes you  generate a dead-end graph, a graph that is valid but finding a proposal is impossible.
+            you can take one step back this many times.
+            this is of questionable efficiency currently because we cant detecect
+            the exact place where we went wrong.
+        include_seed : bool
+            dont collect the seed as sample
+        keep_duplicates : bool
+            metropolice compliance says that we should output duplicates. but otherwise duplicates
+            are not interesting.
+        monitor : bool
+            enabling monitor accessible after  sampling. sampler.monitors will contain all the information
+
+
+
+
+       Returns
         -------
         an initialized sampler
+
+
+
+
         '''
 
         self.decomposer_generator=lambda data: decomposergen(vectorizer, data)
 
         self.graphtransformer = graphtransformer
         self.feasibility_checker = feasibility_checker
-
 
         self.vectorizer = vectorizer
 
@@ -155,12 +297,41 @@ class Sampler(object):
         self.thickness_list = [int(2 * t) for t in thickness_list]
         # scikit  classifier
         self.estimatorobject = estimator
+        self.node_entity_check = node_entity_check
 
         # cips hashes will be masked with this, this is unrelated to the vectorizer
         self.hash_bitmask = pow(2, nbit) - 1
         self.nbit = nbit
+
+        self.maxbacktrack = backtrack
+        self.monitor = monitor
+        self.monitors = []
+        self.accept_min_similarity = accept_min_similarity
+        self.proposal_probability = proposal_probability
+        self.similarity = similarity
+        self.probabilistic_core_choice = probabilistic_core_choice
+        self.size_constrained_core_choice = size_constrained_core_choice * 2
+        self.n_samples=n_samples
+        self.n_steps = n_steps
+        self.quick_skip_orig_cip = quick_skip_orig_cip
+        self.n_jobs = n_jobs
+        self.orig_cip_max_positives = orig_cip_max_positives
+        self.orig_cip_min_positives = orig_cip_min_positives
+        self.size_diff_core_filter=size_diff_core_filter
+        # the user doesnt know about edge nodes.. so this needs to be done
+        self.improving_threshold = improving_threshold
+        self.improving_linear_start = improving_linear_start
+        self.accept_static_penalty = accept_static_penalty
+        self.select_cip_max_tries = select_cip_max_tries
+        self.burnin = burnin
+        self.include_seed = include_seed
+        self.batch_size = batch_size
+        self.score_core_choice = score_core_choice
+        self.keep_duplicates = keep_duplicates
+
+        '''
         # boolean values to set restrictions on replacement
-        self.max_core_size_diff = None
+        self.size_constrained_core_choice = None
         # a similaritythreshold at which to stop sampling.  a value <= 0 will render this useless
         self.similarity = None
         # we will save current graph at every interval step of sampling and attach to graphinfos[graphs]
@@ -177,7 +348,6 @@ class Sampler(object):
         self.improving_threshold = None
         # current step in sampling process of a single graph
         self.step = None
-        self.node_entity_check = node_entity_check
 
         # how often do we try to get a cip from the current graph  in sampling
         self.select_cip_max_tries = None
@@ -190,7 +360,7 @@ class Sampler(object):
 
         # is the core chosen by frequency?  (bool)
         self.probabilistic_core_choice = None
-
+        '''
         if not grammar:
             self.lsgg = \
                 LocalSubstitutableGraphGrammar(self.radius_list,
@@ -309,126 +479,11 @@ class Sampler(object):
 
 
     def transform(self, graph_iter=None,
-
-                  size_diff_core_filter=-1,
-                  probabilistic_core_choice=True,
-                  score_core_choice=False,
-                  size_constrained_core_choice=-1,
-
-                  similarity=-1,
-                  n_samples=None,
-                  proposal_probability=False,
-                  batch_size=10,
-                  n_jobs=0,
-
-                  orig_cip_max_positives=1,
-                  orig_cip_min_positives=0,
-
-                  n_steps=50,
-                  quick_skip_orig_cip=False,
-                  improving_threshold=-1,
-                  improving_linear_start=0,
-                  accept_static_penalty=0.0,
-                  accept_min_similarity=0.0,
-                  select_cip_max_tries=20,
-                  burnin=0,
-                  backtrack=0,
-
-                  include_seed=False,
-                  keep_duplicates=False,
-
-                  monitor=False,
                   init_only=False):
 
         '''
 
         starting the sample process
-
-        to emulate MCMC sampling use these options:
-        probabilistic_core_choice=False?
-        score_core_choice=False
-        max_size_diff=-1
-        proposal_probability=False
-        target_orig_cip=False
-        improving_threshold=-1
-        improving_linear_start=1
-        accept_static_penalty=0.0
-        burnin=0
-        backtrack=0
-
-
-
-        Parameters
-        ----------
-        graph_iter : iterator over networkx graphs
-            the by nw trained preprocessor will turn them into  graphwrappers
-
-
-        size_diff_core_filter: int
-            filters the cores for size before the other core_choices are applied.
-            i just hard-filter all the cips whose implantation would result in a graph thats not in +- arg of the seed
-        probabilistic_core_choice : bool
-            cores are chosen according to their frequency in the grammar...
-        score_core_choice : bool
-            cores are chosen  probabilisticaly according to their score
-        size_constrained_core_choice : int
-            linear increasing penalty is applied to enforce that the graphs
-            stays in the desired size range
-
-        similarity : float
-            stop condition for sampling, stop if desired similarity is reached,
-            similarity meassure is weired due to high dimensionality of eden vector, be warned
-        n_samples : int
-            collect this many samples for each seed graph
-        proposal_probability : bool
-            if you are not dealing with abstract graphs you get this option;
-            if you want to comply to Metropolis hastings
-        batch_size : int
-            this many graphs will be processed by one instance,
-            (maybe i should calculate the max effective number and use that)
-        n_jobs : int (-1)
-            number of processes created used. -1 is cpu count
-        orig_cip_max_positives : float , -1
-        orig_cip_min_positives : float , -1
-            eden will evaluate the graph and assign a score to each node.
-            all nodes in the better half are marked as high scoring nodes.
-            min/max positives is the ratio of allowed high-scoring nodes
-            in the core of the cip picked to be replaced.
-            .5-> 50% high scoring nodes in core of cip
-
-        n_steps: int
-            sample steps
-
-        quick_skip_orig_cip : bool
-            for each cip on the original graph, only try one entry from the grammar.
-
-        improving_threshold : float
-            starting from this fraction we only accept a graph if it is better
-        improving_linear_start : float
-            starting from this fraction there is a linearly increasing penalty
-            to the score until the improving_threshould value
-        accept_static_penalty : float
-            decrease probability of accepting a worse graph
-        accept_min_similarity : in [0,1]
-            acceptance requirement, graphs musst be at least this similar to be accepted..
-            zero is ignore this
-        select_cip_max_tries : int
-            try this many times to get a cip from the original graph before declaring
-            the seed dead.
-        burnin : int
-            ignore this many graphs until n_samples starts collecting
-        backtrack : int
-            sometimes you  generate a dead-end graph, a graph that is valid but finding a proposal is impossible.
-            you can take one step back this many times.
-            this is of questionable efficiency currently because we cant detecect
-            the exact place where we went wrong.
-        include_seed : bool
-            dont collect the seed as sample
-        keep_duplicates : bool
-            metropolice compliance says that we should output duplicates. but otherwise duplicates
-            are not interesting.
-        monitor : bool
-            enabling monitor accessible after  sampling. sampler.monitors will contain all the information
         init_only: bool
             we can just initialise without actually running..
             this is nice if you want more controll over the actual running process
@@ -437,61 +492,32 @@ class Sampler(object):
         -------
         list of graphs
         '''
-        self.maxbacktrack = backtrack
-
-        self.monitor = monitor
-        self.monitors = []
-        self.accept_min_similarity = accept_min_similarity
-        self.proposal_probability = proposal_probability
-
-        self.similarity = similarity
 
 
-        if probabilistic_core_choice + score_core_choice + (size_constrained_core_choice > -1)  > 1:
+
+        self.orig_cip_score_tricks = self.orig_cip_max_positives != 1 or self.orig_cip_min_positives != 0
+        if self.improving_linear_start > 0:
+            self.improving_linear_start = int(self.improving_linear_start * self.n_steps)
+        self.improving_penalty_per_step = (1 - self.accept_static_penalty) / float(
+            self.improving_threshold - self.improving_linear_start)
+
+        if self.probabilistic_core_choice + self.score_core_choice + (self.size_constrained_core_choice > -2)  > 1:
             raise Exception('choose only one parameter core_choice')
-
-        if n_samples:
-            self.sampling_interval = int((n_steps - burnin) / (n_samples + include_seed - 1))
+        if self.n_samples:
+            self.sampling_interval = int((self.n_steps - self.burnin) / (self.n_samples + self.include_seed - 1))
         else:
             self.sampling_interval = 9999
 
-        self.n_steps = n_steps
-        self.quick_skip_orig_cip = quick_skip_orig_cip
-        self.n_jobs = n_jobs
-        self.orig_cip_max_positives = orig_cip_max_positives
-        self.orig_cip_min_positives = orig_cip_min_positives
-        self.orig_cip_score_tricks = self.orig_cip_max_positives != 1  or self.orig_cip_min_positives != 0
-
-        self.size_diff_core_filter_max=size_diff_core_filter
-        # the user doesnt know about edge nodes.. so this needs to be done
-        size_constrained_core_choice = size_constrained_core_choice * 2
-        self.max_core_size_diff = size_constrained_core_choice
-
         #  calculating the actual steps for improving :)
-        self.improving_threshold = improving_threshold
-        if improving_threshold > 0:
+        if self.improving_threshold > 0:
             self.improving_threshold = int(self.improving_threshold * self.n_steps)
-        self.improving_linear_start = improving_linear_start
-        if improving_linear_start > 0:
-            self.improving_linear_start = int(improving_linear_start * n_steps)
-        self.improving_penalty_per_step = (1 - accept_static_penalty) / float(
-            self.improving_threshold - self.improving_linear_start)
 
-        self.accept_static_penalty = accept_static_penalty
-        self.select_cip_max_tries = select_cip_max_tries
-        self.burnin = burnin
-        self.include_seed = include_seed
-        self.batch_size = batch_size
-        self.probabilistic_core_choice = probabilistic_core_choice
-        self.score_core_choice = score_core_choice
 
-        self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
-        self.lsgg.preprocessing(n_jobs,
-                                (self.max_core_size_diff+self.size_diff_core_filter_max ) > -3,
-                                probabilistic_core_choice)
-
-        if score_core_choice:
+        self.lsgg.preprocessing(self.n_jobs,
+                                (self.size_constrained_core_choice + self.size_diff_core_filter) > -3,
+                                self.probabilistic_core_choice)
+        if self.score_core_choice:
             self._prep_score_core_choice()
 
         logger.debug(serialize_dict(self.__dict__))
@@ -502,11 +528,11 @@ class Sampler(object):
         # sampling
         if  init_only:
             yield 0
-        if n_jobs in [0, 1]:
+        if self.n_jobs in [0, 1]:
             for o in self._single_process(graph_iter):
                 yield o
         else:
-            for o in self._multi_process(n_jobs,graph_iter):
+            for o in self._multi_process(self.n_jobs,graph_iter):
                 yield o
 
     def _multi_process(self,n_jobs,graph_iter):
@@ -753,7 +779,7 @@ class Sampler(object):
         decomposer = self.decomposer_generator(data=self.graphtransformer.transform([graph])[0])
 
         graph = decomposer.base_graph()
-        if self.max_core_size_diff > -1 or self.size_diff_core_filter_max>-1:
+        if self.size_constrained_core_choice > -1 or self.size_diff_core_filter>-1:
             self.seed_size = len(graph)
         self._score(decomposer)
         self._sample_notes = ''
@@ -1069,8 +1095,8 @@ class Sampler(object):
             for core_hash in core_hashes:
                 core_weights.append(self.score_core_choice_dict[core_hash])
 
-        elif self.max_core_size_diff > -1:
-            unit = 100 / float(self.max_core_size_diff + 1)
+        elif self.size_constrained_core_choice > -1:
+            unit = 100 / float(self.size_constrained_core_choice + 1)
             goal_size = self.seed_size
             current_size = len(graph)
 
@@ -1083,11 +1109,11 @@ class Sampler(object):
             #print 'core weight is uniform'
             core_weights = [1] * len(core_hashes)
 
-        if self.size_diff_core_filter_max > -1:
+        if self.size_diff_core_filter > -1:
             # resultsizediff=  graphlen+new_core-oldcore-seed..
             # x is that without the new_core size:)
             x = len(graph) - self.seed_size - cip.core_nodes_count
-            sizecheck = lambda core: abs(x + self.lsgg.core_size[core]) <= self.size_diff_core_filter_max
+            sizecheck = lambda core: abs(x + self.lsgg.core_size[core]) <= self.size_diff_core_filter
             #core_hashes = [core_hash for core_hash in core_hashes if sizecheck(core_hash)]
             for i,core in enumerate(core_hashes):
                 if sizecheck(core)==False:
