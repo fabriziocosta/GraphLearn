@@ -190,7 +190,10 @@ class Sampler(object):
     def fit(self,
             input=None,
             negative_input=None,
+
             regression_targets=None,
+
+            lsgg_train_graphs=None,
             lsgg_include_negatives=False,
             grammar_n_jobs=-1,
             grammar_batch_size=10):
@@ -222,6 +225,10 @@ class Sampler(object):
         self.graphtransformer.set_param(self.vectorizer)
         decomposable_graphs = [ self.decomposer_generator(data)
                         for data in  self.graphtransformer.fit_transform(input)]
+
+        if lsgg_train_graphs != None:
+            lsgg_graphs = [self.decomposer_generator(data)
+                               for data in self.graphtransformer.fit_transform(lsgg_train_graphs)]
 
         negative_input_exists=False
         if negative_input!=None:
@@ -256,6 +263,8 @@ class Sampler(object):
         # HANDLE GRAMMAR
         if negative_input_exists and  lsgg_include_negatives:
             decomposable_graphs += decomposable_negative_graphs
+        if lsgg_train_graphs!=None:
+            decomposable_graphs+=lsgg_graphs
         self.lsgg.fit(decomposable_graphs, n_jobs = grammar_n_jobs, batch_size=grammar_batch_size)
         return self
 
@@ -923,6 +932,7 @@ class Sampler(object):
                 value = max(0, 100 - (abs(goal_size - predicted_size) * unit))
                 core_weights.append(value)
         else:
+            #print 'core weight is uniform'
             core_weights = [1] * len(core_hashes)
 
         if self.size_diff_core_filter_max > -1:
