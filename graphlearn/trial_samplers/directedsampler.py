@@ -143,7 +143,7 @@ class directedSampler(GraphLearnSampler):
         self.goal = g_pair[2]
         self.goal_graph = g_pair[1]  # may be none oO
         # self.goal_size = len(self.vectorizer._edge_to_vertex_transform(self.goal_graph))
-        return super(directedSampler, self)._sample(g_pair[0])
+        return super(directedSampler, self).transform_single(g_pair[0])
 
     def _score(self, graphmanager):
         if '_score' not in graphmanager.__dict__:

@@ -22,17 +22,35 @@ import copy
 class Sampler(object):
 
     def __neg__(self):
+        '''
+        samplers are connectable via + and - symbols.
+        this takes care of negating a sampler.
+        Returns
+        -------
+            negating a self means to revert all the estimator results
+        '''
+
         duplicate = copy.deepcopy(self)
-        duplicate.nocopy_negate()
+        duplicate._nocopy_negate()
         return duplicate
 
-    def nocopy_negate(self):
+    def _nocopy_negate(self):
+        ''''
+        helper for __neg__
+        '''
         self.estimatorobject.inverse_prediction = not self.estimatorobject.inverse_prediction
         if 'spawn_list' in self.__dict__:
             for spawn in self.spawn_list:
-                spawn.nocopy_negate()
+                spawn._nocopy_negate()
 
     def __mul__(self,other):
+        '''
+        samplers are connectable via + and - symbols.
+        mul is currently not supported
+        Returns
+        -------
+            error
+        '''
         # other musst be int oO
         # ==> also apply to its children
         #if 'multiplier' not in self.__dict__:
@@ -45,15 +63,31 @@ class Sampler(object):
         #return self
 
     def __sub__(self,other):
+        '''
+        samplers are connectable via + and - symbols.
+        this takes care of subtraction.
+        Returns
+        -------
+            a sampler that has child samplers in self.spawn_list
+        '''
         duplicate = copy.deepcopy(self)
         return duplicate.__add__(other.__neg__())
 
     def __add__(self,other):
+        '''
+        samplers are connectable via + and - symbols.
+        this takes care of adding samplers.
+        Returns
+        -------
+            a sampler that has child samplers in self.spawn_list
+        '''
         duplicate = copy.deepcopy(self)
         if 'spawn_list' not in duplicate.__dict__:
             duplicate.spawn_list=[]
         duplicate.spawn_list.append(other)
         return duplicate
+
+
 
 
     def __init__(self,
@@ -77,6 +111,7 @@ class Sampler(object):
                  min_interface_count=2):
 
         '''
+        init for graphlearn
 
         Parameters
         ----------
@@ -198,6 +233,8 @@ class Sampler(object):
             grammar_n_jobs=-1,
             grammar_batch_size=10):
         """
+        fit
+
         Parameters
         ----------
         input: graph iterator
@@ -305,6 +342,8 @@ class Sampler(object):
 
         '''
 
+        starting the sample process
+
         to emulate MCMC sampling use these options:
         probabilistic_core_choice=False?
         score_core_choice=False
@@ -351,6 +390,8 @@ class Sampler(object):
             number of processes created used. -1 is cpu count
         orig_cip_max_positives : float , -1
         orig_cip_min_positives : float , -1
+            eden will evaluate the graph and assign a score to each node.
+            all nodes in the better half are marked as high scoring nodes.
             min/max positives is the ratio of allowed high-scoring nodes
             in the core of the cip picked to be replaced.
             .5-> 50% high scoring nodes in core of cip
@@ -502,7 +543,7 @@ class Sampler(object):
         for graph in graph_iter:
             # sampled_graph = self._sample(graph)
             # yield sampled_graph
-            a, b = self._sample(graph)
+            a, b = self.transform_single(graph)
             for new_graph in self.return_formatter(a, b):
                 yield new_graph
 
@@ -522,11 +563,37 @@ class Sampler(object):
                 self.score_core_choice_dict[core] = score
 
     def return_formatter(self, graphlist, mon):
+        '''
+        this function is here so the output format can be altered to anything.
+
+        Parameters
+        ----------
+        graphlist: list of graphs
+        mon: monitor object assiciated with this sampling run
+
+        Returns
+        -------
+            output of a run
+        '''
+
         self.monitors.append(mon)
         yield graphlist
 
     def _argbuilder(self, problem_iter):
-        # for multiprocessing  divide task into small multiprocessable bites
+        '''
+        we do two things here:
+        -break tasks into batches to be multiprocessed.
+        -multiprocess sometimes does not terminate properly so we observe how many tasks go in and terminate
+        once that number of outs is reached.
+
+        Parameters
+        ----------
+        problem_iter: problems to put into the multiprocess queue
+
+        Returns
+        -------
+            yields a batchsize sized problem chunks
+        '''
         s = dill.dumps(self)
         self.multiprocess_jobcount = 0
         self.multiprocess_all_prepared = False
@@ -539,12 +606,25 @@ class Sampler(object):
         self.multiprocess_all_prepared = True
 
     def _samplelog(self, msg, level=10):
+        '''
+        use this for logging.
+        logs are logged and written to monitor.
+
+        Parameters
+        ----------
+        msg: string
+        level: importance of message
+
+        Returns
+        -------
+            nothing
+        '''
         # debug messages in _sample will use this,
         # we will also log to monitor.
         logger.log(level, msg)
         self.monitorobject.info('debug', 'debuglevel:%d %s' % (level, msg))
 
-    def _sample(self, graph):
+    def transform_single(self, graph):
         '''
             we sample a single graph.
             input: a graph
@@ -604,11 +684,38 @@ class Sampler(object):
         self.monitorobject.sampling_info = sampling_info
         return self.sample_path, self.monitorobject
 
-    def _score_list_append(self, graphman):
-        self._score_list.append(graphman._score)
+    def _score_list_append(self, graphdecomposer):
+        '''
+        adds score of graphdecomposer to the score_list that will be accessible
+        through the monitor at the end.
 
-    def _sample_path_append(self, graphmanager, force=False):
+        Parameters
+        ----------
+        graphdecomposer: a graph decomposer
 
+        Returns
+        -------
+            adds score of graphman to the score_list that will be written to the monitor.
+        '''
+        self._score_list.append(graphdecomposer._score)
+
+    def _sample_path_append(self, graphdecomposer, force=False):
+        '''
+        decide if we record a speciffic graph.
+        this is mostly dependant on the current step.
+        sample path is part of the output.
+
+        Parameters
+        ----------
+        graphdecomposer: a decomposer
+
+        force: bool
+            if true force the appending
+
+        Returns
+        -------
+            nothing
+        '''
         # self.include_seed was checking for wfalse... wtf...
         step0 = (self.step == 0 and self.include_seed is True)
 
@@ -619,16 +726,16 @@ class Sampler(object):
             # do we want to omit duplicates?
             if not self.keep_duplicates:
                 # have we seen this before?
-                if graphmanager._score in self._sample_path_score_set:
+                if graphdecomposer._score in self._sample_path_score_set:
                     # if so return
                     return
                 # else add so seen set
                 else:
-                    self._sample_path_score_set.add(graphmanager._score)
+                    self._sample_path_score_set.add(graphdecomposer._score)
 
             # append :) .. rescuing score
             # graph.graph['score'] = graph._score # is never used?
-            self.sample_path.append(graphmanager.out())
+            self.sample_path.append(graphdecomposer.out())
 
     def _sample_init(self, graph):
         '''
@@ -658,6 +765,14 @@ class Sampler(object):
         return decomposer
 
     def _sample_init_init_monitor(self):
+        '''
+        reinitializes the monitor.
+        normally this is called after each sample-run.
+
+        Returns
+        -------
+            nothing
+        '''
         self.monitorobject = monitor.Monitor(self.monitor)
 
     def _stop_condition(self, decomposer):
@@ -687,6 +802,8 @@ class Sampler(object):
 
     def _score(self, graphdecomposer):
         """
+        will determine the score of a graph.
+        scores will be cached
 
         Parameters
         ----------
@@ -695,9 +812,6 @@ class Sampler(object):
         Returns
         -------
         score of graph
-        also some infromation is cached in the decomposer oOo
-
-
         """
 
         if 'vectorized_graph' not in graphdecomposer.__dict__:
@@ -761,10 +875,19 @@ class Sampler(object):
         return accept_decision
 
     def _propose(self, decomposer):
-        """
-        we do the backtrack
-        """
+        '''
+        proposes an altered graph,
+        _propose_graph does the actual proposition.
+        here we just take care of the possibility to backtrack once we reach a dead end.
 
+        Parameters
+        ----------
+        decomposer: graph that will be altered a little.
+
+        Returns
+        -------
+            proposed decomposer
+        '''
         if self.maxbacktrack > 0:
             self.backtrack_graphman = self.last_graphman
             self.last_graphman = decomposer
@@ -833,7 +956,15 @@ class Sampler(object):
                     # try the next orig cip, than to risk another collision
 
     def calc_proposal_probability(self, decomposer, decomposer_new, cip):
-        """
+        """t
+        MCMC required that the state change has the same probability back and forth.
+        Going from one graph to another might alter the new graph such that many new destinations are available.
+        If you want to use MCMC sampling, we should account for that.
+
+        This function estimates the effect such that the acceptance function can use this estimation.
+
+        The estimation is based on the "jump possibilities" of all the nodes in the core before and after the
+        substitution.
 
         Parameters
         ----------
@@ -846,7 +977,7 @@ class Sampler(object):
 
         Returns
         -------
-
+            sets proposal_probability_value
         """
 
         def ops(decomposer, cip_graph):
@@ -909,6 +1040,23 @@ class Sampler(object):
             yield self.lsgg.productions[cip.interface_hash][core_hash]
 
     def _core_values(self, cip, core_hashes, graph):
+        '''
+        assign probability values to each hash.
+        elsewhere the new cip is picked based on these.
+
+        Parameters
+        ----------
+        cip: cip
+            that will be replaced
+        core_hashes
+            hashes of the available replacements
+        graph
+            the current graph
+
+        Returns
+        -------
+            array  with probability value for each core_hash
+        '''
         core_weights = []
 
 
@@ -948,9 +1096,22 @@ class Sampler(object):
         return core_weights
 
     def probabilistic_choice(self, values, core_hashes):
-        # so you have a list of core_hashes
-        # now for every core_hash put a number in a rating list
-        # we will choose one according to the probability induced by those numbers
+        '''
+        so you have a list of core_hashes
+        now for every core_hash put a number in a rating list
+        we will choose one according to the probability induced by those numbers
+
+
+        Parameters
+        ----------
+        values: list with numbers for each cip
+        core_hashes: list of core hashes
+
+        Returns
+        -------
+            yields core hash according to propability induced by the values.
+
+        '''
         ratings_sum = sum(values)
         # while there are cores
         while core_hashes and ratings_sum > 0.0:
@@ -1011,6 +1172,7 @@ class Sampler(object):
 
     def _get_original_cip(self, graphman):
         '''
+        selects a cip to alter in the graph.
 
         Parameters
         ----------
@@ -1028,6 +1190,8 @@ class Sampler(object):
 
     def _accept_original_cip(self, cip):
         """
+
+        see if the choosen cip in the original is "ok"
 
         Parameters
         ----------
@@ -1064,6 +1228,6 @@ def _sample_multi(what):
     graphlist = dill.loads(what[1])
     # if jobsize % batchsize != 0, sample will not give me a tuple,
     # here i filter for these
-    result = [self._sample(g) for g in graphlist]
+    result = [self.transform_single(g) for g in graphlist]
     # print result
     return [e for e in result if type(e) == type(())]
