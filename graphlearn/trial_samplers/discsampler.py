@@ -187,5 +187,5 @@ def sample(self, **kwargs):
     '''
 
     # self.vectorizer=Vectorizer(nbits=self.nbits)
-    for e in super(MySampler, self).sample(**kwargs):
+    for e in super(MySampler, self).transform(**kwargs):
         yield e

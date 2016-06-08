@@ -73,16 +73,16 @@ def sample(graphs):
     sampler =GraphLearnSampler()
     graphs, graphs_ = itertools.tee(graphs)
     sampler.fit(graphs)
-    return unpack(sampler.sample(graphs_,
-                                 same_radius=False,
-                                 size_constrained_core_choice=False,
-                                 sampling_interval=9999,
-                                 select_cip_max_tries=100,
-                                 batch_size=30,
-                                 n_steps=100,
-                                 n_jobs=-1,
-                                 improving_threshold=0.9
-                                 ))
+    return unpack(sampler.transform(graphs_,
+                                    same_radius=False,
+                                    size_constrained_core_choice=False,
+                                    sampling_interval=9999,
+                                    select_cip_max_tries=100,
+                                    batch_size=30,
+                                    n_steps=100,
+                                    n_jobs=-1,
+                                    improving_threshold=0.9
+                                    ))
 
 # initializing
 graphs_pos= gspan_to_eden(path+'bursi.pos.gspan')

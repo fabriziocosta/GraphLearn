@@ -132,7 +132,7 @@ class directedSampler(GraphLearnSampler):
             graphiter = itertools.izip(graph_iter, itertools.repeat(None), itertools.repeat(target_vector))
 
         # graphiter = itertools.islice(graphiter, doXgraphs)
-        for e in super(directedSampler, self).sample(graphiter, **kwargs):
+        for e in super(directedSampler, self).transform(graphiter, **kwargs):
             yield e
 
     def _sample(self, g_pair):

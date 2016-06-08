@@ -67,7 +67,7 @@ if __name__ == "__main__":
     from graphlearn.graphlearn import Sampler
     s=Sampler()
     s.load(MODEL)
-    results=s.sample(**args)
+    results=s.transform(**args)
 
 
     import graphlearn.utils.draw_openbabel as ob

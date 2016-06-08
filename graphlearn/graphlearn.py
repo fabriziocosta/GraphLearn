@@ -308,37 +308,37 @@ class Sampler(object):
 
 
 
-    def sample(self, graph_iter=None,
+    def transform(self, graph_iter=None,
 
-               size_diff_core_filter=-1,
-               probabilistic_core_choice=True,
-               score_core_choice=False,
-               size_constrained_core_choice=-1,
+                  size_diff_core_filter=-1,
+                  probabilistic_core_choice=True,
+                  score_core_choice=False,
+                  size_constrained_core_choice=-1,
 
-               similarity=-1,
-               n_samples=None,
-               proposal_probability=False,
-               batch_size=10,
-               n_jobs=0,
+                  similarity=-1,
+                  n_samples=None,
+                  proposal_probability=False,
+                  batch_size=10,
+                  n_jobs=0,
 
-               orig_cip_max_positives=1,
-               orig_cip_min_positives=0,
+                  orig_cip_max_positives=1,
+                  orig_cip_min_positives=0,
 
-               n_steps=50,
-               quick_skip_orig_cip=False,
-               improving_threshold=-1,
-               improving_linear_start=0,
-               accept_static_penalty=0.0,
-               accept_min_similarity=0.0,
-               select_cip_max_tries=20,
-               burnin=0,
-               backtrack=0,
+                  n_steps=50,
+                  quick_skip_orig_cip=False,
+                  improving_threshold=-1,
+                  improving_linear_start=0,
+                  accept_static_penalty=0.0,
+                  accept_min_similarity=0.0,
+                  select_cip_max_tries=20,
+                  burnin=0,
+                  backtrack=0,
 
-               include_seed=False,
-               keep_duplicates=False,
+                  include_seed=False,
+                  keep_duplicates=False,
 
-               monitor=False,
-               init_only=False):
+                  monitor=False,
+                  init_only=False):
 
         '''
 
