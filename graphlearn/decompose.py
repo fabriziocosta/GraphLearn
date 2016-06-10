@@ -17,9 +17,7 @@ logger = logging.getLogger(__name__)
 
 class AbstractDecomposer(object):
     def rooted_core_interface_pairs(self, root, radius_list=None,
-                                           thickness_list=None,
-                                           hash_bitmask=2 ** 20 - 1,
-                                           node_filter=lambda x, y: True):
+                                           thickness_list=None):
         '''
         :param root: root node of the cips we want to have
         :param args: specifies radius, thickness and stuff, depends a on implementation
@@ -102,10 +100,15 @@ class Decomposer(AbstractDecomposer):
     def __str__(self):
         return "base_graph size: %s" % len(self._base_graph)
 
-    def __init__(self,  vectorizer, data):
+    def __init__(self,  vectorizer=None, data=[], node_entity_check=lambda x,y:True, nbit=20):
         self.vectorizer = vectorizer
         self._base_graph = data
+        self.node_entity_check=node_entity_check
+        self.hash_bitmask= 2 ** nbit - 1
+        self.nbit=nbit
 
+    def make_new_decomposer(self, vectorizer,  transformout):
+        return Decomposer(vectorizer,transformout,node_entity_check=self.node_entity_check,nbit=self.nbit)
 
     def change_basegraph(self,transformerdata):
         self._base_graph=transformerdata
@@ -115,14 +118,13 @@ class Decomposer(AbstractDecomposer):
         return self._base_graph
 
     def rooted_core_interface_pairs(self, root, radius_list=None,
-                                           thickness_list=None,
-                                           hash_bitmask=2 ** 20 - 1,
-                                           node_filter=lambda x, y: True):
+                                           thickness_list=None):
+
         return extract_core_and_interface(root_node=root, graph=self._base_graph, vectorizer=self.vectorizer,
                                            radius_list=radius_list,
                                            thickness_list=thickness_list,
-                                           hash_bitmask=hash_bitmask,
-                                           node_filter=node_filter
+                                           hash_bitmask=self.hash_bitmask,
+                                           node_filter=self.node_entity_check
                                           )
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
@@ -163,26 +165,21 @@ class Decomposer(AbstractDecomposer):
     def out(self):
         # copy and  if digraph make graph
         graph = nx.Graph(self._base_graph)
-        graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
+        graph = Vectorizer._revert_edge_to_vertex_transform(graph)
         graph.graph['score'] = self.__dict__.get("_score", "?")
         return graph
 
-    def random_core_interface_pair(self, radius_list=None, thickness_list=None,
-                                           hash_bitmask=2 ** 20 - 1,
-                                           node_filter=lambda x, y: True
-                                   ):
+    def random_core_interface_pair(self, radius_list=None, thickness_list=None):
 
 
-        node = random.choice(filter( lambda x:node_filter(self._base_graph,x), self._base_graph.nodes()))
+        node = random.choice(filter( lambda x:self.node_entity_check(self._base_graph,x), self._base_graph.nodes()))
         if 'edge' in self._base_graph.node[node]:
             node = random.choice(self._base_graph.neighbors(node))
             # random radius and thickness
         radius_list = [random.choice(radius_list)]
         thickness_list = [random.choice(thickness_list)]
 
-        return self.rooted_core_interface_pairs(node, radius_list=radius_list, thickness_list=thickness_list,
-                                           hash_bitmask=hash_bitmask,
-                                           node_filter=node_filter)
+        return self.rooted_core_interface_pairs(node, radius_list=radius_list, thickness_list=thickness_list)
 
     def all_core_interface_pairs(self,     radius_list=None,
                                            thickness_list=None,
@@ -194,9 +191,7 @@ class Decomposer(AbstractDecomposer):
         for root_node in graph.nodes_iter():
             if 'edge' in graph.node[root_node]:
                 continue
-            cip_list = self.rooted_core_interface_pairs(root_node, radius_list=radius_list, thickness_list=thickness_list,
-                                           hash_bitmask=hash_bitmask,
-                                           node_filter=node_filter)
+            cip_list = self.rooted_core_interface_pairs(root_node, radius_list=radius_list, thickness_list=thickness_list)
             if cip_list:
                 cips.append(cip_list)
         return cips

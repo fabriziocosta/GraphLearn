@@ -91,29 +91,19 @@ class Sampler(object):
 
 
     def __init__(self,
-                 nbit=20,
+
 
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
-
                  estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
                  graphtransformer=transform.GraphTransformer(),
-
                  feasibility_checker=feasibility.FeasibilityChecker(),
-                 decomposergen=decompose.Decomposer,
-
-                 radius_list=[0, 1],
-                 thickness_list=[1, 2],
-                 node_entity_check=lambda x, y: True,
-
-                 grammar=None,
-                 min_cip_count=2,
-                 min_interface_count=2,
+                 decomposer=decompose.Decomposer(node_entity_check=lambda x, y:True, nbit=20),
+                 grammar=LocalSubstitutableGraphGrammar(radius_list=[0,1], thickness_list=[1,2], min_cip_count=2,min_interface_count=2),
                  size_diff_core_filter=-1,
                  probabilistic_core_choice=True,
                  score_core_choice=False,
                  size_constrained_core_choice=-1,
-
                  similarity=-1,
                  n_samples=None,
                  proposal_probability=False,
@@ -137,17 +127,6 @@ class Sampler(object):
                  keep_duplicates=False,
 
                  monitor=False
-
-
-
-
-
-
-
-
-
-
-
                  ):
 
         '''
@@ -196,15 +175,6 @@ class Sampler(object):
             how many cips need to be in an interface
 
 
-
-
-
-
-
-
-
-        graph_iter : iterator over networkx graphs
-            the by nw trained preprocessor will turn them into  graphwrappers
 
 
         size_diff_core_filter: int
@@ -273,36 +243,16 @@ class Sampler(object):
         monitor : bool
             enabling monitor accessible after  sampling. sampler.monitors will contain all the information
 
-
-
-
        Returns
         -------
         an initialized sampler
 
-
-
-
         '''
-
-        self.decomposer_generator=lambda data: decomposergen(vectorizer, data)
-
         self.graphtransformer = graphtransformer
         self.feasibility_checker = feasibility_checker
-
         self.vectorizer = vectorizer
-
-        # lists of int
-        self.radius_list = [int(2 * r) for r in radius_list]
-        self.thickness_list = [int(2 * t) for t in thickness_list]
         # scikit  classifier
         self.estimatorobject = estimator
-        self.node_entity_check = node_entity_check
-
-        # cips hashes will be masked with this, this is unrelated to the vectorizer
-        self.hash_bitmask = pow(2, nbit) - 1
-        self.nbit = nbit
-
         self.maxbacktrack = backtrack
         self.monitor = monitor
         self.monitors = []
@@ -310,7 +260,6 @@ class Sampler(object):
         self.proposal_probability = proposal_probability
         self.similarity = similarity
         self.probabilistic_core_choice = probabilistic_core_choice
-        self.size_constrained_core_choice = size_constrained_core_choice * 2
         self.n_samples=n_samples
         self.n_steps = n_steps
         self.quick_skip_orig_cip = quick_skip_orig_cip
@@ -328,7 +277,9 @@ class Sampler(object):
         self.batch_size = batch_size
         self.score_core_choice = score_core_choice
         self.keep_duplicates = keep_duplicates
-
+        self.lsgg=grammar
+        self.random_state = random_state
+        self.decomposer=decomposer
         '''
         # boolean values to set restrictions on replacement
         self.size_constrained_core_choice = None
@@ -361,24 +312,30 @@ class Sampler(object):
         # is the core chosen by frequency?  (bool)
         self.probabilistic_core_choice = None
         '''
-        if not grammar:
-            self.lsgg = \
-                LocalSubstitutableGraphGrammar(self.radius_list,
-                                               self.thickness_list,
-                                               vectorizer=self.vectorizer,
-                                               min_cip_count=min_cip_count,
-                                               min_interface_count=min_interface_count,
-                                               nbit=self.nbit,
-                                               node_entity_check=self.node_entity_check)
-        else:
-            self.lsgg = grammar
 
-        # will be set before fitting and before sampling
-        self.random_state = random_state
+
+        self.size_constrained_core_choice = size_constrained_core_choice * 2
+
+
+        # init, since someone might call set_param which might also require a reinit.
+        self._init_new_params()
+
+
+    def _init_new_params(self):
+        pass
 
 
 
-        # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW
+    def set_parmas(self, **params):
+        '''
+        Parameters
+        ----------
+        params:
+        Returns
+        -------
+        '''
+        self.__dict__.update(params)
+        self._init_new_params()
 
     def save(self, file_name):
         self.lsgg._revert_multicore_transform()
@@ -430,16 +387,16 @@ class Sampler(object):
 
         # BUILD DECOMPOSERS FOR POSITIVE AND NEGATIVE GRAPHS
         self.graphtransformer.set_param(self.vectorizer)
-        decomposable_graphs = [ self.decomposer_generator(data)
+        decomposable_graphs = [ self.decomposer.make_new_decomposer(self.vectorizer,data)
                         for data in  self.graphtransformer.fit_transform(input)]
 
         if lsgg_train_graphs != None:
-            lsgg_graphs = [self.decomposer_generator(data)
+            lsgg_graphs = [self.decomposer.make_new_decomposer(self.vectorizer,data)
                                for data in self.graphtransformer.fit_transform(lsgg_train_graphs)]
 
         negative_input_exists=False
         if negative_input!=None:
-            decomposable_negative_graphs = [self.decomposer_generator(data)
+            decomposable_negative_graphs = [self.decomposer.make_new_decomposer(self.vectorizer,data)
                                    for data in self.graphtransformer.fit_transform(negative_input)]
             negative_input_exists=True
 
@@ -484,6 +441,11 @@ class Sampler(object):
         '''
 
         starting the sample process
+
+
+        graph_iter : iterator over networkx graphs
+            the by nw trained preprocessor will turn them into  graphwrappers
+
         init_only: bool
             we can just initialise without actually running..
             this is nice if you want more controll over the actual running process
@@ -776,7 +738,7 @@ class Sampler(object):
         self._sample_init_init_monitor()
         self.backtrack = self.maxbacktrack
         self.last_graphman = None
-        decomposer = self.decomposer_generator(data=self.graphtransformer.transform([graph])[0])
+        decomposer = self.decomposer.make_new_decomposer(self.vectorizer,self.graphtransformer.transform([graph])[0])
 
         graph = decomposer.base_graph()
         if self.size_constrained_core_choice > -1 or self.size_diff_core_filter>-1:
@@ -962,7 +924,7 @@ class Sampler(object):
 
 
                 if self.feasibility_checker.check(new_graph):
-                    new_decomposer = self.decomposer_generator(self.graphtransformer.re_transform_single(new_graph))
+                    new_decomposer = self.decomposer.make_new_decomposer(self.vectorizer,self.graphtransformer.re_transform_single(new_graph))
 
                 if new_decomposer:
                         self.calc_proposal_probability(decomposer, new_decomposer, original_cip)
@@ -1011,10 +973,8 @@ class Sampler(object):
             interfacesize = 0
             for n, d in cip_graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
-                    cips = decomposer.rooted_core_interface_pairs(n, radius_list=self.radius_list,
-                                                                  thickness_list=self.thickness_list,
-                                                                  hash_bitmask=self.hash_bitmask,
-                                                                  node_filter=self.node_entity_check)
+                    cips = decomposer.rooted_core_interface_pairs(n, radius_list=self.lsgg.radius_list,
+                                                                  thickness_list=self.lsgg.thickness_list)
                     for cip in cips:
                         if cip.interface_hash in self.lsgg.productions:
                             counter += len(self.lsgg.productions[cip.interface_hash])
@@ -1211,8 +1171,7 @@ class Sampler(object):
         USED ONLY IN SELECT_ORIGINAL_CIP
 
         '''
-        return graphman.random_core_interface_pair(radius_list=self.radius_list, thickness_list=self.thickness_list,
-                                                   hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check)
+        return graphman.random_core_interface_pair(radius_list=self.lsgg.radius_list, thickness_list=self.lsgg.thickness_list)
 
     def _accept_original_cip(self, cip):
         """

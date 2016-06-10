@@ -14,7 +14,7 @@ from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 logger = logging.getLogger(__name__)
-
+from eden.graph import Vectorizer
 
 
 
@@ -78,7 +78,7 @@ class MinorDecomposer(Decomposer):
         return self._abstract_graph
 
 
-    def __init__(self, vectorizer ,data,
+    def __init__(self,vectorizer, data,
                        include_base=False,
                        base_thickness_list=[2]):
         '''
@@ -87,7 +87,6 @@ class MinorDecomposer(Decomposer):
         ----------
         graph: nx.graph
 
-        vectorizer:  a vectorizer from eden
 
         include_base: bool
             normally cores are at least as big as a node in the minor graph.
@@ -108,7 +107,7 @@ class MinorDecomposer(Decomposer):
         self.vectorizer = vectorizer
         self._base_graph = data[0]
         if len(self._base_graph) > 0:
-            self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
+            self._base_graph = Vectorizer._edge_to_vertex_transform(self._base_graph)
         self._abstract_graph = data[1]
         self._mod_dict = self._abstract_graph.graph.get("mod_dict",{})  # this is the default.
         self.include_base = include_base  # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
@@ -369,11 +368,9 @@ def extract_cips(node,
                  base_thickness_list=None,
                  hash_bitmask=None,
                  mod_dict={},
-
                   radius_list=[],
                   thickness_list=None,
                   node_filter=lambda x, y: True
-
                ):
     '''
 
