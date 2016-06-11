@@ -98,8 +98,11 @@ class AbstractDecomposer(object):
 
 class Decomposer(AbstractDecomposer):
     def __str__(self):
-        return "base_graph size: %s" % len(self._base_graph)
-
+        if "_base_graph" in self.__dict__:
+            answer="base_graph with size: %s" % len(self._base_graph)
+        else:
+            answer='no graphs in decomposer'
+        return answer
     def __init__(self,  vectorizer=None, data=[], node_entity_check=lambda x,y:True, nbit=20):
         self.vectorizer = vectorizer
         self._base_graph = data
@@ -182,9 +185,7 @@ class Decomposer(AbstractDecomposer):
         return self.rooted_core_interface_pairs(node, radius_list=radius_list, thickness_list=thickness_list)
 
     def all_core_interface_pairs(self,     radius_list=None,
-                                           thickness_list=None,
-                                           hash_bitmask=2 ** 20 - 1,
-                                           node_filter=lambda x, y: True):
+                                           thickness_list=None):
 
         graph = self._base_graph
         cips = []

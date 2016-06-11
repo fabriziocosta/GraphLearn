@@ -216,8 +216,7 @@ class GraphMinorTransformer(GraphTransformer):
                                                   min_size=self.shape_min_size,
                                                   debug=False,
                                                   estimator=self.rawgraph_estimator,
-                                                  grouper=self.core_shape_cluster,
-                                                  vectorizer=self.vectorizer)
+                                                  grouper=self.core_shape_cluster)
 
 
         # now comes the second part in which i try to find a name for those minor nodes.

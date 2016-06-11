@@ -332,10 +332,8 @@ def extract_cores_and_interfaces(parameters):
     try:
         # unpack arguments, expand the graph
         graphmanager, radius_list, thickness_list = parameters
-
         return graphmanager.all_core_interface_pairs(radius_list=radius_list,
-                                                     thickness_list=thickness_list,
-                                                )
+                                                     thickness_list=thickness_list)
 
     except Exception:
         logger.debug(traceback.format_exc(10))
