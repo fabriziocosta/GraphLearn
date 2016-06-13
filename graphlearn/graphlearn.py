@@ -22,17 +22,35 @@ import copy
 class Sampler(object):
 
     def __neg__(self):
+        '''
+        samplers are connectable via + and - symbols.
+        this takes care of negating a sampler.
+        Returns
+        -------
+            negating a self means to revert all the estimator results
+        '''
+
         duplicate = copy.deepcopy(self)
-        duplicate.nocopy_negate()
+        duplicate._nocopy_negate()
         return duplicate
 
-    def nocopy_negate(self):
+    def _nocopy_negate(self):
+        ''''
+        helper for __neg__
+        '''
         self.estimatorobject.inverse_prediction = not self.estimatorobject.inverse_prediction
         if 'spawn_list' in self.__dict__:
             for spawn in self.spawn_list:
-                spawn.nocopy_negate()
+                spawn._nocopy_negate()
 
     def __mul__(self,other):
+        '''
+        samplers are connectable via + and - symbols.
+        mul is currently not supported
+        Returns
+        -------
+            error
+        '''
         # other musst be int oO
         # ==> also apply to its children
         #if 'multiplier' not in self.__dict__:
@@ -45,10 +63,24 @@ class Sampler(object):
         #return self
 
     def __sub__(self,other):
+        '''
+        samplers are connectable via + and - symbols.
+        this takes care of subtraction.
+        Returns
+        -------
+            a sampler that has child samplers in self.spawn_list
+        '''
         duplicate = copy.deepcopy(self)
         return duplicate.__add__(other.__neg__())
 
     def __add__(self,other):
+        '''
+        samplers are connectable via + and - symbols.
+        this takes care of adding samplers.
+        Returns
+        -------
+            a sampler that has child samplers in self.spawn_list
+        '''
         duplicate = copy.deepcopy(self)
         if 'spawn_list' not in duplicate.__dict__:
             duplicate.spawn_list=[]
@@ -56,27 +88,66 @@ class Sampler(object):
         return duplicate
 
 
+
+
     def __init__(self,
-                 nbit=20,
+
 
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
-
                  estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
                  graphtransformer=transform.GraphTransformer(),
-
                  feasibility_checker=feasibility.FeasibilityChecker(),
-                 decomposergen=decompose.Decomposer,
+                 decomposer=decompose.Decomposer(node_entity_check=lambda x, y:True, nbit=20),
+                 grammar=LocalSubstitutableGraphGrammar(radius_list=[0,1], thickness_list=[1,2], min_cip_count=2,min_interface_count=2),
+                 size_diff_core_filter=-1,
+                 probabilistic_core_choice=True,
+                 score_core_choice=False,
+                 size_constrained_core_choice=-1,
+                 similarity=-1,
+                 n_samples=None,
+                 proposal_probability=False,
+                 batch_size=10,
+                 n_jobs=0,
 
-                 radius_list=[0, 1],
-                 thickness_list=[1, 2],
-                 node_entity_check=lambda x, y: True,
+                 orig_cip_max_positives=1,
+                 orig_cip_min_positives=0,
 
-                 grammar=None,
-                 min_cip_count=2,
-                 min_interface_count=2):
+                 n_steps=50,
+                 quick_skip_orig_cip=False,
+                 improving_threshold=-1,
+                 improving_linear_start=0,
+                 accept_static_penalty=0.0,
+                 accept_min_similarity=0.0,
+                 select_cip_max_tries=20,
+                 burnin=0,
+                 backtrack=0,
+
+                 include_seed=False,
+                 keep_duplicates=False,
+
+                 monitor=False
+                 ):
 
         '''
+        init for graphlearn
+
+
+
+
+                to emulate MCMC sampling use these options:
+        probabilistic_core_choice=False?
+        score_core_choice=False
+        max_size_diff=-1
+        proposal_probability=False
+        target_orig_cip=False
+        improving_threshold=-1
+        improving_linear_start=1
+        accept_static_penalty=0.0
+        burnin=0
+        backtrack=0
+
+
 
         Parameters
         ----------
@@ -102,218 +173,8 @@ class Sampler(object):
             how often do i need to see a cip to accept it into the grammar
         min_interface_count: int
             how many cips need to be in an interface
-        Returns
-        -------
-        an initialized sampler
-        '''
-
-        self.decomposer_generator=lambda data: decomposergen(vectorizer, data)
-
-        self.graphtransformer = graphtransformer
-        self.feasibility_checker = feasibility_checker
 
 
-        self.vectorizer = vectorizer
-
-        # lists of int
-        self.radius_list = [int(2 * r) for r in radius_list]
-        self.thickness_list = [int(2 * t) for t in thickness_list]
-        # scikit  classifier
-        self.estimatorobject = estimator
-
-        # cips hashes will be masked with this, this is unrelated to the vectorizer
-        self.hash_bitmask = pow(2, nbit) - 1
-        self.nbit = nbit
-        # boolean values to set restrictions on replacement
-        self.max_core_size_diff = None
-        # a similaritythreshold at which to stop sampling.  a value <= 0 will render this useless
-        self.similarity = None
-        # we will save current graph at every interval step of sampling and attach to graphinfos[graphs]
-        self.sampling_interval = None
-        # how many sampling steps are done
-        self.n_steps = None
-        # number of jobs created by multiprocessing  -1 to let python guess how many cores you have
-        self.n_jobs = None
-        # currently stores information on why the sampling was stopped before n_steps ;
-        # will be attached to the graphinfo returned by _sample()
-        self._sample_notes = None
-        # factor for simulated annealing, 0 means off
-        # 1 is pretty strong. 0.6 seems ok
-        self.improving_threshold = None
-        # current step in sampling process of a single graph
-        self.step = None
-        self.node_entity_check = node_entity_check
-
-        # how often do we try to get a cip from the current graph  in sampling
-        self.select_cip_max_tries = None
-
-        # sample path
-        self.sample_path = None
-
-        # sample this many before sampling interval starts
-        self.burnin = None
-
-        # is the core chosen by frequency?  (bool)
-        self.probabilistic_core_choice = None
-
-        if not grammar:
-            self.lsgg = \
-                LocalSubstitutableGraphGrammar(self.radius_list,
-                                               self.thickness_list,
-                                               vectorizer=self.vectorizer,
-                                               min_cip_count=min_cip_count,
-                                               min_interface_count=min_interface_count,
-                                               nbit=self.nbit,
-                                               node_entity_check=self.node_entity_check)
-        else:
-            self.lsgg = grammar
-
-        # will be set before fitting and before sampling
-        self.random_state = random_state
-
-
-
-        # TODO THE REST OF THE VARS HERE>> THERE ARE QUITE A FEW
-
-    def save(self, file_name):
-        self.lsgg._revert_multicore_transform()
-        dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
-        logger.debug('Saved model: %s' % file_name)
-
-    def load(self, file_name):
-        self.__dict__ = dill.load(open(file_name))
-        logger.debug('Loaded model: %s' % file_name)
-
-    def grammar(self):
-        return self.lsgg
-
-    def fit(self,
-            input=None,
-            negative_input=None,
-            regression_targets=None,
-            lsgg_include_negatives=False,
-            grammar_n_jobs=-1,
-            grammar_batch_size=10):
-        """
-        Parameters
-        ----------
-        input: graph iterator
-        negative_input: graph iterator
-            for negative class, if applicable
-        regression_targets: list of values for
-            regression. not yet supported
-        lsgg_include_negatives: bool, False
-            True: grammar will include cips from negative classes
-            False: use negative class only to train estimator
-        grammar_n_jobs: int, -1
-            number of processes to start
-        grammar_batch_size: int, 10
-            extract cips from this many graphs at once.
-            too low: processing overhead increases
-            too high: run out of memory
-
-        Returns
-        -------
-            self
-        """
-
-
-        # BUILD DECOMPOSERS FOR POSITIVE AND NEGATIVE GRAPHS
-        self.graphtransformer.set_param(self.vectorizer)
-        decomposable_graphs = [ self.decomposer_generator(data)
-                        for data in  self.graphtransformer.fit_transform(input)]
-
-        negative_input_exists=False
-        if negative_input!=None:
-            decomposable_negative_graphs = [self.decomposer_generator(data)
-                                   for data in self.graphtransformer.fit_transform(negative_input)]
-            negative_input_exists=True
-
-
-
-
-
-        # TRAIN ESTIMATOR IF NEEDED
-        if self.estimatorobject.status != 'trained':
-            graphs = [d.pre_vectorizer_graph() for d in decomposable_graphs]
-            assert isinstance(graphs[0], nx.Graph), 'not a graph...' + str(graphs[0])
-
-            if regression_targets!=None:
-                #def fit(self, data_matrix, values, random_state=None):
-                self.estimatorobject=estimate.Regressor()
-                self.estimatorobject.fit(self.vectorizer.transform(graphs), regression_targets, random_state=self.random_state)
-            elif negative_input_exists == False:
-                self.estimatorobject.fit(self.vectorizer.transform(graphs),
-                    random_state=self.random_state)
-            #(regression_targets,decomposable_graphs):
-            else:
-                neg_graphs=[d.pre_vectorizer_graph() for d in decomposable_negative_graphs]
-                self.estimatorobject.fit(self.vectorizer.transform(graphs),self.vectorizer.transform(neg_graphs),
-                                         random_state=self.random_state)
-
-
-
-        # HANDLE GRAMMAR
-        if negative_input_exists and  lsgg_include_negatives:
-            decomposable_graphs += decomposable_negative_graphs
-        self.lsgg.fit(decomposable_graphs, n_jobs = grammar_n_jobs, batch_size=grammar_batch_size)
-        return self
-
-
-
-
-    def sample(self, graph_iter=None,
-
-               size_diff_core_filter=-1,
-               probabilistic_core_choice=True,
-               score_core_choice=False,
-               size_constrained_core_choice=-1,
-
-               similarity=-1,
-               n_samples=None,
-               proposal_probability=False,
-               batch_size=10,
-               n_jobs=0,
-
-               orig_cip_max_positives=1,
-               orig_cip_min_positives=0,
-
-               n_steps=50,
-               quick_skip_orig_cip=False,
-               improving_threshold=-1,
-               improving_linear_start=0,
-               accept_static_penalty=0.0,
-               accept_min_similarity=0.0,
-               select_cip_max_tries=20,
-               burnin=0,
-               backtrack=0,
-
-               include_seed=False,
-               keep_duplicates=False,
-
-               monitor=False,
-               init_only=False):
-
-        '''
-
-        to emulate MCMC sampling use these options:
-        probabilistic_core_choice=False?
-        score_core_choice=False
-        max_size_diff=-1
-        proposal_probability=False
-        target_orig_cip=False
-        improving_threshold=-1
-        improving_linear_start=1
-        accept_static_penalty=0.0
-        burnin=0
-        backtrack=0
-
-
-
-        Parameters
-        ----------
-        graph_iter : iterator over networkx graphs
-            the by nw trained preprocessor will turn them into  graphwrappers
 
 
         size_diff_core_filter: int
@@ -342,6 +203,8 @@ class Sampler(object):
             number of processes created used. -1 is cpu count
         orig_cip_max_positives : float , -1
         orig_cip_min_positives : float , -1
+            eden will evaluate the graph and assign a score to each node.
+            all nodes in the better half are marked as high scoring nodes.
             min/max positives is the ratio of allowed high-scoring nodes
             in the core of the cip picked to be replaced.
             .5-> 50% high scoring nodes in core of cip
@@ -379,6 +242,210 @@ class Sampler(object):
             are not interesting.
         monitor : bool
             enabling monitor accessible after  sampling. sampler.monitors will contain all the information
+
+       Returns
+        -------
+        an initialized sampler
+
+        '''
+        self.graphtransformer = graphtransformer
+        self.feasibility_checker = feasibility_checker
+        self.vectorizer = vectorizer
+        # scikit  classifier
+        self.estimatorobject = estimator
+        self.maxbacktrack = backtrack
+        self.monitor = monitor
+        self.monitors = []
+        self.accept_min_similarity = accept_min_similarity
+        self.proposal_probability = proposal_probability
+        self.similarity = similarity
+        self.probabilistic_core_choice = probabilistic_core_choice
+        self.n_samples=n_samples
+        self.n_steps = n_steps
+        self.quick_skip_orig_cip = quick_skip_orig_cip
+        self.n_jobs = n_jobs
+        self.orig_cip_max_positives = orig_cip_max_positives
+        self.orig_cip_min_positives = orig_cip_min_positives
+        self.size_diff_core_filter=size_diff_core_filter
+        # the user doesnt know about edge nodes.. so this needs to be done
+        self.improving_threshold = improving_threshold
+        self.improving_linear_start = improving_linear_start
+        self.accept_static_penalty = accept_static_penalty
+        self.select_cip_max_tries = select_cip_max_tries
+        self.burnin = burnin
+        self.include_seed = include_seed
+        self.batch_size = batch_size
+        self.score_core_choice = score_core_choice
+        self.keep_duplicates = keep_duplicates
+        self.lsgg=grammar
+        self.random_state = random_state
+        self.decomposer=decomposer
+        '''
+        # boolean values to set restrictions on replacement
+        self.size_constrained_core_choice = None
+        # a similaritythreshold at which to stop sampling.  a value <= 0 will render this useless
+        self.similarity = None
+        # we will save current graph at every interval step of sampling and attach to graphinfos[graphs]
+        self.sampling_interval = None
+        # how many sampling steps are done
+        self.n_steps = None
+        # number of jobs created by multiprocessing  -1 to let python guess how many cores you have
+        self.n_jobs = None
+        # currently stores information on why the sampling was stopped before n_steps ;
+        # will be attached to the graphinfo returned by _sample()
+        self._sample_notes = None
+        # factor for simulated annealing, 0 means off
+        # 1 is pretty strong. 0.6 seems ok
+        self.improving_threshold = None
+        # current step in sampling process of a single graph
+        self.step = None
+
+        # how often do we try to get a cip from the current graph  in sampling
+        self.select_cip_max_tries = None
+
+        # sample path
+        self.sample_path = None
+
+        # sample this many before sampling interval starts
+        self.burnin = None
+
+        # is the core chosen by frequency?  (bool)
+        self.probabilistic_core_choice = None
+        '''
+
+
+        self.size_constrained_core_choice = size_constrained_core_choice * 2
+
+
+        # init, since someone might call set_param which might also require a reinit.
+        self._init_new_params()
+
+
+    def _init_new_params(self):
+        pass
+
+
+
+    def set_parmas(self, **params):
+        '''
+        Parameters
+        ----------
+        params:
+        Returns
+        -------
+        '''
+        self.__dict__.update(params)
+        self._init_new_params()
+
+    def save(self, file_name):
+        self.lsgg._revert_multicore_transform()
+        dill.dump(self.__dict__, open(file_name, "w"), protocol=dill.HIGHEST_PROTOCOL)
+        logger.debug('Saved model: %s' % file_name)
+
+    def load(self, file_name):
+        self.__dict__ = dill.load(open(file_name))
+        logger.debug('Loaded model: %s' % file_name)
+
+    def grammar(self):
+        return self.lsgg
+
+    def fit(self,
+            input=None,
+            negative_input=None,
+
+            regression_targets=None,
+
+            lsgg_train_graphs=None,
+            lsgg_include_negatives=False,
+            grammar_n_jobs=-1,
+            grammar_batch_size=10):
+        """
+        fit
+
+        Parameters
+        ----------
+        input: graph iterator
+        negative_input: graph iterator
+            for negative class, if applicable
+        regression_targets: list of values for
+            regression. not yet supported
+        lsgg_include_negatives: bool, False
+            True: grammar will include cips from negative classes
+            False: use negative class only to train estimator
+        grammar_n_jobs: int, -1
+            number of processes to start
+        grammar_batch_size: int, 10
+            extract cips from this many graphs at once.
+            too low: processing overhead increases
+            too high: run out of memory
+
+        Returns
+        -------
+            self
+        """
+
+
+        # BUILD DECOMPOSERS FOR POSITIVE AND NEGATIVE GRAPHS
+        self.graphtransformer.set_param(self.vectorizer)
+        decomposable_graphs = [ self.decomposer.make_new_decomposer(self.vectorizer,data)
+                        for data in  self.graphtransformer.fit_transform(input)]
+
+        if lsgg_train_graphs != None:
+            lsgg_graphs = [self.decomposer.make_new_decomposer(self.vectorizer,data)
+                               for data in self.graphtransformer.fit_transform(lsgg_train_graphs)]
+
+        negative_input_exists=False
+        if negative_input!=None:
+            decomposable_negative_graphs = [self.decomposer.make_new_decomposer(self.vectorizer,data)
+                                   for data in self.graphtransformer.fit_transform(negative_input)]
+            negative_input_exists=True
+
+
+
+
+
+        # TRAIN ESTIMATOR IF NEEDED
+        if self.estimatorobject.status != 'trained':
+            graphs = [d.pre_vectorizer_graph() for d in decomposable_graphs]
+            assert isinstance(graphs[0], nx.Graph), 'not a graph...' + str(graphs[0])
+
+            if regression_targets!=None:
+                #def fit(self, data_matrix, values, random_state=None):
+                self.estimatorobject=estimate.Regressor()
+                self.estimatorobject.fit(self.vectorizer.transform(graphs), regression_targets, random_state=self.random_state)
+            elif negative_input_exists == False:
+                self.estimatorobject.fit(self.vectorizer.transform(graphs),
+                    random_state=self.random_state)
+            #(regression_targets,decomposable_graphs):
+            else:
+                neg_graphs=[d.pre_vectorizer_graph() for d in decomposable_negative_graphs]
+                self.estimatorobject.fit(self.vectorizer.transform(graphs),self.vectorizer.transform(neg_graphs),
+                                         random_state=self.random_state)
+
+
+
+        # HANDLE GRAMMAR
+        if negative_input_exists and  lsgg_include_negatives:
+            decomposable_graphs += decomposable_negative_graphs
+        if lsgg_train_graphs!=None:
+            decomposable_graphs+=lsgg_graphs
+        self.lsgg.fit(decomposable_graphs, n_jobs = grammar_n_jobs, batch_size=grammar_batch_size)
+        return self
+
+
+
+
+    def transform(self, graph_iter=None,
+                  init_only=False):
+
+        '''
+
+        starting the sample process
+
+
+        graph_iter : iterator over networkx graphs
+            the by nw trained preprocessor will turn them into  graphwrappers
+
         init_only: bool
             we can just initialise without actually running..
             this is nice if you want more controll over the actual running process
@@ -387,61 +454,32 @@ class Sampler(object):
         -------
         list of graphs
         '''
-        self.maxbacktrack = backtrack
-
-        self.monitor = monitor
-        self.monitors = []
-        self.accept_min_similarity = accept_min_similarity
-        self.proposal_probability = proposal_probability
-
-        self.similarity = similarity
 
 
-        if probabilistic_core_choice + score_core_choice + (size_constrained_core_choice > -1)  > 1:
+
+        self.orig_cip_score_tricks = self.orig_cip_max_positives != 1 or self.orig_cip_min_positives != 0
+        if self.improving_linear_start > 0:
+            self.improving_linear_start = int(self.improving_linear_start * self.n_steps)
+        self.improving_penalty_per_step = (1 - self.accept_static_penalty) / float(
+            self.improving_threshold - self.improving_linear_start)
+
+        if self.probabilistic_core_choice + self.score_core_choice + (self.size_constrained_core_choice > -2)  > 1:
             raise Exception('choose only one parameter core_choice')
-
-        if n_samples:
-            self.sampling_interval = int((n_steps - burnin) / (n_samples + include_seed - 1))
+        if self.n_samples:
+            self.sampling_interval = int((self.n_steps - self.burnin) / (self.n_samples + self.include_seed - 1))
         else:
             self.sampling_interval = 9999
 
-        self.n_steps = n_steps
-        self.quick_skip_orig_cip = quick_skip_orig_cip
-        self.n_jobs = n_jobs
-        self.orig_cip_max_positives = orig_cip_max_positives
-        self.orig_cip_min_positives = orig_cip_min_positives
-        self.orig_cip_score_tricks = self.orig_cip_max_positives != 1  or self.orig_cip_min_positives != 0
-
-        self.size_diff_core_filter_max=size_diff_core_filter
-        # the user doesnt know about edge nodes.. so this needs to be done
-        size_constrained_core_choice = size_constrained_core_choice * 2
-        self.max_core_size_diff = size_constrained_core_choice
-
         #  calculating the actual steps for improving :)
-        self.improving_threshold = improving_threshold
-        if improving_threshold > 0:
+        if self.improving_threshold > 0:
             self.improving_threshold = int(self.improving_threshold * self.n_steps)
-        self.improving_linear_start = improving_linear_start
-        if improving_linear_start > 0:
-            self.improving_linear_start = int(improving_linear_start * n_steps)
-        self.improving_penalty_per_step = (1 - accept_static_penalty) / float(
-            self.improving_threshold - self.improving_linear_start)
 
-        self.accept_static_penalty = accept_static_penalty
-        self.select_cip_max_tries = select_cip_max_tries
-        self.burnin = burnin
-        self.include_seed = include_seed
-        self.batch_size = batch_size
-        self.probabilistic_core_choice = probabilistic_core_choice
-        self.score_core_choice = score_core_choice
 
-        self.keep_duplicates = keep_duplicates
         # adapt grammar to task:
-        self.lsgg.preprocessing(n_jobs,
-                                (self.max_core_size_diff+self.size_diff_core_filter_max ) > -3,
-                                probabilistic_core_choice)
-
-        if score_core_choice:
+        self.lsgg.preprocessing(self.n_jobs,
+                                (self.size_constrained_core_choice + self.size_diff_core_filter) > -3,
+                                self.probabilistic_core_choice)
+        if self.score_core_choice:
             self._prep_score_core_choice()
 
         logger.debug(serialize_dict(self.__dict__))
@@ -452,11 +490,11 @@ class Sampler(object):
         # sampling
         if  init_only:
             yield 0
-        if n_jobs in [0, 1]:
+        if self.n_jobs in [0, 1]:
             for o in self._single_process(graph_iter):
                 yield o
         else:
-            for o in self._multi_process(n_jobs,graph_iter):
+            for o in self._multi_process(self.n_jobs,graph_iter):
                 yield o
 
     def _multi_process(self,n_jobs,graph_iter):
@@ -493,7 +531,7 @@ class Sampler(object):
         for graph in graph_iter:
             # sampled_graph = self._sample(graph)
             # yield sampled_graph
-            a, b = self._sample(graph)
+            a, b = self.transform_single(graph)
             for new_graph in self.return_formatter(a, b):
                 yield new_graph
 
@@ -513,11 +551,37 @@ class Sampler(object):
                 self.score_core_choice_dict[core] = score
 
     def return_formatter(self, graphlist, mon):
+        '''
+        this function is here so the output format can be altered to anything.
+
+        Parameters
+        ----------
+        graphlist: list of graphs
+        mon: monitor object assiciated with this sampling run
+
+        Returns
+        -------
+            output of a run
+        '''
+
         self.monitors.append(mon)
         yield graphlist
 
     def _argbuilder(self, problem_iter):
-        # for multiprocessing  divide task into small multiprocessable bites
+        '''
+        we do two things here:
+        -break tasks into batches to be multiprocessed.
+        -multiprocess sometimes does not terminate properly so we observe how many tasks go in and terminate
+        once that number of outs is reached.
+
+        Parameters
+        ----------
+        problem_iter: problems to put into the multiprocess queue
+
+        Returns
+        -------
+            yields a batchsize sized problem chunks
+        '''
         s = dill.dumps(self)
         self.multiprocess_jobcount = 0
         self.multiprocess_all_prepared = False
@@ -530,12 +594,25 @@ class Sampler(object):
         self.multiprocess_all_prepared = True
 
     def _samplelog(self, msg, level=10):
+        '''
+        use this for logging.
+        logs are logged and written to monitor.
+
+        Parameters
+        ----------
+        msg: string
+        level: importance of message
+
+        Returns
+        -------
+            nothing
+        '''
         # debug messages in _sample will use this,
         # we will also log to monitor.
         logger.log(level, msg)
         self.monitorobject.info('debug', 'debuglevel:%d %s' % (level, msg))
 
-    def _sample(self, graph):
+    def transform_single(self, graph):
         '''
             we sample a single graph.
             input: a graph
@@ -595,11 +672,38 @@ class Sampler(object):
         self.monitorobject.sampling_info = sampling_info
         return self.sample_path, self.monitorobject
 
-    def _score_list_append(self, graphman):
-        self._score_list.append(graphman._score)
+    def _score_list_append(self, graphdecomposer):
+        '''
+        adds score of graphdecomposer to the score_list that will be accessible
+        through the monitor at the end.
 
-    def _sample_path_append(self, graphmanager, force=False):
+        Parameters
+        ----------
+        graphdecomposer: a graph decomposer
 
+        Returns
+        -------
+            adds score of graphman to the score_list that will be written to the monitor.
+        '''
+        self._score_list.append(graphdecomposer._score)
+
+    def _sample_path_append(self, graphdecomposer, force=False):
+        '''
+        decide if we record a speciffic graph.
+        this is mostly dependant on the current step.
+        sample path is part of the output.
+
+        Parameters
+        ----------
+        graphdecomposer: a decomposer
+
+        force: bool
+            if true force the appending
+
+        Returns
+        -------
+            nothing
+        '''
         # self.include_seed was checking for wfalse... wtf...
         step0 = (self.step == 0 and self.include_seed is True)
 
@@ -610,16 +714,16 @@ class Sampler(object):
             # do we want to omit duplicates?
             if not self.keep_duplicates:
                 # have we seen this before?
-                if graphmanager._score in self._sample_path_score_set:
+                if graphdecomposer._score in self._sample_path_score_set:
                     # if so return
                     return
                 # else add so seen set
                 else:
-                    self._sample_path_score_set.add(graphmanager._score)
+                    self._sample_path_score_set.add(graphdecomposer._score)
 
             # append :) .. rescuing score
             # graph.graph['score'] = graph._score # is never used?
-            self.sample_path.append(graphmanager.out())
+            self.sample_path.append(graphdecomposer.out())
 
     def _sample_init(self, graph):
         '''
@@ -634,10 +738,10 @@ class Sampler(object):
         self._sample_init_init_monitor()
         self.backtrack = self.maxbacktrack
         self.last_graphman = None
-        decomposer = self.decomposer_generator(data=self.graphtransformer.transform([graph])[0])
+        decomposer = self.decomposer.make_new_decomposer(self.vectorizer,self.graphtransformer.transform([graph])[0])
 
         graph = decomposer.base_graph()
-        if self.max_core_size_diff > -1 or self.size_diff_core_filter_max>-1:
+        if self.size_constrained_core_choice > -1 or self.size_diff_core_filter>-1:
             self.seed_size = len(graph)
         self._score(decomposer)
         self._sample_notes = ''
@@ -649,6 +753,14 @@ class Sampler(object):
         return decomposer
 
     def _sample_init_init_monitor(self):
+        '''
+        reinitializes the monitor.
+        normally this is called after each sample-run.
+
+        Returns
+        -------
+            nothing
+        '''
         self.monitorobject = monitor.Monitor(self.monitor)
 
     def _stop_condition(self, decomposer):
@@ -678,6 +790,8 @@ class Sampler(object):
 
     def _score(self, graphdecomposer):
         """
+        will determine the score of a graph.
+        scores will be cached
 
         Parameters
         ----------
@@ -686,9 +800,6 @@ class Sampler(object):
         Returns
         -------
         score of graph
-        also some infromation is cached in the decomposer oOo
-
-
         """
 
         if 'vectorized_graph' not in graphdecomposer.__dict__:
@@ -752,10 +863,19 @@ class Sampler(object):
         return accept_decision
 
     def _propose(self, decomposer):
-        """
-        we do the backtrack
-        """
+        '''
+        proposes an altered graph,
+        _propose_graph does the actual proposition.
+        here we just take care of the possibility to backtrack once we reach a dead end.
 
+        Parameters
+        ----------
+        decomposer: graph that will be altered a little.
+
+        Returns
+        -------
+            proposed decomposer
+        '''
         if self.maxbacktrack > 0:
             self.backtrack_graphman = self.last_graphman
             self.last_graphman = decomposer
@@ -804,7 +924,7 @@ class Sampler(object):
 
 
                 if self.feasibility_checker.check(new_graph):
-                    new_decomposer = self.decomposer_generator(self.graphtransformer.re_transform_single(new_graph))
+                    new_decomposer = self.decomposer.make_new_decomposer(self.vectorizer,self.graphtransformer.re_transform_single(new_graph))
 
                 if new_decomposer:
                         self.calc_proposal_probability(decomposer, new_decomposer, original_cip)
@@ -824,7 +944,15 @@ class Sampler(object):
                     # try the next orig cip, than to risk another collision
 
     def calc_proposal_probability(self, decomposer, decomposer_new, cip):
-        """
+        """t
+        MCMC required that the state change has the same probability back and forth.
+        Going from one graph to another might alter the new graph such that many new destinations are available.
+        If you want to use MCMC sampling, we should account for that.
+
+        This function estimates the effect such that the acceptance function can use this estimation.
+
+        The estimation is based on the "jump possibilities" of all the nodes in the core before and after the
+        substitution.
 
         Parameters
         ----------
@@ -837,7 +965,7 @@ class Sampler(object):
 
         Returns
         -------
-
+            sets proposal_probability_value
         """
 
         def ops(decomposer, cip_graph):
@@ -845,10 +973,8 @@ class Sampler(object):
             interfacesize = 0
             for n, d in cip_graph.nodes(data=True):
                 if 'edge' not in d and 'interface' in d:
-                    cips = decomposer.rooted_core_interface_pairs(n, radius_list=self.radius_list,
-                                                                  thickness_list=self.thickness_list,
-                                                                  hash_bitmask=self.hash_bitmask,
-                                                                  node_filter=self.node_entity_check)
+                    cips = decomposer.rooted_core_interface_pairs(n, radius_list=self.lsgg.radius_list,
+                                                                  thickness_list=self.lsgg.thickness_list)
                     for cip in cips:
                         if cip.interface_hash in self.lsgg.productions:
                             counter += len(self.lsgg.productions[cip.interface_hash])
@@ -900,6 +1026,23 @@ class Sampler(object):
             yield self.lsgg.productions[cip.interface_hash][core_hash]
 
     def _core_values(self, cip, core_hashes, graph):
+        '''
+        assign probability values to each hash.
+        elsewhere the new cip is picked based on these.
+
+        Parameters
+        ----------
+        cip: cip
+            that will be replaced
+        core_hashes
+            hashes of the available replacements
+        graph
+            the current graph
+
+        Returns
+        -------
+            array  with probability value for each core_hash
+        '''
         core_weights = []
 
 
@@ -912,8 +1055,8 @@ class Sampler(object):
             for core_hash in core_hashes:
                 core_weights.append(self.score_core_choice_dict[core_hash])
 
-        elif self.max_core_size_diff > -1:
-            unit = 100 / float(self.max_core_size_diff + 1)
+        elif self.size_constrained_core_choice > -1:
+            unit = 100 / float(self.size_constrained_core_choice + 1)
             goal_size = self.seed_size
             current_size = len(graph)
 
@@ -923,13 +1066,14 @@ class Sampler(object):
                 value = max(0, 100 - (abs(goal_size - predicted_size) * unit))
                 core_weights.append(value)
         else:
+            #print 'core weight is uniform'
             core_weights = [1] * len(core_hashes)
 
-        if self.size_diff_core_filter_max > -1:
+        if self.size_diff_core_filter > -1:
             # resultsizediff=  graphlen+new_core-oldcore-seed..
             # x is that without the new_core size:)
             x = len(graph) - self.seed_size - cip.core_nodes_count
-            sizecheck = lambda core: abs(x + self.lsgg.core_size[core]) <= self.size_diff_core_filter_max
+            sizecheck = lambda core: abs(x + self.lsgg.core_size[core]) <= self.size_diff_core_filter
             #core_hashes = [core_hash for core_hash in core_hashes if sizecheck(core_hash)]
             for i,core in enumerate(core_hashes):
                 if sizecheck(core)==False:
@@ -938,9 +1082,22 @@ class Sampler(object):
         return core_weights
 
     def probabilistic_choice(self, values, core_hashes):
-        # so you have a list of core_hashes
-        # now for every core_hash put a number in a rating list
-        # we will choose one according to the probability induced by those numbers
+        '''
+        so you have a list of core_hashes
+        now for every core_hash put a number in a rating list
+        we will choose one according to the probability induced by those numbers
+
+
+        Parameters
+        ----------
+        values: list with numbers for each cip
+        core_hashes: list of core hashes
+
+        Returns
+        -------
+            yields core hash according to propability induced by the values.
+
+        '''
         ratings_sum = sum(values)
         # while there are cores
         while core_hashes and ratings_sum > 0.0:
@@ -1001,6 +1158,7 @@ class Sampler(object):
 
     def _get_original_cip(self, graphman):
         '''
+        selects a cip to alter in the graph.
 
         Parameters
         ----------
@@ -1013,11 +1171,12 @@ class Sampler(object):
         USED ONLY IN SELECT_ORIGINAL_CIP
 
         '''
-        return graphman.random_core_interface_pair(radius_list=self.radius_list, thickness_list=self.thickness_list,
-                                                   hash_bitmask=self.hash_bitmask, node_filter=self.node_entity_check)
+        return graphman.random_core_interface_pair(radius_list=self.lsgg.radius_list, thickness_list=self.lsgg.thickness_list)
 
     def _accept_original_cip(self, cip):
         """
+
+        see if the choosen cip in the original is "ok"
 
         Parameters
         ----------
@@ -1054,6 +1213,6 @@ def _sample_multi(what):
     graphlist = dill.loads(what[1])
     # if jobsize % batchsize != 0, sample will not give me a tuple,
     # here i filter for these
-    result = [self._sample(g) for g in graphlist]
+    result = [self.transform_single(g) for g in graphlist]
     # print result
     return [e for e in result if type(e) == type(())]

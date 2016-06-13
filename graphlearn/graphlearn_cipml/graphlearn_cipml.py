@@ -78,7 +78,7 @@ class GraphLearnSamplerCipML(GraphLearnSampler, CipPredictor):
         return candidate_cips
 
     def _sample(self, graph):
-        sampled_graph = GraphLearnSampler._sample(self, graph)
+        sampled_graph = GraphLearnSampler.transform_single(self, graph)
 
         if self.num_scores > self.MIN_SCORES_2_PREDICT:
             if self.num_scores - self.num_scores_fitted > self.MIN_BATCH_SIZE:

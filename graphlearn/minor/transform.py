@@ -25,7 +25,7 @@ class GraphToAbstractTransformer(object):
     '''
 
 
-    def __init__(self, vectorizer=False,estimator=False,grouper=False, score_threshold=0, min_size=0, debug=False):
+    def __init__(self, estimator=False,grouper=False, score_threshold=0, min_size=0, debug=False):
         '''
 
         Parameters
@@ -45,9 +45,9 @@ class GraphToAbstractTransformer(object):
         -------
 
         '''
+        self.vectorizer = Vectorizer()
         self.grouper=grouper
         self.estimator=estimator
-        self.vectorizer=vectorizer
         self.score_threshold=score_threshold
         self.min_size=min_size
         self.debug=debug
@@ -158,8 +158,7 @@ class GraphMinorTransformer(GraphTransformer):
                  #graph_to_minor=GraphToAbstractTransformer(),
                  estimator=OneClassEstimator(nu=.5, n_jobs=4),
                  shape_min_size=1,
-                 shape_score_threshold=0,
-                 vectorizer=Vectorizer(complexity=3)):
+                 shape_score_threshold=0):
         '''
 
         Parameters
@@ -189,11 +188,10 @@ class GraphMinorTransformer(GraphTransformer):
         self.save_graphclusters = save_graphclusters
         self.name_cluster = name_cluster
         self.core_shape_cluster = core_shape_cluster
-        #self._abstract=graph_to_minor
         self.rawgraph_estimator = estimator
         self.shape_score_threshold=shape_score_threshold
         self.shape_min_size=shape_min_size
-        self.vectorizer = vectorizer
+        self.vectorizer = Vectorizer()
 
 
     def fit(self, inputs):
@@ -218,8 +216,7 @@ class GraphMinorTransformer(GraphTransformer):
                                                   min_size=self.shape_min_size,
                                                   debug=False,
                                                   estimator=self.rawgraph_estimator,
-                                                  grouper=self.core_shape_cluster,
-                                                  vectorizer=self.vectorizer)
+                                                  grouper=self.core_shape_cluster)
 
 
         # now comes the second part in which i try to find a name for those minor nodes.

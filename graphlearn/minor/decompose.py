@@ -14,7 +14,7 @@ from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 logger = logging.getLogger(__name__)
-
+from eden.graph import Vectorizer
 
 
 
@@ -78,16 +78,15 @@ class MinorDecomposer(Decomposer):
         return self._abstract_graph
 
 
-    def __init__(self, vectorizer ,data,
+    def __init__(self,vectorizer=0, data=None,
                        include_base=False,
-                       base_thickness_list=[2]):
+                       base_thickness_list=[2],node_entity_check=lambda x,y:True, nbit=20):
         '''
 
         Parameters
         ----------
         graph: nx.graph
 
-        vectorizer:  a vectorizer from eden
 
         include_base: bool
             normally cores are at least as big as a node in the minor graph.
@@ -106,18 +105,27 @@ class MinorDecomposer(Decomposer):
         #print "asd",data
         self.some_thickness_list = base_thickness_list
         self.vectorizer = vectorizer
-        self._base_graph = data[0]
-        if len(self._base_graph) > 0:
-            self._base_graph = vectorizer._edge_to_vertex_transform(self._base_graph)
-        self._abstract_graph = data[1]
-        self._mod_dict = self._abstract_graph.graph.get("mod_dict",{})  # this is the default.
+        if data:
+            self._base_graph = data[0]
+            if len(self._base_graph) > 0:
+                self._base_graph = Vectorizer._edge_to_vertex_transform(self._base_graph)
+            self._abstract_graph = data[1]
+            self._mod_dict = self._abstract_graph.graph.get("mod_dict",{})  # this is the default.
+
         self.include_base = include_base  # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
 
-    def rooted_core_interface_pairs(self, root, thickness=None, for_base=False,
-                                        hash_bitmask=None,
-                                      radius_list=[],
-                                      thickness_list=None,
-                                      node_filter=lambda x, y: True):
+        self.node_entity_check = node_entity_check
+        self.hash_bitmask = 2 ** nbit - 1
+        self.nbit = nbit
+
+    def make_new_decomposer(self, vectorizer, transformout):
+        return MinorDecomposer(vectorizer, transformout, include_base=self.include_base,
+                       base_thickness_list=self.some_thickness_list,
+                       node_entity_check=self.node_entity_check, nbit=self.nbit)#node_entity_check=self.node_entity_check, nbit=self.nbit)
+
+
+
+    def rooted_core_interface_pairs(self, root, thickness_list=None, for_base=False,radius_list=[], base_thickness_list=False):
         '''
              get cips for a root
         Parameters
@@ -138,30 +146,28 @@ class MinorDecomposer(Decomposer):
 
 
         '''
-        if thickness == None:
+        if base_thickness_list:
+            thickness = base_thickness_list
+        else:
             thickness = self.some_thickness_list
-
         if for_base == False:
-
             return extract_cips(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict,
-                                        hash_bitmask=hash_bitmask,
+                                        hash_bitmask=self.hash_bitmask,
                                       radius_list=radius_list,
                                       thickness_list=thickness_list,
-                                      node_filter=node_filter)
+                                      node_filter=self.node_entity_check)
         else:
             return extract_cips_base(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict,
-                                      hash_bitmask=hash_bitmask,
+                                      hash_bitmask=self.hash_bitmask,
                                       radius_list=radius_list,
                                       thickness_list=thickness_list,
-                                      node_filter=node_filter)
+                                      node_filter=self.node_entity_check)
 
     def all_core_interface_pairs(self,
-                                thickness=None,
                                 for_base=False,
-                                hash_bitmask=None,
                                 radius_list=[],
                                 thickness_list=None,
-                                node_filter=lambda x, y: True):
+                                ):
         '''
 
         Parameters
@@ -173,7 +179,7 @@ class MinorDecomposer(Decomposer):
 
         '''
         graph=self.abstract_graph()
-        nodes = filter(lambda x: node_filter(graph, x), graph.nodes())
+        nodes = filter(lambda x: self.node_entity_check(graph, x), graph.nodes())
         nodes = filter(lambda x: graph.node[x].get('APPROVEDABSTRACTNODE',True),nodes)
 
         cips = []
@@ -181,12 +187,9 @@ class MinorDecomposer(Decomposer):
             if 'edge' in graph.node[root_node]:
                 continue
             cip_list = self.rooted_core_interface_pairs(root_node,
-                                                        thickness=thickness,
                                                         for_base=for_base,
-                                                        hash_bitmask=hash_bitmask,
                                                         radius_list=radius_list,
-                                                        thickness_list=thickness_list,
-                                                        node_filter=node_filter)
+                                                        thickness_list=thickness_list)
             if cip_list:
                 cips.append(cip_list)
 
@@ -197,11 +200,9 @@ class MinorDecomposer(Decomposer):
                     continue
                 cip_list = self.rooted_core_interface_pairs(root_node,
                                                             for_base=self.include_base,
-                                                            thickness=thickness,
-                                                            hash_bitmask=hash_bitmask,
+
                                                             radius_list=radius_list,
-                                                            thickness_list=thickness_list,
-                                                            node_filter=node_filter)
+                                                            thickness_list=thickness_list)
                 if cip_list:
                     cips.append(cip_list)
 
@@ -209,9 +210,7 @@ class MinorDecomposer(Decomposer):
 
     def random_core_interface_pair(self,
                                    radius_list=None,
-                                   thickness_list=None,
-                                   hash_bitmask=None,
-                                   node_filter=lambda x, y: True):
+                                   thickness_list=None):
         '''
         get a random cip  rooted in the minor
         Parameters
@@ -225,7 +224,7 @@ class MinorDecomposer(Decomposer):
         -------
             cip
         '''
-        nodes = filter(lambda x: node_filter(self.abstract_graph(), x), self.abstract_graph().nodes())
+        nodes = filter(lambda x: self.node_entity_check(self.abstract_graph(), x), self.abstract_graph().nodes())
         nodes =  filter(lambda x: self.abstract_graph().node[x].get('APPROVEDABSTRACTNODE',True),nodes)
         node = random.choice(nodes)
         if 'edge' in self._abstract_graph.node[node]:
@@ -234,12 +233,10 @@ class MinorDecomposer(Decomposer):
         radius_list = [random.choice(radius_list)]
         thickness_list = [random.choice(thickness_list)]
         random_something = [random.choice(self.some_thickness_list)]
-        return self.rooted_core_interface_pairs(node, thickness=random_something,
+        return self.rooted_core_interface_pairs(node, base_thickness_list=random_something,
                                         for_base=False,
-                                        hash_bitmask=hash_bitmask,
                                       radius_list=radius_list,
-                                      thickness_list=thickness_list,
-                                      node_filter=node_filter)
+                                      thickness_list=thickness_list)
 
     def random_core_interface_pair_base(self, radius_list=None, thickness_list=None, hash_bitmask=None,node_filter=lambda x, y: True):
         '''
@@ -263,11 +260,10 @@ class MinorDecomposer(Decomposer):
         radius_list = [random.choice(radius_list)]
         thickness_list = [random.choice(thickness_list)]
         random_something = [random.choice(self.some_thickness_list)]
-        return self.rooted_core_interface_pairs(node, thickness=random_something, for_base=True,
-                                            hash_bitmask=hash_bitmask,
+        return self.rooted_core_interface_pairs(node, base_thickness_list=random_something, for_base=True,
                                           radius_list=radius_list,
                                           thickness_list=thickness_list,
-                                          node_filter=node_filter  )
+                                     )
 
 
 def check_and_draw(base_graph, abstr):
@@ -369,11 +365,9 @@ def extract_cips(node,
                  base_thickness_list=None,
                  hash_bitmask=None,
                  mod_dict={},
-
                   radius_list=[],
                   thickness_list=None,
                   node_filter=lambda x, y: True
-
                ):
     '''
 

@@ -26,20 +26,14 @@ class LocalSubstitutableGraphGrammar(object):
 
     # move all the things here that are needed to extract grammar
 
-    def __init__(self, radius_list=None, thickness_list=None, min_cip_count=3,
-                 vectorizer=Vectorizer(complexity=3),
-                 min_interface_count=2, nbit=20, node_entity_check=lambda x, y: True):
-        self.productions = {}
+    def __init__(self, radius_list=[0,1], thickness_list=[1,2], min_cip_count=2,min_interface_count=2):
+        self.radius_list = [int(2 * r) for r in radius_list]
+        self.thickness_list = [int(2 * t) for t in thickness_list]
         self.min_interface_count = min_interface_count
-        self.radius_list = radius_list
-        self.thickness_list = thickness_list
         self.min_cip_count = min_cip_count
-        self.vectorizer = vectorizer
-        self.hash_bitmask = 2 ** nbit - 1
-        self.nbit = nbit
-        # checked when extracting grammar. see graphtools
-        self.node_entity_check = node_entity_check
         self.prep_is_outdated = True
+        self.productions = {}
+
 
     def preprocessing(self,
                       n_jobs=0,
@@ -304,9 +298,7 @@ class LocalSubstitutableGraphGrammar(object):
 
     def _get_args(self):
         return [self.radius_list,
-                self.thickness_list,
-                self.hash_bitmask,
-                self.node_entity_check]
+                self.thickness_list]
 
     def get_cip_extractor(self):
         return extract_cores_and_interfaces
@@ -339,12 +331,9 @@ def extract_cores_and_interfaces(parameters):
         return None
     try:
         # unpack arguments, expand the graph
-        graphmanager, radius_list, thickness_list, hash_bitmask, node_entity_check = parameters
-
+        graphmanager, radius_list, thickness_list = parameters
         return graphmanager.all_core_interface_pairs(radius_list=radius_list,
-                                                     thickness_list=thickness_list,
-                                                     hash_bitmask=hash_bitmask,
-                                                     node_filter= node_entity_check)
+                                                     thickness_list=thickness_list)
 
     except Exception:
         logger.debug(traceback.format_exc(10))
