@@ -220,6 +220,7 @@ class Sampler(object):
 
         improving_threshold : float
             starting from this fraction we only accept a graph if it is better
+            note that zero is, as you would expect, only accepting better graphs.
         improving_linear_start : float
             starting from this fraction there is a linearly increasing penalty
             to the score until the improving_threshould value
@@ -349,6 +350,30 @@ class Sampler(object):
     def grammar(self):
         return self.lsgg
 
+
+
+    def fit_make_decomps(self,graphs):
+        return [self.decomposer.make_new_decomposer(data)
+                               for data in self.graphtransformer.fit_transform(graphs)]
+
+    def fit_grammar(self,decomposers,n_jobs=-1, batch_size=10):
+        self.lsgg.fit(decomposers, n_jobs=n_jobs, batch_size=batch_size)
+
+    def fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None):
+        positive = [d.pre_vectorizer_graph() for d in decomposers]
+        if  negative_decomposers==None and regression_targets==None:
+            self.estimatorobject.fit(self.vectorizer.transform(positive),
+                                     random_state=self.random_state)
+        elif negative_decomposers == None:
+            self.estimatorobject = estimate.Regressor()
+            self.estimatorobject.fit(self.vectorizer.transform(positive), regression_targets,
+                                     random_state=self.random_state)
+        else:
+            # twoclass
+            negative = [d.pre_vectorizer_graph() for d in negative_decomposers]
+            self.estimatorobject.fit(self.vectorizer.transform(positive), self.vectorizer.transform(negative),
+                                     random_state=self.random_state)
+
     def fit(self,
             input=None,
             negative_input=None,
@@ -359,9 +384,21 @@ class Sampler(object):
             lsgg_include_negatives=False,
             grammar_n_jobs=-1,
             grammar_batch_size=10):
+
+        print '''  This function will be removed soon, replace fit with these:
+
+         fit_make_decomps(self,graphs)
+         returns decomposers that can be used for the following steps.
+
+         fit_grammar(self,decomposers,n_jobs=-1, batch_size=10).
+         adds graphs wrapped by decomposer to grammar.
+
+         fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None)
+         trains an estimator..
+         -> oneclass, binary, regression estimators available.
+         '''
         """
         fit
-
         Parameters
         ----------
         input: graph iterator
@@ -383,10 +420,7 @@ class Sampler(object):
         -------
             self
         """
-
-
         # BUILD DECOMPOSERS FOR POSITIVE AND NEGATIVE GRAPHS
-        self.graphtransformer.set_param(self.vectorizer)
         decomposable_graphs = [self.decomposer.make_new_decomposer(data)
                                for data in self.graphtransformer.fit_transform(input)]
 
@@ -399,8 +433,6 @@ class Sampler(object):
             decomposable_negative_graphs = [self.decomposer.make_new_decomposer(data)
                                             for data in self.graphtransformer.fit_transform(negative_input)]
             negative_input_exists=True
-
-
 
 
 
@@ -421,7 +453,6 @@ class Sampler(object):
                 neg_graphs=[d.pre_vectorizer_graph() for d in decomposable_negative_graphs]
                 self.estimatorobject.fit(self.vectorizer.transform(graphs),self.vectorizer.transform(neg_graphs),
                                          random_state=self.random_state)
-
 
 
         # HANDLE GRAMMAR
@@ -807,11 +838,11 @@ class Sampler(object):
             # 2. a static penalty applies a penalty that is always the same.
             #       (-1 ~ always accept ; +1 ~  never accept)
 
-            if self.improving_threshold > 0 and self.step > self.improving_linear_start:
-                penalty = ((self.step - self.improving_linear_start) * float(self.improving_penalty_per_step))
+            if self.improving_threshold_absolute > 0 and self.step > self.improving_linear_start_absolute:
+                penalty = ((self.step - self.improving_linear_start_absolute) * float(self.improving_penalty_per_step))
                 score_ratio = score_ratio - penalty
 
-            elif self.improving_threshold == 0:
+            elif self.improving_threshold_absolute == 0:
                 return False
 
             score_ratio = score_ratio - self.accept_static_penalty

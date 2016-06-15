@@ -8,8 +8,7 @@ graphtransformer: graph -> object the decomposer unterstands how to use
 from eden.graph import Vectorizer
 
 class GraphTransformer(object):
-    def set_param(self, vectorizer):
-        self.vectorizer = vectorizer
+
 
     def fit(self, inputs):
         return self
