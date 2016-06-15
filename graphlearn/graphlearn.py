@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 import utils.monitor as monitor
 import networkx as nx
 import copy
+
+
+
 class Sampler(object):
 
     def __neg__(self):
@@ -98,7 +101,7 @@ class Sampler(object):
                  estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
                  graphtransformer=transform.GraphTransformer(),
                  feasibility_checker=feasibility.FeasibilityChecker(),
-                 decomposer=decompose.Decomposer(node_entity_check=lambda x, y:True, nbit=20),
+                 decomposer=decompose.Decomposer(node_entity_check=lambda x, y: True, nbit=20),
                  grammar=LocalSubstitutableGraphGrammar(radius_list=[0,1], thickness_list=[1,2], min_cip_count=2,min_interface_count=2),
                  size_diff_core_filter=-1,
                  probabilistic_core_choice=True,
@@ -280,42 +283,7 @@ class Sampler(object):
         self.lsgg=grammar
         self.random_state = random_state
         self.decomposer=decomposer
-        '''
-        # boolean values to set restrictions on replacement
-        self.size_constrained_core_choice = None
-        # a similaritythreshold at which to stop sampling.  a value <= 0 will render this useless
-        self.similarity = None
-        # we will save current graph at every interval step of sampling and attach to graphinfos[graphs]
-        self.sampling_interval = None
-        # how many sampling steps are done
-        self.n_steps = None
-        # number of jobs created by multiprocessing  -1 to let python guess how many cores you have
-        self.n_jobs = None
-        # currently stores information on why the sampling was stopped before n_steps ;
-        # will be attached to the graphinfo returned by _sample()
-        self._sample_notes = None
-        # factor for simulated annealing, 0 means off
-        # 1 is pretty strong. 0.6 seems ok
-        self.improving_threshold = None
-        # current step in sampling process of a single graph
-        self.step = None
-
-        # how often do we try to get a cip from the current graph  in sampling
-        self.select_cip_max_tries = None
-
-        # sample path
-        self.sample_path = None
-
-        # sample this many before sampling interval starts
-        self.burnin = None
-
-        # is the core chosen by frequency?  (bool)
-        self.probabilistic_core_choice = None
-        '''
-
-
-        self.size_constrained_core_choice = size_constrained_core_choice * 2
-
+        self.size_constrained_core_choice = size_constrained_core_choice
 
         # init, since someone might call set_param which might also require a reinit.
         self._init_new_params()
@@ -336,6 +304,7 @@ class Sampler(object):
         '''
         self.__dict__.update(params)
         self._init_new_params()
+
 
     def save(self, file_name):
         self.lsgg._revert_multicore_transform()
@@ -387,17 +356,17 @@ class Sampler(object):
 
         # BUILD DECOMPOSERS FOR POSITIVE AND NEGATIVE GRAPHS
         self.graphtransformer.set_param(self.vectorizer)
-        decomposable_graphs = [ self.decomposer.make_new_decomposer(self.vectorizer,data)
-                        for data in  self.graphtransformer.fit_transform(input)]
+        decomposable_graphs = [self.decomposer.make_new_decomposer(data)
+                               for data in self.graphtransformer.fit_transform(input)]
 
         if lsgg_train_graphs != None:
-            lsgg_graphs = [self.decomposer.make_new_decomposer(self.vectorizer,data)
-                               for data in self.graphtransformer.fit_transform(lsgg_train_graphs)]
+            lsgg_graphs = [self.decomposer.make_new_decomposer(data)
+                           for data in self.graphtransformer.fit_transform(lsgg_train_graphs)]
 
         negative_input_exists=False
         if negative_input!=None:
-            decomposable_negative_graphs = [self.decomposer.make_new_decomposer(self.vectorizer,data)
-                                   for data in self.graphtransformer.fit_transform(negative_input)]
+            decomposable_negative_graphs = [self.decomposer.make_new_decomposer(data)
+                                            for data in self.graphtransformer.fit_transform(negative_input)]
             negative_input_exists=True
 
 
@@ -463,7 +432,7 @@ class Sampler(object):
         self.improving_penalty_per_step = (1 - self.accept_static_penalty) / float(
             self.improving_threshold - self.improving_linear_start)
 
-        if self.probabilistic_core_choice + self.score_core_choice + (self.size_constrained_core_choice > -2)  > 1:
+        if self.probabilistic_core_choice + self.score_core_choice + (self.size_constrained_core_choice > -1)  > 1:
             raise Exception('choose only one parameter core_choice')
         if self.n_samples:
             self.sampling_interval = int((self.n_steps - self.burnin) / (self.n_samples + self.include_seed - 1))
@@ -477,7 +446,7 @@ class Sampler(object):
 
         # adapt grammar to task:
         self.lsgg.preprocessing(self.n_jobs,
-                                (self.size_constrained_core_choice + self.size_diff_core_filter) > -3,
+                                (self.size_constrained_core_choice + self.size_diff_core_filter) > -2,
                                 self.probabilistic_core_choice)
         if self.score_core_choice:
             self._prep_score_core_choice()
@@ -738,7 +707,7 @@ class Sampler(object):
         self._sample_init_init_monitor()
         self.backtrack = self.maxbacktrack
         self.last_graphman = None
-        decomposer = self.decomposer.make_new_decomposer(self.vectorizer,self.graphtransformer.transform([graph])[0])
+        decomposer = self.decomposer.make_new_decomposer(self.graphtransformer.transform([graph])[0])
 
         graph = decomposer.base_graph()
         if self.size_constrained_core_choice > -1 or self.size_diff_core_filter>-1:
@@ -924,7 +893,8 @@ class Sampler(object):
 
 
                 if self.feasibility_checker.check(new_graph):
-                    new_decomposer = self.decomposer.make_new_decomposer(self.vectorizer,self.graphtransformer.re_transform_single(new_graph))
+                    new_decomposer = self.decomposer.make_new_decomposer(
+                        self.graphtransformer.re_transform_single(new_graph))
 
                 if new_decomposer:
                         self.calc_proposal_probability(decomposer, new_decomposer, original_cip)
@@ -1056,7 +1026,7 @@ class Sampler(object):
                 core_weights.append(self.score_core_choice_dict[core_hash])
 
         elif self.size_constrained_core_choice > -1:
-            unit = 100 / float(self.size_constrained_core_choice + 1)
+            unit = 100 / float(self.size_constrained_core_choice*2 + 1)
             goal_size = self.seed_size
             current_size = len(graph)
 
@@ -1125,7 +1095,7 @@ class Sampler(object):
         - accept_original_cip makes sure that the cip we got is indeed in the grammar
         """
         if self.orig_cip_score_tricks:
-            graphman.mark_median(inp='importance', out='is_good', estimator=self.estimatorobject.estimator)
+            graphman.mark_median(inp='importance', out='is_good', estimator=self.estimatorobject.estimator, vectorizer=self.vectorizer)
 
         # draw.graphlearn(graphman.abstract_graph(), size=10)
         # draw.graphlearn(graphman._abstract_graph, size=10)

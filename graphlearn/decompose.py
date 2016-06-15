@@ -3,14 +3,14 @@ provides cip related operations for a graph.
 
 a cip is a part of a graph, cips can be extracted or replaced.
 '''
-import networkx as nx
-from networkx.algorithms import isomorphism as iso
-from eden import fast_hash
-from core_interface_pair import CoreInterfacePair
 import logging
-from eden.graph import Vectorizer
 import random
-
+from utils.graph_processing import label_preprocessing
+import networkx as nx
+from eden import fast_hash
+from eden.graph import Vectorizer
+from networkx.algorithms import isomorphism as iso
+from core_interface_pair import CoreInterfacePair
 
 logger = logging.getLogger(__name__)
 
@@ -103,15 +103,14 @@ class Decomposer(AbstractDecomposer):
         else:
             answer='no graphs in decomposer'
         return answer
-    def __init__(self,  vectorizer=None, data=[], node_entity_check=lambda x,y:True, nbit=20):
-        self.vectorizer = vectorizer
+    def __init__(self, data=[], node_entity_check=lambda x, y: True, nbit=20):
         self._base_graph = data
         self.node_entity_check=node_entity_check
         self.hash_bitmask= 2 ** nbit - 1
         self.nbit=nbit
 
-    def make_new_decomposer(self, vectorizer,  transformout):
-        return Decomposer(vectorizer,transformout,node_entity_check=self.node_entity_check,nbit=self.nbit)
+    def make_new_decomposer(self, transformout):
+        return Decomposer(transformout, node_entity_check=self.node_entity_check, nbit=self.nbit)
 
     def change_basegraph(self,transformerdata):
         self._base_graph=transformerdata
@@ -123,12 +122,9 @@ class Decomposer(AbstractDecomposer):
     def rooted_core_interface_pairs(self, root, radius_list=None,
                                            thickness_list=None):
 
-        return extract_core_and_interface(root_node=root, graph=self._base_graph, vectorizer=self.vectorizer,
-                                           radius_list=radius_list,
-                                           thickness_list=thickness_list,
-                                           hash_bitmask=self.hash_bitmask,
-                                           node_filter=self.node_entity_check
-                                          )
+        return extract_core_and_interface(root_node=root, graph=self._base_graph, radius_list=radius_list,
+                                          thickness_list=thickness_list, hash_bitmask=self.hash_bitmask,
+                                          node_filter=self.node_entity_check)
 
     def core_substitution(self, orig_cip_graph, new_cip_graph):
         '''
@@ -144,12 +140,12 @@ class Decomposer(AbstractDecomposer):
             a graph with the new core.
         '''
         graph = core_substitution(self._base_graph, orig_cip_graph, new_cip_graph)
-        return graph  # self.__class__( graph, self.vectorizer,other=self)
+        return graph
 
-    def mark_median(self, inp='importance', out='is_good', estimator=None):
+    def mark_median(self, inp='importance', out='is_good', estimator=None,vectorizer=Vectorizer()):
 
         graph2 = self._base_graph.copy()  # annotate kills the graph i assume
-        graph2 = self.vectorizer.annotate([graph2], estimator=estimator).next()
+        graph2 = vectorizer.annotate([graph2], estimator=estimator).next()
 
         for n, d in graph2.nodes(data=True):
             if 'edge' not in d:
@@ -264,13 +260,8 @@ def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label):
     return l
 
 
-def extract_core_and_interface(root_node=None,
-                               graph=None,
-                               radius_list=None,
-                               thickness_list=None,
-                               vectorizer=Vectorizer(),
-                               hash_bitmask=2 ** 20 - 1,
-                               node_filter=lambda x, y: True):
+def extract_core_and_interface(root_node=None, graph=None, radius_list=None, thickness_list=None,
+                               hash_bitmask=2 ** 20 - 1, node_filter=lambda x, y: True):
     """
     :param root_node: root root_node
     :param graph: graph
@@ -289,7 +280,7 @@ def extract_core_and_interface(root_node=None,
     #for n, d in graph.nodes(data=True):
     #    print d
     #if 'hlabel' not in graph.node[graph.nodes()[-1]]:
-    vectorizer._label_preprocessing(graph)
+    label_preprocessing(graph)
     #for n,d in graph.nodes(data=True):
     #    print d
     # which nodes are in the relevant radius
@@ -566,3 +557,5 @@ def mark_median(graph, inp='importance', out='is_good'):
                 d[out] = 0
             else:
                 d[out] = 1
+
+

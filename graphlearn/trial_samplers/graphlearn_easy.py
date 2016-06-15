@@ -315,7 +315,7 @@ class GraphLearnSampler(object):
         # random radius and thickness
         radius = random.choice(self.local_substitutable_graph_grammar.radius_list)
         thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
-        return extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer)
+        return extract_core_and_interface(node, graph, [radius], [thickness])
 
     def _accept_original_cip(self, cip):
         '''
