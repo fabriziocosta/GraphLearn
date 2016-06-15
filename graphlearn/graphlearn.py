@@ -118,8 +118,8 @@ class Sampler(object):
 
                  n_steps=50,
                  quick_skip_orig_cip=False,
-                 improving_threshold=-1,
-                 improving_linear_start=0,
+                 improving_threshold_fraction=-1,
+                 improving_linear_start_fraction=0,
                  accept_static_penalty=0.0,
                  accept_min_similarity=0.0,
                  select_cip_max_tries=20,
@@ -271,8 +271,8 @@ class Sampler(object):
         self.orig_cip_min_positives = orig_cip_min_positives
         self.size_diff_core_filter=size_diff_core_filter
         # the user doesnt know about edge nodes.. so this needs to be done
-        self.improving_threshold = improving_threshold
-        self.improving_linear_start = improving_linear_start
+        self.improving_threshold_fraction = improving_threshold_fraction
+        self.improving_linear_start_fraction = improving_linear_start_fraction
         self.accept_static_penalty = accept_static_penalty
         self.select_cip_max_tries = select_cip_max_tries
         self.burnin = burnin
@@ -290,7 +290,38 @@ class Sampler(object):
 
 
     def _init_new_params(self):
-        pass
+        self.orig_cip_score_tricks = self.orig_cip_max_positives != 1 or self.orig_cip_min_positives != 0
+
+        if self.improving_linear_start_fraction > 0:
+            self.improving_linear_start_absolute = int(self.improving_linear_start_fraction * self.n_steps)
+
+        # calculating the actual steps for improving :)
+        if self.improving_threshold_fraction > 0:
+            self.improving_threshold_absolute = int(self.improving_threshold_fraction * self.n_steps)
+
+        self.improving_penalty_per_step = (1 - self.accept_static_penalty) / float(
+            self.improving_threshold_absolute - self.improving_linear_start_absolute)
+
+        if self.probabilistic_core_choice + self.score_core_choice + (self.size_constrained_core_choice > -1) > 1:
+            raise Exception('choose only one parameter core_choice')
+        if self.n_samples:
+            self.sampling_interval = int((self.n_steps - self.burnin) / (self.n_samples + self.include_seed - 1))
+        else:
+            self.sampling_interval = 9999
+
+
+
+        # adapt grammar to task:
+        self.lsgg.preprocessing(self.n_jobs,
+                                (self.size_constrained_core_choice + self.size_diff_core_filter) > -2,
+                                self.probabilistic_core_choice)
+        if self.score_core_choice:
+            self._prep_score_core_choice()
+
+        logger.debug(serialize_dict(self.__dict__))
+
+        if self.random_state is not None:
+            random.seed(self.random_state)
 
 
 
@@ -404,8 +435,7 @@ class Sampler(object):
 
 
 
-    def transform(self, graph_iter=None,
-                  init_only=False):
+    def transform(self, graph_iter=None):
 
         '''
 
@@ -415,50 +445,12 @@ class Sampler(object):
         graph_iter : iterator over networkx graphs
             the by nw trained preprocessor will turn them into  graphwrappers
 
-        init_only: bool
-            we can just initialise without actually running..
-            this is nice if you want more controll over the actual running process
-            -> i should use this in the interactive creation.
         Returns
         -------
         list of graphs
         '''
 
 
-
-        self.orig_cip_score_tricks = self.orig_cip_max_positives != 1 or self.orig_cip_min_positives != 0
-        if self.improving_linear_start > 0:
-            self.improving_linear_start = int(self.improving_linear_start * self.n_steps)
-        self.improving_penalty_per_step = (1 - self.accept_static_penalty) / float(
-            self.improving_threshold - self.improving_linear_start)
-
-        if self.probabilistic_core_choice + self.score_core_choice + (self.size_constrained_core_choice > -1)  > 1:
-            raise Exception('choose only one parameter core_choice')
-        if self.n_samples:
-            self.sampling_interval = int((self.n_steps - self.burnin) / (self.n_samples + self.include_seed - 1))
-        else:
-            self.sampling_interval = 9999
-
-        #  calculating the actual steps for improving :)
-        if self.improving_threshold > 0:
-            self.improving_threshold = int(self.improving_threshold * self.n_steps)
-
-
-        # adapt grammar to task:
-        self.lsgg.preprocessing(self.n_jobs,
-                                (self.size_constrained_core_choice + self.size_diff_core_filter) > -2,
-                                self.probabilistic_core_choice)
-        if self.score_core_choice:
-            self._prep_score_core_choice()
-
-        logger.debug(serialize_dict(self.__dict__))
-
-        if self.random_state is not None:
-            random.seed(self.random_state)
-
-        # sampling
-        if  init_only:
-            yield 0
         if self.n_jobs in [0, 1]:
             for o in self._single_process(graph_iter):
                 yield o

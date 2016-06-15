@@ -1,7 +1,15 @@
 '''
 provides cip related operations for a graph.
+a cip is a part of a graph, cips can be EXTRACTED or REPLACED.
 
-a cip is a part of a graph, cips can be extracted or replaced.
+
+EXTRACTION:
+According to EDeN definitions for graph operations a 'decomposer' is a function that takes a graph
+and produces many.
+
+REPLACEMENT:
+At the end of this document a 'composing' function is found. a composer uses many graphs in input
+and returns a single graph.
 '''
 import logging
 import random
@@ -371,6 +379,63 @@ def filter(graph, nodes):
         return True
 '''
 
+def graph_clean(graph):
+    '''
+    in the precess of creating a new graph,
+    we marked the nodes that were used as interface and core.
+    here we remove the marks.
+    :param graph:
+    :return:
+    '''
+    for n, d in graph.nodes(data=True):
+        d.pop('core', None)
+        d.pop('interface', None)
+        d.pop('root', None)
+
+
+def mark_median(graph, inp='importance', out='is_good'):
+    # get median
+    values = []
+    for n, d in graph.nodes(data=True):
+        if 'edge' not in d:
+            values.append(d[inp])
+
+    # determine cutoff
+    values.sort()
+    values.append(9999)
+    index = len(values) / 2 - 1
+    while values[index + 1] == values[index]:
+        index += 1
+    cutoff = values[index]
+
+    for n, d in graph.nodes(data=True):
+        if 'edge' not in d:
+            if d[inp] <= cutoff:
+                d[out] = 0
+            else:
+                d[out] = 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+the following is the composer.
+'''
+
 def merge(graph, node, node2):
     '''
     merge node2 into the node.
@@ -520,42 +585,5 @@ def core_substitution(graph, orig_cip_graph, new_cip_graph):
         merge(graph, str(k), '-' + str(v))
     # unionizing killed my labels so we need to relabel
     return nx.convert_node_labels_to_integers(graph)
-
-
-def graph_clean(graph):
-    '''
-    in the precess of creating a new graph,
-    we marked the nodes that were used as interface and core.
-    here we remove the marks.
-    :param graph:
-    :return:
-    '''
-    for n, d in graph.nodes(data=True):
-        d.pop('core', None)
-        d.pop('interface', None)
-        d.pop('root', None)
-
-
-def mark_median(graph, inp='importance', out='is_good'):
-    # get median
-    values = []
-    for n, d in graph.nodes(data=True):
-        if 'edge' not in d:
-            values.append(d[inp])
-
-    # determine cutoff
-    values.sort()
-    values.append(9999)
-    index = len(values) / 2 - 1
-    while values[index + 1] == values[index]:
-        index += 1
-    cutoff = values[index]
-
-    for n, d in graph.nodes(data=True):
-        if 'edge' not in d:
-            if d[inp] <= cutoff:
-                d[out] = 0
-            else:
-                d[out] = 1
 
 
