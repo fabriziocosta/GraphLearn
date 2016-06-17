@@ -291,6 +291,10 @@ class Sampler(object):
 
 
     def _init_new_params(self):
+
+        self.improving_threshold_absolute=self.n_steps
+        self.improving_linear_start_absolute = 0
+
         self.orig_cip_score_tricks = self.orig_cip_max_positives != 1 or self.orig_cip_min_positives != 0
 
         if self.improving_linear_start_fraction > 0:
@@ -310,14 +314,7 @@ class Sampler(object):
         else:
             self.sampling_interval = 9999
 
-
-
-        # adapt grammar to task:
-        self.lsgg.preprocessing(self.n_jobs,
-                                (self.size_constrained_core_choice + self.size_diff_core_filter) > -2,
-                                self.probabilistic_core_choice)
-        if self.score_core_choice:
-            self._prep_score_core_choice()
+        self._init_grammar_prep()
 
         logger.debug(serialize_dict(self.__dict__))
 
@@ -325,6 +322,14 @@ class Sampler(object):
             random.seed(self.random_state)
 
 
+
+    def _init_grammar_prep(self):
+        # adapt grammar to task:
+        self.lsgg.preprocessing(self.n_jobs,
+                                (self.size_constrained_core_choice + self.size_diff_core_filter) > -2,
+                                self.probabilistic_core_choice)
+        if self.score_core_choice:
+            self._prep_score_core_choice()
 
     def set_parmas(self, **params):
         '''
@@ -358,6 +363,7 @@ class Sampler(object):
 
     def fit_grammar(self,decomposers,n_jobs=-1, batch_size=10):
         self.lsgg.fit(decomposers, n_jobs=n_jobs, batch_size=batch_size)
+        self._init_grammar_prep()
 
     def fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None):
         positive = [d.pre_vectorizer_graph() for d in decomposers]
@@ -1037,8 +1043,6 @@ class Sampler(object):
             array  with probability value for each core_hash
         '''
         core_weights = []
-
-
 
         if self.probabilistic_core_choice:
             for core_hash in core_hashes:

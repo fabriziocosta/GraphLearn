@@ -2,6 +2,8 @@ import networkx as nx
 from eden.modifier.graph.structure import contraction
 
 from graphlearn.minor.rna_graphmanager import get_sequence, getsucc, post
+
+import graphlearn.compose
 import graphlearn.decompose as gt
 import graphlearn
 
@@ -41,7 +43,7 @@ def direct_abstraction_wrapper(graph,ZZZ):
             # remember that edges have higher ids than nucleotides
             for a,b in getpairs(abstract_graph,mergelist,n):
                 abstract_graph.node[a]['contracted'].update(abstract_graph.node[b]['contracted'])
-                gt.merge(abstract_graph,a,b)
+                graphlearn.compose.merge(abstract_graph, a, b)
                 abstract_graph.node[a]['label']='M'
     return abstract_graph
 

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 '''
 label preprocessing
 '''
-def label_preprocessing(graph, label_size=1, key_label='label', key_entity='entity', discretizers={'entity':[]}, bitmask=2 ** 20 - 1):
+def _label_preprocessing(graph, label_size=1, key_label='label', key_entity='entity', discretizers={'entity':[]}, bitmask=2 ** 20 - 1):
     try:
         graph.graph['label_size'] = label_size
         for n, d in graph.nodes_iter(data=True):

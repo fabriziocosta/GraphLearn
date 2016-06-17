@@ -12,7 +12,7 @@ def selectdraw(graphs,chem=False,**args):
 
 
 
-# this is copy pasted in EVERY notebook. now its here 
+# this is copy pasted in EVERY notebook. now its here
 import matplotlib.pyplot as plt
 def plot_scores(scoreslist='list of lists', labels=[]):
 

@@ -5,6 +5,8 @@ take care of the minor graphs.
 '''
 from eden.modifier.graph import vertex_attributes
 from eden.modifier.graph.structure import contraction
+
+import graphlearn.compose
 import graphlearn.decompose as graphtools
 from graphlearn.decompose import Decomposer
 import random
@@ -487,7 +489,7 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
     mergeids = list(set(mergeids))
 
     for node_id in mergeids[1:]:
-        graphtools.merge(base_graph, mergeids[0], node_id)
+        graphlearn.compose.merge(base_graph, mergeids[0], node_id)
 
     return base_graph, mergeids
 
