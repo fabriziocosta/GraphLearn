@@ -432,7 +432,7 @@ class Sampler(object):
                 # print type(graph)
                 # currently formatter only returns one element and thats fine, one day this may be changed
 
-                for new_graph in self.return_formatter(graphlist, moni):
+                for new_graph in self._return_formatter(graphlist, moni):
                     yield new_graph
 
                 # forcing termination once the results are in.
@@ -452,12 +452,12 @@ class Sampler(object):
             # sampled_graph = self._sample(graph)
             # yield sampled_graph
             a, b = self.transform_single(graph)
-            for new_graph in self.return_formatter(a, b):
+            for new_graph in self._return_formatter(a, b):
                 yield new_graph
 
 
 
-    def return_formatter(self, graphlist, mon):
+    def _return_formatter(self, graphlist, mon):
         '''
         this function is here so the output format can be altered to anything.
 
