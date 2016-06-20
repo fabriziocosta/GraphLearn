@@ -385,97 +385,11 @@ class Sampler(object):
             self.estimatorobject.fit(self.vectorizer.transform(positive), self.vectorizer.transform(negative),
                                      random_state=self.random_state)
 
-    def fit(self,
-            input=None,
-            negative_input=None,
-
-            regression_targets=None,
-
-            lsgg_train_graphs=None,
-            lsgg_include_negatives=False,
-            grammar_n_jobs=-1,
-            grammar_batch_size=10):
-
-        print '''  This function will be removed soon, replace fit with these:
-
-        def fit_transformer(self,graphs):
-            self.graphtransformer.fit(graphs)
-
-         fit_make_decomposers(self,graphs)
-         returns decomposers that can be used for the following steps.
-
-         fit_grammar(self,decomposers,n_jobs=-1, batch_size=10).
-         adds graphs wrapped by decomposer to grammar.
-
-         fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None)
-         trains an estimator..
-         -> oneclass, binary, regression estimators available.
-         '''
-        """
-        fit
-        Parameters
-        ----------
-        input: graph iterator
-        negative_input: graph iterator
-            for negative class, if applicable
-        regression_targets: list of values for
-            regression. not yet supported
-        lsgg_include_negatives: bool, False
-            True: grammar will include cips from negative classes
-            False: use negative class only to train estimator
-        grammar_n_jobs: int, -1
-            number of processes to start
-        grammar_batch_size: int, 10
-            extract cips from this many graphs at once.
-            too low: processing overhead increases
-            too high: run out of memory
-
-        Returns
-        -------
-            self
-        """
-        # BUILD DECOMPOSERS FOR POSITIVE AND NEGATIVE GRAPHS
-        decomposable_graphs = [self.decomposer.make_new_decomposer(data)
-                               for data in self.graphtransformer.fit_transform(input)]
-
-        if lsgg_train_graphs != None:
-            lsgg_graphs = [self.decomposer.make_new_decomposer(data)
-                           for data in self.graphtransformer.fit_transform(lsgg_train_graphs)]
-
-        negative_input_exists=False
-        if negative_input!=None:
-            decomposable_negative_graphs = [self.decomposer.make_new_decomposer(data)
-                                            for data in self.graphtransformer.fit_transform(negative_input)]
-            negative_input_exists=True
-
-
-
-        # TRAIN ESTIMATOR IF NEEDED
-        if self.estimatorobject.status != 'trained':
-            graphs = [d.pre_vectorizer_graph() for d in decomposable_graphs]
-            assert isinstance(graphs[0], nx.Graph), 'not a graph...' + str(graphs[0])
-
-            if regression_targets!=None:
-                #def fit(self, data_matrix, values, random_state=None):
-                self.estimatorobject=estimate.Regressor()
-                self.estimatorobject.fit(self.vectorizer.transform(graphs), regression_targets, random_state=self.random_state)
-            elif negative_input_exists == False:
-                self.estimatorobject.fit(self.vectorizer.transform(graphs),
-                    random_state=self.random_state)
-            #(regression_targets,decomposable_graphs):
-            else:
-                neg_graphs=[d.pre_vectorizer_graph() for d in decomposable_negative_graphs]
-                self.estimatorobject.fit(self.vectorizer.transform(graphs),self.vectorizer.transform(neg_graphs),
-                                         random_state=self.random_state)
-
-
-        # HANDLE GRAMMAR
-        if negative_input_exists and  lsgg_include_negatives:
-            decomposable_graphs += decomposable_negative_graphs
-        if lsgg_train_graphs!=None:
-            decomposable_graphs+=lsgg_graphs
-        self.lsgg.fit(decomposable_graphs, n_jobs = grammar_n_jobs, batch_size=grammar_batch_size)
-        return self
+    def fit(self,graphs):
+        decomposers = [self.decomposer.make_new_decomposer(data)
+            for data in self.graphtransformer.fit_transform(graphs)]
+        self.fit_grammar(decomposers)
+        self.fit_estimator(decomposers)
 
 
 
