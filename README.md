@@ -19,11 +19,13 @@ Learn how to construct graphs given representative examples
 
 
 You want to install EDeN first:
-
 ```python
 pip install git+https://github.com/fabriziocosta/EDeN.git --user
 ```
-
+Then GraphLearn
+```python
+pip install git+https://github.com/smautner/GraphLearn.git --user
+```
 
 #### Setting up a networkx graph generator
 
