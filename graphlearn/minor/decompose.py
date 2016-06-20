@@ -5,6 +5,8 @@ take care of the minor graphs.
 '''
 from eden.modifier.graph import vertex_attributes
 from eden.modifier.graph.structure import contraction
+
+import graphlearn.compose
 import graphlearn.decompose as graphtools
 from graphlearn.decompose import Decomposer
 import random
@@ -19,9 +21,7 @@ from eden.graph import Vectorizer
 
 
 def make_decomposergen(include_base=False, base_thickness_list=[2]):
-    return lambda v, d: MinorDecomposer(v, d,
-                                include_base=include_base,
-                                base_thickness_list=base_thickness_list)
+    return lambda v, d: MinorDecomposer(d)
 
 class MinorDecomposer(Decomposer):
     '''
@@ -78,23 +78,13 @@ class MinorDecomposer(Decomposer):
         return self._abstract_graph
 
 
-    def __init__(self,vectorizer=0, data=None,
-                       include_base=False,
-                       base_thickness_list=[2],node_entity_check=lambda x,y:True, nbit=20):
+    def __init__(self, data=[], node_entity_check=lambda x, y: True, nbit=20):
         '''
 
         Parameters
         ----------
         graph: nx.graph
 
-
-        include_base: bool
-            normally cores are at least as big as a node in the minor graph.
-            enabling this will allow for extraction of cips from the base graph (that still have minor annotation).
-            enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
-
-        base_thickness_list:  list
-            thickness for the base graph, i.e. how thick is the interface graph
 
         abstract_graph: graph
             provide the abstract graph
@@ -118,10 +108,9 @@ class MinorDecomposer(Decomposer):
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
 
-    def make_new_decomposer(self, vectorizer, transformout):
-        return MinorDecomposer(vectorizer, transformout, include_base=self.include_base,
-                       base_thickness_list=self.some_thickness_list,
-                       node_entity_check=self.node_entity_check, nbit=self.nbit)#node_entity_check=self.node_entity_check, nbit=self.nbit)
+    def make_new_decomposer(self, transformout):
+        return MinorDecomposer(transformout, node_entity_check=self.node_entity_check,
+                               nbit=self.nbit)  #node_entity_check=self.node_entity_check, nbit=self.nbit)
 
 
 
@@ -398,25 +387,17 @@ def extract_cips(node,
         vectorizer._label_preprocessing(base_graph)
 
     # EXTRACT CIPS NORMALY ON ABSTRACT GRAPH
-    abstract_cips = graphtools.extract_core_and_interface(node,
-                                                          abstract_graph,
-                                                          vectorizer=vectorizer,
-                                                          hash_bitmask=hash_bitmask,
-                                                          node_filter=node_filter,
-                                                          radius_list=radius_list,
-                                                          thickness_list=thickness_list)
+    abstract_cips = graphtools.extract_core_and_interface(node, abstract_graph, radius_list=radius_list,
+                                                          thickness_list=thickness_list, hash_bitmask=hash_bitmask,
+                                                          node_filter=node_filter)
 
     # VOR EVERY ABSTRACT CIP: MERGE CORE IN BASE GRAPH AND APPLY CIP EXTRACTON
     cips = []
     for abstract_cip in abstract_cips:
         base_copy, mergeids = merge_core(base_graph.copy(), abstract_graph, abstract_cip)
-        base_level_cips = graphtools.extract_core_and_interface(mergeids[0],
-                                                                base_copy,
-                                                                vectorizer=vectorizer,
-                                                                hash_bitmask=hash_bitmask,
-                                                                node_filter=node_filter,
-                                                                radius_list=[0],
-                                                                thickness_list=base_thickness_list)
+        base_level_cips = graphtools.extract_core_and_interface(mergeids[0], base_copy, radius_list=[0],
+                                                                thickness_list=base_thickness_list,
+                                                                hash_bitmask=hash_bitmask, node_filter=node_filter)
 
         # VOR EVERY BASE CIP: RESTORE CORE  AND  MERGE INFORMATION WITH ABSTRACT CIP
         core_hash = graphtools.graph_hash(base_graph.subgraph(mergeids), hash_bitmask=hash_bitmask)
@@ -508,7 +489,7 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
     mergeids = list(set(mergeids))
 
     for node_id in mergeids[1:]:
-        graphtools.merge(base_graph, mergeids[0], node_id)
+        graphlearn.compose.merge(base_graph, mergeids[0], node_id)
 
     return base_graph, mergeids
 
@@ -591,25 +572,18 @@ def extract_cips_base(node,
         raise Exception("IMPOSSIBLE NODE")
 
 
-    abstract_cips = graphtools.extract_core_and_interface(root_node=abs_node,
-                                                          graph=abstract_graph,
-                                                          vectorizer=vectorizer,
-                                                          hash_bitmask=hash_bitmask,
-                                                          radius_list=[0],
-                                                          thickness_list=thickness_list,
-                                                          node_filter=node_filter )
+    abstract_cips = graphtools.extract_core_and_interface(root_node=abs_node, graph=abstract_graph, radius_list=[0],
+                                                          thickness_list=thickness_list, hash_bitmask=hash_bitmask,
+                                                          node_filter=node_filter)
 
     # VOR EVERY ABSTRACT CIP: EXTRACT BASE CIP
     cips = []
 
     for abstract_cip in abstract_cips:
 
-        base_level_cips = graphtools.extract_core_and_interface(node,
-                                                                base_graph,
-                                                                vectorizer=vectorizer,
-                                                                hash_bitmask=hash_bitmask,
-                                                                radius_list=radius_list,
-                                                                thickness_list=base_thickness_list )
+        base_level_cips = graphtools.extract_core_and_interface(node, base_graph, radius_list=radius_list,
+                                                                thickness_list=base_thickness_list,
+                                                                hash_bitmask=hash_bitmask)
         # VOR EVERY BASE CIP: hash interfaces and save the abstract view
         for base_cip in base_level_cips:
             cores = [n for n, d in base_cip.graph.nodes(data=True) if 'interface' not in d]

@@ -5,11 +5,10 @@ little fixing to be able to be used by graphlearn.
 graphtransformer: graph -> object the decomposer unterstands how to use
 '''
 
-from eden.graph import Vectorizer
+from eden.graph  import   _edge_to_vertex_transform
 
 class GraphTransformer(object):
-    def set_param(self, vectorizer):
-        self.vectorizer = vectorizer
+
 
     def fit(self, inputs):
         return self
@@ -51,7 +50,7 @@ class GraphTransformer(object):
         -------
         graphwrapper : iterator
         '''
-        return [Vectorizer._edge_to_vertex_transform(i) for i in inputs]
+        return [_edge_to_vertex_transform(i) for i in inputs]
 
 
 

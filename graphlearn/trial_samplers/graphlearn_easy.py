@@ -3,7 +3,8 @@ import itertools
 import random
 import transform
 import estimator_wrapper
-from graphlearn.decompose import extract_core_and_interface, core_substitution, graph_clean
+from graphlearn.decompose import extract_core_and_interface, graph_clean
+from graphlearn.compose import core_substitution
 from graphlearn.feasibility import FeasibilityChecker
 from graphlearn.localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
 from multiprocessing import Pool
@@ -315,7 +316,7 @@ class GraphLearnSampler(object):
         # random radius and thickness
         radius = random.choice(self.local_substitutable_graph_grammar.radius_list)
         thickness = random.choice(self.local_substitutable_graph_grammar.thickness_list)
-        return extract_core_and_interface(node, graph, [radius], [thickness], vectorizer=self.vectorizer)
+        return extract_core_and_interface(node, graph, [radius], [thickness])
 
     def _accept_original_cip(self, cip):
         '''

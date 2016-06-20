@@ -18,10 +18,7 @@ class RnaDecomposer(MinorDecomposer):
 
 
 
-    def __init__(self, vectorizer,data,
-                    base_thickness_list=[2],
-                    include_base=False,
-                    ignore_inserts=False):
+    def __init__(self, data=[], node_entity_check=lambda x, y: True, nbit=20):
         '''
         Parameters
         ----------
@@ -31,18 +28,8 @@ class RnaDecomposer(MinorDecomposer):
             dotbracket
         base_graph: raw graph
             base graph
-        vectorizer: vectorizer
-            a vectorizer
-        base_thickness_list: [int]
-            thickness for the base graph interface
         abstract_graph: graph
             the abstracted graph
-        include_base: bool
-            an additional layer of CIPs will be produced
-            those cips use the radius_list on the base graph oOo
-            this feature needs more work
-        ignore_inserts: bool
-            bulges will be one with their associated stem
 
         Returns
         -------

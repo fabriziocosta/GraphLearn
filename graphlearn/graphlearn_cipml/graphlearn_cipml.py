@@ -1,5 +1,6 @@
 from graphlearn.graphlearn import GraphLearnSampler
-from graphlearn.decompose import core_substitution, graph_clean
+from graphlearn.decompose import graph_clean
+from graphlearn.compose import core_substitution
 
 from cip_predictor import CipPredictor
 
