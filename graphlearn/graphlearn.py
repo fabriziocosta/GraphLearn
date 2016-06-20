@@ -325,11 +325,14 @@ class Sampler(object):
 
     def _init_grammar_prep(self):
         # adapt grammar to task:
-        self.lsgg.preprocessing(self.n_jobs,
-                                (self.size_constrained_core_choice + self.size_diff_core_filter) > -2,
-                                self.probabilistic_core_choice)
-        if self.score_core_choice:
-            self._prep_score_core_choice()
+        self.lsgg.preprocessing(n_jobs=self.n_jobs,
+                                core_size_required=(self.size_constrained_core_choice + self.size_diff_core_filter) > -2,
+                                probabilistic_core_choice=self.probabilistic_core_choice,
+                                score_cores=self.score_core_choice,
+                                score_cores_vectorizer=self.vectorizer,
+                                score_cores_estimator=self.estimatorobject)
+
+
 
     def set_parmas(self, **params):
         '''
@@ -533,20 +536,7 @@ class Sampler(object):
             for new_graph in self.return_formatter(a, b):
                 yield new_graph
 
-    def _prep_score_core_choice(self):
-        self.score_core_choice_dict = {}
-        for interface in self.lsgg.productions.keys():
-            for core in self.lsgg.productions[interface].keys():
-                graph = self.lsgg.productions[interface][core].graph.copy()
-                # since latest eden, vectorizer will complain when transforming.. so we set hlabel..
-                #self.vectorizer._label_preprocessing(graph)
-                #graph.graph['debugthis']=True
-                #draw.graphlearn(graph,contract=False,vertex_label='hlabel')
-                #transformed_graph = self.vectorizer.transform_single(gr)
-                # transform single is badly maintained so lets try transform...
-                transformed_graph = self.vectorizer.transform([graph])
-                score = self.estimatorobject.predict(transformed_graph)#cal_estimator.predict_proba(transformed_graph)[0, 1]
-                self.score_core_choice_dict[core] = score
+
 
     def return_formatter(self, graphlist, mon):
         '''
@@ -1050,7 +1040,7 @@ class Sampler(object):
 
         elif self.score_core_choice:
             for core_hash in core_hashes:
-                core_weights.append(self.score_core_choice_dict[core_hash])
+                core_weights.append(self.lsgg.score_core_dict[core_hash])
 
         elif self.size_constrained_core_choice > -1:
             unit = 100 / float(self.size_constrained_core_choice*2 + 1)

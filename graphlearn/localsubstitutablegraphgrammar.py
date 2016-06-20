@@ -38,7 +38,10 @@ class LocalSubstitutableGraphGrammar(object):
     def preprocessing(self,
                       n_jobs=0,
                       core_size_required=False,
-                      probabilistic_core_choice=False):
+                      probabilistic_core_choice=False,
+                      score_cores=False,
+                      score_cores_vectorizer=None,
+                      score_cores_estimator=None):
         """
         Preprocess need to be done before sampling.
 
@@ -52,15 +55,14 @@ class LocalSubstitutableGraphGrammar(object):
             choose cores according to frequency
             creates probabilistic core data structure
 
+        score_cores: bool, False
+            creates self.score_core_dict if enabled.
+            needs vectorizer and estimator to do the annotation.
+
         Returns
         -------
 
         """
-
-
-
-
-
         logger.debug('preprocessing grammar')
 
         if core_size_required:
@@ -71,8 +73,18 @@ class LocalSubstitutableGraphGrammar(object):
             if self.prep_is_outdated or 'frequency' not in self.__dict__:
                 self._add_frequency_quicklookup()
 
-        self.prep_is_outdated = False
+        if score_cores:
+            self.score_core_dict = {}
+            for interface in self.productions.keys():
+                for core in self.productions[interface].keys():
+                    graph = self.productions[interface][core].graph.copy()
+                    transformed_graph = score_cores_vectorizer.transform([graph])
+                    score = score_cores_estimator.predict(
+                        transformed_graph)  # cal_estimator.predict_proba(transformed_graph)[0, 1]
+                    self.score_core_dict[core] = score
 
+
+        self.prep_is_outdated = False
         if n_jobs > 1:
             self._multicore_transform()
 
