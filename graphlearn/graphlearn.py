@@ -252,7 +252,7 @@ class Sampler(object):
         an initialized sampler
 
         '''
-        self.graphtransformer = graphtransformer
+        self.graph_transformer = graphtransformer
         self.feasibility_checker = feasibility_checker
         self.vectorizer = vectorizer
         # scikit  classifier
@@ -360,11 +360,11 @@ class Sampler(object):
 
 
     def fit_transformer(self,graphs):
-        self.graphtransformer.fit(graphs)
+        self.graph_transformer.fit(graphs)
 
     def fit_make_decomposers(self,graphs):
         return [self.decomposer.make_new_decomposer(data)
-                               for data in self.graphtransformer.transform(graphs)]
+                for data in self.graph_transformer.transform(graphs)]
 
     def fit_grammar(self,decomposers,n_jobs=-1, batch_size=10):
         self.lsgg.fit(decomposers, n_jobs=n_jobs, batch_size=batch_size)
@@ -387,7 +387,7 @@ class Sampler(object):
 
     def fit(self,graphs):
         decomposers = [self.decomposer.make_new_decomposer(data)
-            for data in self.graphtransformer.fit_transform(graphs)]
+                       for data in self.graph_transformer.fit_transform(graphs)]
         self.fit_grammar(decomposers)
         self.fit_estimator(decomposers)
 
@@ -644,8 +644,8 @@ class Sampler(object):
         '''
         self._sample_init_init_monitor()
         self.backtrack = self.maxbacktrack
-        self.last_graphman = None
-        decomposer = self.decomposer.make_new_decomposer(self.graphtransformer.transform([graph])[0])
+        self.last_decomposer = None
+        decomposer = self.decomposer.make_new_decomposer(self.graph_transformer.transform([graph])[0])
 
         graph = decomposer.base_graph()
         if self.size_constrained_core_choice > -1 or self.size_diff_core_filter>-1:
@@ -718,7 +718,7 @@ class Sampler(object):
 
         return decomposer._score
 
-    def _accept(self, graphman_old, graphman_new):
+    def _accept(self, decomposer_old, decomposer_new):
         '''
             we took the old graph to generate a new graph by conducting a replacement step.
             now we want to know if this new graph is good enough to take the old ones place.
@@ -728,10 +728,10 @@ class Sampler(object):
         accept_decision = False
 
         # first calculate the score ratio between old and new graph.
-        score_graph_old = self._score(graphman_old)
-        score_graph_new = self._score(graphman_new)
+        score_graph_old = self._score(decomposer_old)
+        score_graph_new = self._score(decomposer_new)
         if self.accept_min_similarity:
-            res = graphman_new.transformed_vector.dot(graphman_old.transformed_vector.T).todense()
+            res = decomposer_new.transformed_vector.dot(decomposer_old.transformed_vector.T).todense()
             prediction = res[0, 0]
             if prediction < self.accept_min_similarity:
                 return False
@@ -784,8 +784,8 @@ class Sampler(object):
             proposed decomposer
         '''
         if self.maxbacktrack > 0:
-            self.backtrack_graphman = self.last_graphman
-            self.last_graphman = decomposer
+            self.backtrack_decomposer = self.last_decomposer
+            self.last_decomposer = decomposer
 
         proposed_decomposer = self._propose_graph(decomposer)
 
@@ -794,8 +794,8 @@ class Sampler(object):
             # draw.graphlearn([graphman.base_graph(),self.backtrack_graphman.base_graph()])
             self.backtrack -= 1
             self.step -= 1
-            self.monitorobject.info('backtrack to (score)', self.backtrack_graphman._score)
-            proposed_decomposer = self._propose_graph(self.backtrack_graphman)
+            self.monitorobject.info('backtrack to (score)', self.backtrack_decomposer._score)
+            proposed_decomposer = self._propose_graph(self.backtrack_decomposer)
 
         if proposed_decomposer:
             return proposed_decomposer
@@ -832,7 +832,7 @@ class Sampler(object):
 
                 if self.feasibility_checker.check(new_graph):
                     new_decomposer = self.decomposer.make_new_decomposer(
-                        self.graphtransformer.re_transform_single(new_graph))
+                        self.graph_transformer.re_transform_single(new_graph))
 
                 if new_decomposer:
                         self.calc_proposal_probability(decomposer, new_decomposer, original_cip)
@@ -1022,7 +1022,7 @@ class Sampler(object):
             del values[i]
             del core_hashes[i]
 
-    def select_original_cip(self, graphman):
+    def select_original_cip(self, decomposer):
         """
         selects a cip from the original graph.
         (we try maxtries times to make sure we get something nice)
@@ -1031,7 +1031,7 @@ class Sampler(object):
         - accept_original_cip makes sure that the cip we got is indeed in the grammar
         """
         if self.orig_cip_score_tricks:
-            graphman.mark_median(inp='importance', out='is_good', estimator=self.estimatorobject.estimator, vectorizer=self.vectorizer)
+            decomposer.mark_median(inp='importance', out='is_good', estimator=self.estimatorobject.estimator, vectorizer=self.vectorizer)
 
         # draw.graphlearn(graphman.abstract_graph(), size=10)
         # draw.graphlearn(graphman._abstract_graph, size=10)
@@ -1044,7 +1044,7 @@ class Sampler(object):
             # we expect just one so we unpack with [0]
             # in addition the selection might fail because it is not possible
             # to extract at the desired radius/thicknes
-            cip = self._get_original_cip(graphman)
+            cip = self._get_original_cip(decomposer)
             if not cip:
                 nocip += 1
                 continue
@@ -1062,22 +1062,22 @@ class Sampler(object):
                 'select_cip_for_substitution failed because no suiting interface was found, \
                 extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount))
 
-    def _get_original_cip(self, graphman):
+    def _get_original_cip(self, decomposer):
         '''
         selects a cip to alter in the graph.
 
         Parameters
         ----------
-        graphman
+        decomposer
 
         Returns
         -------
-            a random cip from graphman
+            a random cip from decomposer
 
         USED ONLY IN SELECT_ORIGINAL_CIP
 
         '''
-        return graphman.random_core_interface_pair(radius_list=self.lsgg.radius_list, thickness_list=self.lsgg.thickness_list)
+        return decomposer.random_core_interface_pair(radius_list=self.lsgg.radius_list, thickness_list=self.lsgg.thickness_list)
 
     def _accept_original_cip(self, cip):
         """
