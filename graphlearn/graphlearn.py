@@ -424,7 +424,7 @@ class Sampler(object):
             # -1
             pool = Pool()
 
-        sampled_graphs = pool.imap_unordered(_sample_multi, self._argbuilder(graph_iter))
+        sampled_graphs = pool.imap_unordered(_sample_multi, self._make_multi_process_batches(graph_iter))
 
         jobs_done = 0
         for batch in sampled_graphs:
@@ -474,7 +474,7 @@ class Sampler(object):
         self.monitors.append(mon)
         yield graphlist
 
-    def _argbuilder(self, problem_iter):
+    def _make_multi_process_batches(self, problem_iter):
         '''
         we do two things here:
         -break tasks into batches to be multiprocessed.
