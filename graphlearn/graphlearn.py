@@ -314,7 +314,7 @@ class Sampler(object):
         else:
             self.sampling_interval = 9999
 
-        self._init_grammar_prep()
+
 
         logger.debug(serialize_dict(self.__dict__))
 
@@ -368,7 +368,7 @@ class Sampler(object):
 
     def fit_grammar(self,decomposers,n_jobs=-1, batch_size=10):
         self.lsgg.fit(decomposers, n_jobs=n_jobs, batch_size=batch_size)
-        self._init_grammar_prep()
+        #self._init_grammar_prep() cant do it here cuz esti might not be ready
 
     def fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None):
         positive = [d.pre_vectorizer_graph() for d in decomposers]
@@ -408,6 +408,7 @@ class Sampler(object):
         -------
             lists of graphs
         '''
+        self._init_grammar_prep() # this has to be here since fittin is now all split up and i cant controll the oder in which things happen
 
         if self.n_jobs in [0, 1]:
             for out in self._single_process(graph_iter):
