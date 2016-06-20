@@ -391,8 +391,12 @@ class Sampler(object):
         self.fit_grammar(decomposers)
         self.fit_estimator(decomposers)
 
-
-
+    def fit_transform(self,graphs):
+        graphs=[g for g in graphs]
+        graphs2=copy.deepcopy(graphs)
+        self.fit(graphs)
+        for out in self.transform(graphs2):
+            yield out
 
     def transform(self, graph_iter=None):
 
@@ -411,11 +415,11 @@ class Sampler(object):
 
 
         if self.n_jobs in [0, 1]:
-            for o in self._single_process(graph_iter):
-                yield o
+            for out in self._single_process(graph_iter):
+                yield out
         else:
-            for o in self._multi_process(self.n_jobs,graph_iter):
-                yield o
+            for out in self._multi_process(self.n_jobs,graph_iter):
+                yield out
 
     def _multi_process(self,n_jobs,graph_iter):
         if n_jobs > 1:

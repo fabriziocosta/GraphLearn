@@ -31,9 +31,7 @@ There are many options for the sampling process available.
 ```python
 from graphlearn.graphlearn import  Sampler
 sampler=Sampler(n_steps=50)
-sampler.fit(get_graphs())
-samples = sampler.transform(get_graphs(size=5))
-
+samples = sampler.fit_transform(get_graphs())
 
 ```
 
@@ -42,6 +40,6 @@ Each sample output is a list of networkx graphs.
 graphlearns draw function can print these more or less nicely.
 ```python
 from graphlearn.utils import draw
-for sample in samples:
-    draw.graphlearn(sample)
+for i in range(5):
+        draw.graphlearn(samples.next())
 ```
