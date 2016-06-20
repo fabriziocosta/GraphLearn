@@ -399,20 +399,15 @@ class Sampler(object):
             yield out
 
     def transform(self, graph_iter=None):
-
         '''
-
         starting the sample process
 
-
-        graph_iter : iterator over networkx graphs
-            the by nw trained preprocessor will turn them into  graphwrappers
+        graph_iter: iterator over networkx graphs
 
         Returns
         -------
-        list of graphs
+            lists of graphs
         '''
-
 
         if self.n_jobs in [0, 1]:
             for out in self._single_process(graph_iter):
@@ -420,6 +415,7 @@ class Sampler(object):
         else:
             for out in self._multi_process(self.n_jobs,graph_iter):
                 yield out
+
 
     def _multi_process(self,n_jobs,graph_iter):
         if n_jobs > 1:
