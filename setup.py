@@ -7,5 +7,5 @@ setup(name='graphlearn',
       author='Stefan Mautner',
       author_email='stefmautner@gmeeru.com',
       license='YOUAREATHRIEF',
-      packages=['greaphlearn'],
+      packages=['graphlearn'],
       zip_safe=False)
