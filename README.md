@@ -1,17 +1,23 @@
 # GraphLearn
-Learn how to construct graphs given representative examples
+Learn how to construct graphs given representative examples.
+
+Discriminative systems that can deal with graphs in input are known, however, generative or constructive approaches that can sample graphs from empirical distributions are less developed. This is a Metropolis–Hastings approach that uses a novel type of graph grammar to efficiently learn proposal distributions in a data driven fashion.
 
 
-
-* [Introduction to GraphLearn](https://github.com/smautner/GraphLearn_examples/blob/master/notebooks/Introduction.ipynb)
-
-* [CoreMorph -- enhanced grammar](https://github.com/smautner/GraphLearn_examples/blob/master/notebooks/CoreMorph.ipynb)
-
-* [Interactive -- sample graphs step by step](https://github.com/smautner/GraphLearn_examples/blob/master/notebooks/simple_toys/interactive_creation.ipynb)
-
-* [MultiGoal -- optimize towards multiple goals](https://github.com/smautner/GraphLearn_examples/blob/master/notebooks/SamplerCombiner.ipynb)
+# References
+Costa, Fabrizio. "Learning an efficient constructive sampler for graphs." Artificial Intelligence (2016). [link](http://www.sciencedirect.com/science/article/pii/S0004370216000138)
 
 
+# Examples
+See [here](https://github.com/fabriziocosta/GraphLearn_examples) for more examples.
+
+* [Introduction to GraphLearn](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/Introduction.ipynb)
+
+* [CoreMorph -- enhanced grammar](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/Abstract/CoreMorph.ipynb)
+
+* [Interactive -- sample graphs step by step](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/simple_toys/interactive_creation.ipynb)
+
+* [MultiGoal -- optimize towards multiple goals](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/SamplerCombiner.ipynb)
 
 
 
@@ -24,7 +30,7 @@ pip install git+https://github.com/fabriziocosta/EDeN.git --user
 ```
 Then GraphLearn
 ```python
-pip install git+https://github.com/smautner/GraphLearn.git --user
+pip install git+https://github.com/fabriziocosta/GraphLearn.git --user
 ```
 
 #### Setting up a networkx graph generator
@@ -38,7 +44,7 @@ def get_graphs(dataset_fname='../../toolsdata/bursi.pos.gspan', size=100):
 ```
 
 #### Sampling new graphs
-Sampling is straight forward. 
+Sampling is straight forward.
 There are many options for the sampling process available.
 
 ```python
