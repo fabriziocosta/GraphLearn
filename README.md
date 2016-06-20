@@ -55,6 +55,6 @@ for i in range(5):
         draw.graphlearn(samples.next())
 
 
-[![''](https://github.com/smautner/GraphLearn/blob/master/example.png)]
+![''](https://github.com/smautner/GraphLearn/blob/master/example.png)
 ```
 
