@@ -53,8 +53,6 @@ graphlearns draw function can print these more or less nicely.
 from graphlearn.utils import draw
 for i in range(5):
         draw.graphlearn(samples.next())
-
-
-![''](https://raw.githubusercontent.com/smautner/GraphLearn/master/example.png)
 ```
 
+![''](https://raw.githubusercontent.com/smautner/GraphLearn/master/example.png)
