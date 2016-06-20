@@ -579,22 +579,22 @@ class Sampler(object):
         self.monitorobject.sampling_info = sampling_info
         return self.sample_path, self.monitorobject
 
-    def _score_list_append(self, graphdecomposer):
+    def _score_list_append(self, decomposer):
         '''
-        adds score of graphdecomposer to the score_list that will be accessible
+        adds score of graph-decomposer to the score_list that will be accessible
         through the monitor at the end.
 
         Parameters
         ----------
-        graphdecomposer: a graph decomposer
+        decomposer: a graph decomposer
 
         Returns
         -------
             adds score of graphman to the score_list that will be written to the monitor.
         '''
-        self._score_list.append(graphdecomposer._score)
+        self._score_list.append(decomposer._score)
 
-    def _sample_path_append(self, graphdecomposer, force=False):
+    def _sample_path_append(self, decomposer, force=False):
         '''
         decide if we record a speciffic graph.
         this is mostly dependant on the current step.
@@ -602,7 +602,7 @@ class Sampler(object):
 
         Parameters
         ----------
-        graphdecomposer: a decomposer
+        decomposer: a decomposer
 
         force: bool
             if true force the appending
@@ -621,16 +621,16 @@ class Sampler(object):
             # do we want to omit duplicates?
             if not self.keep_duplicates:
                 # have we seen this before?
-                if graphdecomposer._score in self._sample_path_score_set:
+                if decomposer._score in self._sample_path_score_set:
                     # if so return
                     return
                 # else add so seen set
                 else:
-                    self._sample_path_score_set.add(graphdecomposer._score)
+                    self._sample_path_score_set.add(decomposer._score)
 
             # append :) .. rescuing score
             # graph.graph['score'] = graph._score # is never used?
-            self.sample_path.append(graphdecomposer.out())
+            self.sample_path.append(decomposer.out())
 
     def _sample_init(self, graph):
         '''
@@ -695,28 +695,28 @@ class Sampler(object):
                 if similarity < self.similarity:
                     raise Exception('similarity stop condition reached')
 
-    def _score(self, graphdecomposer):
+    def _score(self, decomposer):
         """
         will determine the score of a graph.
         scores will be cached
 
         Parameters
         ----------
-        graphdecomposer: a graphdecomposer
+        decomposer: a graph-decomposer
 
         Returns
         -------
         score of graph
         """
 
-        if 'vectorized_graph' not in graphdecomposer.__dict__:
-            graphdecomposer.vectorized_graph= self.vectorizer.transform([graphdecomposer.pre_vectorizer_graph()])
+        if 'vectorized_graph' not in decomposer.__dict__:
+            decomposer.vectorized_graph= self.vectorizer.transform([decomposer.pre_vectorizer_graph()])
 
-        if '_score' not in graphdecomposer.__dict__:
-            graphdecomposer._score  = self.estimatorobject.predict(graphdecomposer.vectorized_graph)
-            self.monitorobject.info('score', graphdecomposer._score)
+        if '_score' not in decomposer.__dict__:
+            decomposer._score  = self.estimatorobject.predict(decomposer.vectorized_graph)
+            self.monitorobject.info('score', decomposer._score)
 
-        return graphdecomposer._score
+        return decomposer._score
 
     def _accept(self, graphman_old, graphman_new):
         '''
