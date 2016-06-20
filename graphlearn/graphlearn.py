@@ -835,7 +835,7 @@ class Sampler(object):
                         self.graph_transformer.re_transform_single(new_graph))
 
                 if new_decomposer:
-                        self.calc_proposal_probability(decomposer, new_decomposer, original_cip)
+                        self.compute_proposal_probability(decomposer, new_decomposer, original_cip)
 
                         self._samplelog(
                             "_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
@@ -851,7 +851,7 @@ class Sampler(object):
                     # reason: if the first hit was not replaceable, due to a hash collision, it is faster to
                     # try the next orig cip, than to risk another collision
 
-    def calc_proposal_probability(self, decomposer, decomposer_new, cip):
+    def compute_proposal_probability(self, decomposer, decomposer_new, cip):
         """t
         MCMC required that the state change has the same probability back and forth.
         Going from one graph to another might alter the new graph such that many new destinations are available.

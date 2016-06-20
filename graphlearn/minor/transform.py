@@ -15,7 +15,7 @@ from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
 logger = logging.getLogger(__name__)
 from eden.graph import Vectorizer
-
+from eden import graph as edengraphtools
 
 class GraphToAbstractTransformer(object):
     '''
@@ -79,8 +79,8 @@ class GraphToAbstractTransformer(object):
         '''
 
         # graph expanded and unexpanded
-        graph_exp = self.vectorizer._edge_to_vertex_transform(graph)
-        graph_unexp = self.vectorizer._revert_edge_to_vertex_transform(graph_exp)
+        graph_exp = edengraphtools._edge_to_vertex_transform(graph)
+        graph_unexp = edengraphtools._revert_edge_to_vertex_transform(graph_exp)
 
 
         # annotate with scores, then transform scores to clusterid
@@ -116,7 +116,7 @@ class GraphToAbstractTransformer(object):
             print 'contracts to this:'
             draw.graphlearn(graph_unexp, vertex_label=group)
         # expand
-        graph_reexp = self.vectorizer._edge_to_vertex_transform(graph_unexp)
+        graph_reexp = edengraphtools._edge_to_vertex_transform(graph_unexp)
         #  make a dictionary that maps from base_graph_node -> node in contracted graph
         getabstr = {contra: node for node, d in graph_reexp.nodes(data=True) for contra in d.get('contracted', [])}
 
@@ -332,7 +332,7 @@ class GraphMinorTransformer(GraphTransformer):
         if self.name_cluster==False:
             return abst
 
-        graph = self.vectorizer._revert_edge_to_vertex_transform(graph)
+        graph = edengraphtools._revert_edge_to_vertex_transform(graph)
         for n, d in abst.nodes(data=True):
             if len(d['contracted']) > 1 and 'edge' not in d:
                 # get the subgraph induced by it (if it is not trivial)
@@ -364,7 +364,7 @@ class GraphMinorTransformer(GraphTransformer):
             list of decomposers
         '''
 
-        return [ (self.vectorizer._edge_to_vertex_transform(graph),self.abstract(graph)) for graph in inputs ]
+        return [ (edengraphtools._edge_to_vertex_transform(graph),self.abstract(graph)) for graph in inputs ]
 
 
 
