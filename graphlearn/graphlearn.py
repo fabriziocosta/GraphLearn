@@ -359,10 +359,12 @@ class Sampler(object):
         return self.lsgg
 
 
+    def fit_transformer(self,graphs):
+        self.graphtransformer.fit(graphs)
 
-    def fit_make_decomps(self,graphs):
+    def fit_make_decomposers(self,graphs):
         return [self.decomposer.make_new_decomposer(data)
-                               for data in self.graphtransformer.fit_transform(graphs)]
+                               for data in self.graphtransformer.transform(graphs)]
 
     def fit_grammar(self,decomposers,n_jobs=-1, batch_size=10):
         self.lsgg.fit(decomposers, n_jobs=n_jobs, batch_size=batch_size)
@@ -396,7 +398,10 @@ class Sampler(object):
 
         print '''  This function will be removed soon, replace fit with these:
 
-         fit_make_decomps(self,graphs)
+        def fit_transformer(self,graphs):
+            self.graphtransformer.fit(graphs)
+
+         fit_make_decomposers(self,graphs)
          returns decomposers that can be used for the following steps.
 
          fit_grammar(self,decomposers,n_jobs=-1, batch_size=10).
