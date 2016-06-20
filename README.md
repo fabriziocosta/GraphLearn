@@ -25,18 +25,16 @@ def get_graphs(dataset_fname='../../toolsdata/bursi.pos.gspan', size=100):
 ```
 
 #### Sampling new graphs
-Sampling is straight forward. There are many options for the sampling process available.
+Sampling is straight forward. 
+There are many options for the sampling process available.
 
 ```python
 from graphlearn.graphlearn import  Sampler
-sampler=Sampler(n_steps=50,
-            probabilistic_core_choice=True,
-            include_seed=True,
-            improving_threshold=.5,
-            improving_linear_start=0.0,
-            monitor=True)
+sampler=Sampler(n_steps=50)
 sampler.fit(get_graphs())
 samples = sampler.transform(get_graphs(size=5))
+
+
 ```
 
 #### Drawing the result
