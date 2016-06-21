@@ -10,9 +10,8 @@ nearly the same but is broken for our purposes at least.
 import pybel
 import networkx as nx
 from IPython.display import display, HTML
+import eden.graph as edengraphtools
 
-import eden.graph as eg
-VECTOR=eg.Vectorizer()
 
 
 def draw(graphs, n_graphs_per_line=5, size=200, d3=False, title_key=None):
@@ -216,7 +215,7 @@ def graph_to_molfile(graph):
                '117': 'Uus',
                '118': 'Uuo'}
 
-    graph=VECTOR._revert_edge_to_vertex_transform(graph)
+    graph=edengraphtools._revert_edge_to_vertex_transform(graph)
     graph = nx.convert_node_labels_to_integers(graph, first_label=0, ordering='default', label_attribute=None)
     # creating an SDF file from graph:
     # The header block, i.e. the first three lines, may be empty:
