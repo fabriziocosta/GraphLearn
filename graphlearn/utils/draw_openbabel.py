@@ -13,7 +13,6 @@ from IPython.display import display, HTML
 import eden.graph as edengraphtools
 
 
-
 def draw(graphs, n_graphs_per_line=5, size=200, d3=False, title_key=None):
     '''
 
@@ -36,7 +35,6 @@ def draw(graphs, n_graphs_per_line=5, size=200, d3=False, title_key=None):
     -------
         void
     '''
-
     # if graphs is only a single graph, we convert to a list
     if isinstance(graphs, nx.Graph):
         graphs = [graphs]
@@ -262,7 +260,7 @@ def graph_to_molfile(graph):
         edge_line += '  0  0  0  0\n'
         sdf_string += edge_line
 
-    sdf_string += 'M END'
+    sdf_string += 'M  END'
     # sdf_string += 'M END\n\n$$$$'
 
 

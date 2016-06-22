@@ -23,8 +23,6 @@ class GraphToAbstractTransformer(object):
 
     this class is just a helper for minor transform.
     '''
-
-
     def __init__(self, estimator=False,grouper=False, score_threshold=0, min_size=0, debug=False):
         '''
 
@@ -196,11 +194,9 @@ class GraphMinorTransformer(GraphTransformer):
 
     def fit(self, inputs):
         '''
-
         Parameters
         ----------
         inputs many nx.graph
-
         Returns
         -------
         '''
