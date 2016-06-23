@@ -39,3 +39,29 @@ def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None):
 
     # display on the spot
     display( image )
+
+
+
+def sdf_to_nx(file):
+    suppl = Chem.SDMolSupplier(file)
+    # this is given in the example, not sure if its a list or an iterator.. want list:)
+    #for mol in suppl:
+    #    print(mol.GetNumAtoms())
+    for mol in suppl:
+        yield sdMol_to_nx(mol)
+    #return [ for mol in suppl]
+
+
+def sdMol_to_nx(mol):
+    #print dir(chem)
+    #print chem.GetNumAtoms()
+    graph = nx.Graph()
+    for e in mol.GetAtoms():
+        graph.add_node(e.GetIdx(),label=e.GetSymbol())
+    for b in mol.GetBonds():
+        graph.add_edge(b.GetBeginAtomIdx(),b.GetEndAtomIdx(), label=str(int(b.GetBondTypeAsDouble())))
+    return graph
+
+
+
+
