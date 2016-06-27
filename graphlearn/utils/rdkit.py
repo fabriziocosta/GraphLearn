@@ -1,5 +1,10 @@
-
-
+'''
+functionality:
+draw(nx)
+sdf_to_nx(file.sdf)
+smi_to_nx(file.smi)
+smiles_to_nx(smilesstringlist)
+'''
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import Draw
@@ -8,9 +13,7 @@ import networkx as nx
 import eden.graph as edengraphtools
 
 
-def nx_to_chem(nx):
-    molstring = graph_to_molfile(nx)
-    return  Chem.MolFromMolBlock(molstring, sanitize=False)
+
 
 def set_coordinates(chemlist):
     for m in chemlist:
@@ -28,7 +31,7 @@ def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None,smil
         graphs = [graphs]
 
     # make molecule objects
-    chem=[  nx_to_chem(graph) for graph in graphs]
+    chem=[nx_to_rdkit(graph) for graph in graphs]
     #print chem
     # calculate coordinates:
     set_coordinates(chem)
@@ -60,7 +63,6 @@ def sdf_to_nx(file):
         yield rdkmol_to_nx(mol)
 
 
-
 def smi_to_nx(file):
     #read smi file
     suppl = Chem.SmilesMolSupplier(file)
@@ -77,11 +79,21 @@ def rdkmol_to_nx(mol):
         graph.add_edge(b.GetBeginAtomIdx(),b.GetEndAtomIdx(), label=str(int(b.GetBondTypeAsDouble())))
     return graph
 
+def smiles_to_nx(smileslist):
+    for smile in smileslist:
+        mol= Chem.MolFromSmiles(smile)
+        yield rdkmol_to_nx(mol)
 
 
+
+def nx_to_rdkit(nx):
+    molstring = graph_to_molfile(nx)
+    return  Chem.MolFromMolBlock(molstring, sanitize=False)
 
 def graph_to_molfile(graph):
     '''
+    helper of nx_to_chem
+
     Parameters
     ----------
     graph: nx.graph
@@ -90,9 +102,9 @@ def graph_to_molfile(graph):
     -------
         sdf_string
 
-
-    this is taken from eden.
+    taken from eden. differences to eden:
     atom_line += d['label'].ljust(3) <- this is changed from eden.
+    sdf_string += 'M  END' <- needs 2 spaces!
     '''
     symbols = {'1': 'H',
                '2': 'He',
