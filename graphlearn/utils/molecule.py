@@ -1,9 +1,14 @@
 '''
 functionality:
-draw(nx)
+
+# gernerating networkx graphs:
 sdf_to_nx(file.sdf)
 smi_to_nx(file.smi)
 smiles_to_nx(smilesstringlist)
+
+# graph out:
+draw(nx)
+nx_to_smi(graphlist, file.smi)
 '''
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -28,7 +33,7 @@ def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None,smil
 
     # we want a list of graphs
     if isinstance(graphs, nx.Graph):
-        graphs = [graphs]
+        print "give me a list of graphs"
 
     # make molecule objects
     chem=[nx_to_rdkit(graph) for graph in graphs]
@@ -54,7 +59,11 @@ def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None,smil
             print Chem.MolToSmiles(m)
         print '\n'
 
-
+def nx_to_smi(graphs,file):
+    chem = [nx_to_rdkit(graph) for graph in graphs]
+    smis = [Chem.MolToSmiles(m) for m in chem]
+    with open(file,'w') as f:
+        f.write('\n'.join(smis))
 
 def sdf_to_nx(file):
     # read sdf file
