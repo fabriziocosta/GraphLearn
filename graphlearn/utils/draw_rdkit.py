@@ -6,6 +6,8 @@ from rdkit.Chem import Draw
 from IPython.core.display import  display
 import networkx as nx
 import eden.graph as edengraphtools
+import graphlearn.utils as utils
+
 def nx_to_chem(nx):
     molstring = graph_to_molfile(nx)
     return  Chem.MolFromMolBlock(molstring, sanitize=False)
@@ -19,7 +21,7 @@ def set_coordinates(chemlist):
         else:
             print '''kind of bad'''
 
-def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None):
+def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None,smiles=False):
 
     # we want a list of graphs
     if isinstance(graphs, nx.Graph):
@@ -27,7 +29,7 @@ def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None):
 
     # make molecule objects
     chem=[  nx_to_chem(graph) for graph in graphs]
-    print chem
+    #print chem
     # calculate coordinates:
     set_coordinates(chem)
 
@@ -39,11 +41,15 @@ def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None):
     else:
         legend=[str(i) for i in range(len(graphs))]
 
-    # make the image
-    image= Draw.MolsToGridImage(chem, molsPerRow=n_graphs_per_line, subImgSize=(size, size), legends=legend)
-
-    # display on the spot
-    display( image )
+    if smiles==False:
+        # make the image
+        image= Draw.MolsToGridImage(chem, molsPerRow=n_graphs_per_line, subImgSize=(size, size), legends=legend)
+        # display on the spot
+        display( image )
+    else:
+        for m in chem:
+            print Chem.MolToSmiles(m)
+        print '\n'
 
 
 
