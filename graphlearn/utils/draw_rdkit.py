@@ -6,7 +6,7 @@ from rdkit.Chem import Draw
 from IPython.core.display import  display
 import networkx as nx
 import eden.graph as edengraphtools
-import graphlearn.utils as utils
+
 
 def nx_to_chem(nx):
     molstring = graph_to_molfile(nx)
@@ -19,7 +19,7 @@ def set_coordinates(chemlist):
             m.UpdatePropertyCache(strict=False)
             tmp = AllChem.Compute2DCoords(m)
         else:
-            print '''kind of bad'''
+            print '''set coordinates failed..'''
 
 def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None,smiles=False):
 
@@ -54,28 +54,22 @@ def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None,smil
 
 
 def sdf_to_nx(file):
+    # read sdf file
     suppl = Chem.SDMolSupplier(file)
-    # this is given in the example, not sure if its a list or an iterator.. want list:)
-    #for mol in suppl:
-    #    print(mol.GetNumAtoms())
     for mol in suppl:
-        yield sdMol_to_nx(mol)
-    #return [ for mol in suppl]
+        yield rdkmol_to_nx(mol)
+
 
 
 def smi_to_nx(file):
+    #read smi file
     suppl = Chem.SmilesMolSupplier(file)
-    # this is given in the example, not sure if its a list or an iterator.. want list:)
-    #for mol in suppl:
-    #    print(mol.GetNumAtoms())
     for mol in suppl:
-        yield sdMol_to_nx(mol)
-    #return [ for mol in suppl]
+        yield rdkmol_to_nx(mol)
 
 
-def sdMol_to_nx(mol):
-    #print dir(chem)
-    #print chem.GetNumAtoms()
+def rdkmol_to_nx(mol):
+    #  rdkit-mol object to nx.graph
     graph = nx.Graph()
     for e in mol.GetAtoms():
         graph.add_node(e.GetIdx(),label=e.GetSymbol())
