@@ -1,6 +1,5 @@
 '''
 functionality:
-
 # gernerating networkx graphs:
 sdf_to_nx(file.sdf)
 smi_to_nx(file.smi)
@@ -9,6 +8,10 @@ smiles_to_nx(smilesstringlist)
 # graph out:
 draw(nx)
 nx_to_smi(graphlist, file.smi)
+
+
+#bonus: garden style transformer.
+class MoleculeToGraph
 '''
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -16,6 +19,33 @@ from rdkit.Chem import Draw
 from IPython.core.display import  display
 import networkx as nx
 import eden.graph as edengraphtools
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+class MoleculeToGraph:
+    def __init__(self, file_format='sdf'):
+        """Constructor."""
+        self.file_format = file_format
+
+    def transform(self, data):
+        """Transform."""
+        try:
+            if self.file_format=='smiles':
+                graphs=smiles_to_nx(data)
+            elif self.file_format=='smi':
+                graphs=smi_to_nx(data)
+            elif self.file_format=='sdf':
+                graphs=sdf_to_nx(data)
+            else:
+                raise Exception('file_format must be smiles smi or sdf')
+            for graph in graphs:
+                yield graph
+
+        except Exception as e:
+            logger.debug('Failed iteration. Reason: %s' % e)
+            logger.debug('Exception', exc_info=True)
 
 
 
