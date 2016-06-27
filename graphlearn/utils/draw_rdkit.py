@@ -63,6 +63,16 @@ def sdf_to_nx(file):
     #return [ for mol in suppl]
 
 
+def smi_to_nx(file):
+    suppl = Chem.SmilesMolSupplier(file)
+    # this is given in the example, not sure if its a list or an iterator.. want list:)
+    #for mol in suppl:
+    #    print(mol.GetNumAtoms())
+    for mol in suppl:
+        yield sdMol_to_nx(mol)
+    #return [ for mol in suppl]
+
+
 def sdMol_to_nx(mol):
     #print dir(chem)
     #print chem.GetNumAtoms()
