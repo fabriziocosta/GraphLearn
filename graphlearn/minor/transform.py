@@ -16,20 +16,17 @@ from eden.modifier.graph.structure import contraction
 from collections import defaultdict
 from graphlearn.estimate import OneClassEstimator
 from graphlearn.transform import GraphTransformer
-import  graphlearn.utils.draw as draw
+import graphlearn.utils.draw as draw
 import networkx as nx
 import logging
 from itertools import izip
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
+
 logger = logging.getLogger(__name__)
 from eden.graph import Vectorizer
 from eden import graph as edengraphtools
-
-
-
-
 
 
 class GraphMinorTransformer(GraphTransformer):
@@ -37,12 +34,12 @@ class GraphMinorTransformer(GraphTransformer):
 
                  node_name_grouper=KMeans(n_clusters=4),
                  name_cluster=MiniBatchKMeans(n_clusters=5),
-
                  save_graphclusters=False,
-                 #graph_to_minor=GraphToAbstractTransformer(),
+                 # graph_to_minor=GraphToAbstractTransformer(),
                  estimator=OneClassEstimator(nu=.5, n_jobs=4),
-                 group_min_size=1,
-                 group_score_threshold=0):
+                 group_min_size=2,
+                 group_score_threshold=0,
+                 debug=False):
         '''
 
         Parameters
@@ -64,6 +61,9 @@ class GraphMinorTransformer(GraphTransformer):
         group_score_threshold:
             influencing how a core(minor node) may look like,
             here we set a minimum score for the core.
+        debug: False
+            will print LOTS of graphs, so dont use this.
+
         Returns
         -------
 
@@ -72,9 +72,21 @@ class GraphMinorTransformer(GraphTransformer):
         self.name_cluster = name_cluster
         self.node_name_grouper = node_name_grouper
         self.rawgraph_estimator = estimator
-        self.shape_score_threshold=group_score_threshold
-        self.shape_min_size=group_min_size
+        self.shape_score_threshold = group_score_threshold
+        self.group_min_size = group_min_size
         self.vectorizer = Vectorizer()
+        self.debug=debug
+
+
+        if self.node_name_grouper==None:
+            class groupByMinScore:
+                def __init__(self,score):
+                    self.min_score=score
+                def fit(self, li):
+                    pass
+                def predict(self, i):
+                    return [  1 if i >= self.min_score else 0 ]
+            self.node_name_grouper = groupByMinScore(self.shape_score_threshold)
 
 
     def fit(self, inputs):
@@ -85,56 +97,59 @@ class GraphMinorTransformer(GraphTransformer):
         Returns
         -------
         '''
+        inputs = list(inputs)
         # this k means is over the values resulting from annotation
         # and determine how a graph will be split intro minor nodes.
-        vectorized_inputs= self.vectorizer.transform(inputs)
+        vectorized_inputs = self.vectorizer.transform(inputs)
         self.rawgraph_estimator.fit(vectorized_inputs)
 
         # rawesti will write numbers to nodes, coreshapecluster renames these
-        self.train_core_shape_cluster(inputs)
-
+        if 'min_score' not in self.node_name_grouper.__dict__:
+            self.train_core_shape_cluster(inputs)
 
         # with these renamings we can create an abstract graph
-        self._abstract=GraphToAbstractTransformer(score_threshold=self.shape_score_threshold,
-                                                  min_size=self.shape_min_size,
-                                                  debug=False,
-                                                  estimator=self.rawgraph_estimator,
-                                                  grouper=self.node_name_grouper)
-
+        self._abstract = GraphToAbstractTransformer(score_threshold=self.shape_score_threshold,
+                                                    min_size=self.group_min_size,
+                                                    debug=self.debug,
+                                                    estimator=self.rawgraph_estimator,
+                                                    grouper=self.node_name_grouper)
 
         # now comes the second part in which i try to find a name for those minor nodes.
         if self.name_cluster:
-            parts = []
-            # for all minor nodes:
-            for graph in inputs:
-                #       self._abstract._transform_single(graph, score_attribute, group)
-                abstr = self._abstract._transform_single(graph, score_attribute='importance', group='class')
-                for n, d in abstr.nodes(data=True):
-                    if len(d['contracted']) > 1 and 'edge' not in d and d.get('APPROVEDABSTRACTNODE',True):
-                        # get the subgraph induced by it (if it is not trivial)
-                        tmpgraph = nx.Graph(graph.subgraph(d['contracted']))
-                        parts.append(tmpgraph)
+            self.train_name_cluster(inputs)
 
-            logger.debug("learning abstraction: %d partial graphs found" % len(parts))
-            # draw.graphlearn(parts[:5], contract=False)
-            # code from annotation-components.ipynb:
-            data_matrix = self.vectorizer.transform(parts)
+    def train_name_cluster(self, inputs):
+        parts = []
+        if len(inputs)==0:
+            print 'lost input'
+        # for all minor nodes:
+        for graph in inputs:
+            abstr = self._abstract._transform_single(graph, score_attribute='importance', group='class')
+            for n, d in abstr.nodes(data=True):
+                if len(d['contracted']) > 1 and 'edge' not in d and d.get('APPROVEDABSTRACTNODE', True):
+                    # get the subgraph induced by it (if it is not trivial)
+                    tmpgraph = nx.Graph(graph.subgraph(d['contracted']))
+                    parts.append(tmpgraph)
 
-            self.name_cluster.fit(data_matrix)
-            cluster_ids = self.name_cluster.predict(data_matrix)
-            logger.debug('num clusters: %d' % max(cluster_ids))
-            logger.debug(report_base_statistics(cluster_ids).replace('\t', '\n'))
+        logger.debug("learning abstraction: %d partial graphs found" % len(parts))
+        # draw.graphlearn(parts[:5], contract=False)
+        # code from annotation-components.ipynb:
+        data_matrix = self.vectorizer.transform(parts)
 
-            if self.save_graphclusters:
-                self.graphclusters = defaultdict(list)
-                for cluster_id, graph in izip(cluster_ids, parts):
-                    self.graphclusters[cluster_id].append(graph)
+        self.name_cluster.fit(data_matrix)
+        cluster_ids = self.name_cluster.predict(data_matrix)
+        logger.debug('num clusters: %d' % max(cluster_ids))
+        logger.debug(report_base_statistics(cluster_ids).replace('\t', '\n'))
 
-
-
+        if self.save_graphclusters:
+            self.graphclusters = defaultdict(list)
+            for cluster_id, graph in izip(cluster_ids, parts):
+                self.graphclusters[cluster_id].append(graph)
 
     def train_core_shape_cluster(self, inputs):
         '''
+        extracts all node scores and clusters them.
+
 
         Parameters
         ----------
@@ -142,7 +157,6 @@ class GraphMinorTransformer(GraphTransformer):
 
         Returns
         -------
-
         '''
         li = []
         for graph in inputs:
@@ -151,7 +165,6 @@ class GraphMinorTransformer(GraphTransformer):
                 li.append([d['importance']])
 
         self.node_name_grouper.fit(li)
-
 
 
 
@@ -183,10 +196,9 @@ class GraphMinorTransformer(GraphTransformer):
 
         # draw.graphlearn(graph)
         # print len(graph)
-        #abstract = self.abstract(graph, debug=False)
+        # abstract = self.abstract(graph, debug=False)
         # draw.graphlearn([graph,abstract])
         return self.transform([graph])[0]
-
 
     def abstract(self, graph, score_attribute='importance', group='class', debug=False):
         '''
@@ -206,22 +218,20 @@ class GraphMinorTransformer(GraphTransformer):
             if named_cluster is present, we the minor graph nodes will be named accordingly
         '''
 
-
         # generate abstract graph
         abst = self._abstract._transform_single(graph, score_attribute, group)
-
-        if self.name_cluster==False:
+        if self.name_cluster == False:
             return abst
 
         graph = edengraphtools._revert_edge_to_vertex_transform(graph)
         for n, d in abst.nodes(data=True):
-            if len(d['contracted']) > 1 and 'edge' not in d:
+            if len(d['contracted']) >= self.group_min_size and 'edge' not in d:
                 # get the subgraph induced by it (if it is not trivial)
                 tmpgraph = nx.Graph(graph.subgraph(d['contracted']))
                 vector = self.vectorizer.transform_single(tmpgraph)
                 d['label'] = "C_" + str(self.name_cluster.predict(vector))
 
-            elif len(d['contracted']) == 1 and 'edge' not in d:
+            elif len(d['contracted']) < self.group_min_size and 'edge' not in d:
                 # get the subgraph induced by it (if it is not trivial)
                 d['label'] = graph.node[list(d['contracted'])[0]]['label']
 
@@ -229,9 +239,6 @@ class GraphMinorTransformer(GraphTransformer):
             elif 'edge' not in d:
                 d['label'] = "F_should_not_happen"
         return abst
-
-
-
 
     def transform(self, inputs):
         '''
@@ -245,11 +252,7 @@ class GraphMinorTransformer(GraphTransformer):
             list of decomposers
         '''
 
-        return [ (edengraphtools._edge_to_vertex_transform(graph),self.abstract(graph)) for graph in inputs ]
-
-
-
-
+        return [(edengraphtools._edge_to_vertex_transform(graph), self.abstract(graph)) for graph in inputs]
 
 
 class GraphToAbstractTransformer(object):
@@ -259,6 +262,7 @@ class GraphToAbstractTransformer(object):
     makes abstractions that are based on the score of an estimator
     this class is just a helper for minor transform.
     '''
+
     def __init__(self, estimator=False, grouper=False, score_threshold=0, min_size=0, debug=False):
         '''
 
@@ -280,11 +284,12 @@ class GraphToAbstractTransformer(object):
 
         '''
         self.vectorizer = Vectorizer()
-        self.grouper=grouper
-        self.estimator=estimator
-        self.score_threshold=score_threshold
-        self.min_size=min_size
-        self.debug=debug
+        self.grouper = grouper
+        self.estimator = estimator
+        self.score_threshold = score_threshold
+        self.min_size = min_size
+        self.debug = debug
+
     """
     def set_parmas(self,**kwargs):
         '''
@@ -300,6 +305,7 @@ class GraphToAbstractTransformer(object):
         '''
         self.__dict__.update(kwargs)
     """
+
     def _transform_single(self, graph, score_attribute='importance', group='class'):
         '''
         Parameters
@@ -316,44 +322,55 @@ class GraphToAbstractTransformer(object):
         graph_exp = edengraphtools._edge_to_vertex_transform(graph)
         graph_unexp = edengraphtools._revert_edge_to_vertex_transform(graph_exp)
 
-
-        # annotate with scores, then transform scores to clusterid
+        # annotate with scores, then transform the score
         graph_unexp = self.vectorizer.annotate([graph_unexp], estimator=self.estimator.estimator).next()
         for n, d in graph_unexp.nodes(data=True):
             if d[score_attribute] > self.score_threshold:
                 d[group] = str(self.grouper.predict(d[score_attribute])[0])
-            else:d[group]="-"
+            else:
+                d[group] = "-"
 
         if self.debug:
-            print 'graph2: after score annotation, "-"-> value below thresh'
-            draw.graphlearn(graph_unexp, vertex_label=group)
+            print "##################################"
+            print 'score annotation'
+            for n,d in graph_unexp.nodes(data=True):
+                d[score_attribute]=round(d[score_attribute],1)
+            draw.graphlearn(graph_unexp, vertex_label = group, secondary_vertex_label=score_attribute,size=10)
 
         # weed out groups that are too small
         # assign_values_to_nodelabel(graph_unexp, group)
         graph3 = contraction([graph_unexp], contraction_attribute=group, modifiers=[], nesting=False).next()
-        for n,d in graph3.nodes(data=True):
+        for n, d in graph3.nodes(data=True):
             if len(d['contracted']) < self.min_size:
                 for n in d['contracted']:
                     graph_unexp.node[n].pop(group)
-                    graph_unexp.node[n][group]='-'
+                    graph_unexp.node[n][group] = '-'
 
-        #assign_values_to_nodelabel(graph_unexp, group)
         if self.debug:
-            print 'weed out more nodes because the clusters are too small'
-            print '[contraction, actually interesting thing]'
-            draw.graphlearn([graph3,graph_unexp], vertex_label=group)
-        graph_unexp = contraction([graph_unexp], contraction_attribute=group, modifiers=[], nesting=False).next()
-        for n,d in graph_unexp.nodes(data=True):
-            if d[group]=='-':
+            print 'checking group size constraint'
+            print '[contraction, graph that should not contain groups that are too small]'
+            draw.graphlearn([graph3, graph_unexp], vertex_label=group)
+
+
+        # doing the real contraction
+        graph_unexp = contraction([graph_unexp],
+                                  contraction_attribute=group,
+                                  modifiers=[],
+                                  nesting=False,dont_contract_attribute_symbol='-').next()
+
+        for n, d in graph_unexp.nodes(data=True):
+            if d[group] == '-':
                 d['APPROVEDABSTRACTNODE'] = False
         if self.debug:
-            print 'contracts to this:'
+            print 'final contraction:'
             draw.graphlearn(graph_unexp, vertex_label=group)
+
+
+
         # expand
         graph_reexp = edengraphtools._edge_to_vertex_transform(graph_unexp)
         #  make a dictionary that maps from base_graph_node -> node in contracted graph
         getabstr = {contra: node for node, d in graph_reexp.nodes(data=True) for contra in d.get('contracted', [])}
-
         # so this basically assigns edges in the base_graph to nodes in the abstract graph.
         for n, d in graph_exp.nodes(data=True):
             if 'edge' in d:
@@ -377,4 +394,4 @@ class GraphToAbstractTransformer(object):
 
     def transform(self, graphs, score_attribute='importance', group='class', debug=False):
         for graph in graphs:
-            yield self._transform_single(graph, score_attribute=score_attribute,group=group,debug=debug)
+            yield self._transform_single(graph, score_attribute=score_attribute, group=group, debug=debug)
