@@ -16,8 +16,8 @@ from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
 logger = logging.getLogger(__name__)
-from eden.graph import Vectorizer
-
+#from eden.graph import Vectorizer
+from eden import graph as edengraphtools
 
 
 def make_decomposergen(include_base=False, base_thickness_list=[2]):
@@ -74,11 +74,11 @@ class MinorDecomposer(Decomposer):
         it is usualy more convenient to calculate the minor in the proprocessor.
         '''
         if self._abstract_graph == None:
-            self._abstract_graph = make_abstract(self._base_graph, self.vectorizer)
+            self._abstract_graph = make_abstract(self._base_graph)
         return self._abstract_graph
 
 
-    def __init__(self, data=[], node_entity_check=lambda x, y: True, nbit=20):
+    def __init__(self, data=[], node_entity_check=lambda x, y: True, nbit=20,base_thickness_list=[2],include_base=False):
         '''
 
         Parameters
@@ -94,11 +94,11 @@ class MinorDecomposer(Decomposer):
         '''
         #print "asd",data
         self.some_thickness_list = base_thickness_list
-        self.vectorizer = vectorizer
+
         if data:
             self._base_graph = data[0]
             if len(self._base_graph) > 0:
-                self._base_graph = Vectorizer._edge_to_vertex_transform(self._base_graph)
+                self._base_graph = edengraphtools._edge_to_vertex_transform(self._base_graph)
             self._abstract_graph = data[1]
             self._mod_dict = self._abstract_graph.graph.get("mod_dict",{})  # this is the default.
 
@@ -110,7 +110,7 @@ class MinorDecomposer(Decomposer):
 
     def make_new_decomposer(self, transformout):
         return MinorDecomposer(transformout, node_entity_check=self.node_entity_check,
-                               nbit=self.nbit)  #node_entity_check=self.node_entity_check, nbit=self.nbit)
+                               nbit=self.nbit,base_thickness_list=self.some_thickness_list,include_base=self.include_base)  #node_entity_check=self.node_entity_check, nbit=self.nbit)
 
 
 
@@ -285,13 +285,13 @@ def check_and_draw(base_graph, abstr):
     return True
 
 
-def make_abstract(graph, vectorizer):
+def make_abstract(graph):
     '''
     graph should be the same expanded graph that we will feed to extract_cips later...
     Parameters
     ----------
     graph
-    vectorizer
+
 
     Returns
     -------
@@ -300,9 +300,9 @@ def make_abstract(graph, vectorizer):
     if isinstance(graph, nx.DiGraph):
         graph = graph.to_undirected()
 
-    graph2 = vectorizer._revert_edge_to_vertex_transform(graph)
+    graph2 = edengraphtools._revert_edge_to_vertex_transform(graph)
     graph2 = edge_type_in_radius_abstraction(graph2)
-    graph2 = vectorizer._edge_to_vertex_transform(graph2)
+    graph2 = edengraphtools._edge_to_vertex_transform(graph2)
 
     # find out to which abstract node the edges belong
     # finding out where the edge-nodes belong, because the contractor cant possibly do this
@@ -380,11 +380,11 @@ def extract_cips(node,
     # PREPARE
     abstract_graph = graphmanager.abstract_graph()
     base_graph = graphmanager.base_graph()
-    vectorizer = graphmanager.vectorizer
+
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
-        vectorizer._label_preprocessing(abstract_graph)
+        edengraphtools._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
-        vectorizer._label_preprocessing(base_graph)
+        edengraphtools._label_preprocessing(base_graph)
 
     # EXTRACT CIPS NORMALY ON ABSTRACT GRAPH
     abstract_cips = graphtools.extract_core_and_interface(node, abstract_graph, radius_list=radius_list,
@@ -541,7 +541,7 @@ def extract_cips_base(node,
         I guess these are meant:
         radius_list=None,
         thickness_list=None,
-        vectorizer=Vectorizer(),
+
         node_filter=lambda x, y: True):
 
     Returns
@@ -556,11 +556,11 @@ def extract_cips_base(node,
     # PREPARE
     abstract_graph = graphmanager.abstract_graph()
     base_graph = graphmanager.base_graph()
-    vectorizer = graphmanager.vectorizer
+
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
-        vectorizer._label_preprocessing(abstract_graph)
+        edengraphtools._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
-        vectorizer._label_preprocessing(base_graph)
+        edengraphtools._label_preprocessing(base_graph)
 
     # LOOK UP ABSTRACT GRAPHS NODE AND
     # EXTRACT CIPS NORMALY ON ABSTRACT GRAPH

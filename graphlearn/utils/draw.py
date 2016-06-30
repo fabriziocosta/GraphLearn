@@ -10,7 +10,6 @@ from scipy.optimize import curve_fit
 from collections import defaultdict
 import logging
 import copy
-
 logger = logging.getLogger(__name__)
 
 

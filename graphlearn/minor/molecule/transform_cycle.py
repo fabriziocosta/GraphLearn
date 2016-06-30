@@ -11,10 +11,10 @@ from graphlearn.transform import GraphTransformer
 import networkx as nx
 import graphlearn.utils.draw as draw
 from eden.graph import Vectorizer
-
+from eden import graph as edengraphtools
 
 class GraphTransformerCircles(GraphTransformer):
-    def __init__(self,vectorizer=Vectorizer(complexity=3)):
+    def __init__(self):
         """
         Parameters
         ----------
@@ -26,7 +26,7 @@ class GraphTransformerCircles(GraphTransformer):
         -------
         void
         """
-        self.vectorizer=vectorizer
+        pass
 
     def wrap(self, graph):
         """
@@ -40,20 +40,20 @@ class GraphTransformerCircles(GraphTransformer):
         graphdecomposer
         """
 
-        graph = self.vectorizer._edge_to_vertex_transform(graph)
+        graph = edengraphtools._edge_to_vertex_transform(graph)
         return (graph,self.abstract(graph))
         #return MinorDecomposer(graph, vectorizer=self.vectorizer, base_thickness_list=self.base_thickness_list,
         #  abstract_graph=self.abstract(graph))
 
 
     def transform(self, inputs):
-        return [(self.vectorizer._edge_to_vertex_transform(i),self.abstract(i)) for i in inputs]
+        return [(edengraphtools._edge_to_vertex_transform(i),self.abstract(i)) for i in inputs]
 
     def abstract(self, graph):
-        graph = self.vectorizer._edge_to_vertex_transform(graph)
-        tmpgraph = self.vectorizer._revert_edge_to_vertex_transform(graph)
+        graph = edengraphtools._edge_to_vertex_transform(graph)
+        tmpgraph = edengraphtools._revert_edge_to_vertex_transform(graph)
         abstract_graph = make_abstract(tmpgraph)
-        _abstract_graph = self.vectorizer._edge_to_vertex_transform(abstract_graph)
+        _abstract_graph = edengraphtools._edge_to_vertex_transform(abstract_graph)
 
         for n, d in _abstract_graph.nodes(data=True):
             if 'contracted' not in d:

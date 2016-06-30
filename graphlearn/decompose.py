@@ -125,7 +125,7 @@ class Decomposer(AbstractDecomposer):
 
     def change_basegraph(self,transformerdata):
         self._base_graph=transformerdata
-        # ??? why is this here?
+
 
     def base_graph(self):
         return self._base_graph

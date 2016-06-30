@@ -14,7 +14,7 @@ class mywrap(Decomposer):
         graphlearn.decompose.graph_clean(self._base_graph)
 
     def make_new_decomposer(self, transformout):
-        return mywrap(vectorizer,transformout,node_entity_check=self.node_entity_check,nbit=self.nbit)
+        return mywrap(transformout,node_entity_check=self.node_entity_check,nbit=self.nbit)
 # this file is here to hide the uglyness from the notebooks
 # i should use the init_only flag in the sampler for initialisation.
 

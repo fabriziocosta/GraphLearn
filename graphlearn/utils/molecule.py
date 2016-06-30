@@ -1,87 +1,138 @@
 '''
-comfortably use openbabel:
+functionality:
+# gernerating networkx graphs:
+sdf_to_nx(file.sdf)
+smi_to_nx(file.smi)
+smiles_to_nx(smilesstringlist)
 
-draw for drawing graphs
+# graph out:
+draw(nx)
+nx_to_smi(graphlist, file.smi)
 
-graph_to_molfile() is closely related to a eden function that does
-nearly the same but is broken for our purposes at least.
+
+#bonus: garden style transformer.
+class MoleculeToGraph
 '''
-
-import pybel
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from rdkit.Chem import Draw
+from IPython.core.display import  display
 import networkx as nx
-from IPython.display import display, HTML
 import eden.graph as edengraphtools
 
-
-def draw(graphs, n_graphs_per_line=5, size=200, d3=False, title_key=None):
-    '''
-
-    Parameters
-    ----------
-    graphs:  list of graphs
-    n_graphs_per_line: int
-        draw this many graphs in a line
-    size: int
-        size in the svg image, svg-default is 100 which is very small.
-
-    d3: bool (false)
-        will result in 3d images
-
-    title_key: basestring, None
-        graph.graph[titles_key] will be displayed as graph title
+import logging
+logger = logging.getLogger(__name__)
 
 
-    Returns
-    -------
-        void
-    '''
-    # if graphs is only a single graph, we convert to a list
-    if isinstance(graphs, nx.Graph):
-        graphs = [graphs]
+class MoleculeToGraph:
+    def __init__(self, file_format='sdf'):
+        """Constructor."""
+        self.file_format = file_format
 
-    # d3 is false for now.
-    pybel.ipython_3d = d3
-
-    while graphs:
-        some_graphs = graphs[:n_graphs_per_line]
-
-        # printing one line...
-        headers = []
-        graph_texts = []
-
-        for graph in some_graphs:
-
-            headers.append(graph.graph.get(title_key, ''))
-            babelgraph = nx_to_pybel(graph)
-
-            if d3 == False:
-                svgtext = babelgraph._repr_svg_()
-                svgtext = svgtext.split("\n")
-                svg_header = svgtext[0]
-                svg_header = svg_header.replace('height="100"', 'height="%d"' % size)
-                svg_header = svg_header.replace('width="100"', 'width="%d"' % size)
-                svgtext = [svg_header] + svgtext[1:]
-                svgtext = '\n'.join(svgtext)
-                graph_texts.append(svgtext)
+    def transform(self, data):
+        """Transform."""
+        try:
+            if self.file_format=='smiles':
+                graphs=smiles_to_nx(data)
+            elif self.file_format=='smi':
+                graphs=smi_to_nx(data)
+            elif self.file_format=='sdf':
+                graphs=sdf_to_nx(data)
             else:
-                svgtext = babelgraph._repr_html_()
-                graph_texts.append(svgtext)
+                raise Exception('file_format must be smiles smi or sdf')
+            for graph in graphs:
+                yield graph
 
-        html = ['<table>']
-        if title_key is not None:
-            html += ["<th>{}</th>".format(h) for h in headers] + ["</tr><tr>"]
+        except Exception as e:
+            logger.debug('Failed iteration. Reason: %s' % e)
+            logger.debug('Exception', exc_info=True)
 
-        # html=["<table><tr>"]
-        for svg in graph_texts:
-            html.append("<td>" + svg + "</td>")
-        html.append("</tr></table>")
-        display(HTML(''.join(html)))
 
-        graphs = graphs[n_graphs_per_line:]
 
+
+def set_coordinates(chemlist):
+    for m in chemlist:
+        if m:
+            #updateprops fixes "RuntimeError: Pre-condition Violation"
+            m.UpdatePropertyCache(strict=False)
+            tmp = AllChem.Compute2DCoords(m)
+        else:
+            print '''set coordinates failed..'''
+
+def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None,smiles=False):
+
+    # we want a list of graphs
+    if isinstance(graphs, nx.Graph):
+        print "give me a list of graphs"
+
+    # make molecule objects
+    chem=[nx_to_rdkit(graph) for graph in graphs]
+    #print chem
+    # calculate coordinates:
+    set_coordinates(chem)
+
+    # take care of the subtitle of each graph
+    if title_key:
+        legend=[g.graph[title_key] for g in graphs]
+    elif titles:
+        legend=titles
+    else:
+        legend=[str(i) for i in range(len(graphs))]
+
+    if smiles==False:
+        # make the image
+        image= Draw.MolsToGridImage(chem, molsPerRow=n_graphs_per_line, subImgSize=(size, size), legends=legend)
+        # display on the spot
+        display( image )
+    else:
+        for m in chem:
+            print Chem.MolToSmiles(m)
+        print '\n'
+
+def nx_to_smi(graphs,file):
+    chem = [nx_to_rdkit(graph) for graph in graphs]
+    smis = [Chem.MolToSmiles(m) for m in chem]
+    with open(file,'w') as f:
+        f.write('\n'.join(smis))
+
+def sdf_to_nx(file):
+    # read sdf file
+    suppl = Chem.SDMolSupplier(file)
+    for mol in suppl:
+        yield rdkmol_to_nx(mol)
+
+
+def smi_to_nx(file):
+    #read smi file
+    suppl = Chem.SmilesMolSupplier(file)
+    for mol in suppl:
+        yield rdkmol_to_nx(mol)
+
+
+def rdkmol_to_nx(mol):
+    #  rdkit-mol object to nx.graph
+    graph = nx.Graph()
+    for e in mol.GetAtoms():
+        graph.add_node(e.GetIdx(),label=e.GetSymbol())
+    for b in mol.GetBonds():
+        graph.add_edge(b.GetBeginAtomIdx(),b.GetEndAtomIdx(), label=str(int(b.GetBondTypeAsDouble())))
+    return graph
+
+def smiles_to_nx(smileslist):
+    for smile in smileslist:
+        mol= Chem.MolFromSmiles(smile)
+        yield rdkmol_to_nx(mol)
+
+
+
+def nx_to_rdkit(nx):
+    molstring = graph_to_molfile(nx)
+    return  Chem.MolFromMolBlock(molstring, sanitize=False)
 
 def graph_to_molfile(graph):
     '''
+    helper of nx_to_chem
+
     Parameters
     ----------
     graph: nx.graph
@@ -90,9 +141,9 @@ def graph_to_molfile(graph):
     -------
         sdf_string
 
-
-    this is taken from eden.
+    taken from eden. differences to eden:
     atom_line += d['label'].ljust(3) <- this is changed from eden.
+    sdf_string += 'M  END' <- needs 2 spaces!
     '''
     symbols = {'1': 'H',
                '2': 'He',
@@ -265,11 +316,3 @@ def graph_to_molfile(graph):
 
 
     return sdf_string
-
-
-def nx_to_pybel(graph):
-    # from  eden.converter.molecule.obabel  import graph_to_molfile
-    molstring = graph_to_molfile(graph)
-    # thing=pybel.readstring('sdf',molstring)
-    thing = pybel.readstring('mol', molstring)
-    return thing
