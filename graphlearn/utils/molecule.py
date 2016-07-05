@@ -1,4 +1,6 @@
 '''
+interface between networkx graphs and the world of chemistry via rdkit
+
 functionality:
 # gernerating networkx graphs:
 sdf_to_nx(file.sdf)
@@ -7,16 +9,17 @@ smiles_to_nx(smilesstringlist)
 
 # graph out:
 draw(nx)
-nx_to_smi(graphlist, file.smi)
+nx_to_smi(graphlist, path_to_file.smi)
 
 
 #bonus: garden style transformer.
 class MoleculeToGraph
 '''
+from sklearn.base import BaseEstimator, TransformerMixin
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import Draw
-from IPython.core.display import  display
+from IPython.core.display import display
 import networkx as nx
 import eden.graph as edengraphtools
 
@@ -24,20 +27,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class MoleculeToGraph:
+class MoleculeToGraph(BaseEstimator, TransformerMixin):
     def __init__(self, file_format='sdf'):
-        """Constructor."""
+        """Constructor.
+
+        valid 'file_format' strings and what the transformer will expect
+        smiles: list of smiles strings
+        smi: path to .smi file
+        sdf: pat to .sdf file
+        """
         self.file_format = file_format
 
     def transform(self, data):
         """Transform."""
         try:
-            if self.file_format=='smiles':
-                graphs=smiles_to_nx(data)
-            elif self.file_format=='smi':
-                graphs=smi_to_nx(data)
-            elif self.file_format=='sdf':
-                graphs=sdf_to_nx(data)
+            if self.file_format == 'smiles':
+                graphs = smiles_to_nx(data)
+            elif self.file_format == 'smi':
+                graphs = smi_to_nx(data)
+            elif self.file_format == 'sdf':
+                graphs = sdf_to_nx(data)
             else:
                 raise Exception('file_format must be smiles smi or sdf')
             for graph in graphs:
@@ -48,52 +57,52 @@ class MoleculeToGraph:
             logger.debug('Exception', exc_info=True)
 
 
-
-
 def set_coordinates(chemlist):
     for m in chemlist:
         if m:
-            #updateprops fixes "RuntimeError: Pre-condition Violation"
+            # updateprops fixes "RuntimeError: Pre-condition Violation"
             m.UpdatePropertyCache(strict=False)
             tmp = AllChem.Compute2DCoords(m)
         else:
             print '''set coordinates failed..'''
 
-def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None,smiles=False):
 
+def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None, smiles=False):
     # we want a list of graphs
     if isinstance(graphs, nx.Graph):
         print "give me a list of graphs"
 
     # make molecule objects
-    chem=[nx_to_rdkit(graph) for graph in graphs]
-    #print chem
+    chem = [nx_to_rdkit(graph) for graph in graphs]
+    # print chem
     # calculate coordinates:
     set_coordinates(chem)
 
     # take care of the subtitle of each graph
     if title_key:
-        legend=[g.graph[title_key] for g in graphs]
+        legend = [g.graph[title_key] for g in graphs]
     elif titles:
-        legend=titles
+        legend = titles
     else:
-        legend=[str(i) for i in range(len(graphs))]
+        legend = [str(i) for i in range(len(graphs))]
 
-    if smiles==False:
+    if smiles == False:
         # make the image
-        image= Draw.MolsToGridImage(chem, molsPerRow=n_graphs_per_line, subImgSize=(size, size), legends=legend)
+        image = Draw.MolsToGridImage(chem, molsPerRow=n_graphs_per_line, subImgSize=(size, size), legends=legend)
         # display on the spot
-        display( image )
+        display(image)
     else:
         for m in chem:
             print Chem.MolToSmiles(m)
         print '\n'
 
-def nx_to_smi(graphs,file):
+
+def nx_to_smi(graphs, file):
     chem = [nx_to_rdkit(graph) for graph in graphs]
     smis = [Chem.MolToSmiles(m) for m in chem]
-    with open(file,'w') as f:
+    with open(file, 'w') as f:
         f.write('\n'.join(smis))
+
 
 def sdf_to_nx(file):
     # read sdf file
@@ -103,7 +112,7 @@ def sdf_to_nx(file):
 
 
 def smi_to_nx(file):
-    #read smi file
+    # read smi file
     suppl = Chem.SmilesMolSupplier(file)
     for mol in suppl:
         yield rdkmol_to_nx(mol)
@@ -113,21 +122,22 @@ def rdkmol_to_nx(mol):
     #  rdkit-mol object to nx.graph
     graph = nx.Graph()
     for e in mol.GetAtoms():
-        graph.add_node(e.GetIdx(),label=e.GetSymbol())
+        graph.add_node(e.GetIdx(), label=e.GetSymbol())
     for b in mol.GetBonds():
-        graph.add_edge(b.GetBeginAtomIdx(),b.GetEndAtomIdx(), label=str(int(b.GetBondTypeAsDouble())))
+        graph.add_edge(b.GetBeginAtomIdx(), b.GetEndAtomIdx(), label=str(int(b.GetBondTypeAsDouble())))
     return graph
+
 
 def smiles_to_nx(smileslist):
     for smile in smileslist:
-        mol= Chem.MolFromSmiles(smile)
+        mol = Chem.MolFromSmiles(smile)
         yield rdkmol_to_nx(mol)
-
 
 
 def nx_to_rdkit(nx):
     molstring = graph_to_molfile(nx)
-    return  Chem.MolFromMolBlock(molstring, sanitize=False)
+    return Chem.MolFromMolBlock(molstring, sanitize=False)
+
 
 def graph_to_molfile(graph):
     '''
@@ -264,7 +274,7 @@ def graph_to_molfile(graph):
                '117': 'Uus',
                '118': 'Uuo'}
 
-    graph=edengraphtools._revert_edge_to_vertex_transform(graph)
+    graph = edengraphtools._revert_edge_to_vertex_transform(graph)
     graph = nx.convert_node_labels_to_integers(graph, first_label=0, ordering='default', label_attribute=None)
     # creating an SDF file from graph:
     # The header block, i.e. the first three lines, may be empty:
@@ -313,6 +323,4 @@ def graph_to_molfile(graph):
 
     sdf_string += 'M  END'
     # sdf_string += 'M END\n\n$$$$'
-
-
     return sdf_string

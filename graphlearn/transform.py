@@ -24,6 +24,7 @@ class GraphTransformer(object):
         -------
         graphwrapper iterator
         '''
+        inputs=list(inputs)
         self.fit(inputs)
         return self.transform(inputs)
 
