@@ -34,8 +34,9 @@ class GraphMinorTransformer(GraphTransformer):
                  estimator=OneClassEstimator(),
                  group_min_size=2,
                  group_max_size=5,
+                 cluster_min_members=0,
+                 cluster_max_members=-1,
                  group_score_threshold=1.2,
-                 group_score_classifier=None,
                  debug=False,
                  subgraph_name_estimator=MiniBatchKMeans(n_clusters=5),
                  save_graphclusters=False):
@@ -51,6 +52,8 @@ class GraphMinorTransformer(GraphTransformer):
         estimator: graphlearn estimator wrapper
         group_min_size: int
         group_max_size int
+        cluster_min_members:int
+        cluster_max_members:int
         group_score_threshold: float
         group_score_classifier: KMeans(n_clusters=4)
         debug: bool
@@ -63,24 +66,28 @@ class GraphMinorTransformer(GraphTransformer):
         self.score_threshold=group_score_threshold
         self.debug=debug
         self.subgraph_name_estimator=subgraph_name_estimator
-        self.group_score_classifier=group_score_classifier
         self.save_graphclusters=save_graphclusters
+        self.cluster_min_members=cluster_min_members
+        self.cluster_max_members=cluster_max_members
+
+
+    def fit_param_init(self):
+        self.ignore_clusters=[]
 
     def fit(self,graphs):
+
+        self.fit_param_init()
+
         # graphs will be used more than once, so if its a generator we want a list.
         graphs=list(graphs)
 
         # learning how to score nodes
         self.estimator.fit(self.vectorizer.transform(graphs))
 
-        # node scores are used to find groups,
-        # default is via threshold, but scores can also be classified
-        if self.group_score_classifier != None:
-            self.group_score_classifier.fit(get_all_scores(graphs,self.vectorizer,self.estimator))
+
 
         # a functon to generate a minorgraph, that contracts all groups
         self.abstractor = GraphToAbstractTransformer(
-                grouper=self.group_score_classifier,
                 score_threshold=self.score_threshold,
                 min_size=self.min_size,
                 max_size=self.max_size,
@@ -96,10 +103,19 @@ class GraphMinorTransformer(GraphTransformer):
 
         data= self.vectorizer.transform( subgraphs )
         self.subgraph_name_estimator.fit(data)
+        cluster_ids = self.subgraph_name_estimator.predict(data)
+
+
+        for i in range(self.subgraph_name_estimator.get_params()['n_clusters']):
+            cids=cluster_ids.tolist()
+            members = cids.count(i)
+            if members< self.cluster_min_members or members >  self.cluster_max_members > -1: # should work to omou
+                logger.debug('remove cluser: %d  members: %d' % (i,members))
+                self.ignore_clusters.append(i)
+
 
 
         # some information:
-        cluster_ids = self.subgraph_name_estimator.predict(data)
         logger.debug('num clusters: %d' % max(cluster_ids))
         logger.debug(report_base_statistics(cluster_ids).replace('\t', '\n'))
         if self.save_graphclusters:
@@ -137,7 +153,7 @@ class GraphMinorTransformer(GraphTransformer):
                 rename_subgraph(graph,
                                self.abstractor,
                                self.subgraph_name_estimator,
-                               self.vectorizer))
+                               self.vectorizer, self.ignore_clusters))
 
 
 
@@ -154,15 +170,14 @@ class GraphToAbstractTransformer(object):
     this class is just a helper for minor transform.
     '''
 
-    def __init__(self, estimator=None, grouper=None, score_threshold=0.0, min_size=0,max_size=50, debug=False):
+    def __init__(self, estimator=None, score_threshold=0.0, min_size=0,max_size=50, debug=False):
         '''
 
         Parameters
         ----------
         vectorizer  eden.graph.vectorizer
         estimator   estimator to assign scores
-        grouper
-            object with predict(score) function to assign clusterid to nodes
+
         score_threshold
             ignore nodes with score < thresh
         min_size
@@ -175,22 +190,22 @@ class GraphToAbstractTransformer(object):
 
         '''
         self.vectorizer = Vectorizer()
-        self.grouper = grouper
+
         self.estimator = estimator
         self.score_threshold = score_threshold
         self.min_size = min_size
         self.debug = debug
         self.max_size=max_size
 
-        if self.grouper == None:
-            class groupByMinScore:
-                def __init__(self, score):
-                    self.min_score = score
-                def fit(self, li):
-                    pass
-                def predict(self, i):
-                    return [1 if i >= self.min_score else 0]
-            self.grouper = groupByMinScore(self.score_threshold)
+
+        class groupByMinScore:
+            def __init__(self, score):
+                self.min_score = score
+            def fit(self, li):
+                pass
+            def predict(self, i):
+                return [1 if i >= self.min_score else 0]
+        self.grouper = groupByMinScore(self.score_threshold)
 
     """
     def set_parmas(self,**kwargs):
@@ -343,7 +358,7 @@ class GraphToAbstractTransformer(object):
 
 
 
-def rename_subgraph(graph, minorgenerator, nameestimator,vectorizer):
+def rename_subgraph(graph, minorgenerator, nameestimator,vectorizer,ignore_labels):
     """
     relabels subgraphs by nameestimator
 
@@ -365,12 +380,17 @@ def rename_subgraph(graph, minorgenerator, nameestimator,vectorizer):
         return abst
     vectors = vectorizer.transform(subgraphs)
     clusterids = nameestimator.predict(vectors) # hope this works
-    return set_labels(graph=abst,names=clusterids,ids=ids,labelprefix='C_', label="label")
+    return set_labels(graph=abst,names=clusterids,ids=ids,labelprefix='C_', label="label", ignore_labels=ignore_labels)
 
 
-def set_labels(graph,names,ids,labelprefix='', label="label"):
+def set_labels(graph,names,ids,labelprefix='', label="label",ignore_labels=[]):
     for name, id in zip(names,ids):
-        graph.node[id][label]=labelprefix+str(name)
+        if name not in ignore_labels:
+            #print id, ignore_labels
+            graph.node[id][label]=labelprefix+str(name)
+        else:
+            graph.node[id][label] = '-'
+
     return graph
 
 def get_subraphs(minorgraph,graph,minor_ids=True):
