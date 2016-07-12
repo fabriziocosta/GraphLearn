@@ -26,7 +26,9 @@ from eden.util import report_base_statistics
 logger = logging.getLogger(__name__)
 from eden.graph import Vectorizer
 from eden import graph as edengraphtools
-
+from sklearn.linear_model import SGDClassifier
+from GArDen.model import ClassifierWrapper
+import numpy as np
 
 class GraphMinorTransformer(GraphTransformer):
     def __init__(self,
@@ -73,6 +75,12 @@ class GraphMinorTransformer(GraphTransformer):
 
     def fit_param_init(self):
         self.ignore_clusters=[]
+        self.abstractor = GraphToAbstractTransformer(
+            score_threshold=self.score_threshold,
+            min_size=self.min_size,
+            max_size=self.max_size,
+            debug=self.debug,
+            estimator=None)
 
     def fit(self,graphs):
 
@@ -84,35 +92,26 @@ class GraphMinorTransformer(GraphTransformer):
         # learning how to score nodes
         self.estimator.fit(self.vectorizer.transform(graphs))
 
-
-
         # a functon to generate a minorgraph, that contracts all groups
-        self.abstractor = GraphToAbstractTransformer(
-                score_threshold=self.score_threshold,
-                min_size=self.min_size,
-                max_size=self.max_size,
-                debug=self.debug,
-                estimator=self.estimator)
+        self.abstractor.estimator = self.estimator
 
         #  groups will be clustered.
         subgraphs = self.abstractor.get_subgraphs(graphs)
+        subgraphs = list(subgraphs)
 
-        # we may need theese later.. and since it is an iterator...
-        if self.save_graphclusters:
-            subgraphs= list(subgraphs)
 
+        # fit classifier, get results for the subgraphs
         data= self.vectorizer.transform( subgraphs )
         self.subgraph_name_estimator.fit(data)
         cluster_ids = self.subgraph_name_estimator.predict(data)
 
-
+        # filter clusters that are too small or too large
         for i in range(self.subgraph_name_estimator.get_params()['n_clusters']):
-            cids=cluster_ids.tolist()
+            cids = cluster_ids.tolist()
             members = cids.count(i)
             if members< self.cluster_min_members or members >  self.cluster_max_members > -1: # should work to omou
                 logger.debug('remove cluser: %d  members: %d' % (i,members))
                 self.ignore_clusters.append(i)
-
 
 
         # some information:
@@ -123,6 +122,27 @@ class GraphMinorTransformer(GraphTransformer):
             for cluster_id, graph in izip(cluster_ids, subgraphs):
                 self.graphclusters[cluster_id].append(graph)
 
+
+
+        # now we can train a new classifier
+        # cluster_ids and data are already available.
+
+        self.direct_name_classifier = SGDClassifier()
+        print cluster_ids.tolist()
+        self.direct_name_classifier.fit(data, cluster_ids)
+
+        deletelist = [i for i, e in enumerate(cluster_ids) if e in self.ignore_clusters]
+        targetlist = [e for e in cluster_ids if e not in self.ignore_clusters ]
+
+
+        # found this to filter csr matrix
+        def delete_rows_csr(mat, indices):
+            indices = list(indices)
+            mask = np.ones(mat.shape[0], dtype=bool)
+            mask[indices] = False
+            return mat[mask]
+
+        #self.direct_name_classifier.fit(delete_rows_csr(data,deletelist),targetlist)
 
 
     def transform(self,graphs):
@@ -139,6 +159,17 @@ class GraphMinorTransformer(GraphTransformer):
 
         return [self.re_transform_single(graph) for graph in graphs]
 
+    def re_transform_single_2(self,graph):
+        graph_exp = edengraphtools._edge_to_vertex_transform(graph)
+        graph_unexp = edengraphtools._revert_edge_to_vertex_transform(graph_exp)
+
+        # annotate with scores, then transform the score
+        graph_unexp = self.vectorizer.annotate([graph_unexp], estimator=self.direct_name_classifier).next()
+        for n,d in graph_unexp.nodes(data=True):
+            d['importance']= '%.1f' % d['importance'][0]
+        return graph_unexp
+
+
     def re_transform_single(self, graph):
         '''
         Parameters
@@ -149,11 +180,17 @@ class GraphMinorTransformer(GraphTransformer):
         -------
         a postprocessed graphwrapper
         '''
-        return (edengraphtools._edge_to_vertex_transform(graph),
-                rename_subgraph(graph,
-                               self.abstractor,
-                               self.subgraph_name_estimator,
-                               self.vectorizer, self.ignore_clusters))
+
+        transformed_graph = rename_subgraph(graph.copy(), # pass a copy because its better not to trust anybody :)
+                        self.abstractor,
+                        self.subgraph_name_estimator,
+                        self.vectorizer)
+
+        original_graph = edengraphtools._edge_to_vertex_transform(graph)
+
+        transformed_graph.graph['original']= original_graph
+
+        return transformed_graph
 
 
 
@@ -190,7 +227,6 @@ class GraphToAbstractTransformer(object):
 
         '''
         self.vectorizer = Vectorizer()
-
         self.estimator = estimator
         self.score_threshold = score_threshold
         self.min_size = min_size
@@ -358,7 +394,7 @@ class GraphToAbstractTransformer(object):
 
 
 
-def rename_subgraph(graph, minorgenerator, nameestimator,vectorizer,ignore_labels):
+def rename_subgraph(graph, minorgenerator, nameestimator,vectorizer):
     """
     relabels subgraphs by nameestimator
 
@@ -380,17 +416,12 @@ def rename_subgraph(graph, minorgenerator, nameestimator,vectorizer,ignore_label
         return abst
     vectors = vectorizer.transform(subgraphs)
     clusterids = nameestimator.predict(vectors) # hope this works
-    return set_labels(graph=abst,names=clusterids,ids=ids,labelprefix='C_', label="label", ignore_labels=ignore_labels)
+    return set_labels(graph=abst,names=clusterids,ids=ids,labelprefix='C_', label="label")
 
 
-def set_labels(graph,names,ids,labelprefix='', label="label",ignore_labels=[]):
+def set_labels(graph,names,ids,labelprefix='', label="label"):
     for name, id in zip(names,ids):
-        if name not in ignore_labels:
-            #print id, ignore_labels
-            graph.node[id][label]=labelprefix+str(name)
-        else:
-            graph.node[id][label] = '-'
-
+        graph.node[id][label]=labelprefix+str(name)
     return graph
 
 def get_subraphs(minorgraph,graph,minor_ids=True):

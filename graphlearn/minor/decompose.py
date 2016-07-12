@@ -48,6 +48,22 @@ class MinorDecomposer(Decomposer):
         g = nx.disjoint_union(self._base_graph, self.abstract_graph())
         node_id = len(g)
 
+
+
+        if nested:
+            g  = edengraphtools._revert_edge_to_vertex_transform(g)
+            for n, d in g.nodes(data=True):
+                if 'contracted' in d:
+                    for e in d['contracted']:
+                        if e in g.nodes():
+                            g.add_edge( n, e, nesting=True)
+
+
+
+        #graph2 = edengraphtools._revert_edge_to_vertex_transform(graph)
+        #graph2 = edge_type_in_radius_abstraction(graph2)
+        #graph2 = edengraphtools._edge_to_vertex_transform(graph2)
+        '''
         if nested:
             for n, d in g.nodes(data=True):
                 if 'contracted' in d and 'edge' not in d:
@@ -57,9 +73,9 @@ class MinorDecomposer(Decomposer):
                             g.add_node(node_id, edge=True, label='e')
                             g.add_edge(n, node_id, nesting=True)
                             g.add_edge(node_id, e, nesting=True)
-                            # g.add_edge( n, e, nesting=True)
+                            #g.add_edge( n, e, nesting=True)
                             node_id += 1
-
+        '''
         return g
 
     def abstract_graph(self):
@@ -75,31 +91,33 @@ class MinorDecomposer(Decomposer):
         '''
         if self._abstract_graph == None:
             self._abstract_graph = make_abstract(self._base_graph)
+            print 'check if anything went hirribly wrong oO because ' \
+                  'make_abstract doesnt look like its making anything abstract'
         return self._abstract_graph
 
 
-    def __init__(self, data=[], node_entity_check=lambda x, y: True, nbit=20,base_thickness_list=[2],include_base=False):
+    def __init__(self, graph=None, node_entity_check=lambda x, y: True, nbit=20,base_thickness_list=[2],include_base=False):
         '''
-
         Parameters
         ----------
         graph: nx.graph
-
-
-        abstract_graph: graph
-            provide the abstract graph
-
-        Returns
-        -------
+            the graph is the minor graph. it has a .graph['original'] set.
+        node_entity_check
+        nbit
+        base_thickness_list
+        include_base
         '''
+
         #print "asd",data
         self.some_thickness_list = base_thickness_list
 
-        if data:
-            self._base_graph = data[0]
+        if graph:
+            self._base_graph = graph.graph['original'].copy()
+
             if len(self._base_graph) > 0:
                 self._base_graph = edengraphtools._edge_to_vertex_transform(self._base_graph)
-            self._abstract_graph = data[1]
+            self._abstract_graph = graph
+            self._abstract_graph.graph.pop('original')
             self._mod_dict = self._abstract_graph.graph.get("mod_dict",{})  # this is the default.
 
         self.include_base = include_base  # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
