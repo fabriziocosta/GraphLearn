@@ -90,7 +90,21 @@ class Sampler(object):
         duplicate.spawn_list.append(other)
         return duplicate
 
+    def set_params(self, **parameters):
+        '''
+        http://scikit-learn.org/stable/developers/contributing.html
 
+        Parameters
+        ----------
+        parameters: dict {param, value}
+
+        Returns
+        -------
+            self
+        '''
+        self.__dict__.update(parameters)
+        self._init_new_params()
+        return self
 
 
     def __init__(self,
@@ -429,7 +443,9 @@ class Sampler(object):
 
         jobs_done = 0
         for batch in sampled_graphs:
-            for graphlist, moni in batch:
+            for graphlist, moni  in batch:
+                moni = dill.loads(moni)
+                #dill.loads(what[0])
                 # print type(graph)
                 # currently formatter only returns one element and thats fine, one day this may be changed
 
@@ -452,8 +468,9 @@ class Sampler(object):
         for graph in graph_iter:
             # sampled_graph = self._sample(graph)
             # yield sampled_graph
-            a, b = self.transform_single(graph)
-            for new_graph in self._return_formatter(a, b):
+            graphlist, monitor = self.transform_single(graph)
+            monitor = dill.dumps(monitor)
+            for new_graph in self._return_formatter(graphlist, monitor):
                 yield new_graph
 
 
@@ -578,7 +595,7 @@ class Sampler(object):
                          'accept_count': accept_counter,
                          'notes': self._sample_notes}
         self.monitorobject.sampling_info = sampling_info
-        return self.sample_path, self.monitorobject
+        return self.sample_path, dill.dumps(self.monitorobject)
 
     def _score_list_append(self, decomposer):
         '''
@@ -834,6 +851,9 @@ class Sampler(object):
                 if self.feasibility_checker.check(new_graph):
                     new_decomposer = self.decomposer.make_new_decomposer(
                         self.graph_transformer.re_transform_single(new_graph))
+                else:
+                    self._samplelog("feasibility failed")
+                    continue
 
                 if new_decomposer:
                         self.compute_proposal_probability(decomposer, new_decomposer, original_cip)
@@ -909,10 +929,10 @@ class Sampler(object):
 
 
 def _sample_multi(what):
-    self = dill.loads(what[0])
+    graphlearner = dill.loads(what[0])
     graphlist = dill.loads(what[1])
     # if jobsize % batchsize != 0, sample will not give me a tuple,
     # here i filter for these
-    result = [self.transform_single(g) for g in graphlist]
+    result = [graphlearner.transform_single(g) for g in graphlist]
     # print result
     return [e for e in result if type(e) == type(())]
