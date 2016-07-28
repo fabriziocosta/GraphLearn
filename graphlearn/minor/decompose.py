@@ -60,6 +60,8 @@ class MinorDecomposer(Decomposer):
 
 
 
+        g = fix_graph(g)
+
         #graph2 = edengraphtools._revert_edge_to_vertex_transform(graph)
         #graph2 = edge_type_in_radius_abstraction(graph2)
         #graph2 = edengraphtools._edge_to_vertex_transform(graph2)
@@ -614,3 +616,11 @@ def extract_cips_base(node,
 
     return cips
 root_node=None,
+
+# eden vectorizer wants labels everywhere so we set them.
+# this function is badly named and should be in the transformer Oo
+def fix_graph(g):
+    for a, b, d in g.edges(data=True):
+        if 'label' not in d:
+            d['label'] = ''
+    return g

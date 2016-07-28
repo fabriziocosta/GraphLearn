@@ -32,7 +32,7 @@ import numpy as np
 
 class GraphMinorTransformer(GraphTransformer):
     def __init__(self,
-                 vectorizer=Vectorizer(),
+                 vectorizer=Vectorizer(complexity=3),
                  estimator=OneClassEstimator(),
                  group_min_size=2,
                  group_max_size=5,
@@ -120,7 +120,8 @@ class GraphMinorTransformer(GraphTransformer):
         if self.save_graphclusters:
             self.graphclusters = defaultdict(list)
             for cluster_id, graph in izip(cluster_ids, subgraphs):
-                self.graphclusters[cluster_id].append(graph)
+                if cluster_id not in self.ignore_clusters:
+                    self.graphclusters[cluster_id].append(graph)
 
 
 
@@ -128,8 +129,8 @@ class GraphMinorTransformer(GraphTransformer):
         # cluster_ids and data are already available.
 
         self.direct_name_classifier = SGDClassifier()
-        print cluster_ids.tolist()
-        self.direct_name_classifier.fit(data, cluster_ids)
+        #print cluster_ids.tolist()
+        #self.direct_name_classifier.fit(data, cluster_ids)
 
         deletelist = [i for i, e in enumerate(cluster_ids) if e in self.ignore_clusters]
         targetlist = [e for e in cluster_ids if e not in self.ignore_clusters ]
@@ -141,8 +142,16 @@ class GraphMinorTransformer(GraphTransformer):
             mask = np.ones(mat.shape[0], dtype=bool)
             mask[indices] = False
             return mat[mask]
+        print targetlist
 
-        #self.direct_name_classifier.fit(delete_rows_csr(data,deletelist),targetlist)
+        data = delete_rows_csr(data, deletelist)
+
+        if False: # filter duplicates
+            data, indices = np.unique(data, return_index=True)
+            targetlist = [targetlist[i] for i in indices]
+
+
+        self.direct_name_classifier.fit(data,targetlist)
 
 
     def transform(self,graphs):
