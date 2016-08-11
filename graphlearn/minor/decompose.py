@@ -45,20 +45,50 @@ class MinorDecomposer(Decomposer):
         -------
             nx.graph
         '''
+
+        if nested:
+            # before we make the union we need to save the ids of all nodes in the base graph
+
+            for n, d in self._base_graph.nodes(data=True):
+                d["ID"] = n
+            for n, d in self.abstract_graph().nodes(data=True):
+                d.pop("ID",None)
+
         g = nx.disjoint_union(self._base_graph, self.abstract_graph())
         node_id = len(g)
 
 
 
+
+
         if nested:
+            # edge_nodes -> edges
+            # then look at the contracted nodes to add dark edges.
             g  = edengraphtools._revert_edge_to_vertex_transform(g)
-            for n, d in g.nodes(data=True):
-                if 'contracted' in d:
-                    for e in d['contracted']:
-                        if e in g.nodes():
-                            g.add_edge( n, e, nesting=True)
 
 
+
+
+            try:
+                # updating the contracted sets
+                reconstrdict={  d["ID"]:n  for n,d in g.nodes(data=True) if "ID" in d  }
+                for n, d in g.nodes(data=True):
+                    if 'contracted' in d:
+                        d['contracted']=set( [reconstrdict[e] for e in d['contracted']] )
+
+
+                for n, d in g.nodes(data=True):
+                    if 'contracted' in d:
+                        for e in d['contracted']:
+                            if e in g.nodes():
+                                g.add_edge( n, e, nesting=True, label='')
+            except:
+                print 'can not build nested graph... input looks like this:'
+                draw.graphlearn( self._base_graph, vertex_label= 'id', size=15 )
+                draw.graphlearn(self.abstract_graph(), vertex_label='contracted', size=15)
+
+        # add labels to all edges ( this is needed for eden. .. bu
+        #g = fix_graph(g)
 
         #graph2 = edengraphtools._revert_edge_to_vertex_transform(graph)
         #graph2 = edge_type_in_radius_abstraction(graph2)
@@ -614,3 +644,11 @@ def extract_cips_base(node,
 
     return cips
 root_node=None,
+
+# eden vectorizer wants labels everywhere so we set them.
+# this function is badly named and should be in the transformer Oo
+def fix_graph(g):
+    for a, b, d in g.edges(data=True):
+        if 'label' not in d:
+            d['label'] = ''
+    return g

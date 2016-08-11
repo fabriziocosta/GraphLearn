@@ -107,7 +107,7 @@ class OneClassEstimator:
     there might be a bug connected to nx.digraph..
     '''
 
-    def __init__(self, nu=.5, cv=2, n_jobs=-1, move_bias_calibrate=True, classifier=SGDClassifier(loss='log')):
+    def __init__(self, nu=.5, cv=2, n_jobs=-1, move_bias_calibrate=True, classifier = SGDClassifier(loss='log')):
         '''
         Parameters
         ----------
@@ -126,6 +126,12 @@ class OneClassEstimator:
         self.move_bias_recalibrate = move_bias_calibrate
         self.classifier = classifier
         self.inverse_prediction = False
+
+        self.intercept_ = .5 # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
+
+    # tricking eden th think i am a normal estimator... hehhehe
+    def decision_function(self,vector): # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
+        return numpy.array( [ self.predict_single(sparse) for sparse in vector] )
 
     def fit(self, data_matrix, random_state=None):
 
@@ -191,20 +197,33 @@ class OneClassEstimator:
             then use scikits calibrate to calibrate self.estimator around the input
         '''
         #  move bias
-        l = [(estimator.decision_function(g)[0], g) for g in data_matrix]
-        l.sort(key=lambda x: x[0])
-        element = int(len(l) * nu)
-        estimator.intercept_ -= l[element][0]
+        #l = [(estimator.decision_function(g)[0], g) for g in data_matrix]
+        #l.sort(key=lambda x: x[0])
+        #element = int(len(l) * nu)
+        #estimator.intercept_ -= l[element][0]
+
+        scores = [estimator.decision_function(sparse_vector)[0]
+                  for sparse_vector in data_matrix]
+        scores_sorted = sorted(scores)
+        pivot = scores_sorted[int(len(scores_sorted) * self.nu)]
+        estimator.intercept_ -= pivot
+
 
         # calibrate
         if self.move_bias_recalibrate:
-            data_matrix_binary = vstack([a[1] for a in l])
-            data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
-            estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
-            estimator.fit(data_matrix_binary, data_y)
+
+            #data_matrix_binary = vstack([a[1] for a in l])
+            #data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
+            data_y = numpy.asarray([1 if score >= pivot else -1 for score in scores])
+            self.testimator=SGDClassifier(loss='log')
+            self.testimator.fit(data_matrix,data_y)
+            #estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
+            estimator = CalibratedClassifierCV(self.testimator, cv=cv, method='sigmoid')
+            estimator.fit(data_matrix, data_y)
         return estimator
 
-    def predict(self, vectorized_graph):
+
+    def predict_single(self, vectorized_graph):
         if self.move_bias_recalibrate:
             result = self.cal_estimator.predict_proba(vectorized_graph)[0, 1]
         else:
@@ -213,3 +232,144 @@ class OneClassEstimator:
         if self.inverse_prediction:
             return 1 - result
         return result
+
+    # probably broken ... you should use predict single now o OO
+    def predict(self,things):
+        #return self.predict_single(things)
+        return numpy.array( [ 1 if self.predict_single(thing)>.5 else 0 for thing in things] )
+
+
+
+
+
+class ExperimentalOneClassEstimator:
+    '''
+    there might be a bug connected to nx.digraph..
+    '''
+
+    def __init__(self, nu=.5, cv=2, n_jobs=-1, move_bias_calibrate=True, classifier = SGDClassifier(loss='log')):
+        '''
+        Parameters
+        ----------
+        nu: part of graphs that will be placed in the negative set (0~1)
+        cv:
+        n_jobs: jobs for fitting
+        move_bias_calibrate: after moving the bias we can recalibrate
+        classifier: calssifier object
+        Returns
+        -------
+        '''
+        self.status = 'new'
+        self.nu = nu
+        self.cv = cv
+        self.n_jobs = n_jobs
+        self.move_bias_recalibrate = move_bias_calibrate
+        self.classifier = classifier
+        self.inverse_prediction = False
+
+        self.intercept_ = .5 # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
+
+    # tricking eden th think i am a normal estimator... hehhehe
+    def decision_function(self,vector): # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
+        return self.superesti.decision_function(vector)
+
+    def fit(self, data_matrix, random_state=None):
+
+        if random_state is not None:
+            random.seed(random_state)
+
+        # use eden to fitoooOoO
+        self.estimator = self.fit_estimator(data_matrix, n_jobs=self.n_jobs, cv=self.cv, random_state=random_state)
+
+        # move bias to obtain oneclassestimator
+        self.cal_estimator = self.move_bias(data_matrix, estimator=self.estimator, nu=self.nu, cv=self.cv)
+
+        self.status = 'trained'
+        return self
+
+    '''
+    disabled for now.. since the discsampler is not expected to work
+    def fit_2(self, pos_iterator, neg_iterator, vectorizer=None, cv=2, n_jobs=-1):
+        """
+        This is used in the discsampler .,., i am not sure why i am not using eden directly.
+        I will fix this when i look into the disk sampler next time.
+        :param pos_iterator:
+        :param neg_iterator:
+        :param vectorizer:
+        :param cv:
+        :param n_jobs:
+        :return:
+        """
+        self.vectorizer=vectorizer
+        data_matrix = vectorizer.fit_transform(pos_iterator)
+        neagtive_data_matrix = vectorizer.transform(neg_iterator)
+        estimator = eden_fit_estimator(SGDClassifier(loss='log'),
+                                       positive_data_matrix=data_matrix,
+                                       negative_data_matrix=neagtive_data_matrix,
+                                       cv=cv,
+                                       n_jobs=n_jobs,
+                                       n_iter_search=10)
+        # esti= CalibratedClassifierCV(estimator,cv=cv,method='sigmoid')
+        # esti.fit( vstack[ X,Y], numpy.asarray([1]*X.shape[0] + [0]*Y.shape[0]))
+        return estimator
+    '''
+
+    def fit_estimator(self, data_matrix, n_jobs=-1, cv=2, random_state=42):
+        '''
+        create self.estimator...
+        by inversing the data_matrix set to get a negative set
+        and then using edens fit_estimator
+        '''
+        # create negative set:
+        data_matrix_neg = data_matrix.multiply(-1)
+        # i hope loss is log.. not 100% sure..
+        # probably calibration will fix this#
+        return eden_fit_estimator(self.classifier, positive_data_matrix=data_matrix,
+                                  negative_data_matrix=data_matrix_neg,
+                                  cv=cv,
+                                  n_jobs=n_jobs,
+                                  n_iter_search=10,
+                                  random_state=random_state)
+
+    def move_bias(self, data_matrix, estimator=None, nu=.5, cv=2):
+        '''
+            move bias until nu of data_matrix are in the negative class
+            then use scikits calibrate to calibrate self.estimator around the input
+        '''
+        #  move bias
+        #l = [(estimator.decision_function(g)[0], g) for g in data_matrix]
+        #l.sort(key=lambda x: x[0])
+        #element = int(len(l) * nu)
+        #estimator.intercept_ -= l[element][0]
+
+        scores = [estimator.decision_function(sparse_vector)[0]
+                  for sparse_vector in data_matrix]
+        scores_sorted = sorted(scores)
+        pivot = scores_sorted[int(len(scores_sorted) * self.nu)]
+        estimator.intercept_ -= pivot
+
+
+        # calibrate
+        if self.move_bias_recalibrate:
+
+            #data_matrix_binary = vstack([a[1] for a in l])
+            #data_y = numpy.asarray([0] * element + [1] * (len(l) - element))
+            data_y = numpy.asarray([1 if score >= pivot else -1 for score in scores])
+            self.superesti=SGDClassifier(loss='log')
+            self.superesti.fit(data_matrix,data_y)
+            #estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
+            #estimator = CalibratedClassifierCV(self.testimator, cv=cv, method='sigmoid')
+            #estimator.fit(data_matrix, data_y)
+        return self.superesti
+
+
+    def predict_single(self, vectorized_graph):
+
+        return self.superesti.decision_function(vectorized_graph)[0]
+
+
+    # probably broken ... you should use predict single now o OO
+    def predict(self,things):
+        # return self.predict_single(things)
+        # return numpy.array( [ 1 if self.predict_single(thing)>.5 else 0 for thing in things] )
+        return self.superesti.predict(things)
