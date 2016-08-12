@@ -7,11 +7,12 @@ import graphlearn.utils.draw as draw
 from sklearn.cluster import MiniBatchKMeans
 import sklearn.cluster as cluster
 
-class cascade():
+class Cascade():
 
-    def __init__(self, depth=2, decomposer=decompose.MinorDecomposer()):
+    def __init__(self, depth=2, decomposer=decompose.MinorDecomposer(), debug=False):
         self.depth=depth
         self.decomposer=decomposer
+        self.debug=debug
 
 
     def setup_transformers(self):
@@ -25,8 +26,7 @@ class cascade():
                 group_min_size=2,
                 #cluster_max_members=-1,
                 layer=i,
-                debug=False)
-
+                debug=self.debug)
             self.transformers.append(transformer)
 
     def fit_transform(self,graphs):
@@ -41,8 +41,12 @@ class cascade():
             print 'training transformer # %d' % i
             graphs = [minor_to_nested(minor)
                            for minor in self.transformers[i].fit_transform(graphs)]
-            #draw.graphlearn_layered(graphs[:4], vertex_label='layer')
 
+            if self.debug:
+                print 'graphs at this level'
+                draw.graphlearn_layered(graphs[:4], vertex_label='layer')
+                print 'all the clusters'
+                draw.graphlearn_dict(self.transformers[i].graphclusters)
         return graphs
 
 
@@ -64,23 +68,3 @@ class cascade():
                     d['layer'] = layerid
             yield graph
 
-'''
-TODO add layer annotation, also do grpahs know their minor master?
-def fix_graph(g):
-    for a,b,d in g.edges(data=True):
-        if 'label' not in d:
-            d['label']=''
-    for a,d in g.nodes(data=True):
-        if 'contracted' not in d:
-            d['layer']='0'
-        else:
-            d['layer']='1'
-    return g
-
-'''
-class mydecomposer(decompose.MinorDecomposer):
-    # we need to mod the decomposer a littlebit:
-
-    # first problem: layer info eintragen. vlt nicht hier?
-    # zweites problem:
-    pass

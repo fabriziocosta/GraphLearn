@@ -19,7 +19,6 @@ THIS IS A TEST I AM TRYING TO MAKE THIS MORE EZ AND EZ TO TEST
 
 
 import  abstractor
-
 from collections import defaultdict
 from graphlearn.estimate import ExperimentalOneClassEstimator
 from graphlearn.transform import GraphTransformer
@@ -38,7 +37,6 @@ from sklearn.linear_model import SGDClassifier
 from GArDen.model import ClassifierWrapper
 import numpy as np
 import scipy
-from bioinf_learn import MinHash
 import time
 
 
@@ -61,29 +59,31 @@ class myclusterclassifier():
         # just make sure to have a backup for now
         self.data = data
 
-        NTH_NEIGHBOR = 1
 
+
+        # build NN model
+        '''
+        NTH_NEIGHBOR = 1
+        # use joachim-code:
+        from bioinf_learn import MinHash
         minHash = MinHash(n_neighbors=NTH_NEIGHBOR+1)
         minHash.fit(data)
         dist, indices = minHash.kneighbors(return_distance=True)
-
         print dist
 
-        #'''
-        # build NN model
+        # use sklearn NN
         neigh = sklearn.neighbors.NearestNeighbors(n_neighbors=NTH_NEIGHBOR+1, metric='euclidean')
         neigh.fit(data)
-        # build DBSCAN
         dist, indices = neigh.kneighbors(data)
         print dist
-        #'''
 
-        # fallback:) dist=1.09
-
-        #print 'DIST',dist
+        #
         dist = np.median(dist[:, NTH_NEIGHBOR], axis=0)
         print dist
+        '''
+        dist = 1.09
 
+        # build DBSCAN
         scan = sklearn.cluster.DBSCAN(eps=dist, min_samples=2)
         self.cluster_ids = scan.fit_predict(data)
 
@@ -99,16 +99,17 @@ class myclusterclassifier():
         #
         # '''
 
+
         # info
         logger.debug('num clusters: %d' % max(self.cluster_ids))
         logger.debug(report_base_statistics(self.cluster_ids).replace('\t', '\n'))
-        # build SGDclassifier
-        # TRAIN SGDClassifier on the clusters
-        self.cluster_classifier = SGDClassifier()
+
+
         # deletelist = [i for i, e in enumerate(cluster_ids) if e in self.ignore_clusters]
         # targetlist = [e for e in cluster_ids if e not in self.ignore_clusters ]
         # data = delete_rows_csr(data, deletelist)
         # print targetlist
+        self.cluster_classifier = SGDClassifier()
         self.cluster_classifier.fit(data, self.cluster_ids)
 
 
