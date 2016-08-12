@@ -257,7 +257,7 @@ class GraphMinorTransformer(GraphTransformer):
 
 
         if self.multiprocess==False:
-            result = self._transform(graph)
+            result = self._transform(graphs)
         else:
             pool = mp.Pool()
             mpres = [eden.apply_async(pool, lambda former,instances: former._transform(graphs) , args=(self,graphs)) for graphs in eden.grouper(graphs, 50)]
