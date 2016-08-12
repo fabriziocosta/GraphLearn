@@ -2,7 +2,8 @@ from eden.modifier.graph.structure import contraction
 from eden.graph import Vectorizer
 import networkx as nx
 from graphlearn.utils import draw
-
+import eden
+import multiprocessing as mp
 
 def get_subgraphs_single(minorgraph, graph, minor_ids=False):
     '''
@@ -18,6 +19,7 @@ def get_subgraphs_single(minorgraph, graph, minor_ids=False):
                         ids_of_minor corresponding to subgraphlist,
                         ids_of_minor not producing subgraphs)
     '''
+
     graphs = []
     grouped_ids = []
     ungrouped_ids = []
@@ -133,6 +135,10 @@ def name_estimation(graph, group,layer,graphreference, vectorizer, nameestimator
     # def f(n,d): d['label'] =    graphreference.node[max(d['contracted'])]['label'] if d['label'] ==  '-' else "L_" + str(layer) + "_C_" + str(d['label'])
     # node_operation(graph, f)
 
+def multi(instances,abstractor):
+    return abstractor.get_subgraphs(instances)
+
+
 
 class GraphToAbstractTransformer(object):
     '''
@@ -167,7 +173,7 @@ class GraphToAbstractTransformer(object):
 
 
 
-    def get_subgraphs(self, inputs, score_attribute='importance', group='class'):
+    def get_subgraphs(self, inputs, score_attribute='importance', group='class', multi_process=False):
         '''
         Parameters
         ----------
@@ -181,10 +187,26 @@ class GraphToAbstractTransformer(object):
             Use estimator to annotate graph, group important nodes together to induce subgraphs.
             yields subgraphs
         '''
-        for graph in inputs:
-            abstr = self._transform_single(graph, score_attribute=score_attribute, group=group)
-            for g in get_subgraphs_single(abstr, graph, minor_ids=False):
-                yield g
+        if inputs==None:
+            return []
+
+        if multi_process==False:
+            res=[]
+            for graph in inputs:
+                abstr = self._transform_single(graph, score_attribute=score_attribute, group=group)
+                res+=get_subgraphs_single(abstr, graph, minor_ids=False)
+
+            return res
+        else:
+            pool = mp.Pool()
+            mpres = [eden.apply_async(pool, multi, args=(graphs, self)) for graphs in eden.grouper(inputs, 50)]
+            result=[]
+            for res in mpres:
+                result+=res.get()
+            pool.close()
+            pool.join()
+            return result
+
 
 
     def _transform_single(self, graph, score_attribute='importance', group='class', apply_name_estimation=False):
@@ -199,7 +221,7 @@ class GraphToAbstractTransformer(object):
         -------
         '''
         graphcopy= graph.copy()
-
+        maxnodeid=max(graph.nodes())
 
         # annotate with scores, then transform the score
         graph = self.vectorizer.annotate([graph], estimator=self.estimator).next()
@@ -226,5 +248,13 @@ class GraphToAbstractTransformer(object):
                                       contraction_attribute=group,
                                       modifiers=[],
                                       nesting=False,dont_contract_attribute_symbol='-').next()
+
+
+        # relabel
+        graph=nx.relabel_nodes(graph, dict(zip( graph.nodes(), range(maxnodeid+1, 1+maxnodeid+graph.number_of_nodes()))), copy=False)
+
+        if set(graph.nodes()) & set(graphcopy.nodes()):
+            raise Exception('relabeling failed')
+
         return graph
 

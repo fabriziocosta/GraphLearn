@@ -259,7 +259,7 @@ def graphlearn_layered(graphs,**args):
         poslist.append(pos)
 
     # draw
-    args['size_x_to_y_ratio']= layercount
+    args['size_x_to_y_ratio']= layercount+1
     args['pos']= poslist
     args['dark_edge_color']= 'dark_edge_color'
     graphlearn(finished_graphs,**args)

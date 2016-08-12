@@ -23,11 +23,50 @@ from eden import graph as edengraphtools
 def make_decomposergen(include_base=False, base_thickness_list=[2]):
     return lambda v, d: MinorDecomposer(d)
 
+
+
+
 class MinorDecomposer(Decomposer):
     '''
     a wrapper normally wraps a graph.
     here we wrap a graph and also take care of its minor.
     '''
+    def compress_layers(self):
+        # only compress if there is more than 1 layer to compress
+        if self.abstract_graph().graph.get('contracted_layers',0) > 1:
+
+
+            # ok when we are done there is only one layer :)
+            self.abstract_graph().graph['contracted_layers'] =1
+
+
+            # a function to traverse the base graph
+            def get_leafes(graph, node):
+                if graph.node[node].get('contracted', 0) == 0:
+                    return [node]
+                else:
+                    ret = []
+                    for node in graph.node[node]['contracted']:
+                        ret += get_leafes(graph.graph['original'], node)
+                    return ret
+
+            # compress each node :)
+            for n,d in self.abstract_graph().nodes(data=True):
+                res=[]
+                for node in d['contracted']:
+                    res+=get_leafes(self.base_graph(),node)
+                d['contracted']= res
+                d['layer']=1
+
+            # set the base_graph
+            graph=self.abstract_graph()
+            while 'original' in graph.graph:
+                graph=graph.graph['original']
+            self._base_graph = graph
+            self._abstract_graph.graph['original']=graph
+        return self
+
+
 
     def pre_vectorizer_graph(self, nested=False):
         '''
@@ -44,7 +83,7 @@ class MinorDecomposer(Decomposer):
         Returns
         -------
             nx.graph
-        '''
+
 
         if nested:
             # before we make the union we need to save the ids of all nodes in the base graph
@@ -53,28 +92,31 @@ class MinorDecomposer(Decomposer):
                 d["ID"] = n
             for n, d in self.abstract_graph().nodes(data=True):
                 d.pop("ID",None)
+        '''
 
-        g = nx.disjoint_union(self._base_graph, self.abstract_graph())
-        node_id = len(g)
-
-
-
+        # make union of everything
+        graph = self.abstract_graph()
+        graphs=[graph]
+        while 'original' in graph.graph:
+            graphs.append(graph.graph['original'])
+            graph=graph.graph['original']
+        #draw.graphlearn(graphs, vertex_label='id')
+        try:
+            g = nx.union_all(graphs)
+        except:
+            draw.graphlearn([graphs], vertex_label='id')
 
 
         if nested:
             # edge_nodes -> edges
             # then look at the contracted nodes to add dark edges.
-            g  = edengraphtools._revert_edge_to_vertex_transform(g)
-
-
-
-
+            #g  = edengraphtools._revert_edge_to_vertex_transform(g)
             try:
                 # updating the contracted sets
-                reconstrdict={  d["ID"]:n  for n,d in g.nodes(data=True) if "ID" in d  }
-                for n, d in g.nodes(data=True):
-                    if 'contracted' in d:
-                        d['contracted']=set( [reconstrdict[e] for e in d['contracted']] )
+                #reconstrdict={  d["ID"]:n  for n,d in g.nodes(data=True) if "ID" in d  }
+                #for n, d in g.nodes(data=True):
+                #    if 'contracted' in d:
+                #        d['contracted']=set( [reconstrdict[e] for e in d['contracted']] )
 
 
                 for n, d in g.nodes(data=True):
@@ -90,23 +132,10 @@ class MinorDecomposer(Decomposer):
         # add labels to all edges ( this is needed for eden. .. bu
         #g = fix_graph(g)
 
-        #graph2 = edengraphtools._revert_edge_to_vertex_transform(graph)
-        #graph2 = edge_type_in_radius_abstraction(graph2)
-        #graph2 = edengraphtools._edge_to_vertex_transform(graph2)
-        '''
-        if nested:
-            for n, d in g.nodes(data=True):
-                if 'contracted' in d and 'edge' not in d:
-                    for e in d['contracted']:
-                        if 'edge' not in g.node[e]:
-                            # we want an edge from n to e
-                            g.add_node(node_id, edge=True, label='e')
-                            g.add_edge(n, node_id, nesting=True)
-                            g.add_edge(node_id, e, nesting=True)
-                            #g.add_edge( n, e, nesting=True)
-                            node_id += 1
-        '''
         return g
+
+
+
 
     def abstract_graph(self):
         '''
@@ -126,7 +155,10 @@ class MinorDecomposer(Decomposer):
         return self._abstract_graph
 
 
-    def __init__(self, graph=None, node_entity_check=lambda x, y: True, nbit=20,base_thickness_list=[2],include_base=False):
+    def __init__(self,  graph=None,
+                        node_entity_check=lambda x, y: True,
+                        nbit=20,base_thickness_list=[2],
+                        include_base=False):
         '''
         Parameters
         ----------
@@ -147,7 +179,7 @@ class MinorDecomposer(Decomposer):
             if len(self._base_graph) > 0:
                 self._base_graph = edengraphtools._edge_to_vertex_transform(self._base_graph)
             self._abstract_graph = graph
-            self._abstract_graph.graph.pop('original')
+            #self._abstract_graph.graph.pop('original')
             self._mod_dict = self._abstract_graph.graph.get("mod_dict",{})  # this is the default.
 
         self.include_base = include_base  # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too

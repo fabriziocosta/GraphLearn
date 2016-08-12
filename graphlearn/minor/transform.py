@@ -38,8 +38,8 @@ from GArDen.model import ClassifierWrapper
 import numpy as np
 import scipy
 import time
-
-
+import eden
+import multiprocessing as mp
 
 
 
@@ -138,6 +138,7 @@ class GraphMinorTransformer(GraphTransformer):
                  #subgraph_cluster=,
                  cluster_classifier=myclusterclassifier()  ,
                  #save_graphclusters=False,
+                 multiprocess=True,
                  layer=0):
         '''
         initial subgraphs are identified by threshold per default,
@@ -169,6 +170,7 @@ class GraphMinorTransformer(GraphTransformer):
         #self.cluster_min_members=cluster_min_members
         #self.cluster_max_members=cluster_max_members
         self.layer=layer
+        self.multiprocess=multiprocess
 
 
 
@@ -200,7 +202,7 @@ class GraphMinorTransformer(GraphTransformer):
         graphs=list(graphs)
         if graphs[0].graph.get('expanded',False):
             raise Exception('give me an unexpanded graph')
-        if self.layer > 0: graphs = map(lambda x:select_layer(x,self.layer),graphs)
+        #if self.layer > 0: graphs = map(lambda x:select_layer(x,self.layer),graphs)
         self.prepfit()
 
 
@@ -215,7 +217,7 @@ class GraphMinorTransformer(GraphTransformer):
         self.estimator.fit(self.vectorizer.transform(graphs))
         self.abstractor.estimator = self.estimator
         # extracting subgraphs
-        subgraphs = list( self.abstractor.get_subgraphs(graphs) )
+        subgraphs = self.abstractor.get_subgraphs(graphs,multi_process=self.multiprocess)
 
         # info
         if self.debug:
@@ -253,7 +255,18 @@ class GraphMinorTransformer(GraphTransformer):
         '''
         #tstart = time.mktime(time.localtime())
 
-        result = [self.re_transform_single(graph) for graph in graphs]
+
+        if self.multiprocess==False:
+            result = self._transform(graph)
+        else:
+            pool = mp.Pool()
+            mpres = [eden.apply_async(pool, lambda former,instances: former._transform(graphs) , args=(self,graphs)) for graphs in eden.grouper(graphs, 50)]
+            result = []
+            for res in mpres:
+                result += res.get()
+            pool.close()
+            pool.join()
+
         if self.debug:
             print 'minortransform  transform.  1. the new layer ; 2. the old layer(s)'
             draw.graphlearn(result[:3], contract=False, size=6, vertex_label='contracted')
@@ -263,7 +276,8 @@ class GraphMinorTransformer(GraphTransformer):
         return result
 
 
-
+    def _transform(self,graphs):
+        return [self.re_transform_single(graph) for graph in graphs]
 
     def re_transform_single(self, graph):
         '''
@@ -284,6 +298,7 @@ class GraphMinorTransformer(GraphTransformer):
         transformed_graph=self.abstractor._transform_single(l_graph.copy(), apply_name_estimation=True)
         for n,d in transformed_graph.nodes(data=True):
             d['layer'] = self.layer+1
+        transformed_graph.graph['contracted_layers']= self.layer+1
         transformed_graph.graph['original']= graph
 
         return transformed_graph

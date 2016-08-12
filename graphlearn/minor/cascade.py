@@ -9,10 +9,11 @@ import sklearn.cluster as cluster
 
 class Cascade():
 
-    def __init__(self, depth=2, decomposer=decompose.MinorDecomposer(), debug=False):
+    def __init__(self, depth=2, decomposer=decompose.MinorDecomposer(), debug=False,multiprocess=False):
         self.depth=depth
         self.decomposer=decomposer
         self.debug=debug
+        self.multiprocess=multiprocess
 
 
     def setup_transformers(self):
@@ -24,6 +25,7 @@ class Cascade():
                 group_score_threshold=.1,
                 group_max_size=6,
                 group_min_size=2,
+                multiprocess=self.multiprocess,
                 #cluster_max_members=-1,
                 layer=i,
                 debug=self.debug)
@@ -34,17 +36,18 @@ class Cascade():
         self.setup_transformers()
 
 
-        minor_to_nested = lambda x: self.decomposer.make_new_decomposer(x).pre_vectorizer_graph(nested=True)
+        #minor_to_nested = lambda x: self.decomposer.make_new_decomposer(x).pre_vectorizer_graph(nested=True)
         graphs=self.write_layer_to_graphs(graphs,0)
         # fitting
         for i in range(self.depth):
             print 'training transformer # %d' % i
-            graphs = [minor_to_nested(minor)
+            #graphs = [minor_to_nested(minor)
+            graphs = [minor
                            for minor in self.transformers[i].fit_transform(graphs)]
 
             if self.debug:
                 print 'graphs at this level'
-                draw.graphlearn_layered(graphs[:4], vertex_label='layer')
+                #draw.graphlearn_layered(graphs[:4], vertex_label='layer')
                 print 'all the clusters'
                 draw.graphlearn_dict(self.transformers[i].graphclusters)
         return graphs
