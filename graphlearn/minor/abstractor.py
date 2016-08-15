@@ -4,6 +4,8 @@ import networkx as nx
 from graphlearn.utils import draw
 import eden
 import multiprocessing as mp
+from GArDen.decompose import ThresholdedConnectedComponents
+
 
 def get_subgraphs_single(minorgraph, graph, minor_ids=False):
     '''
@@ -44,7 +46,7 @@ def node_operation(graph, f):
         res.append(f(n,d))
     return res
 
-
+""" possibly replaced by eden
 def apply_size_constrains(graph, min_size, max_size, group_attribute,score_attribute):
     '''
     graph, score and group annotated oO
@@ -94,7 +96,7 @@ def apply_size_constrains(graph, min_size, max_size, group_attribute,score_attri
                 # print 'deleting a node',delnode
                 copygraph.remove_node(delnode)
                 graph.node[delnode][group_attribute] = '-'
-
+"""
 
 def name_estimation(graph, group,layer,graphreference, vectorizer, nameestimator):
 
@@ -226,18 +228,25 @@ class GraphToAbstractTransformer(object):
         # annotate with scores, then transform the score
         graph = self.vectorizer.annotate([graph], estimator=self.estimator).next()
 
+
         #def f(n,d): d[score_attribute] = graph.degree(n)
         #node_operation(graph,f)
 
 
 
+        ''' we noe use garden here :)
         # apply threshold: label scores "-" or "1"
         def f(n,d):d[group] = '~' if d[score_attribute] > self.score_threshold else '-'
         node_operation(graph,f)
-
-
         # controll size of contracted subgraphs
         apply_size_constrains(graph, self.min_size, self.max_size, group, score_attribute)
+        '''
+
+        tcc= ThresholdedConnectedComponents(attribute=score_attribute, more_than=False)
+        components = tcc._extract_ccomponents(graph,threshold=self.score_threshold,min_size=self.min_size,max_size=self.max_size)
+        nodeset = {n  for g in components for n in g.nodes() }
+        def f(n,d): d[group] =  '~' if n in nodeset else '-'
+        node_operation(graph, f)
 
 
         # now we either contract what we have, or additionally rename the contracted nodes according to the group estimator
@@ -250,11 +259,9 @@ class GraphToAbstractTransformer(object):
                                       nesting=False,dont_contract_attribute_symbol='-').next()
 
 
-        # relabel
+
         graph=nx.relabel_nodes(graph, dict(zip( graph.nodes(), range(maxnodeid+1, 1+maxnodeid+graph.number_of_nodes()))), copy=False)
 
-        if set(graph.nodes()) & set(graphcopy.nodes()):
-            raise Exception('relabeling failed')
 
         return graph
 
