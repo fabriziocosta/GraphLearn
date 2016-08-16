@@ -22,9 +22,9 @@ class Cascade():
             transformer = transform.GraphMinorTransformer(
                 #subgraph_cluster= cluster.DBSCAN(),# MiniBatchKMeans(n_clusters=8),
                 #save_graphclusters=True,
-                group_score_threshold=.1,
+                group_score_threshold=.5,
                 group_max_size=6,
-                group_min_size=2,
+                group_min_size=3,
                 multiprocess=self.multiprocess,
                 #cluster_max_members=-1,
                 layer=i,

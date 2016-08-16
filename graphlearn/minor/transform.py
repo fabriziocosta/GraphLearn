@@ -59,8 +59,6 @@ class myclusterclassifier():
         # just make sure to have a backup for now
         self.data = data
 
-
-
         # build NN model
         '''
         NTH_NEIGHBOR = 1
@@ -111,8 +109,6 @@ class myclusterclassifier():
         # print targetlist
         self.cluster_classifier = SGDClassifier()
         self.cluster_classifier.fit(data, self.cluster_ids)
-
-
 
 
     def predict(self,matrix):
@@ -196,8 +192,6 @@ class GraphMinorTransformer(GraphTransformer):
         -------
 
         '''
-
-
         #  PREPARE
         graphs=list(graphs)
         if graphs[0].graph.get('expanded',False):
@@ -215,7 +209,8 @@ class GraphMinorTransformer(GraphTransformer):
         # training first estimator
         #train_esti_get_subgraphs(graphs)
         self.estimator.fit(self.vectorizer.transform(graphs))
-        self.abstractor.estimator = self.estimator
+        graphs=mass_annotate_mp(graphs,score_attribute,self.estimator.estimator,multi_process=self.multiprocess)
+        #self.abstractor.estimator = self.estimator
         # extracting subgraphs
         subgraphs = self.abstractor.get_subgraphs(graphs,multi_process=self.multiprocess)
 
@@ -240,6 +235,9 @@ class GraphMinorTransformer(GraphTransformer):
             # if cluster_id not in self.ignore_clusters:
             self.graphclusters[cluster_id].append(subgraphs[i])
 
+        if fit_transform:
+            return self.transform(graphs)
+
 
 
     def transform(self,graphs):
@@ -260,7 +258,7 @@ class GraphMinorTransformer(GraphTransformer):
             result = self._transform(graphs)
         else:
             pool = mp.Pool()
-            mpres = [eden.apply_async(pool, lambda former,instances: former._transform(graphs) , args=(self,graphs)) for graphs in eden.grouper(graphs, 50)]
+            mpres = [eden.apply_async(pool, lambda former,instances: former._transform(graphs) , args=(self,graphs)) for graphs in eden.grouper(graphs, 100)]
             result = []
             for res in mpres:
                 result += res.get()
@@ -268,10 +266,10 @@ class GraphMinorTransformer(GraphTransformer):
             pool.join()
 
         if self.debug:
-            print 'minortransform  transform.  1. the new layer ; 2. the old layer(s)'
+            print 'minortransform  transform.  1. the new layer ; 2. the old layer(s) are above :) '
             draw.graphlearn(result[:3], contract=False, size=6, vertex_label='contracted')
-            origs = [r.graph['original']   for r in result[:3] ]
-            draw.graphlearn( origs , contract=False, size=6, vertex_label='id')
+            #origs = [r.graph['original']   for r in result[:3] ]
+            #draw.graphlearn( origs , contract=False, size=6, vertex_label='id')
         #print 'transform: %f' % (time.mktime(time.localtime()) - tstart)
         return result
 
@@ -351,3 +349,19 @@ def unique_csr(csr):
     indices.sort()
     return delete_rows_csr(csr,indices,keep=True), indices
 
+
+def mass_annotate_mp(self, inputs, score_attribute='importance', estimator=None, multi_process=False):
+    '''
+    graph annotation is slow. i dont want to do it twice in fit and predict :)
+    '''
+    if multi_process == False:
+        return list(self.vectorizer.annotate(inputs, estimator=estimator))
+    else:
+        pool = mp.Pool()
+        mpres = [eden.apply_async(pool, mass_annotate_mp, args=(graphs, score_attribute,estimator)) for graphs in eden.grouper(inputs, 50)]
+        result = []
+        for res in mpres:
+            result += res.get()
+        pool.close()
+        pool.join()
+        return result

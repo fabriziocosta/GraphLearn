@@ -5,141 +5,45 @@ from graphlearn.utils import draw
 import eden
 import multiprocessing as mp
 from GArDen.decompose import ThresholdedConnectedComponents
-
-
-def get_subgraphs_single(minorgraph, graph, minor_ids=False):
-    '''
-    Parameters
-    ----------
-    minorgraph
-    graph
-    minor_ids, bool
-
-    Returns
-    -------
-        subgraphlist or (subgrpahlist,
-                        ids_of_minor corresponding to subgraphlist,
-                        ids_of_minor not producing subgraphs)
-    '''
-
-    graphs = []
-    grouped_ids = []
-    ungrouped_ids = []
-    for n, d in minorgraph.nodes(data=True):
-        if len(d['contracted']) > 1 and 'edge' not in d:
-            graphs.append(graph.subgraph(d['contracted']).copy())
-            grouped_ids.append(n)
-        else:
-            ungrouped_ids.append(n)
-    if minor_ids:
-        return graphs, grouped_ids, ungrouped_ids
-    return graphs
-
+import copy
 
 
 def node_operation(graph, f):
     # applies function to n,d of nodes(data=True)
     # if you want to do assignments do this: def my(n,d): d[dasd]=asd
     # if you want the result you may use lambda :)
-    res=[]
-    for n,d in graph.nodes(data=True):
-        res.append(f(n,d))
+    res = []
+    for n, d in graph.nodes(data=True):
+        res.append(f(n, d))
     return res
 
-""" possibly replaced by eden
-def apply_size_constrains(graph, min_size, max_size, group_attribute,score_attribute):
-    '''
-    graph, score and group annotated oO
 
+def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimator):
+    # find new labels according to nameestimator
+    # thresholded components also works with bytes :D
+    tcc = ThresholdedConnectedComponents(attribute=group, more_than=False, shrink_graphs=False)
+    subgraphs = tcc._extract_ccomponents(graph, threshold='A', min_size=2, max_size=99)  # '-' < 'A' < '~'
+    if subgraphs:
+        clusterids = nameestimator.predict(vectorizer.transform(subgraphs))
+        for sg, clid in zip(subgraphs, clusterids):
+            for n in sg.nodes():
+                graph.node[n][group] = '-' if clid == -1 else str(clid)
 
-    look at subgraphs induced by adjacent nodes whose group attribute is the same but not '-'.
-    if the size of this construct is not in min and max size, group_attribute is set to '-'.
-
-    Returns
-    -------
-        nothing, manipulates the group_attribute fields
-    '''
-    # contract on the new '~' and '-' annotations :)
-    graph3 = contraction([graph], contraction_attribute=group_attribute, modifiers=[], nesting=False,
-                         dont_contract_attribute_symbol='-').next()
-
-    for n, d in graph3.nodes(data=True):
-        # too small?
-        if len(d['contracted']) < min_size:
-            for n in d['contracted']:
-                graph.node[n][group_attribute] = '-'
-
-        # too big?
-        if len(d['contracted']) > max_size:
-
-            scores = [ (graph.node[n][score_attribute], n) for n in d['contracted'] ]
-            scores.sort(reverse=True)
-            copygraph = graph.subgraph(d['contracted']).copy()
-
-
-            # if too big and split up, there might be groups that are too small
-            def testsize(graph, maxsize, original, minsize):
-
-                ret = True
-                for g in nx.connected_component_subgraphs(graph):
-                    if len(g) > maxsize:
-                        ret = False
-                    if len(g) < minsize:  # deleting things that become too small
-                        for n in g.nodes():
-                            original.node[n][group_attribute] = '-'
-                            # need to restore label i think dsd
-                return ret
-
-
-            while testsize(copygraph, max_size, graph, min_size) == False:
-                delnode = scores.pop()[1]  # should give id of node with lowest score
-                # print 'deleting a node',delnode
-                copygraph.remove_node(delnode)
-                graph.node[delnode][group_attribute] = '-'
-"""
-
-def name_estimation(graph, group,layer,graphreference, vectorizer, nameestimator):
-
-    #draw.graphlearn(graph.copy(), secondary_vertex_label=group, size=10)
-
-    # find labels and make sure that subgraphs with the -1 label dont get contracted
-    graph3 = contraction([graph], contraction_attribute=group, modifiers=[], nesting=False,
-                         dont_contract_attribute_symbol='-').next()
-
-    subgraphs, grouped_ids, ungrouped_ids = get_subgraphs_single(graph3, graph, minor_ids=True)
-    if len(subgraphs) != 0:
-        vectors = vectorizer.transform(subgraphs)
-        clusterids = nameestimator.predict(vectors)
-        for i, clusterid in enumerate(clusterids):
-            nodes = graph3.node[grouped_ids[i]]['contracted']
-            # write groups
-            for n in nodes:
-                graph.node[n][group] =  '-' if clusterid == -1 else str(clusterid)
-
-
-
-    # doing the contraction
-    graph = contraction([graph],
-                        contraction_attribute=group,
-                        modifiers=[],
+    # doing the contraction...
+    graph = contraction([graph], contraction_attribute=group, modifiers=[],
                         nesting=False, dont_contract_attribute_symbol='-').next()
 
     # write labels
-    for n, d in graph.nodes(data=True):
-        # label is - -> use contracted
-        if d['label'] == '-':
-            d['label'] = graphreference.node[max(d['contracted'])]['label']
-        # label is number -> something
-        else:
-            d['label'] = "L" + str(layer) + "C" + str(d['label'])
+    def f(n, d):
+        d['label'] = graphreference.node[max(d['contracted'])]['label'] \
+            if d['label'] == '-' else "L%sC%s" % (layer, d['label'])
+
+    node_operation(graph, f)
     return graph
-    # maybe this to save somelines :)
-    # def f(n,d): d['label'] =    graphreference.node[max(d['contracted'])]['label'] if d['label'] ==  '-' else "L_" + str(layer) + "_C_" + str(d['label'])
-    # node_operation(graph, f)
 
-def multi(instances,abstractor):
+
+def multi(instances, abstractor):
     return abstractor.get_subgraphs(instances)
-
 
 
 class GraphToAbstractTransformer(object):
@@ -148,7 +52,9 @@ class GraphToAbstractTransformer(object):
     makes abstractions that are based on the score of an estimator
     this class is just a helper for minor transform.
     '''
-    def __init__(self, estimator=None, score_threshold=0.0, min_size=0,max_size=50, debug=False,layer=False,vectorizer=Vectorizer()):
+
+    def __init__(self, estimator=None, score_threshold=0.0, min_size=0, max_size=50, debug=False, layer=False,
+                 vectorizer=Vectorizer()):
         '''
         Parameters
         ----------
@@ -170,13 +76,13 @@ class GraphToAbstractTransformer(object):
         self.score_threshold = score_threshold
         self.min_size = min_size
         self.debug = debug
-        self.max_size=max_size
-        self.layer=layer
-
-
+        self.max_size = max_size
+        self.layer = layer
 
     def get_subgraphs(self, inputs, score_attribute='importance', group='class', multi_process=False):
         '''
+        calls get_subgraph_single on all graphs, has option to go multiprocess
+
         Parameters
         ----------
         inputs, graph iterable
@@ -189,27 +95,26 @@ class GraphToAbstractTransformer(object):
             Use estimator to annotate graph, group important nodes together to induce subgraphs.
             yields subgraphs
         '''
-        if inputs==None:
-            return []
 
-        if multi_process==False:
-            res=[]
+        if multi_process == False:
+            res = []
+            tcc = ThresholdedConnectedComponents(attribute=score_attribute, more_than=False, shrink_graphs=True)
             for graph in inputs:
-                abstr = self._transform_single(graph, score_attribute=score_attribute, group=group)
-                res+=get_subgraphs_single(abstr, graph, minor_ids=False)
-
+                if graph:
+                    self.vectorizer.annotate([graph], estimator=self.estimator).next()
+                    subgraphs = tcc._extract_ccomponents(graph, threshold=self.score_threshold, min_size=self.min_size,
+                                                         max_size=self.max_size)
+                    res += subgraphs
             return res
         else:
             pool = mp.Pool()
             mpres = [eden.apply_async(pool, multi, args=(graphs, self)) for graphs in eden.grouper(inputs, 50)]
-            result=[]
+            result = []
             for res in mpres:
-                result+=res.get()
+                result += res.get()
             pool.close()
             pool.join()
             return result
-
-
 
     def _transform_single(self, graph, score_attribute='importance', group='class', apply_name_estimation=False):
         '''
@@ -222,46 +127,33 @@ class GraphToAbstractTransformer(object):
         Returns
         -------
         '''
-        graphcopy= graph.copy()
-        maxnodeid=max(graph.nodes())
+
+        graphcopy = graph.copy()
+        maxnodeid = max(graph.nodes())
 
         # annotate with scores, then transform the score
         graph = self.vectorizer.annotate([graph], estimator=self.estimator).next()
 
+        # def f(n,d): d[score_attribute] = graph.degree(n)
+        # node_operation(graph,f)
 
-        #def f(n,d): d[score_attribute] = graph.degree(n)
-        #node_operation(graph,f)
+        tcc = ThresholdedConnectedComponents(attribute=score_attribute, more_than=False, shrink_graphs=True)
+        components = tcc._extract_ccomponents(graph, threshold=self.score_threshold, min_size=self.min_size,
+                                              max_size=self.max_size)
+        nodeset = {n for g in components for n in g.nodes()}
 
-
-
-        ''' we noe use garden here :)
-        # apply threshold: label scores "-" or "1"
-        def f(n,d):d[group] = '~' if d[score_attribute] > self.score_threshold else '-'
-        node_operation(graph,f)
-        # controll size of contracted subgraphs
-        apply_size_constrains(graph, self.min_size, self.max_size, group, score_attribute)
-        '''
-
-        tcc= ThresholdedConnectedComponents(attribute=score_attribute, more_than=False)
-        components = tcc._extract_ccomponents(graph,threshold=self.score_threshold,min_size=self.min_size,max_size=self.max_size)
-        nodeset = {n  for g in components for n in g.nodes() }
-        def f(n,d): d[group] =  '~' if n in nodeset else '-'
+        def f(n, d): d[group] = '~' if n in nodeset else '-'
         node_operation(graph, f)
-
 
         # now we either contract what we have, or additionally rename the contracted nodes according to the group estimator
         if apply_name_estimation:
-            graph= name_estimation(graph, group,self.layer,graphcopy, self.vectorizer, self.nameestimator)
+            graph = name_estimation(graph, group, self.layer, graphcopy, self.vectorizer, self.nameestimator)
         else:
             graph = contraction([graph],
-                                      contraction_attribute=group,
-                                      modifiers=[],
-                                      nesting=False,dont_contract_attribute_symbol='-').next()
+                                contraction_attribute=group,
+                                modifiers=[],
+                                nesting=False, dont_contract_attribute_symbol='-').next()
 
-
-
-        graph=nx.relabel_nodes(graph, dict(zip( graph.nodes(), range(maxnodeid+1, 1+maxnodeid+graph.number_of_nodes()))), copy=False)
-
-
+        graph = nx.relabel_nodes(graph, dict(
+            zip(graph.nodes(), range(maxnodeid + 1, 1 + maxnodeid + graph.number_of_nodes()))), copy=False)
         return graph
-
