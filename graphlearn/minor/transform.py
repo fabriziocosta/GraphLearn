@@ -168,7 +168,9 @@ class GraphMinorTransformer(GraphTransformer):
         self.layer=layer
         self.multiprocess=multiprocess
 
-
+    #def call_annotator(self,graphs):
+    #    return mass_annotate_mp(graphs, self.vectorizer, score_attribute='importance', estimator=self.estimator.estimator,
+    #                 multi_process=self.multiprocess)
 
     def prepfit(self):
         self.abstractor = abstractor.GraphToAbstractTransformer(
@@ -180,7 +182,7 @@ class GraphMinorTransformer(GraphTransformer):
                 layer=self.layer,
                 vectorizer=self.vectorizer)
 
-    def fit(self,graphs):
+    def fit(self,graphs, fit_transform=False):
         '''
         TODO: be sure to set the self.cluster_ids :)
 
@@ -206,13 +208,11 @@ class GraphMinorTransformer(GraphTransformer):
             draw.graphlearn(graphs[:3], contract=False, size= 4, vertex_label='label')
 
         # TRAIN ESTIMATOR, GET SUBGRAPHS
-        # training first estimator
-        #train_esti_get_subgraphs(graphs)
         self.estimator.fit(self.vectorizer.transform(graphs))
-        graphs=mass_annotate_mp(graphs,score_attribute,self.estimator.estimator,multi_process=self.multiprocess)
-        #self.abstractor.estimator = self.estimator
-        # extracting subgraphs
+        self.abstractor.estimator=self.estimator.estimator
+        #graphs=self.call_annotator(graphs)
         subgraphs = self.abstractor.get_subgraphs(graphs,multi_process=self.multiprocess)
+
 
         # info
         if self.debug:
@@ -235,10 +235,15 @@ class GraphMinorTransformer(GraphTransformer):
             # if cluster_id not in self.ignore_clusters:
             self.graphclusters[cluster_id].append(subgraphs[i])
 
+
+
+        # annotating is super slow. so in case of fit_transform i can save that step
         if fit_transform:
             return self.transform(graphs)
 
 
+    #def fit_transform(self, inputs):
+    #    return self.fit(inputs, fit_transform=True)
 
     def transform(self,graphs):
         '''
@@ -253,6 +258,7 @@ class GraphMinorTransformer(GraphTransformer):
         '''
         #tstart = time.mktime(time.localtime())
 
+        #graphs=self.call_annotator(graphs)
 
         if self.multiprocess==False:
             result = self._transform(graphs)
@@ -350,15 +356,22 @@ def unique_csr(csr):
     return delete_rows_csr(csr,indices,keep=True), indices
 
 
-def mass_annotate_mp(self, inputs, score_attribute='importance', estimator=None, multi_process=False):
+def mass_annotate_mp(inputs,vectorizer, score_attribute='importance', estimator=None, multi_process=False):
     '''
     graph annotation is slow. i dont want to do it twice in fit and predict :)
     '''
+    #  1st check if already annotated
+    if inputs[0].graph.get('mass_annotate_mp_was_here',False):
+        return inputs
+
     if multi_process == False:
-        return list(self.vectorizer.annotate(inputs, estimator=estimator))
+        #map(lambda x: abstractor.node_operation(x, lambda n, d: d.pop('weight', None)), inputs)
+        res = list(vectorizer.annotate(inputs, estimator=estimator))
+        res[0].graph['mass_annotate_mp_was_here']=True
+        return res
     else:
         pool = mp.Pool()
-        mpres = [eden.apply_async(pool, mass_annotate_mp, args=(graphs, score_attribute,estimator)) for graphs in eden.grouper(inputs, 50)]
+        mpres = [eden.apply_async(pool, mass_annotate_mp, args=(graphs,vectorizer, score_attribute,estimator)) for graphs in eden.grouper(inputs, 50)]
         result = []
         for res in mpres:
             result += res.get()
