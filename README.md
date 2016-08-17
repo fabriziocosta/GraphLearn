@@ -64,3 +64,19 @@ for i in range(5):
 ```
 
 ![''](https://raw.githubusercontent.com/smautner/GraphLearn/master/example.png)
+
+
+
+
+#### Known issues
+cascading abstractons are slow.
+https://github.com/scikit-learn/scikit-learn/issues/6186
+
+add this:
+
+```python 
+self.coef_ = np.asfortranarray(self.coef_)
+```
+
+at the end of ...def _fit_multiclass(... in sklearn/linear_model/stochastic_gradient
+

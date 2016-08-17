@@ -6,6 +6,7 @@ import eden
 import multiprocessing as mp
 from GArDen.decompose import ThresholdedConnectedComponents
 import copy
+from GArDen.compose import Flatten
 
 
 def node_operation(graph, f):
@@ -16,34 +17,6 @@ def node_operation(graph, f):
     for n, d in graph.nodes(data=True):
         res.append(f(n, d))
     return res
-
-
-def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimator):
-    # find new labels according to nameestimator
-    # thresholded components also works with bytes :D
-    tcc = ThresholdedConnectedComponents(attribute=group, more_than=False, shrink_graphs=False)
-    subgraphs = tcc._extract_ccomponents(graph, threshold='A', min_size=2, max_size=99)  # '-' < 'A' < '~'
-    if subgraphs:
-        clusterids = nameestimator.predict(vectorizer.transform(subgraphs))
-        for sg, clid in zip(subgraphs, clusterids):
-            for n in sg.nodes():
-                graph.node[n][group] = '-' if clid == -1 else str(clid)
-
-    # doing the contraction...
-    graph = contraction([graph], contraction_attribute=group, modifiers=[],
-                        nesting=False, dont_contract_attribute_symbol='-').next()
-
-    # write labels
-    def f(n, d):
-        d['label'] = graphreference.node[max(d['contracted'])]['label'] \
-            if d['label'] == '-' else "L%sC%s" % (layer, d['label'])
-
-    node_operation(graph, f)
-    return graph
-
-
-def multi(instances, abstractor):
-    return abstractor.get_subgraphs(instances)
 
 
 class GraphToAbstractTransformer(object):
@@ -79,7 +52,7 @@ class GraphToAbstractTransformer(object):
         self.max_size = max_size
         self.layer = layer
 
-    def get_subgraphs(self, inputs, score_attribute='importance', group='class', multi_process=False):
+    def get_subgraphs(self, inputs, score_attribute='importance', group='class'):
         '''
         calls get_subgraph_single on all graphs, has option to go multiprocess
 
@@ -96,25 +69,8 @@ class GraphToAbstractTransformer(object):
             yields subgraphs
         '''
 
-        if multi_process == False:
-            res = []
-            tcc = ThresholdedConnectedComponents(attribute=score_attribute, more_than=False, shrink_graphs=True)
-            for graph in inputs:
-                if graph:
-                    self.vectorizer.annotate([graph], estimator=self.estimator).next()
-                    subgraphs = tcc._extract_ccomponents(graph, threshold=self.score_threshold, min_size=self.min_size,
-                                                         max_size=self.max_size)
-                    res += subgraphs
-            return res
-        else:
-            pool = mp.Pool()
-            mpres = [eden.apply_async(pool, multi, args=(graphs, self)) for graphs in eden.grouper(inputs, 50)]
-            result = []
-            for res in mpres:
-                result += res.get()
-            pool.close()
-            pool.join()
-            return result
+        return standalone_get_subgraphs(inputs, score_attribute, group, self.score_threshold, self.min_size,
+                                        self.max_size)
 
     def _transform_single(self, graph, score_attribute='importance', group='class', apply_name_estimation=False):
         '''
@@ -131,9 +87,6 @@ class GraphToAbstractTransformer(object):
         graphcopy = graph.copy()
         maxnodeid = max(graph.nodes())
 
-        # annotate with scores, then transform the score
-        graph = self.vectorizer.annotate([graph], estimator=self.estimator).next()
-
         # def f(n,d): d[score_attribute] = graph.degree(n)
         # node_operation(graph,f)
 
@@ -142,12 +95,15 @@ class GraphToAbstractTransformer(object):
                                               max_size=self.max_size)
         nodeset = {n for g in components for n in g.nodes()}
 
-        def f(n, d): d[group] = '~' if n in nodeset else '-'
+        def f(n, d):
+            d[group] = '~' if n in nodeset else '-'
+
         node_operation(graph, f)
 
         # now we either contract what we have, or additionally rename the contracted nodes according to the group estimator
         if apply_name_estimation:
-            graph = name_estimation(graph, group, self.layer, graphcopy, self.vectorizer, self.nameestimator)
+            graph = name_estimation(graph, group, self.layer, graphcopy, self.vectorizer, self.nameestimator,
+                                    components)
         else:
             graph = contraction([graph],
                                 contraction_attribute=group,
@@ -157,3 +113,33 @@ class GraphToAbstractTransformer(object):
         graph = nx.relabel_nodes(graph, dict(
             zip(graph.nodes(), range(maxnodeid + 1, 1 + maxnodeid + graph.number_of_nodes()))), copy=False)
         return graph
+
+
+def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimator, subgraphs):
+    if subgraphs:
+        clusterids = nameestimator.predict(vectorizer.transform(subgraphs))
+        for sg, clid in zip(subgraphs, clusterids):
+            for n in sg.nodes():
+                graph.node[n][group] = '-' if clid == -1 else str(clid)
+
+    # doing the contraction...
+    graph = contraction([graph], contraction_attribute=group, modifiers=[],
+                        nesting=False, dont_contract_attribute_symbol='-').next()
+
+    # write labels
+    def f(n, d):
+        d['label'] = graphreference.node[max(d['contracted'])]['label'] \
+            if d['label'] == '-' else "L%sC%s" % (layer, d['label'])
+
+    node_operation(graph, f)
+    return graph
+
+
+def standalone_get_subgraphs(inputs, score_attribute, group, threshold, min_size, max_size):
+    flatter = Flatten()
+    tcc = ThresholdedConnectedComponents(attribute=score_attribute, more_than=False, shrink_graphs=True,
+                                         threshold=threshold,
+                                         min_size=min_size,
+                                         max_size=max_size)
+    for e in flatter.transform(tcc.transform(inputs)):
+        yield e

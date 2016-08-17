@@ -17,8 +17,7 @@ THIS IS A TEST I AM TRYING TO MAKE THIS MORE EZ AND EZ TO TEST
 
 """
 
-
-import  abstractor
+import abstractor
 from collections import defaultdict
 from graphlearn.estimate import ExperimentalOneClassEstimator
 from graphlearn.transform import GraphTransformer
@@ -30,24 +29,20 @@ from itertools import izip
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
+
 logger = logging.getLogger(__name__)
 from eden.graph import Vectorizer
 from eden import graph as edengraphtools
 from sklearn.linear_model import SGDClassifier
 from GArDen.model import ClassifierWrapper
 import numpy as np
-import scipy
-import time
 import eden
 import multiprocessing as mp
-
-
 
 
 class myclusterclassifier():
     def __init__(self):
         pass
-
 
     def fit(self, data):
         '''
@@ -75,7 +70,7 @@ class myclusterclassifier():
         dist, indices = neigh.kneighbors(data)
         print dist
 
-        #
+        # get the median
         dist = np.median(dist[:, NTH_NEIGHBOR], axis=0)
         print dist
         '''
@@ -84,7 +79,6 @@ class myclusterclassifier():
         # build DBSCAN
         scan = sklearn.cluster.DBSCAN(eps=dist, min_samples=2)
         self.cluster_ids = scan.fit_predict(data)
-
 
         # filter clusters that are too small or too large , NOT NOW
         # '''
@@ -102,7 +96,6 @@ class myclusterclassifier():
         logger.debug('num clusters: %d' % max(self.cluster_ids))
         logger.debug(report_base_statistics(self.cluster_ids).replace('\t', '\n'))
 
-
         # deletelist = [i for i, e in enumerate(cluster_ids) if e in self.ignore_clusters]
         # targetlist = [e for e in cluster_ids if e not in self.ignore_clusters ]
         # data = delete_rows_csr(data, deletelist)
@@ -110,15 +103,8 @@ class myclusterclassifier():
         self.cluster_classifier = SGDClassifier()
         self.cluster_classifier.fit(data, self.cluster_ids)
 
-
-    def predict(self,matrix):
+    def predict(self, matrix):
         return self.cluster_classifier.predict(matrix)
-
-
-
-
-
-
 
 
 class GraphMinorTransformer(GraphTransformer):
@@ -127,13 +113,13 @@ class GraphMinorTransformer(GraphTransformer):
                  estimator=ExperimentalOneClassEstimator(),
                  group_min_size=2,
                  group_max_size=5,
-                 #cluster_min_members=0,
-                 #cluster_max_members=-1,
+                 # cluster_min_members=0,
+                 # cluster_max_members=-1,
                  group_score_threshold=0.4,
                  debug=False,
-                 #subgraph_cluster=,
-                 cluster_classifier=myclusterclassifier()  ,
-                 #save_graphclusters=False,
+                 # subgraph_cluster=,
+                 cluster_classifier=myclusterclassifier(),
+                 # save_graphclusters=False,
                  multiprocess=True,
                  layer=0):
         '''
@@ -154,35 +140,36 @@ class GraphMinorTransformer(GraphTransformer):
         debug: bool
         subgraph_cluster: MiniBatchKMeans
         '''
-        self.vectorizer=vectorizer
-        self.estimator=estimator
-        self.max_size=group_max_size
-        self.min_size=group_min_size
-        self.score_threshold=group_score_threshold
-        self.debug=debug
-        #self.subgraph_cluster=subgraph_cluster
-        self.cluster_classifier=cluster_classifier
-        #self.save_graphclusters=save_graphclusters
-        #self.cluster_min_members=cluster_min_members
-        #self.cluster_max_members=cluster_max_members
-        self.layer=layer
-        self.multiprocess=multiprocess
+        self.vectorizer = vectorizer
+        self.estimator = estimator
+        self.max_size = group_max_size
+        self.min_size = group_min_size
+        self.score_threshold = group_score_threshold
+        self.debug = debug
+        # self.subgraph_cluster=subgraph_cluster
+        self.cluster_classifier = cluster_classifier
+        # self.save_graphclusters=save_graphclusters
+        # self.cluster_min_members=cluster_min_members
+        # self.cluster_max_members=cluster_max_members
+        self.layer = layer
+        self.multiprocess = multiprocess
 
-    #def call_annotator(self,graphs):
-    #    return mass_annotate_mp(graphs, self.vectorizer, score_attribute='importance', estimator=self.estimator.estimator,
-    #                 multi_process=self.multiprocess)
+    def call_annotator(self, graphs):
+        return mass_annotate_mp(graphs, self.vectorizer, score_attribute='importance',
+                                estimator=self.estimator.superesti,
+                                multi_process=self.multiprocess)
 
     def prepfit(self):
         self.abstractor = abstractor.GraphToAbstractTransformer(
-                score_threshold=self.score_threshold,
-                min_size=self.min_size,
-                max_size=self.max_size,
-                debug=self.debug,
-                estimator=None,
-                layer=self.layer,
-                vectorizer=self.vectorizer)
+            score_threshold=self.score_threshold,
+            min_size=self.min_size,
+            max_size=self.max_size,
+            debug=self.debug,
+            estimator=None,
+            layer=self.layer,
+            vectorizer=self.vectorizer)
 
-    def fit(self,graphs, fit_transform=False):
+    def fit(self, graphs, fit_transform=False):
         '''
         TODO: be sure to set the self.cluster_ids :)
 
@@ -195,39 +182,32 @@ class GraphMinorTransformer(GraphTransformer):
 
         '''
         #  PREPARE
-        graphs=list(graphs)
-        if graphs[0].graph.get('expanded',False):
+        graphs = list(graphs)
+        if graphs[0].graph.get('expanded', False):
             raise Exception('give me an unexpanded graph')
-        #if self.layer > 0: graphs = map(lambda x:select_layer(x,self.layer),graphs)
+        # if self.layer > 0: graphs = map(lambda x:select_layer(x,self.layer),graphs)
         self.prepfit()
-
 
         # info
         if self.debug:
             print 'minortransform fit. input after select layer'
-            draw.graphlearn(graphs[:3], contract=False, size= 4, vertex_label='label')
+            draw.graphlearn(graphs[:3], contract=False, size=4, vertex_label='label')
 
         # TRAIN ESTIMATOR, GET SUBGRAPHS
         self.estimator.fit(self.vectorizer.transform(graphs))
-        self.abstractor.estimator=self.estimator.estimator
-        #graphs=self.call_annotator(graphs)
-        subgraphs = self.abstractor.get_subgraphs(graphs,multi_process=self.multiprocess)
-
+        # self.abstractor.estimator=self.estimator.estimator
+        graphs = self.call_annotator(graphs)
+        subgraphs = list(self.abstractor.get_subgraphs(graphs))
 
         # info
         if self.debug:
             print 'minortransform fit. this is what the subgraphs i got from the abstractor look like'
-            draw.graphlearn(subgraphs[:5], contract=False, size= 3, edge_label='label')
+            draw.graphlearn(subgraphs[:5], contract=False, size=3, edge_label='label')
 
         # FILTER UNIQUES AND TRAIN THE CLUSTERER
-        # vectirize subgraphs while popping the weights    # hope this works
-        data,subgraphs = unique_graphs(subgraphs, self.vectorizer)
-
-
-
+        data, subgraphs = unique_graphs(subgraphs, self.vectorizer)
         self.cluster_classifier.fit(data)
         self.abstractor.nameestimator = self.cluster_classifier
-
 
         # save the clusters because they look pretty :)
         self.graphclusters = defaultdict(list)
@@ -235,19 +215,15 @@ class GraphMinorTransformer(GraphTransformer):
             # if cluster_id not in self.ignore_clusters:
             self.graphclusters[cluster_id].append(subgraphs[i])
 
-
-
         # annotating is super slow. so in case of fit_transform i can save that step
         if fit_transform:
             return self.transform(graphs)
 
+    def fit_transform(self, inputs):
+        return self.fit(inputs, fit_transform=True)
 
-    #def fit_transform(self, inputs):
-    #    return self.fit(inputs, fit_transform=True)
-
-    def transform(self,graphs):
+    def transform(self, graphs):
         '''
-
         Parameters
         ----------
         inputs: [graph]
@@ -256,63 +232,45 @@ class GraphMinorTransformer(GraphTransformer):
         -------
             [(edge_expanded_graph, minor),...]
         '''
-        #tstart = time.mktime(time.localtime())
 
-        #graphs=self.call_annotator(graphs)
-
-        if self.multiprocess==False:
-            result = self._transform(graphs)
-        else:
-            pool = mp.Pool()
-            mpres = [eden.apply_async(pool, lambda former,instances: former._transform(graphs) , args=(self,graphs)) for graphs in eden.grouper(graphs, 100)]
-            result = []
-            for res in mpres:
-                result += res.get()
-            pool.close()
-            pool.join()
-
+        graphs = self.call_annotator(graphs)
+        result = _transform(graphs, self.layer, self.abstractor)
         if self.debug:
             print 'minortransform  transform.  1. the new layer ; 2. the old layer(s) are above :) '
             draw.graphlearn(result[:3], contract=False, size=6, vertex_label='contracted')
-            #origs = [r.graph['original']   for r in result[:3] ]
-            #draw.graphlearn( origs , contract=False, size=6, vertex_label='id')
-        #print 'transform: %f' % (time.mktime(time.localtime()) - tstart)
         return result
 
 
-    def _transform(self,graphs):
-        return [self.re_transform_single(graph) for graph in graphs]
-
-    def re_transform_single(self, graph):
-        '''
-        Parameters
-        ----------
-        graph
-
-        Returns
-        -------
-        a postprocessed graphwrapper
-        '''
-        if graph.graph.get('expanded',False):
-            raise Exception('give me an unexpanded graph')
-        if self.layer != 0:
-            l_graph =  select_layer(graph, self.layer)
-        else:
-            l_graph = graph
-        transformed_graph=self.abstractor._transform_single(l_graph.copy(), apply_name_estimation=True)
-        for n,d in transformed_graph.nodes(data=True):
-            d['layer'] = self.layer+1
-        transformed_graph.graph['contracted_layers']= self.layer+1
-        transformed_graph.graph['original']= graph
-
-        return transformed_graph
+def _transform(graphs, layer, abstractor):
+    return [re_transform_single(graph, layer, abstractor) for graph in graphs]
 
 
+def re_transform_single(graph, layer, abstractor):
+    '''
+    Parameters
+    ----------
+    graph
+
+    Returns
+    -------
+    a postprocessed graphwrapper
+    '''
+    if graph.graph.get('expanded', False):
+        raise Exception('give me an unexpanded graph')
+    if layer != 0:
+        l_graph = select_layer(graph, layer)
+    else:
+        l_graph = graph
+    transformed_graph = abstractor._transform_single(l_graph.copy(), apply_name_estimation=True)
+    for n, d in transformed_graph.nodes(data=True):
+        d['layer'] = layer + 1
+    transformed_graph.graph['contracted_layers'] = layer + 1
+    transformed_graph.graph['original'] = graph
+
+    return transformed_graph
 
 
-
-
-def select_layer(g,layer):
+def select_layer(g, layer):
     return g.subgraph([n for n, d in g.nodes(data=True) if d.get('layer') == layer])
 
 
@@ -339,7 +297,7 @@ def delete_rows_csr(mat, indices, keep=False):
         csr matrix
     '''
     indices = list(indices)
-    if keep==False:
+    if keep == False:
         mask = np.ones(mat.shape[0], dtype=bool)
     else:
         mask = np.zeros(mat.shape[0], dtype=bool)
@@ -353,25 +311,26 @@ def unique_csr(csr):
     unique = {hash_function(row): ith for ith, row in enumerate(csr)}
     indices = [ith for hashvalue, ith in unique.items()]
     indices.sort()
-    return delete_rows_csr(csr,indices,keep=True), indices
+    return delete_rows_csr(csr, indices, keep=True), indices
 
 
-def mass_annotate_mp(inputs,vectorizer, score_attribute='importance', estimator=None, multi_process=False):
+def mass_annotate_mp(inputs, vectorizer, score_attribute='importance', estimator=None, multi_process=False):
     '''
     graph annotation is slow. i dont want to do it twice in fit and predict :)
     '''
     #  1st check if already annotated
-    if inputs[0].graph.get('mass_annotate_mp_was_here',False):
+    if inputs[0].graph.get('mass_annotate_mp_was_here', False):
         return inputs
 
     if multi_process == False:
-        #map(lambda x: abstractor.node_operation(x, lambda n, d: d.pop('weight', None)), inputs)
+        # map(lambda x: abstractor.node_operation(x, lambda n, d: d.pop('weight', None)), inputs)
         res = list(vectorizer.annotate(inputs, estimator=estimator))
-        res[0].graph['mass_annotate_mp_was_here']=True
+        res[0].graph['mass_annotate_mp_was_here'] = True
         return res
     else:
         pool = mp.Pool()
-        mpres = [eden.apply_async(pool, mass_annotate_mp, args=(graphs,vectorizer, score_attribute,estimator)) for graphs in eden.grouper(inputs, 50)]
+        mpres = [eden.apply_async(pool, mass_annotate_mp, args=(graphs, vectorizer, score_attribute, estimator)) for
+                 graphs in eden.grouper(inputs, 50)]
         result = []
         for res in mpres:
             result += res.get()
