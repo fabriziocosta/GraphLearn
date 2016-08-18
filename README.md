@@ -34,7 +34,7 @@ Then GraphLearn
 pip install git+https://github.com/fabriziocosta/GraphLearn.git --user
 ```
 
-#### **Setting up a networkx graph generator**
+#### Setting up a networkx graph generator
 
 ```python
 %matplotlib inline
@@ -44,7 +44,7 @@ def get_graphs(dataset_fname='../../toolsdata/bursi.pos.gspan', size=100):
     return  islice(gspan_to_eden(dataset_fname),size)
 ```
 
-#### __Sampling new graphs__
+#### Sampling new graphs
 
 Sampling is straight forward.
 There are many options for the sampling process available.
