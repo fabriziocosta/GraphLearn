@@ -45,7 +45,7 @@ class Cascade():
                 print 'graphs at this level'
                 # draw.graphlearn_layered(graphs[:4], vertex_label='layer')
                 print 'all the clusters'
-                draw.graphlearn_dict(self.transformers[i].graphclusters)
+                draw.graphlearn_dict(self.transformers[i].graphclusters, title_key='hash_title',size=2, edge_label='label')
         return graphs
 
     def fit(self, graphs):
@@ -53,10 +53,41 @@ class Cascade():
         return self
 
     def transform(self, graphs):
+        graphs = list(self.write_layer_to_graphs(graphs, 0))
         for i in range(self.depth):
-            graphs = [self.decomposer.make_new_decomposer(x).pre_vectorizer_graph(nested=True)
-                      for x in self.transformers[i].transform(graphs)]
+            graphs = self.transformers[i].transform(graphs)
         return graphs
+
+    def transform_ril(self, graphs): # transform and remove intermediary layers
+        graphs=self.transform(graphs)
+        return map(self.remove_intermediary_layers , graphs )
+
+
+    def remove_intermediary_layers(self,graph):
+        # write the contracted set to the master layer
+
+        def rabbithole(g, n):
+            # wenn base graph dann isses halt n
+            if 'original' not in g.graph:
+                return [n]
+
+            nodes= g.node[n]['contracted']
+            ret=[]
+            for no in nodes:
+                ret+=rabbithole(g.graph['original'],no)
+            return ret
+
+        for n,d in graph.nodes(data=True):
+            d['contracted']= rabbithole(graph,n)
+
+        # ok get rid of intermediary things
+        supergraph=graph
+        while 'original' in graph.graph:
+            graph = graph.graph['original']
+        supergraph.graph['original']=graph
+        return supergraph
+
+
 
     def write_layer_to_graphs(self, graphs, layerid):
         # just write the layer id in every node that does not yet have a layer attribute :)

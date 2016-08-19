@@ -264,11 +264,11 @@ def graphlearn_layered(graphs,**args):
     args['dark_edge_color']= 'dark_edge_color'
     graphlearn(finished_graphs,**args)
 
-def graphlearn_dict(dict):
+def graphlearn_dict(dict,**args):
     # idea is that the values are graphs
     for k,l in dict.items():
         print k
-        graphlearn(l[:5], size=2, edge_label='label')
+        graphlearn(l[:5], **args)
 
 
 def draw_center(graph, root_node, radius, **args):

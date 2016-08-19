@@ -17,24 +17,21 @@ THIS IS A TEST I AM TRYING TO MAKE THIS MORE EZ AND EZ TO TEST
 
 """
 
-import abstractor
-from collections import defaultdict
-from graphlearn.estimate import ExperimentalOneClassEstimator
-from graphlearn.transform import GraphTransformer
-import graphlearn.utils.draw as draw
-import networkx as nx
 import logging
+from collections import defaultdict
+
 import sklearn
-from itertools import izip
-from sklearn.cluster import MiniBatchKMeans
-from sklearn.cluster import KMeans
 from eden.util import report_base_statistics
+
+import abstractor
+import graphlearn.utils.draw as draw
+from graphlearn.estimate import ExperimentalOneClassEstimator
+from graphlearn.minor.abstractor import hash_function
+from graphlearn.transform import GraphTransformer
 
 logger = logging.getLogger(__name__)
 from eden.graph import Vectorizer
-from eden import graph as edengraphtools
 from sklearn.linear_model import SGDClassifier
-from GArDen.model import ClassifierWrapper
 import numpy as np
 import eden
 import multiprocessing as mp
@@ -55,26 +52,26 @@ class myclusterclassifier():
         self.data = data
 
         # build NN model
-        '''
         NTH_NEIGHBOR = 1
+        '''
         # use joachim-code:
         from bioinf_learn import MinHash
         minHash = MinHash(n_neighbors=NTH_NEIGHBOR+1)
         minHash.fit(data)
         dist, indices = minHash.kneighbors(return_distance=True)
         print dist
-
+        '''
         # use sklearn NN
         neigh = sklearn.neighbors.NearestNeighbors(n_neighbors=NTH_NEIGHBOR+1, metric='euclidean')
         neigh.fit(data)
         dist, indices = neigh.kneighbors(data)
-        print dist
+        #print dist
 
         # get the median
         dist = np.median(dist[:, NTH_NEIGHBOR], axis=0)
-        print dist
-        '''
-        dist = 1.09
+        #print dist
+
+        #dist = 1.09
 
         # build DBSCAN
         scan = sklearn.cluster.DBSCAN(eps=dist, min_samples=2)
@@ -105,6 +102,8 @@ class myclusterclassifier():
 
     def predict(self, matrix):
         return self.cluster_classifier.predict(matrix)
+
+
 
 
 class GraphMinorTransformer(GraphTransformer):
@@ -195,14 +194,9 @@ class GraphMinorTransformer(GraphTransformer):
 
         # TRAIN ESTIMATOR, GET SUBGRAPHS
         self.estimator.fit(self.vectorizer.transform(graphs))
-        # self.abstractor.estimator=self.estimator.estimator
         graphs = self.call_annotator(graphs)
         subgraphs = list(self.abstractor.get_subgraphs(graphs))
 
-        # info
-        if self.debug:
-            print 'minortransform fit. this is what the subgraphs i got from the abstractor look like'
-            draw.graphlearn(subgraphs[:5], contract=False, size=3, edge_label='label')
 
         # FILTER UNIQUES AND TRAIN THE CLUSTERER
         data, subgraphs = unique_graphs(subgraphs, self.vectorizer)
@@ -211,9 +205,16 @@ class GraphMinorTransformer(GraphTransformer):
 
         # save the clusters because they look pretty :)
         self.graphclusters = defaultdict(list)
-        for i, cluster_id in enumerate(self.cluster_classifier.cluster_ids):
-            # if cluster_id not in self.ignore_clusters:
-            self.graphclusters[cluster_id].append(subgraphs[i])
+
+        if self.debug:
+            for d,g in zip(data,subgraphs):
+                g.graph['hash_title']= hash_function(d)
+
+            for i, cluster_id in enumerate(self.cluster_classifier.cluster_ids):
+                # if cluster_id not in self.ignore_clusters:
+                self.graphclusters[cluster_id].append(subgraphs[i])
+
+
 
         # annotating is super slow. so in case of fit_transform i can save that step
         if fit_transform:
@@ -257,10 +258,16 @@ def re_transform_single(graph, layer, abstractor):
     '''
     if graph.graph.get('expanded', False):
         raise Exception('give me an unexpanded graph')
+
+    l_graph=graph.copy()
+
+    '''
     if layer != 0:
         l_graph = select_layer(graph, layer)
     else:
         l_graph = graph
+    '''
+
     transformed_graph = abstractor._transform_single(l_graph.copy(), apply_name_estimation=True)
     for n, d in transformed_graph.nodes(data=True):
         d['layer'] = layer + 1
@@ -276,7 +283,8 @@ def select_layer(g, layer):
 
 def unique_graphs(graphs, vectorizer):
     # returns datamatrix, subgraphs
-    map(lambda x: abstractor.node_operation(x, lambda n, d: d.pop('weight', None)), graphs)
+    map(abstractor.cleaner, graphs)
+
     data = vectorizer.transform(graphs)
     # remove duplicates   from data and subgraph_list
     data, indices = unique_csr(data)
@@ -307,7 +315,6 @@ def delete_rows_csr(mat, indices, keep=False):
 
 def unique_csr(csr):
     # returns unique csr and a list of used indices
-    hash_function = lambda vec: hash(tuple(vec.data + vec.indices))
     unique = {hash_function(row): ith for ith, row in enumerate(csr)}
     indices = [ith for hashvalue, ith in unique.items()]
     indices.sort()
@@ -323,7 +330,8 @@ def mass_annotate_mp(inputs, vectorizer, score_attribute='importance', estimator
         return inputs
 
     if multi_process == False:
-        # map(lambda x: abstractor.node_operation(x, lambda n, d: d.pop('weight', None)), inputs)
+        inputs = filter(lambda v: v is not None, inputs)
+
         res = list(vectorizer.annotate(inputs, estimator=estimator))
         res[0].graph['mass_annotate_mp_was_here'] = True
         return res

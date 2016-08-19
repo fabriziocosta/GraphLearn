@@ -93,6 +93,7 @@ class GraphToAbstractTransformer(object):
         tcc = ThresholdedConnectedComponents(attribute=score_attribute, more_than=False, shrink_graphs=True)
         components = tcc._extract_ccomponents(graph, threshold=self.score_threshold, min_size=self.min_size,
                                               max_size=self.max_size)
+
         nodeset = {n for g in components for n in g.nodes()}
 
         def f(n, d):
@@ -117,7 +118,15 @@ class GraphToAbstractTransformer(object):
 
 def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimator, subgraphs):
     if subgraphs:
-        clusterids = nameestimator.predict(vectorizer.transform(subgraphs))
+        map(cleaner, subgraphs)
+
+        data = vectorizer.transform(subgraphs)
+        clusterids = nameestimator.predict(data)
+
+        #for d, g in zip(data, subgraphs):
+        #    g.graph['hash_title'] = hash_function(d)
+        #draw.graphlearn(subgraphs,size=2, title_key='hash_title', edge_label='label')
+
         for sg, clid in zip(subgraphs, clusterids):
             for n in sg.nodes():
                 graph.node[n][group] = '-' if clid == -1 else str(clid)
@@ -143,3 +152,20 @@ def standalone_get_subgraphs(inputs, score_attribute, group, threshold, min_size
                                          max_size=max_size)
     for e in flatter.transform(tcc.transform(inputs)):
         yield e
+
+
+def hash_function(vec):
+    return hash(tuple(vec.data + vec.indices))
+
+
+def cleaner(graph):
+    # eden contaminates graphs with all sorts of stuff..
+    weight=lambda x:node_operation(x, lambda n, d: d.pop('weight', None))
+    weight(graph)
+    eden.graph._clean_graph(graph)
+    return graph
+
+
+
+
+
