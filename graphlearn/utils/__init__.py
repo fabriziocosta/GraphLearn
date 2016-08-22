@@ -5,21 +5,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_scores(scoreslist='list of lists', labels=[]):
+def plot_scores(scoreslist='list of lists',x=[], labels=[]):
 
     if len(labels)==0:
         labels= ['index: %d' % i for i in len(scoreslist)]
+    if x==[]:
+        x=range( len(scoreslist[0] ) )
 
     plt.figure(figsize=(10,5))
 
+
     for j,scores in enumerate(scoreslist):
-        plt.plot(scores, label=labels[j])
+        plt.plot(x,scores, label=labels[j])
 
     maa= max([ max(l) for l in scoreslist  ])
     mii= min([min(l) for l in scoreslist])
     plt.legend(loc='lower right')
     plt.grid()
-    plt.ylim(mii*1.1,maa*1.1)
+    plt.xlim(-.5, max(x) * 1.1)
+    plt.ylim(mii*.9,maa*1.1)
+
     plt.show()
 
 

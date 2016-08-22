@@ -9,16 +9,22 @@ import multiprocessing as mp
 
 class Annotator():
 
-    def __init__(self, multiprocess=True):
+    def __init__(self, multiprocess=True, score_attribute='importance'):
+        self.score_attribute=score_attribute
         self.vectorizer=Vectorizer()
         self.multi_process=multiprocess
-
+        self.trained=False
 
     def fit(self, graphs_pos, graphs_neg=[]):
 
+        if self.trained:
+            return self
+        self.trained=True
+
         if graphs_neg:
             self.estimator = SGDClassifier()
-            self.estimator.fit(self.vectorizer.transform(graphs_pos),self.vectorizer.transform(graphs_pos))
+            classes= [1]*len(graphs_pos)+[-1]*len(graphs_neg)
+            self.estimator.fit(self.vectorizer.transform(graphs_pos+graphs_neg),classes)
         else:
             self.estimator = ExperimentalOneClassEstimator()
             self.estimator.fit(self.vectorizer.transform(graphs_pos))
@@ -27,14 +33,10 @@ class Annotator():
 
     def fit_transform(self,graphs_p, graphs_n=[]):
         self.fit(graphs_p,graphs_n)
-        return self.transform(graphs_p, graphs_n)
+        return self.transform(graphs_p),self.transform(graphs_n)
 
-    def transform(self,graphs_pos,graphs_neg=[]):
-        pos=self.annotate(graphs_pos)
-        if graphs_neg:
-            neg=self.annotate(graphs_neg,neg=True)
-            return pos,neg
-        return pos
+    def transform(self,graphs):
+        return  self.annotate(graphs)
 
     def annotate(self,graphs,neg=False):
         return mass_annotate_mp(graphs,self.vectorizer,score_attribute=self.score_attribute,estimator=self.estimator,
@@ -53,9 +55,9 @@ def mass_annotate_mp(inputs, vectorizer, score_attribute='importance', estimator
     if multi_process == False:
         inputs = filter(lambda v: v is not None, inputs)
         res = list(vectorizer.annotate(inputs, estimator=estimator))
-        if invert_score:
-            def f(n,d): d['importance'] = -d['importance']
-            res=utils.map_node_operation(res,f)
+        #if invert_score:
+        #    def f(n,d): d['importance'] = -d['importance']
+        #    res=utils.map_node_operation(res,f)
 
         res[0].graph['mass_annotate_mp_was_here'] = True
         return res

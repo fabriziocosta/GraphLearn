@@ -1,13 +1,14 @@
 import eden
 import numpy as np
 import sklearn
-from graphlearn.minor.autoabstract.transform import logger
+import logging
+logger = logging.getLogger(__name__)
 from sklearn.linear_model import SGDClassifier
 from graphlearn import utils
 from collections import defaultdict
 
 class ClusterClassifier():
-    def __init__(self,debug):
+    def __init__(self,debug=False):
         self.debug=debug
 
     def fit(self, subgraphs):
@@ -64,7 +65,7 @@ class ClusterClassifier():
         if self.debug:
             for d,g in zip(data,subgraphs):
                 g.graph['hash_title']= utils.hash_eden_vector(d)
-            for i, cluster_id in enumerate(self.cluster_classifier.cluster_ids):
+            for i, cluster_id in enumerate(self.cluster_ids):
                 # if cluster_id not in self.ignore_clusters:
                 self.graphclusters[cluster_id].append(subgraphs[i])
             # info

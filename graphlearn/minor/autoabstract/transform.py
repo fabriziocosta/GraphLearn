@@ -18,12 +18,13 @@ THIS IS A TEST I AM TRYING TO MAKE THIS MORE EZ AND EZ TO TEST
 """
 
 import logging
-from graphlearn.minor.autoabstract.name_subgraphs import ClusterClassifier, unique_graphs
+logger = logging.getLogger(__name__)
+from graphlearn.minor.autoabstract.name_subgraphs import ClusterClassifier
 import abstractor
 import graphlearn.utils.draw as draw
 from graphlearn.estimate import ExperimentalOneClassEstimator
 from graphlearn.transform import GraphTransformer
-logger = logging.getLogger(__name__)
+#import graphlearn.utils as utils
 from eden.graph import Vectorizer
 import annotate
 
@@ -31,14 +32,14 @@ class GraphMinorTransformer(GraphTransformer):
     def __init__(self,
                  vectorizer=Vectorizer(complexity=3),
                  estimator=ExperimentalOneClassEstimator(),
-                 group_min_size=2,
-                 group_max_size=5,
+                 group_min_size=3,
+                 group_max_size=6,
                  # cluster_min_members=0,
                  # cluster_max_members=-1,
                  group_score_threshold=0.4,
                  debug=False,
                  # subgraph_cluster=,
-                 cluster_classifier=ClusterClassifier(),
+                 cluster_classifier=ClusterClassifier(debug=False),
                  # save_graphclusters=False,
                  multiprocess=True,
                  layer=0):
@@ -59,6 +60,7 @@ class GraphMinorTransformer(GraphTransformer):
 
 
     def prepfit(self):
+        self.cluster_classifier.debug=self.debug
         self.abstractor = abstractor.GraphToAbstractTransformer(
             score_threshold=self.score_threshold,
             min_size=self.min_size,
@@ -70,7 +72,7 @@ class GraphMinorTransformer(GraphTransformer):
 
         self.annotator= annotate.Annotator()
 
-    def fit(self, graphs, fit_transform=False):
+    def fit(self, graphs,graphs_neg=[], fit_transform=False):
         '''
         TODO: be sure to set the self.cluster_ids :)
 
@@ -84,18 +86,32 @@ class GraphMinorTransformer(GraphTransformer):
         '''
         #  PREPARE
         graphs = list(graphs)
+        graphs_neg = list(graphs_neg)
         if graphs[0].graph.get('expanded', False):
             raise Exception('give me an unexpanded graph')
         self.prepfit()
+
         # info
         if self.debug:
-            print 'minortransform fit. input after select layer'
-            draw.graphlearn(graphs[:3], contract=False, size=4, vertex_label='label')
+            print 'minortransform_fit'
+            draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='label')
 
 
         # annotate graphs and GET SUBGRAPHS
-        graphs = self.annotator.fit_transform(graphs)
+        graphs,graphs_neg = self.annotator.fit_transform(graphs,graphs_neg)
+
+        #draw.graphlearn([graphs[0], graphs_neg[-1]], vertex_label='importance')
+        # info
+        if self.debug:
+            print 'minortransform_scores'
+            draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='importance')
+
+
         subgraphs = list(self.abstractor.get_subgraphs(graphs))
+        if graphs_neg:
+            nusgs = list(self.abstractor.get_subgraphs(graphs_neg))
+            #draw.graphlearn([nusgs[0],subgraphs[-1]],vertex_label='importance')
+            subgraphs += nusgs
 
         # FILTER UNIQUES AND TRAIN THE CLUSTERER
         self.cluster_classifier.fit(subgraphs)
@@ -103,10 +119,10 @@ class GraphMinorTransformer(GraphTransformer):
 
         # annotating is super slow. so in case of fit_transform i can save that step
         if fit_transform:
-            return self.transform(graphs)
+            return self.transform(graphs),self.transform(graphs_neg)
 
-    def fit_transform(self, inputs):
-        return self.fit(inputs, fit_transform=True)
+    def fit_transform(self, inputs,inputs_neg=[]):
+        return self.fit(inputs,inputs_neg, fit_transform=True)
 
 
 
@@ -125,7 +141,7 @@ class GraphMinorTransformer(GraphTransformer):
         result = self.abstractor.transform(graphs)
         if self.debug:
             print 'minortransform  transform. the new layer  '
-            draw.graphlearn(result[:3], contract=False, size=6, vertex_label='contracted')
+            draw.graphlearn(result[:5], contract=False, size=6, vertex_label='contracted')
         return result
 
 
