@@ -98,7 +98,7 @@ class MinorDecomposer(Decomposer):
         # transfer layer information to the nodes (otherwise it will be lost)
         graph = self.abstract_graph()
         while 'original' in graph.graph:
-            def f(n,d):d['layer'] = graph.graph['layer']
+            def f(n,d):d['layer'] = graph.graph.get('layer',0)
             utils.node_operation(graph,f)
             graph = graph.graph['original']
 

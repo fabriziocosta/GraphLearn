@@ -170,7 +170,15 @@ def draw_grammar_stats(grammar, size=(10, 4)):
 
 
 
-def graphlearn_layered(graphs,**args):
+def graphlearn_layered1(graphs,**args):
+    '''
+    if there is a graph whose nodes have a layers annotation, use this
+    Args:
+        graphs:
+        **args:
+
+    Returns:
+    '''
 
     def calc_avg_position(nodelist,posdict):
         #print 'calc avg pos'
@@ -263,6 +271,118 @@ def graphlearn_layered(graphs,**args):
     args['pos']= poslist
     args['dark_edge_color']= 'dark_edge_color'
     graphlearn(finished_graphs,**args)
+
+
+
+def graphlearn_layered2(graphs,**args):
+    '''
+    this is to draw a graph that has its layers as graph.graph['origial']
+
+    Args:
+        graphs:
+        **args:
+
+    Returns:
+
+    '''
+
+    '''
+    def calc_avg_position(nodelist,posdict):
+        #print 'calc avg pos'
+        if len(nodelist)==0:
+            print 'bad node list'
+            return (0,0)
+        xpos= sum([ posdict[i][0] for i in nodelist ])/len(nodelist)
+        ypos= sum([ posdict[i][1] for i in nodelist ])/len(nodelist)
+        return (xpos,ypos)
+
+    def get_leafes(graph,node):
+        #print 'get leafes %d' % node
+        if graph.node[node].get('contracted',0) == 0:
+            return [node]
+        nodes=[node]
+        leafes=[]
+        while len(nodes)>0:
+            current= nodes.pop()
+            # contraction also includes edge nodes -> ignore those
+            if current not in graph.nodes():
+                continue
+            if 'contracted' in graph.node[current]:
+                children=list(  graph.node[current]['contracted']  )
+                nodes += children
+            else:
+                leafes.append(current)
+
+        #print leafes
+        return leafes
+    '''
+
+    finished_graphs=[]
+    poslist=[]
+    for graph in graphs:
+        # how many layers are there? also make a list of nodes for each layer
+        '''
+        nodelayer=defaultdict(list)
+        layercount=-1
+        for n,d in graph.nodes(data=True):
+            layer = d.get('layer', -1)
+            layercount = max(layercount,layer)
+            nodelayer[d['layer']].append(n)
+        if layercount == -1:
+            print "layer annotation missing in graph"
+            break
+        '''
+
+        # layout layer 0
+        pos = nx.graphviz_layout(graph, prog='neato', args="-Gmode=KK")
+
+        # pos attribute loks like this:
+        #pos = {i: (rna_object.get(i).X, rna_object.get(i).Y)
+        #           for i in range(len(graph.graph['structure']))}
+
+
+
+        for layerid in range(1,layercount+1):
+
+            new_positions={}
+            # nodes in the layer:
+            nodes = nodelayer[layerid]
+            for node in nodes:
+                nulllayernodes = get_leafes(graph,node)
+                new_positions[node]=calc_avg_position(nulllayernodes,pos)
+
+            # move all the nodes by such and such
+            # nodes in prev layer:
+            moveby_x = max( pos[i][0] for i in nodelayer[layerid-1] ) + 100
+            #moveby_y = max( pos[i][1] for i in nodelayer[layerid-1] ) - 30
+            moveby_y = ((-1)**layerid) * 30
+            for k,v in new_positions.items():
+                new_positions[k] = (v[0]+moveby_x,v[1]+moveby_y)
+
+            pos.update(new_positions)
+
+
+
+
+        # color dark edged:
+        if False:
+            for node,d in graph.nodes(data=True):
+                if 'contracted' in d:
+                    for other in d['contracted']:
+                        if other in graph.nodes():
+                            graph[node][other]['dark_edge_color']=d['layer']
+
+        finished_graphs.append(graph)
+        poslist.append(pos)
+
+    # draw
+    args['size_x_to_y_ratio']= layercount+1
+    args['pos']= poslist
+    args['dark_edge_color']= 'dark_edge_color'
+    graphlearn(finished_graphs,**args)
+
+
+
 
 def graphlearn_dict(dict,**args):
     # idea is that the values are graphs

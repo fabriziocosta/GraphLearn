@@ -35,7 +35,8 @@ class Cascade():
     def fit_transform(self, graphs):
         # INIT
         self.setup_transformers()
-
+        for g in graphs:
+            g.graph['layer']=0
         # fitting
         for i in range(self.depth):
             if self.debug:
@@ -51,6 +52,8 @@ class Cascade():
         return self
 
     def transform(self, graphs):
+        for g in graphs:
+            g.graph['layer']=0
         for i in range(self.depth):
             graphs = self.transformers[i].transform(graphs)
         return graphs
