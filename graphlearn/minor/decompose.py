@@ -18,7 +18,7 @@ import eden
 logger = logging.getLogger(__name__)
 #from eden.graph import Vectorizer
 from eden import graph as edengraphtools
-
+import graphlearn.utils as utils
 
 def make_decomposergen(include_base=False, base_thickness_list=[2]):
     return lambda v, d: MinorDecomposer(d)
@@ -94,12 +94,21 @@ class MinorDecomposer(Decomposer):
                 d.pop("ID",None)
         '''
 
+
+        # transfer layer information to the nodes (otherwise it will be lost)
+        graph = self.abstract_graph()
+        while 'original' in graph.graph:
+            def f(n,d):d['layer'] = graph.graph['layer']
+            utils.node_operation(graph,f)
+            graph = graph.graph['original']
+
         # make union of everything
         graph = self.abstract_graph()
         graphs=[graph]
         while 'original' in graph.graph:
             graphs.append(graph.graph['original'])
             graph=graph.graph['original']
+
         #draw.graphlearn(graphs, vertex_label='id')
         try:
             g = nx.union_all(graphs)
