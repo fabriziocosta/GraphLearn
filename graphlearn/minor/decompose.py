@@ -15,13 +15,11 @@ import networkx as nx
 from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
+
 logger = logging.getLogger(__name__)
-#from eden.graph import Vectorizer
+# from eden.graph import Vectorizer
 from eden import graph as edengraphtools
 import graphlearn.utils as utils
-
-def make_decomposergen(include_base=False, base_thickness_list=[2]):
-    return lambda v, d: MinorDecomposer(d)
 
 
 
@@ -31,14 +29,16 @@ class MinorDecomposer(Decomposer):
     a wrapper normally wraps a graph.
     here we wrap a graph and also take care of its minor.
     '''
-    def compress_layers(self):
-        # only compress if there is more than 1 layer to compress
-        if self.abstract_graph().graph.get('contracted_layers',0) > 1:
 
+    def compress_layers(self):
+        '''
+        might be the same as in the cascade, where all the intermediary layers are removed
+        '''
+        # only compress if there is more than 1 layer to compress
+        if self.abstract_graph().graph.get('contracted_layers', 0) > 1:
 
             # ok when we are done there is only one layer :)
-            self.abstract_graph().graph['contracted_layers'] =1
-
+            self.abstract_graph().graph['contracted_layers'] = 1
 
             # a function to traverse the base graph
             def get_leafes(graph, node):
@@ -51,22 +51,20 @@ class MinorDecomposer(Decomposer):
                     return ret
 
             # compress each node :)
-            for n,d in self.abstract_graph().nodes(data=True):
-                res=[]
+            for n, d in self.abstract_graph().nodes(data=True):
+                res = []
                 for node in d['contracted']:
-                    res+=get_leafes(self.base_graph(),node)
-                d['contracted']= res
-                d['layer']=1
+                    res += get_leafes(self.base_graph(), node)
+                d['contracted'] = res
+                d['layer'] = 1
 
             # set the base_graph
-            graph=self.abstract_graph()
+            graph = self.abstract_graph()
             while 'original' in graph.graph:
-                graph=graph.graph['original']
+                graph = graph.graph['original']
             self._base_graph = graph
-            self._abstract_graph.graph['original']=graph
+            self._abstract_graph.graph['original'] = graph
         return self
-
-
 
     def pre_vectorizer_graph(self, nested=False):
         '''
@@ -94,36 +92,35 @@ class MinorDecomposer(Decomposer):
                 d.pop("ID",None)
         '''
 
-
         # transfer layer information to the nodes (otherwise it will be lost)
-        graph = self.abstract_graph()
+        graph = self._unaltered_graph
         while 'original' in graph.graph:
-            def f(n,d):d['layer'] = graph.graph.get('layer',0)
-            utils.node_operation(graph,f)
+            def f(n, d): d['layer'] = graph.graph.get('layer', 0)
+
+            utils.node_operation(graph, f)
             graph = graph.graph['original']
 
         # make union of everything
-        graph = self.abstract_graph()
-        graphs=[graph]
+        graph = self._unaltered_graph
+        graphs = [graph]
         while 'original' in graph.graph:
             graphs.append(graph.graph['original'])
-            graph=graph.graph['original']
+            graph = graph.graph['original']
 
-        #draw.graphlearn(graphs, vertex_label='id')
+        # draw.graphlearn(graphs, vertex_label='id')
         try:
             g = nx.union_all(graphs)
         except:
             draw.graphlearn([graphs], vertex_label='id')
 
-
         if nested:
             # edge_nodes -> edges
             # then look at the contracted nodes to add dark edges.
-            #g  = edengraphtools._revert_edge_to_vertex_transform(g)
+            # g  = edengraphtools._revert_edge_to_vertex_transform(g)
             try:
                 # updating the contracted sets
-                #reconstrdict={  d["ID"]:n  for n,d in g.nodes(data=True) if "ID" in d  }
-                #for n, d in g.nodes(data=True):
+                # reconstrdict={  d["ID"]:n  for n,d in g.nodes(data=True) if "ID" in d  }
+                # for n, d in g.nodes(data=True):
                 #    if 'contracted' in d:
                 #        d['contracted']=set( [reconstrdict[e] for e in d['contracted']] )
 
@@ -132,19 +129,16 @@ class MinorDecomposer(Decomposer):
                     if 'contracted' in d:
                         for e in d['contracted']:
                             if e in g.nodes():
-                                g.add_edge( n, e, nesting=True, label='')
+                                g.add_edge(n, e, nesting=True, label='')
             except:
                 print 'can not build nested graph... input looks like this:'
-                draw.graphlearn( self._base_graph, vertex_label= 'id', size=15 )
-                draw.graphlearn(self.abstract_graph(), vertex_label='contracted', size=15)
+                draw.graphlearn(self._unaltered_graph.graph['original'], vertex_label='id', size=15)
+                draw.graphlearn(self._unaltered_graph, vertex_label='contracted', size=15)
 
         # add labels to all edges ( this is needed for eden. .. bu
-        #g = fix_graph(g)
+        # g = fix_graph(g)
 
         return g
-
-
-
 
     def abstract_graph(self):
         '''
@@ -164,10 +158,56 @@ class MinorDecomposer(Decomposer):
         return self._abstract_graph
 
 
-    def __init__(self,  graph=None,
-                        node_entity_check=lambda x, y: True,
-                        nbit=20,base_thickness_list=[2],
-                        include_base=False):
+
+
+    def _prepare_extraction(self):
+        # somehow check that there are only 2 layers
+        # oO
+
+        # lets get started
+        if '_base_graph' in self.__dict__:
+            return
+
+
+        self._base_graph= edengraphtools._edge_to_vertex_transform(self._unaltered_graph.graph['original'].copy())
+        self._abstract_graph = edengraphtools._edge_to_vertex_transform(self._unaltered_graph.copy() )
+
+
+
+        # now i want to add the edges of the base graph to the contracted set of the abstract :)
+
+
+        # this code should do this somehow...
+        # TODO work out the details...
+
+        #  make a dictionary that maps from base_graph_node -> node in contracted graph
+        getabstr = {contra: node for node, d in self._abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
+
+
+        # so this basically assigns edges in the base_graph to nodes in the abstract graph.
+        for n, d in self._base_graph.nodes(data=True):
+            if 'edge' in d:
+                # if we have found an edge node...
+                # lets see whos left and right of it:
+                n1, n2 = self._base_graph.neighbors(n)
+                # case1: ok those belong to the same gang so we most likely also belong there.
+                if getabstr[n1] == getabstr[n2]:
+                    self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
+
+                # case2: neighbors belong to different gangs...
+                else:
+                    blub = set(self._abstract_graph.neighbors(getabstr[n1])) & set(self._abstract_graph.neighbors(getabstr[n2]))
+                    for blob in blub:
+                        if 'contracted' in self._abstract_graph.node[blob]:
+                            self._abstract_graph.node[blob]['contracted'].add(n)
+                        else:
+                            self._abstract_graph.node[blob]['contracted'] = set([n])
+
+
+    def __init__(self, graph=None,
+                 node_entity_check=lambda x, y: True,
+                 nbit=20, base_thickness_list=[2],
+                 include_base=False):
         '''
         Parameters
         ----------
@@ -179,31 +219,35 @@ class MinorDecomposer(Decomposer):
         include_base
         '''
 
-        #print "asd",data
+        # print "asd",data
         self.some_thickness_list = base_thickness_list
 
         if graph:
-            self._base_graph = graph.graph['original'].copy()
+            self._unaltered_graph=graph
+            self._prepare_extraction()
+            #self._base_graph = graph.graph['original'].copy()
+            #if len(self._base_graph) > 0:
+            #    self._base_graph = edengraphtools._edge_to_vertex_transform(self._base_graph)
+            #self._abstract_graph = graph
+            # self._abstract_graph.graph.pop('original')
+            self._mod_dict = self._abstract_graph.graph.get("mod_dict", {})  # this is the default.
 
-            if len(self._base_graph) > 0:
-                self._base_graph = edengraphtools._edge_to_vertex_transform(self._base_graph)
-            self._abstract_graph = graph
-            #self._abstract_graph.graph.pop('original')
-            self._mod_dict = self._abstract_graph.graph.get("mod_dict",{})  # this is the default.
 
         self.include_base = include_base  # enables this: random_core_interface_pair_base, and if asked for all cips, basecips will be there too
-
         self.node_entity_check = node_entity_check
         self.hash_bitmask = 2 ** nbit - 1
         self.nbit = nbit
 
+
+
+
     def make_new_decomposer(self, transformout):
         return MinorDecomposer(transformout, node_entity_check=self.node_entity_check,
-                               nbit=self.nbit,base_thickness_list=self.some_thickness_list,include_base=self.include_base)  #node_entity_check=self.node_entity_check, nbit=self.nbit)
+                               nbit=self.nbit, base_thickness_list=self.some_thickness_list,
+                               include_base=self.include_base)  # node_entity_check=self.node_entity_check, nbit=self.nbit)
 
-
-
-    def rooted_core_interface_pairs(self, root, thickness_list=None, for_base=False,radius_list=[], base_thickness_list=False):
+    def rooted_core_interface_pairs(self, root, thickness_list=None, for_base=False, radius_list=[],
+                                    base_thickness_list=False):
         '''
              get cips for a root
         Parameters
@@ -230,22 +274,22 @@ class MinorDecomposer(Decomposer):
             thickness = self.some_thickness_list
         if for_base == False:
             return extract_cips(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict,
-                                        hash_bitmask=self.hash_bitmask,
-                                      radius_list=radius_list,
-                                      thickness_list=thickness_list,
-                                      node_filter=self.node_entity_check)
+                                hash_bitmask=self.hash_bitmask,
+                                radius_list=radius_list,
+                                thickness_list=thickness_list,
+                                node_filter=self.node_entity_check)
         else:
             return extract_cips_base(root, self, base_thickness_list=thickness, mod_dict=self._mod_dict,
-                                      hash_bitmask=self.hash_bitmask,
-                                      radius_list=radius_list,
-                                      thickness_list=thickness_list,
-                                      node_filter=self.node_entity_check)
+                                     hash_bitmask=self.hash_bitmask,
+                                     radius_list=radius_list,
+                                     thickness_list=thickness_list,
+                                     node_filter=self.node_entity_check)
 
     def all_core_interface_pairs(self,
-                                for_base=False,
-                                radius_list=[],
-                                thickness_list=None,
-                                ):
+                                 for_base=False,
+                                 radius_list=[],
+                                 thickness_list=None,
+                                 ):
         '''
 
         Parameters
@@ -256,9 +300,9 @@ class MinorDecomposer(Decomposer):
         -------
 
         '''
-        graph=self.abstract_graph()
+        graph = self.abstract_graph()
         nodes = filter(lambda x: self.node_entity_check(graph, x), graph.nodes())
-        nodes = filter(lambda x: graph.node[x].get('APPROVEDABSTRACTNODE',True),nodes)
+        nodes = filter(lambda x: graph.node[x].get('APPROVEDABSTRACTNODE', True), nodes)
 
         cips = []
         for root_node in nodes:
@@ -303,7 +347,7 @@ class MinorDecomposer(Decomposer):
             cip
         '''
         nodes = filter(lambda x: self.node_entity_check(self.abstract_graph(), x), self.abstract_graph().nodes())
-        nodes =  filter(lambda x: self.abstract_graph().node[x].get('APPROVEDABSTRACTNODE',True),nodes)
+        nodes = filter(lambda x: self.abstract_graph().node[x].get('APPROVEDABSTRACTNODE', True), nodes)
         node = random.choice(nodes)
         if 'edge' in self._abstract_graph.node[node]:
             node = random.choice(self._abstract_graph.neighbors(node))
@@ -312,11 +356,12 @@ class MinorDecomposer(Decomposer):
         thickness_list = [random.choice(thickness_list)]
         random_something = [random.choice(self.some_thickness_list)]
         return self.rooted_core_interface_pairs(node, base_thickness_list=random_something,
-                                        for_base=False,
-                                      radius_list=radius_list,
-                                      thickness_list=thickness_list)
+                                                for_base=False,
+                                                radius_list=radius_list,
+                                                thickness_list=thickness_list)
 
-    def random_core_interface_pair_base(self, radius_list=None, thickness_list=None, hash_bitmask=None,node_filter=lambda x, y: True):
+    def random_core_interface_pair_base(self, radius_list=None, thickness_list=None, hash_bitmask=None,
+                                        node_filter=lambda x, y: True):
         '''
         get a random cip, rooted in the base graph
         Parameters
@@ -339,9 +384,9 @@ class MinorDecomposer(Decomposer):
         thickness_list = [random.choice(thickness_list)]
         random_something = [random.choice(self.some_thickness_list)]
         return self.rooted_core_interface_pairs(node, base_thickness_list=random_something, for_base=True,
-                                          radius_list=radius_list,
-                                          thickness_list=thickness_list,
-                                     )
+                                                radius_list=radius_list,
+                                                thickness_list=thickness_list,
+                                                )
 
 
 def check_and_draw(base_graph, abstr):
@@ -431,10 +476,10 @@ def edge_type_in_radius_abstraction(graph):
     '''
     # annotate in node attribute 'type' the incident edges' labels
     labeled_graph = vertex_attributes.incident_edge_label(
-            [graph], level=2, output_attribute='type', separator='.').next()
+        [graph], level=2, output_attribute='type', separator='.').next()
     # do contraction
     contracted_graph = contraction(
-            [labeled_graph], contraction_attribute='type', modifiers=[], nesting=False).next()
+        [labeled_graph], contraction_attribute='type', modifiers=[], nesting=False).next()
     return contracted_graph
 
 
@@ -443,10 +488,10 @@ def extract_cips(node,
                  base_thickness_list=None,
                  hash_bitmask=None,
                  mod_dict={},
-                  radius_list=[],
-                  thickness_list=None,
-                  node_filter=lambda x, y: True
-               ):
+                 radius_list=[],
+                 thickness_list=None,
+                 node_filter=lambda x, y: True
+                 ):
     '''
 
     Parameters
@@ -469,11 +514,11 @@ def extract_cips(node,
     # PREPARE
     abstract_graph = graphmanager.abstract_graph()
     base_graph = graphmanager.base_graph()
-
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
         edengraphtools._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
         edengraphtools._label_preprocessing(base_graph)
+
 
     # EXTRACT CIPS NORMALY ON ABSTRACT GRAPH
     abstract_cips = graphtools.extract_core_and_interface(node, abstract_graph, radius_list=radius_list,
@@ -569,9 +614,8 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
 
     """
 
-
     mergeids = [base_graph_id for radius in range(
-            abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
+        abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
                 for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
 
     # remove duplicates:
@@ -660,7 +704,6 @@ def extract_cips_base(node,
     else:
         raise Exception("IMPOSSIBLE NODE")
 
-
     abstract_cips = graphtools.extract_core_and_interface(root_node=abs_node, graph=abstract_graph, radius_list=[0],
                                                           thickness_list=thickness_list, hash_bitmask=hash_bitmask,
                                                           node_filter=node_filter)
@@ -684,12 +727,3 @@ def extract_cips_base(node,
             cips.append(base_cip)
 
     return cips
-root_node=None,
-
-# eden vectorizer wants labels everywhere so we set them.
-# this function is badly named and should be in the transformer Oo
-def fix_graph(g):
-    for a, b, d in g.edges(data=True):
-        if 'label' not in d:
-            d['label'] = ''
-    return g

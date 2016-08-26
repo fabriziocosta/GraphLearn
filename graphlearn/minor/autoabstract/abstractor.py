@@ -3,8 +3,7 @@ from GArDen.compose import Flatten
 from GArDen.decompose import ThresholdedConnectedComponents
 from eden.graph import Vectorizer
 from eden.modifier.graph.structure import contraction
-
-from graphlearn.utils import node_operation, remove_eden_annotation
+from graphlearn.utils import node_operation, remove_eden_annotation , draw
 
 
 class GraphToAbstractTransformer(object):
@@ -123,7 +122,10 @@ class GraphToAbstractTransformer(object):
 def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimator, subgraphs):
     if subgraphs:
         map(remove_eden_annotation, subgraphs)
-        data = vectorizer.transform(subgraphs)
+        try:
+            data = vectorizer.transform(subgraphs)
+        except:
+            draw.graphlearn(subgraphs, contract= False)
         clusterids = nameestimator.predict(data)
 
         #for d, g in zip(data, subgraphs):

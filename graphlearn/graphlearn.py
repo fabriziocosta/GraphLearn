@@ -469,7 +469,7 @@ class Sampler(object):
             # sampled_graph = self._sample(graph)
             # yield sampled_graph
             graphlist, monitor = self.transform_single(graph)
-            monitor = dill.dumps(monitor)
+            monitor = dill.loads(monitor)
             for new_graph in self._return_formatter(graphlist, monitor):
                 yield new_graph
 

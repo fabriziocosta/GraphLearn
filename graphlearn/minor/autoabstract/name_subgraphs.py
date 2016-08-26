@@ -25,14 +25,23 @@ class ClusterClassifier():
 
         # build NN model
         NTH_NEIGHBOR = 1
-        '''
+
+
+
         # use joachim-code:
+        '''
         from bioinf_learn import MinHash
         minHash = MinHash(n_neighbors=NTH_NEIGHBOR+1)
         minHash.fit(data)
         dist, indices = minHash.kneighbors(return_distance=True)
         print dist
+        neigh = sklearn.neighbors.NearestNeighbors(n_neighbors=NTH_NEIGHBOR+1, metric='euclidean')
+        neigh.fit(data)
+        dist, indices = neigh.kneighbors(data)
+        print dist
         '''
+
+
         # use sklearn NN
         neigh = sklearn.neighbors.NearestNeighbors(n_neighbors=NTH_NEIGHBOR+1, metric='euclidean')
         neigh.fit(data)

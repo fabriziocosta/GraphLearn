@@ -29,6 +29,17 @@ def plot_scores(scoreslist='list of lists',x=[], labels=[]):
 
 
 
+# eden vectorizer wants labels everywhere so we set them.
+def edenize_graph(g):
+    for a, b, d in g.edges(data=True):
+        if 'label' not in d:
+            d['label'] = ''
+    for n,d in g.nodes(data=True):
+        if 'label' not in d:
+            d['label'] = str(n)
+    return g
+
+
 
 # use eden.grouper(inputs, 50)
 
@@ -56,7 +67,9 @@ def hash_eden_vector(vec):
 def remove_eden_annotation(graph):
     # eden contaminates graphs with all sorts of stuff..
     weight=lambda x: node_operation(x, lambda n, d: d.pop('weight', None))
+    hl = lambda x: node_operation(x, lambda n, d: d.pop('hlabel', None))
     weight(graph)
+    hl(graph)
     eden.graph._clean_graph(graph)
     return graph
 

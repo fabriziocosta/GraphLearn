@@ -39,6 +39,8 @@ class Annotator():
         return  self.annotate(graphs)
 
     def annotate(self,graphs,neg=False):
+        if not graphs:
+            return []
         return mass_annotate_mp(graphs,self.vectorizer,score_attribute=self.score_attribute,estimator=self.estimator,
                                 multi_process=self.multi_process, invert_score=neg)
 

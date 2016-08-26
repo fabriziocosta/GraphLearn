@@ -25,12 +25,12 @@ import graphlearn.utils.draw as draw
 from graphlearn.estimate import ExperimentalOneClassEstimator
 from graphlearn.transform import GraphTransformer
 #import graphlearn.utils as utils
-from eden.graph import Vectorizer
+import eden
 import annotate
 
 class GraphMinorTransformer(GraphTransformer):
     def __init__(self,
-                 vectorizer=Vectorizer(complexity=3),
+                 vectorizer=eden.graph.Vectorizer(complexity=3),
                  estimator=ExperimentalOneClassEstimator(),
                  group_min_size=3,
                  group_max_size=6,
@@ -119,12 +119,19 @@ class GraphMinorTransformer(GraphTransformer):
 
         # annotating is super slow. so in case of fit_transform i can save that step
         if fit_transform:
-            return self.transform(graphs),self.transform(graphs_neg)
+            if graphs_neg:
+                return self.transform(graphs),self.transform(graphs_neg)
+            else:
+                return self.transform(graphs)
 
     def fit_transform(self, inputs,inputs_neg=[]):
         return self.fit(inputs,inputs_neg, fit_transform=True)
 
 
+
+    def re_transform_single(self, graph):
+        # graphlearn is giving me expanded graphs afaik
+        return self.transform([eden.graph._revert_edge_to_vertex_transform(graph)])[0]
 
     def transform(self, graphs):
         '''

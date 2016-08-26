@@ -230,8 +230,8 @@ class OneClassEstimator:
 
     # probably broken ... you should use predict single now o OO
     def predict(self, things):
-        # return self.predict_single(things)
-        return numpy.array([1 if self.predict_single(thing) > .5 else 0 for thing in things])
+        return self.predict_single(things)
+        #return numpy.array([1 if self.predict_single(thing) > .5 else 0 for thing in things])
 
 
 class ExperimentalOneClassEstimator:

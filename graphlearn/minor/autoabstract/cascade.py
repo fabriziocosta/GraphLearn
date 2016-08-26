@@ -12,13 +12,14 @@ class Cascade():
     def __init__(self,  depth=2,
                         debug=False,
                         multiprocess=True,
-                 max_group_size=6,min_group_size=2):
+                 max_group_size=6,min_group_size=2,group_score_threshold=0):
 
         self.depth = depth
         self.debug = debug
         self.multiprocess = multiprocess
         self.max_group_size = max_group_size
-        self.min_group_size =min_group_size
+        self.min_group_size = min_group_size
+        self.group_score_threshold = group_score_threshold
 
     def setup_transformers(self):
         self.transformers = []
@@ -26,7 +27,7 @@ class Cascade():
             transformer = transform.GraphMinorTransformer(
 
 
-                group_score_threshold= -.5,
+                group_score_threshold= self.group_score_threshold,
                 group_max_size=self.max_group_size,
                 group_min_size=self.min_group_size,
                 multiprocess=self.multiprocess,
@@ -38,6 +39,8 @@ class Cascade():
     def fit_transform(self, graphs, graphs_neg=[],remove_intermediary_layers=True):
 
         # INIT
+        graphs=list(graphs)
+        graphs_neg=list(graphs_neg)
         self.setup_transformers()
         for g in graphs+graphs_neg:
             g.graph['layer']=0
