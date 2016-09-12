@@ -19,7 +19,7 @@ THIS IS A TEST I AM TRYING TO MAKE THIS MORE EZ AND EZ TO TEST
 
 import logging
 logger = logging.getLogger(__name__)
-from graphlearn.minor.autoabstract.name_subgraphs import ClusterClassifier
+from graphlearn.minor.autoabstract_has_its_own_repo_now.name_subgraphs import ClusterClassifier
 import abstractor
 import graphlearn.utils.draw as draw
 from graphlearn.estimate import ExperimentalOneClassEstimator
