@@ -390,6 +390,9 @@ def graphlearn(graphs,
         if vertex_color is None:
             set_colors(graph)
 
+        #if vertex_color_attribute='importance':
+        #    set_colors_importance(graph)
+
         if show_direction:
             for n, d in graph.nodes(data=True):
                 if 'edge' in d:
@@ -410,15 +413,24 @@ def graphlearn(graphs,
             for n,d in graph.nodes(data=True):
                 d['importance']= round(d['importance'],2)
 
+
     # now we need to change the attribute
     # because there is a label collission in json graph saving
     if vertex_label == 'id':
         vertex_label = 'id_LABEL'
+
     if args.get("secondary_vertex_label", "no") == 'id':
         args["secondary_vertex_label"] = 'id_LABEL'
 
+    if vertex_label=='importance' and vertex_color==None:
+
+        vertex_color = 'importance'
+        args['colormap'] = 'inferno'
+
+
     if vertex_color is None:
         vertex_color = 'col'
+
 
     if show_direction or abstract_color:
         edge_color = 'color'

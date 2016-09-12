@@ -66,10 +66,8 @@ def hash_eden_vector(vec):
 
 def remove_eden_annotation(graph):
     # eden contaminates graphs with all sorts of stuff..
-    weight=lambda x: node_operation(x, lambda n, d: d.pop('weight', None))
-    hl = lambda x: node_operation(x, lambda n, d: d.pop('hlabel', None))
-    weight(graph)
-    hl(graph)
+    for attribute in ['weight','hlabel']:
+        node_operation(graph, lambda n, d: d.pop(attribute, None))
     eden.graph._clean_graph(graph)
     return graph
 

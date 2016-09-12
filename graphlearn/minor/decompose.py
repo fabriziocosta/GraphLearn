@@ -224,7 +224,15 @@ class MinorDecomposer(Decomposer):
 
         if graph:
             self._unaltered_graph=graph
-            self._prepare_extraction()
+            try:
+                self._prepare_extraction()
+            except:
+                for e,d in self._base_graph.nodes(data=True):
+                    print d
+                for e,d in self._abstract_graph.nodes(data=True):
+                    print d
+
+                exit()
             #self._base_graph = graph.graph['original'].copy()
             #if len(self._base_graph) > 0:
             #    self._base_graph = edengraphtools._edge_to_vertex_transform(self._base_graph)

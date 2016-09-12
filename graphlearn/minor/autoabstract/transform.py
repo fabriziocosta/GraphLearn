@@ -42,6 +42,7 @@ class GraphMinorTransformer(GraphTransformer):
                  cluster_classifier=ClusterClassifier(debug=False),
                  # save_graphclusters=False,
                  multiprocess=True,
+                 num_classes=2,
                  layer=0):
 
         self.vectorizer = vectorizer
@@ -57,7 +58,7 @@ class GraphMinorTransformer(GraphTransformer):
         # self.cluster_max_members=cluster_max_members
         self.layer = layer
         self.multiprocess = multiprocess
-
+        self.num_classes=num_classes
 
     def prepfit(self):
         self.cluster_classifier.debug=self.debug
@@ -105,13 +106,14 @@ class GraphMinorTransformer(GraphTransformer):
         if self.debug:
             print 'minortransform_scores'
             draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='importance')
+            # vertex_color='importance', colormap='inferno')
 
 
-        subgraphs = list(self.abstractor.get_subgraphs(graphs))
-        if graphs_neg:
-            nusgs = list(self.abstractor.get_subgraphs(graphs_neg))
-            #draw.graphlearn([nusgs[0],subgraphs[-1]],vertex_label='importance')
-            subgraphs += nusgs
+        subgraphs = list(self.abstractor.get_subgraphs(graphs+graphs_neg))
+        #if self.num_classes==2:
+        #    nusgs = list(self.abstractor.get_subgraphs(graphs_neg))
+        #    #draw.graphlearn([nusgs[0],subgraphs[-1]],vertex_label='importance')
+        #    subgraphs += nusgs
 
         # FILTER UNIQUES AND TRAIN THE CLUSTERER
         self.cluster_classifier.fit(subgraphs)
@@ -119,10 +121,7 @@ class GraphMinorTransformer(GraphTransformer):
 
         # annotating is super slow. so in case of fit_transform i can save that step
         if fit_transform:
-            if graphs_neg:
-                return self.transform(graphs),self.transform(graphs_neg)
-            else:
-                return self.transform(graphs)
+            return  self.transform(graphs) if self.num_classes ==1 else (self.transform(graphs),self.transform(graphs_neg))
 
     def fit_transform(self, inputs,inputs_neg=[]):
         return self.fit(inputs,inputs_neg, fit_transform=True)
@@ -150,5 +149,4 @@ class GraphMinorTransformer(GraphTransformer):
             print 'minortransform  transform. the new layer  '
             draw.graphlearn(result[:5], contract=False, size=6, vertex_label='contracted')
         return result
-
 

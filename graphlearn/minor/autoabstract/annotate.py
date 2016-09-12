@@ -20,8 +20,12 @@ class Annotator():
         if self.trained:
             return self
         self.trained=True
+        map(utils.remove_eden_annotation,graphs_pos+graphs_neg)
+        map(lambda x: utils.node_operation(x, lambda n,d: d.pop('importance',None)), graphs_pos+graphs_neg)
+        map( lambda graph: graph.graph.pop('mass_annotate_mp_was_here',None) ,graphs_pos+graphs_neg)
 
         if graphs_neg:
+            #print 'choosing to train binary esti'
             self.estimator = SGDClassifier()
             classes= [1]*len(graphs_pos)+[-1]*len(graphs_neg)
             self.estimator.fit(self.vectorizer.transform(graphs_pos+graphs_neg),classes)
