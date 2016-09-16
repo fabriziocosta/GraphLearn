@@ -54,7 +54,7 @@ class samplercombiner(object):
         # REPEAT times repeat the samplers in the list
         n_steps=50
         self.steps=n_steps*repeats*len(self.learners)
-        print self.steps
+        #print self.steps
 
         for repeat in range(repeats):
             for samplernum, sampler in enumerate(self.learners):

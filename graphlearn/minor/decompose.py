@@ -15,7 +15,7 @@ import networkx as nx
 from graphlearn.utils import draw
 import eden.util.display as edraw
 import eden
-
+import traceback
 logger = logging.getLogger(__name__)
 # from eden.graph import Vectorizer
 from eden import graph as edengraphtools
@@ -226,7 +226,10 @@ class MinorDecomposer(Decomposer):
             self._unaltered_graph=graph
             try:
                 self._prepare_extraction()
-            except:
+            except Exception as exc:
+                print (exc)
+                print (traceback.format_exc(10))
+                print 'if there is a list instead of a graph, transformerparam num_classes is your friend'
                 for e,d in self._base_graph.nodes(data=True):
                     print d
                 for e,d in self._abstract_graph.nodes(data=True):

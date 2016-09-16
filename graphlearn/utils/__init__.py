@@ -113,3 +113,10 @@ def unique_csr(csr):
     indices = [ith for hashvalue, ith in unique.items()]
     indices.sort()
     return delete_rows_csr(csr, indices, keep=True), indices
+
+'''
+ catching errors and printing them
+ except Exception as exc:
+                print (exc)
+                print (traceback.format_exc(10))
+'''

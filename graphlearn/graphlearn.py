@@ -110,7 +110,7 @@ class Sampler(object):
     def __init__(self,
 
 
-                 vectorizer=Vectorizer(complexity=3),
+                 vectorizer=Vectorizer(complexity=3,n_jobs=1),
                  random_state=None,
                  estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
                  graphtransformer=transform.GraphTransformer(),
@@ -387,6 +387,9 @@ class Sampler(object):
     def fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None):
         positive = [d.pre_vectorizer_graph() for d in decomposers]
         if  negative_decomposers==None and regression_targets==None:
+
+            #draw.graphlearn(positive[:5], contract=False)
+            #print positive[0].graph
             self.estimatorobject.fit(self.vectorizer.transform(positive),
                                      random_state=self.random_state)
         elif negative_decomposers == None:
