@@ -228,7 +228,7 @@ class MinorDecomposer(Decomposer):
                 self._prepare_extraction()
             except Exception as exc:
                 print (exc)
-                print (traceback.format_exc(10))
+                print (traceback.format_exc())
                 print 'if there is a list instead of a graph, transformerparam num_classes is your friend'
                 for e,d in self._base_graph.nodes(data=True):
                     print d

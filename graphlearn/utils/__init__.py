@@ -120,3 +120,16 @@ def unique_csr(csr):
                 print (exc)
                 print (traceback.format_exc(10))
 '''
+
+
+
+
+
+''' ... dump graphs instead of drawing for future use...
+import base64
+import dill
+def dump64(g,**argz):
+    return base64.b64encode(dill.dumps(g))+"\n\n"
+draw.graphlearn = lol
+'''
+

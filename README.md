@@ -71,17 +71,5 @@ for i in range(5):
 
 
 
-## Fun Facts
-
-cascading abstractons are slow because sklearn sgdclassifier is slow.
-
-```python 
-add "self.coef_ = np.asfortranarray(self.coef_)"
-at the end of ...def _fit_multiclass(... in sklearn/linear_model/stochastic_gradient.
-```
-https://github.com/scikit-learn/scikit-learn/issues/6186
-
-
-
 
 
