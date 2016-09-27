@@ -21,6 +21,7 @@ import networkx as nx
 import copy
 from cip_select import  select_original_cip, _select_cips
 
+__version__ = '3.22.123asdz'
 
 class Sampler(object):
 

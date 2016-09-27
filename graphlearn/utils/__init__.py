@@ -6,15 +6,11 @@ import numpy as np
 
 
 def plot_scores(scoreslist='list of lists',x=[], labels=[]):
-
     if len(labels)==0:
         labels= ['index: %d' % i for i in len(scoreslist)]
     if x==[]:
         x=range( len(scoreslist[0] ) )
-
     plt.figure(figsize=(10,5))
-
-
     for j,scores in enumerate(scoreslist):
         plt.plot(x,scores, label=labels[j])
 
@@ -24,7 +20,27 @@ def plot_scores(scoreslist='list of lists',x=[], labels=[]):
     plt.grid()
     plt.xlim(-.5, max(x) * 1.1)
     plt.ylim(mii*.9,maa*1.1)
+    plt.show()
 
+
+def make_bar_plot(labels=('G1', 'G2', 'G3', 'G4', 'G5'), means=(20, 35, 30, 35, 27), stds=(2, 3, 4, 1, 2)):
+    N = len(labels)
+    ind = np.arange(N)
+    width = .5  # 0.35
+    plt.figure(figsize=(14, 5))
+    ax = plt.subplot()
+    for label in (ax.get_xticklabels() + ax.get_yticklabels()):
+        label.set_fontname('Arial')
+        label.set_fontsize(18)
+
+    p1 = plt.bar(ind, means, width, color='#69ACEA', yerr=stds, edgecolor='None', ecolor='#444444')
+    plt.axhline(y=38, color='black', linewidth=3)
+    plt.ylabel("log odds score", fontsize=20)
+    plt.xlabel("number of graphs", fontsize=20)
+    # plt.xlabel("number of graphs",fontsize=20)
+    plt.title('Scores by training size', fontsize=20)
+    plt.xticks(ind + width / 2, labels)
+    plt.yticks(np.arange(0, 100, 10))
     plt.show()
 
 
