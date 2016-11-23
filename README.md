@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/33873956.svg)](https://zenodo.org/badge/latestdoi/33873956)
+
 # GraphLearn
 Learn how to construct graphs given representative examples.
 
