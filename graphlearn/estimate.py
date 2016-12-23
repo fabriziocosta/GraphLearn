@@ -7,7 +7,9 @@ from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
 from sklearn.linear_model import SGDClassifier, LinearRegression
 import random
-
+import sklearn
+from utils import hash_eden_vector as hashvec
+import numpy as np
 
 # Train the model using the training sets
 
@@ -56,7 +58,7 @@ class TwoClassEstimator:
     there might be a bug connected to nx.digraph..
     '''
 
-    def __init__(self, cv=2, n_jobs=-1, recalibrate=False, classifier=SGDClassifier(loss='log')):
+    def __init__(self, cv=2, n_jobs=-1, recalibrate=True, classifier=SGDClassifier(loss='log')):
         '''
         Parameters
         ----------
@@ -75,10 +77,18 @@ class TwoClassEstimator:
         self.inverse_prediction = False
         self.recalibrate = recalibrate
 
-    def fit(self, data_matrix, data_matrix_neg, random_state=None):
+    def fit2(self, data_matrix, data_matrix_neg, random_state=None):
+        # TODO MERGE THIS WITH THE FIT METHOD
         if random_state is not None:
             random.seed(random_state)
         # use eden to fitoooOoO
+
+        vecone = map(hashvec,data_matrix)
+        vectwo = { a:0 for a in map(hashvec,data_matrix_neg)}
+        for e in vecone:
+            if e in vectwo:
+                print 'same instances in pos/neg set.....(graphlearn/estimator/twoclass)'
+
         self.estimator = eden_fit_estimator(self.classifier, positive_data_matrix=data_matrix,
                                             negative_data_matrix=data_matrix_neg,
                                             cv=self.cv,
@@ -89,10 +99,29 @@ class TwoClassEstimator:
         self.status = 'trained'
         return self
 
+    def fit(self, data_matrix, data_matrix_neg, random_state=None,**args):
+        if random_state is not None:
+            random.seed(random_state)
+
+
+        data=vstack((data_matrix,data_matrix_neg))
+        data_y=[1]*data_matrix.shape[0]+[-1]*data_matrix_neg.shape[0]
+        #self.cal_estimator = SGDClassifier(loss='log', class_weight='balanced') # ballanced will not work :)
+        self.cal_estimator = SGDClassifier(loss='log', class_weight={1:.9,-1:.1})
+        #self.testimator.fit(data_matrix, data_y)
+        #self.cal_estimator = CalibratedClassifierCV(self.testimator, cv=self.cv, method='sigmoid')
+        #print '*'*80
+        #print args
+        self.cal_estimator.partial_fit(data, data_y,classes=np.array([1, -1]), **args)
+
+        self.status='trained'
+        return self
+
     def predict(self, vectorized_graph):
         if self.recalibrate:
             result = self.cal_estimator.predict_proba(vectorized_graph)[0, 1]
         else:
+            print 'if i see this there is a problem'
             result = self.cal_estimator.decision_function(vectorized_graph)[0]
 
         if self.inverse_prediction:

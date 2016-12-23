@@ -1,6 +1,5 @@
 import eden
 
-# this is copy pasted in EVERY notebook. now its here
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -148,4 +147,18 @@ def dump64(g,**argz):
     return base64.b64encode(dill.dumps(g))+"\n\n"
 draw.graphlearn = lol
 '''
+
+
+import subprocess
+def shexec(cmd):
+    '''
+    :param cmd:
+    :return: (exit-code, stderr, stdout)
+
+    the subprocess module is chogeum.. here is a workaround
+    '''
+    process = subprocess.Popen(cmd,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    output, stderr = process.communicate()
+    retcode = process.poll()
+    return (retcode,stderr,output)
 
