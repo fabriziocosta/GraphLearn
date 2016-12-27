@@ -99,29 +99,47 @@ class TwoClassEstimator:
         self.status = 'trained'
         return self
 
-    def fit(self, data_matrix, data_matrix_neg, random_state=None,**args):
+    def _partial(self, data_matrix, data_matrix_neg, random_state=None,**args):
+        '''
+        support for partial fitting in GAT
+        '''
         if random_state is not None:
             random.seed(random_state)
-
-
         data=vstack((data_matrix,data_matrix_neg))
         data_y=[1]*data_matrix.shape[0]+[-1]*data_matrix_neg.shape[0]
         #self.cal_estimator = SGDClassifier(loss='log', class_weight='balanced') # ballanced will not work :)
-        self.cal_estimator = SGDClassifier(loss='log', class_weight={1:.9,-1:.1})
+        self.cal_estimator = SGDClassifier(loss='log', class_weight={1:9,-1:1},average=True)
         #self.testimator.fit(data_matrix, data_y)
         #self.cal_estimator = CalibratedClassifierCV(self.testimator, cv=self.cv, method='sigmoid')
         #print '*'*80
         #print args
         self.cal_estimator.partial_fit(data, data_y,classes=np.array([1, -1]), **args)
-
         self.status='trained'
         return self
+
+    def fit(self, data_matrix, data_matrix_neg, random_state=None,**args):
+        if random_state is not None:
+            random.seed(random_state)
+        data=vstack((data_matrix,data_matrix_neg))
+        data_y=[1]*data_matrix.shape[0]+[-1]*data_matrix_neg.shape[0]
+        #self.cal_estimator = SGDClassifier(loss='log', class_weight='balanced') # ballanced will not work :)
+        self.cal_estimator = SGDClassifier(loss='log', class_weight={1:9,-1:1},average=True)
+        #self.testimator.fit(data_matrix, data_y)
+        #self.cal_estimator = CalibratedClassifierCV(self.testimator, cv=self.cv, method='sigmoid')
+        #print '*'*80
+        #print args
+        self.cal_estimator.partial_fit(data, data_y,classes=np.array([1, -1]), **args)
+        self.status='trained'
+        return self
+
+
 
     def predict(self, vectorized_graph):
         if self.recalibrate:
             result = self.cal_estimator.predict_proba(vectorized_graph)[0, 1]
+            #print result
         else:
-            print 'if i see this there is a problem'
+            print 'if i see this there is a problem, (twoclass estimator)'
             result = self.cal_estimator.decision_function(vectorized_graph)[0]
 
         if self.inverse_prediction:

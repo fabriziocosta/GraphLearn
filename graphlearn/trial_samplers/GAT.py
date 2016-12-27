@@ -65,12 +65,13 @@ def sample(sampler, n_iterations= 3, seedgraphs= None ):
     # save constructed graphs...
     constructed_graphs = [[]]
     constructed_graphs.append([i for e in sampler.transform(seedgraphs) for i in e])
+
     # save estimator
     estimators=[]
     estimators.append(copy.deepcopy(sampler.estimatorobject))
 
     # prepare 2 class svm
-    sampler.estimatorobject = TwoClass(cv=5)
+    sampler.estimatorobject = TwoClass(cv=5,recalibrate=True)
     new_decomposers = sampler.fit_make_decomposers(constructed_graphs[-1])
     sampler.fit_estimator(seed_decomposers, new_decomposers)
 
