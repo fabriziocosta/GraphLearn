@@ -102,6 +102,14 @@ class TwoClassEstimator:
     def _partial(self, data_matrix, data_matrix_neg, random_state=None,**args):
         '''
         support for partial fitting in GAT
+
+        partial fitting does not work so hot..
+        few ideas to try:
+        -- warm start instead of partial fit:
+            should not work as learning rate decreases but new
+            instances should have higher weight than older negatives
+        -- partial fit and reprovide the old positives:
+            might work...
         '''
         if random_state is not None:
             random.seed(random_state)
@@ -122,13 +130,14 @@ class TwoClassEstimator:
             random.seed(random_state)
         data=vstack((data_matrix,data_matrix_neg))
         data_y=[1]*data_matrix.shape[0]+[-1]*data_matrix_neg.shape[0]
+        print 'shape:',data.shape
         #self.cal_estimator = SGDClassifier(loss='log', class_weight='balanced') # ballanced will not work :)
-        self.cal_estimator = SGDClassifier(loss='log', class_weight={1:9,-1:1},average=True)
+        self.cal_estimator = SGDClassifier(loss='log',average=True)
         #self.testimator.fit(data_matrix, data_y)
         #self.cal_estimator = CalibratedClassifierCV(self.testimator, cv=self.cv, method='sigmoid')
         #print '*'*80
         #print args
-        self.cal_estimator.partial_fit(data, data_y,classes=np.array([1, -1]), **args)
+        self.cal_estimator.fit(data, data_y, **args)
         self.status='trained'
         return self
 

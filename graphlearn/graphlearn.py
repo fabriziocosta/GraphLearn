@@ -386,22 +386,29 @@ class Sampler(object):
         self.lsgg.fit(decomposers, n_jobs=n_jobs, batch_size=batch_size)
         # self._init_grammar_prep() cant do it here cuz esti might not be ready
 
+
+    def decomps_to_graphs(self,decomposers):
+        return [d.pre_vectorizer_graph() for d in decomposers]
+
+    def decomps_to_vectors(self,decomposers):
+        return self.vectorizer.transform(self.decomps_to_graphs(decomposers))
+
     def fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None,**args):
-        positive = [d.pre_vectorizer_graph() for d in decomposers]
+        positive = self.decomps_to_vectors(decomposers)
         if negative_decomposers == None and regression_targets == None:
 
             # draw.graphlearn(positive[:5], contract=False)
             # print positive[0].graph
-            self.estimatorobject.fit(self.vectorizer.transform(positive),
+            self.estimatorobject.fit(positive,
                                      random_state=self.random_state)
         elif negative_decomposers == None:
             self.estimatorobject = estimate.Regressor()
-            self.estimatorobject.fit(self.vectorizer.transform(positive), regression_targets,
+            self.estimatorobject.fit(positive, regression_targets,
                                      random_state=self.random_state)
         else:
             # twoclass
-            negative = [d.pre_vectorizer_graph() for d in negative_decomposers]
-            self.estimatorobject.fit(self.vectorizer.transform(positive), self.vectorizer.transform(negative),
+            negative = self.decomps_to_vectors(negative_decomposers)#[d.pre_vectorizer_graph() for d in negative_decomposers]
+            self.estimatorobject.fit(positive, negative,
                                      random_state=self.random_state,**args)
 
     def fit(self, graphs):
