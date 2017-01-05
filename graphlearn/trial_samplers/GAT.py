@@ -46,7 +46,7 @@ def get_sample_weights(pos, genlist):
             cweight /= 2
 
     res = flatten(reversed(res))
-    res = [1] * len(pos) + res
+    res = [2] * len(pos) + res
     return res
 
 
@@ -55,7 +55,7 @@ def graphs_to_vectors(sampler,graphs):
     decomp=sampler.fit_make_decomposers(graphs)
     return sampler.decomps_to_vectors(decomp)
 
-def sample(sampler, n_iterations= 3, seedgraphs= None ):
+def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None):
 
 
     # fit initial 1 class svm
@@ -102,4 +102,4 @@ def sample(sampler, n_iterations= 3, seedgraphs= None ):
         # save esti
         estimators.append(copy.deepcopy(sampler.estimatorobject.cal_estimator))
 
-    return estimators, constructed_vectors, seed_vectors
+    return estimators, constructed_graphs #, seed_vectors
