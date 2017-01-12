@@ -130,7 +130,7 @@ class TwoClassEstimator:
             random.seed(random_state)
         data=vstack((data_matrix,data_matrix_neg))
         data_y=[1]*data_matrix.shape[0]+[-1]*data_matrix_neg.shape[0]
-        print 'shape:',data.shape
+        #print 'shape:',data.shape
         #self.cal_estimator = SGDClassifier(loss='log', class_weight='balanced') # ballanced will not work :)
         self.cal_estimator = SGDClassifier(loss='log',average=True)
         #self.testimator.fit(data_matrix, data_y)

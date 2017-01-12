@@ -55,7 +55,7 @@ def graphs_to_vectors(sampler,graphs):
     decomp=sampler.fit_make_decomposers(graphs)
     return sampler.decomps_to_vectors(decomp)
 
-def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None):
+def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None, partial_estimator=True):
 
 
     # fit initial 1 class svm
@@ -66,23 +66,30 @@ def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None):
 
 
     # save constructed graphs...
-    constructed_graphs = [[]]
-    constructed_vectors = [[]]
+    constructed_graphs = []
+    constructed_vectors = []
     constructed_graphs.append(flatten(sampler.transform(seedgraphs)))
     constructed_vectors.append(graphs_to_vectors(sampler,constructed_graphs[-1]))
 
     # save estimator
     estimators=[]
-    estimators.append(copy.deepcopy(sampler.estimatorobject))
+    estimators.append(copy.deepcopy(sampler.estimatorobject.cal_estimator))
 
     # prepare 2 class svm
     sampler.estimatorobject = TwoClass(cv=5,recalibrate=True)
     new_decomposers = sampler.fit_make_decomposers(constructed_graphs[-1])
-    sampler.fit_estimator(seed_decomposers, new_decomposers)
+    if partial_estimator:
+        sampler.estimatorobject._partial(sampler.decomps_to_vectors(seed_decomposers),sampler.decomps_to_vectors(new_decomposers))
+    else:
+        sampler.fit_estimator(seed_decomposers, new_decomposers)
 
-    def make_partial_fit_negs(graphs):
-        vectorz= sampler.vectorizer.transform(map( lambda x: x.pre_vectorizer_graph(),sampler.fit_make_decomposers(graphs)))
-        return  vectorz,[-1]*len(graphs)
+    def make_partial_fit_args(graphs):
+        # return X, y
+        # with old and new
+        vectors= sampler.vectorizer.transform(map( lambda x: x.pre_vectorizer_graph(),sampler.fit_make_decomposers(graphs)))
+        X= vstack((vectors, seed_vectors))
+        return  X, [-1]*len(graphs)+[1]*len(seedgraphs)
+
     print 'loopstart'
     for i in range(n_iterations):
         # construct
@@ -93,10 +100,14 @@ def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None):
         #a,b=make_partial_fit_negs(constructed_graphs[-1])
         #sampler.estimatorobject.cal_estimator.partial_fit(a,b, sample_weight=[1]*len(constructed_graphs[-1]))
         # new fit
-
-        weights=get_sample_weights(seedgraphs,constructed_graphs)
-        #print len(weights),seed_vectors.shape, vstack(constructed_vectors).shape, len(flatten(constructed_graphs))
-        sampler.estimatorobject.fit(seed_vectors,vstack(constructed_vectors[1:]),sample_weight=weights)
+        if partial_estimator:
+            X,y =make_partial_fit_args(constructed_graphs[-1])
+            sampler.estimatorobject.cal_estimator.partial_fit(X,y)
+        else:
+            weights=get_sample_weights(seedgraphs,constructed_graphs)
+            #print len(weights),seed_vectors.shape, vstack(constructed_vectors).shape, len(flatten(constructed_graphs))
+            #sampler.estimatorobject.fit(seed_vectors,vstack(constructed_vectors[1:]),sample_weight=weights)
+            sampler.estimatorobject.fit(seed_vectors,vstack(constructed_vectors),sample_weight=weights)
 
 
         # save esti
