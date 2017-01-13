@@ -1,9 +1,91 @@
 import networkx as nx
-from GArDen.compose import Flatten
-from GArDen.decompose import ThresholdedConnectedComponents
 from eden.graph import Vectorizer
-from eden.modifier.graph.structure import contraction
+from eden_extra.modifier.graph.structure import contraction
 from graphlearn.utils import node_operation, remove_eden_annotation , draw
+
+
+from sklearn.base import BaseEstimator, TransformerMixin
+
+class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
+    """ThresholdedConnectedComponents."""
+
+    def __init__(self, attribute='importance', threshold=0, min_size=3, max_size=20,
+                 shrink_graphs=False,
+                 less_then=True, more_than=True):
+        """Construct."""
+        self.attribute = attribute
+        self.threshold = threshold
+        self.min_size = min_size
+        self.less_then = less_then
+        self.more_than = more_than
+        self.max_size = max_size
+        self.shrink_graphs = shrink_graphs
+        self.counter = 0  # this guy looks like hes doing nothing?
+
+    def transform(self, graphs):
+        """Transform."""
+        try:
+            self.counter = 0
+            for graph in graphs:
+                ccomponents = self._extract_ccomponents(
+                    graph,
+                    threshold=self.threshold,
+                    min_size=self.min_size,
+                    max_size=self.max_size)
+                yield ccomponents
+            pass
+        except Exception as e:
+            print ('Failed iteration. Reason: %s' % e)
+            #print ('Exception', exc_info=True)
+
+    def _extract_ccomponents(self, graph, threshold=0, min_size=2, max_size=20):
+        # remove all vertices that have a score less then threshold
+        cc_list = []
+
+        if self.less_then:
+            less_component_graph = graph.copy()
+            for v, d in less_component_graph.nodes_iter(data=True):
+                if d.get(self.attribute, False):
+                    if d[self.attribute] < threshold:
+                        less_component_graph.remove_node(v)
+            for cc in nx.connected_component_subgraphs(less_component_graph):
+                if len(cc) >= min_size and len(cc) <= max_size:
+                    cc_list.append(cc)
+                if len(cc) > max_size and self.shrink_graphs:
+                    cc_list += list(self.enforce_max_size(cc, min_size, max_size))
+
+        # remove all vertices that have a score more then threshold
+        if self.more_than:
+            more_component_graph = graph.copy()
+            for v, d in more_component_graph.nodes_iter(data=True):
+                if d.get(self.attribute, False):
+                    if d[self.attribute] >= threshold:
+                        more_component_graph.remove_node(v)
+
+            for cc in nx.connected_component_subgraphs(more_component_graph):
+                if len(cc) >= min_size and len(cc) <= max_size:
+                    cc_list.append(cc)
+
+                if len(cc) > max_size and self.shrink_graphs:
+                    cc_list += list(self.enforce_max_size(cc, min_size, max_size, choose_cut_node=max))
+
+        return cc_list
+
+    def enforce_max_size(self, graph, min_size, max_size, choose_cut_node=min):
+        # checklist contains graphs that are too large.
+        checklist = [graph]
+        while checklist:
+            # remove lowest scoring node:
+            graph = checklist.pop()
+            scores = [(d[self.attribute], n) for n, d in graph.nodes(data=True)]
+            graph.remove_node(choose_cut_node(scores)[1])
+            # check the resulting components
+            for g in nx.connected_component_subgraphs(graph):
+                if len(g) > max_size:
+                    checklist.append(g)
+                elif len(g) >= min_size:
+                    yield g
+
 
 
 class GraphToAbstractTransformer(object):
@@ -151,13 +233,13 @@ def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimat
 
 
 def standalone_get_subgraphs(inputs, score_attribute, group, threshold, min_size, max_size):
-    flatter = Flatten()
     tcc = ThresholdedConnectedComponents(attribute=score_attribute, more_than=False, shrink_graphs=True,
                                          threshold=threshold,
                                          min_size=min_size,
                                          max_size=max_size)
-    for e in flatter.transform(tcc.transform(inputs)):
-        yield e
+    for graphlist in tcc.transform(inputs):
+        for e in graphlist:
+            yield e
 
 
 

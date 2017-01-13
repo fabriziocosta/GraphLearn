@@ -184,8 +184,19 @@ class OneClassEstimator:
         self.intercept_ = .5  # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
 
     # tricking eden th think i am a normal estimator... hehhehe
-    def decision_function(self, vector):  # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
-        return numpy.array([self.predict_single(sparse) for sparse in vector])
+    #def decision_function(self, vector):  # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
+    #    return numpy.array([self.predict_single(sparse) for sparse in vector])
+    def decision_function(self, vector):
+        # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
+        # ok eden annotate is really broken,... needs more trickery on my part..
+
+
+        # eden will ask (unreasonably) for an intersect array.. .. this hack should work..
+        self.intercept_= self.superesti.intercept_
+
+        # so eden expects a 2d array, but will throw away the lesser values.. so we provide what it wants..
+        answer =  self.superesti.decision_function(vector)
+        return np.vstack((answer, (answer-1))).T
 
     def fit(self, data_matrix, random_state=None):
 
@@ -318,8 +329,19 @@ class ExperimentalOneClassEstimator:
         self.intercept_ = .5  # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
 
     # tricking eden th think i am a normal estimator... hehhehe
-    def decision_function(self, vector):  # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
-        return self.superesti.decision_function(vector)
+    def decision_function(self, vector):
+        # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
+        # ok eden annotate is really broken,... needs more trickery on my part..
+
+
+        # eden will ask (unreasonably) for an intersect array.. .. this hack should work..
+        self.intercept_= self.superesti.intercept_
+
+        # so eden expects a 2d array, but will throw away the lesser values.. so we provide what it wants..
+        answer =  self.superesti.decision_function(vector)
+        return np.vstack((answer, (answer-1))).T
+
+
 
     def fit(self, data_matrix, random_state=None):
 

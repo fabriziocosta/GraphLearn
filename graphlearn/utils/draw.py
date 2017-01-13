@@ -3,8 +3,8 @@ make graphics of any kind ( mostly graphs)
 '''
 
 import pylab as plt
-from eden.util.display import draw_graph_set
-from eden.util.display import draw_graph as eden_draw_graph
+from eden.display import draw_graph_set
+from eden.display import draw_graph as eden_draw_graph
 
 import networkx as nx
 import numpy as np

@@ -38,7 +38,7 @@ pip install git+https://github.com/fabriziocosta/GraphLearn.git --user
 
 ```python
 %matplotlib inline
-from eden.converter.graph.gspan import gspan_to_eden
+from eden.io.gspan import gspan_to_eden
 from itertools import islice
 def get_graphs(dataset_fname='../../toolsdata/bursi.pos.gspan', size=100):
     return  islice(gspan_to_eden(dataset_fname),size)

@@ -3,8 +3,8 @@ decomposer for graphs and their minors.
 extends the cips a normal decomposer is working with by cips that
 take care of the minor graphs.
 '''
-from eden.modifier.graph import vertex_attributes
-from eden.modifier.graph.structure import contraction
+from eden_extra.modifier.graph import vertex_attributes
+from eden_extra.modifier.graph.structure import contraction
 
 import graphlearn.compose
 import graphlearn.decompose as graphtools
@@ -13,7 +13,7 @@ import random
 import logging
 import networkx as nx
 from graphlearn.utils import draw
-import eden.util.display as edraw
+import eden.display as edraw
 import eden
 import traceback
 logger = logging.getLogger(__name__)
@@ -475,6 +475,10 @@ def make_abstract(graph):
 
 def edge_type_in_radius_abstraction(graph):
     '''
+    feature was removed from the eden library as far as i can tell
+    future me: this comment does not make sense, probably i just contract according to surrounding edge labels.
+
+
     # the function needs to set a 'contracted' attribute to each node with a set of vertices that
     # are contracted.
     Parameters
@@ -488,6 +492,7 @@ def edge_type_in_radius_abstraction(graph):
     # annotate in node attribute 'type' the incident edges' labels
     labeled_graph = vertex_attributes.incident_edge_label(
         [graph], level=2, output_attribute='type', separator='.').next()
+
     # do contraction
     contracted_graph = contraction(
         [labeled_graph], contraction_attribute='type', modifiers=[], nesting=False).next()

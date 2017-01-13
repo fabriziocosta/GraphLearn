@@ -3,7 +3,7 @@ sys.path.append("..")
 import matplotlib
 matplotlib.use('Agg')
 
-from eden.converter.graph.gspan import gspan_to_eden
+from eden.io.gspan import gspan_to_eden
 from graphlearn.graphlearn import GraphLearnSampler
 from eden.graph import Vectorizer
 import matplotlib.pyplot as plt

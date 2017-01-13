@@ -1,14 +1,13 @@
 import sys
 sys.path.append("..")
 
-
 import matplotlib
 matplotlib.use('Agg')
 
 
 
 
-from eden.converter.graph.gspan import gspan_to_eden
+from eden.io.gspan import gspan_to_eden
 from graphlearn.graphlearn import GraphLearnSampler
 import itertools
 from eden.graph import Vectorizer
