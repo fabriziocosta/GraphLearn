@@ -114,6 +114,7 @@ class Decomposer(AbstractDecomposer):
         else:
             answer='no graphs in decomposer'
         return answer
+
     def __init__(self, data=[], node_entity_check=lambda x, y: True, nbit=20):
         self._base_graph = data
         self.node_entity_check=node_entity_check

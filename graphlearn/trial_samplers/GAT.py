@@ -1,8 +1,8 @@
 from graphlearn.graphlearn import Sampler
 from graphlearn.estimate import TwoClassEstimator as TwoClass
 import copy
-
-
+import graphlearn.minor.molecule.transform_cycle as mol
+import graphlearn.minor.decompose as decompose
 
 from scipy.sparse import vstack
 
@@ -12,6 +12,10 @@ def get_sampler():
         random_state=None,
         # estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
         # graphtransformer=transform.GraphTransformer(),
+
+        graphtransformer=mol.GraphTransformerCircles(),
+        decomposer = decompose.MinorDecomposer(),
+
         # feasibility_checker=feasibility.FeasibilityChecker(),
         # decomposer=decompose.Decomposer(node_entity_check=lambda x, y:True, nbit=20),
         # grammar=LocalSubstitutableGraphGrammar(radius_list=[0,1], thickness_list=[1,2], min_cip_count=2,min_interface_count=2),
