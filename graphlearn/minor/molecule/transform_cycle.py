@@ -47,7 +47,12 @@ class GraphTransformerCircles(GraphTransformer):
 
 
     def transform(self, inputs):
-        return [(edengraphtools._edge_to_vertex_transform(i),self.abstract(i)) for i in inputs]
+        return   map( self.transform_single, inputs)
+
+    def transform_single(self, graph):
+        product = self.abstract(graph)
+        product.graph['original']= edengraphtools._edge_to_vertex_transform(graph)
+        return product
 
     def abstract(self, graph):
         graph = edengraphtools._edge_to_vertex_transform(graph)

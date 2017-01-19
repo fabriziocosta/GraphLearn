@@ -54,7 +54,7 @@ if __name__ == "__main__":
     args.pop('verbose')
 
     # graphs
-    from eden.converter.graph.gspan import gspan_to_eden
+    from eden.io.gspan import gspan_to_eden
     from itertools import islice
     args['graph_iter'] = islice(gspan_to_eden(args.pop('start_graphs')),args.pop('num_graphs'))
 

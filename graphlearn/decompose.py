@@ -114,6 +114,7 @@ class Decomposer(AbstractDecomposer):
         else:
             answer='no graphs in decomposer'
         return answer
+
     def __init__(self, data=[], node_entity_check=lambda x, y: True, nbit=20):
         self._base_graph = data
         self.node_entity_check=node_entity_check
@@ -246,7 +247,7 @@ def graph_hash(graph, hash_bitmask, node_name_label=None):
 
     # nodes that dont have edges
     if node_name_label is None:
-        z = [graph.node[node_id]['hlabel'][-1] for node_id in all_nodes - visited]
+        z = [graph.node[node_id]['hlabel'] for node_id in all_nodes - visited]
     else:
         z = [graph.node[node_id][node_name_label] for node_id in all_nodes - visited]
     z.sort()
@@ -263,7 +264,7 @@ def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label):
     # l is a list of  hash(label,distance)
     # l=[   func([interfacegraph.node[nid]['intlabel'],dis])  for nid,dis in d.items()]
     if node_name_label is None:
-        l = [interfacegraph.node[nid]['hlabel'][-1] + dis for nid, dis in d.items()]
+        l = [interfacegraph.node[nid]['hlabel'] + dis for nid, dis in d.items()]
     else:
         l = [interfacegraph.node[nid][node_name_label] + dis for nid, dis in d.items()]
     l.sort()
@@ -331,7 +332,7 @@ def extract_core_and_interface(root_node=None, graph=None, radius_list=None, thi
             interface_graph_nodes = [item for x in range(radius_ + 1, radius_ + thickness_ + 1)
                                      for item in node_dict.get(x, [])]
             for inode in interface_graph_nodes:
-                label = master_cip_graph.node[inode]['hlabel'][-1]
+                label = master_cip_graph.node[inode]['hlabel']
                 master_cip_graph.node[inode]['distance_dependent_label'] = label + dist[inode] - radius_
             subgraph = master_cip_graph.subgraph(interface_graph_nodes)
             interface_hash = graph_hash(subgraph,

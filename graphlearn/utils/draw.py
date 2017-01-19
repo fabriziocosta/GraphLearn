@@ -3,13 +3,16 @@ make graphics of any kind ( mostly graphs)
 '''
 
 import pylab as plt
-from eden.util.display import draw_graph_set
+from eden.display import draw_graph_set
+from eden.display import draw_graph as eden_draw_graph
+
 import networkx as nx
 import numpy as np
 from scipy.optimize import curve_fit
 from collections import defaultdict
 import logging
 import copy
+
 logger = logging.getLogger(__name__)
 
 
@@ -167,6 +170,186 @@ def draw_grammar_stats(grammar, size=(10, 4)):
     plot_charts(dp, size=size)
 
 
+def graphlearn_layered1(graphs, **args):
+    '''
+    if there is a graph whose nodes have a layers annotation, use this
+    Args:
+        graphs:
+        **args:
+
+    Returns:
+    '''
+
+    def calc_avg_position(nodelist, posdict):
+        # print 'calc avg pos'
+        if len(nodelist) == 0:
+            print 'bad node list'
+            return (0, 0)
+        xpos = sum([posdict[i][0] for i in nodelist]) / len(nodelist)
+        ypos = sum([posdict[i][1] for i in nodelist]) / len(nodelist)
+        return (xpos, ypos)
+
+    def get_leafes(graph, node):
+        # print 'get leafes %d' % node
+        if graph.node[node].get('contracted', 0) == 0:
+            return [node]
+        nodes = [node]
+        leafes = []
+        while len(nodes) > 0:
+            current = nodes.pop()
+            # contraction also includes edge nodes -> ignore those
+            if current not in graph.nodes():
+                continue
+            if 'contracted' in graph.node[current]:
+                children = list(graph.node[current]['contracted'])
+                nodes += children
+            else:
+                leafes.append(current)
+
+        # print leafes
+        return leafes
+
+    finished_graphs = []
+    poslist = []
+    for graph in graphs:
+        # how many layers are there? also make a list of nodes for each layer
+        nodelayer = defaultdict(list)
+        layercount = -1
+        for n, d in graph.nodes(data=True):
+            layer = d.get('layer', -1)
+            layercount = max(layercount, layer)
+            nodelayer[d['layer']].append(n)
+        if layercount == -1:
+            print "layer annotation missing in graph"
+            break
+
+        # layout layer 0
+        pos = nx.graphviz_layout(graph.subgraph(nodelayer[0]), prog='neato', args="-Gmode=KK")
+
+        # pos attribute loks like this:
+        # pos = {i: (rna_object.get(i).X, rna_object.get(i).Y)
+        #           for i in range(len(graph.graph['structure']))}
+
+
+
+        for layerid in range(1, layercount + 1):
+
+            new_positions = {}
+            # nodes in the layer:
+            nodes = nodelayer[layerid]
+            for node in nodes:
+                nulllayernodes = get_leafes(graph, node)
+                new_positions[node] = calc_avg_position(nulllayernodes, pos)
+
+            # move all the nodes by such and such
+            # nodes in prev layer:
+            moveby_x = max(pos[i][0] for i in nodelayer[layerid - 1]) + 100
+            # moveby_y = max( pos[i][1] for i in nodelayer[layerid-1] ) - 30
+            moveby_y = ((-1) ** layerid) * 30
+            for k, v in new_positions.items():
+                new_positions[k] = (v[0] + moveby_x, v[1] + moveby_y)
+
+            pos.update(new_positions)
+
+        # color dark edged:
+        if False:
+            for node, d in graph.nodes(data=True):
+                if 'contracted' in d:
+                    for other in d['contracted']:
+                        if other in graph.nodes():
+                            graph[node][other]['dark_edge_color'] = d['layer']
+
+        finished_graphs.append(graph)
+        poslist.append(pos)
+
+    # draw
+    args['size_x_to_y_ratio'] = layercount + 1
+    args['pos'] = poslist
+    args['dark_edge_color'] = 'dark_edge_color'
+    graphlearn(finished_graphs, **args)
+
+
+def graphlearn_layered2(graphs, **args):
+    '''
+    this is to draw a graph that has its layers as graph.graph['origial']
+
+    Args:
+        graphs:
+        **args:
+
+    Returns:
+
+    '''
+
+    DEBUG = False
+
+    def calc_avg_position(nodelist, posdict):
+        # print 'calc avg pos'
+        if len(nodelist) == 0:
+            print 'bad node list'
+            return (0, 0)
+        xpos = sum([posdict[i][0] for i in nodelist]) / len(nodelist)
+        ypos = sum([posdict[i][1] for i in nodelist]) / len(nodelist)
+        return (xpos, ypos)
+
+    finished_graphs = []
+    poslist = []
+
+    for graph in graphs:
+
+        # make a list of all the graphs
+        layered_graphs = [graph]
+        while 'original' in graph.graph:
+            layered_graphs.append(graph.graph['original'])
+            graph = graph.graph['original']
+        maxlayers = len(layered_graphs)
+
+        # make the layout for the biggest one :)
+        pos = nx.graphviz_layout(layered_graphs[-1], prog='neato', args="-Gmode=KK")
+        if DEBUG: print 'biggest:', pos
+
+        # pos attribute loks like this:
+        # pos = {i: (rna_object.get(i).X, rna_object.get(i).Y)
+        #           for i in range(len(graph.graph['structure']))}
+
+        for i in range(len(layered_graphs) - 2, -1, -1):
+            new_positions = {}
+            for node in layered_graphs[i].nodes():
+                new_positions[node] = calc_avg_position(layered_graphs[i].node[node].get('contracted', set()), pos)
+            if DEBUG: print 'new posis', new_positions
+            # move all the nodes by such and such
+            # nodes in prev layer:
+            minpos = min([pos[n][0] for n in layered_graphs[i + 1].nodes()])
+            moveby_x = max([pos[n][0] for n in layered_graphs[i + 1].nodes()]) + 200 - minpos
+            #print moveby_x
+            moveby_y = ((-1) ** i) * 30
+            for k, v in new_positions.items():
+                new_positions[k] = (v[0] + moveby_x, v[1] + moveby_y)
+
+            if DEBUG: print 'new posis updated', new_positions
+            pos.update(new_positions)
+
+        g = nx.union_all(layered_graphs)
+        for n, d in g.nodes(data=True):
+            for n2 in d.get('contracted', []):
+                g.add_edge(n, n2, nesting=True, label='')
+        finished_graphs.append(g)
+        poslist.append(pos)
+
+    # draw
+    args['size_x_to_y_ratio'] = maxlayers
+    args['pos'] = poslist
+    args['dark_edge_color'] = 'dark_edge_color'
+    graphlearn(finished_graphs, **args)
+
+
+def graphlearn_dict(dict, **args):
+    # idea is that the values are graphs
+    for k, l in dict.items():
+        print k
+        graphlearn(l[:5], **args)
+
+
 def draw_center(graph, root_node, radius, **args):
     dist = nx.single_source_shortest_path_length(graph, root_node, radius)
     graph.node[root_node]['color'] = 0.5
@@ -181,8 +364,8 @@ def set_ids(graph):
 def graphlearn(graphs,
                size=6,
                font_size=15,
-               #node_size=200,
-               #node_border=False,
+               # node_size=200,
+               # node_border=False,
                show_direction=False,
                abstract_color=None,
                edge_color=None,
@@ -204,6 +387,9 @@ def graphlearn(graphs,
         if vertex_color is None:
             set_colors(graph)
 
+        # if vertex_color_attribute='importance':
+        #    set_colors_importance(graph)
+
         if show_direction:
             for n, d in graph.nodes(data=True):
                 if 'edge' in d:
@@ -219,12 +405,22 @@ def graphlearn(graphs,
 
         if vertex_label == 'id' or args.get("secondary_vertex_label", "no") == 'id':
             set_ids(graph)
-            # now we need to change the attribute
-            # because there is a label collission in json graph saving
-            if vertex_label == 'id':
-                vertex_label = 'id_LABEL'
-            if args.get("secondary_vertex_label", "no") == 'id':
-                args["secondary_vertex_label"] = 'id_LABEL'
+
+        if vertex_label == 'importance' or args.get('secondary_vertex_label', '') == 'importance':
+            for n, d in graph.nodes(data=True):
+                d['importance'] = round(d['importance'], 2)
+
+    # now we need to change the attribute
+    # because there is a label collission in json graph saving
+    if vertex_label == 'id':
+        vertex_label = 'id_LABEL'
+
+    if args.get("secondary_vertex_label", "no") == 'id':
+        args["secondary_vertex_label"] = 'id_LABEL'
+
+    if vertex_label == 'importance' and vertex_color == None:
+        vertex_color = 'importance'
+        args['colormap'] = 'inferno'
 
     if vertex_color is None:
         vertex_color = 'col'
@@ -242,8 +438,8 @@ def graphlearn(graphs,
 
     draw_graph_set(graphs,
                    size=size,
-                   #node_size=node_size,
-                   #node_border=node_border,
+                   # node_size=node_size,
+                   # node_border=node_border,
                    font_size=font_size,
                    edge_color=edge_color,
                    vertex_color=vertex_color,
@@ -315,8 +511,8 @@ def draw_grammar(grammar,
         n_productions = len(grammar)
 
     most_prolific_productions = sorted(
-            [(len(grammar[interface]), interface) for interface in grammar],
-            reverse=True)
+        [(len(grammar[interface]), interface) for interface in grammar],
+        reverse=True)
 
     for i in range(n_productions):
         interface = most_prolific_productions[i][1]

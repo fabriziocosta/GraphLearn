@@ -29,8 +29,6 @@ def select_original_cip( decomposer, sampler):
         cip = cip[0]
 
         # print cip
-
-
         if _accept_original_cip(cip,grammar=sampler.lsgg,orig_cip_max_positives=sampler.orig_cip_max_positives,
                                      orig_cip_min_positives=sampler.orig_cip_min_positives
                                      ,orig_cip_score_tricks=sampler.orig_cip_score_tricks, sampler=sampler):
@@ -150,7 +148,11 @@ def _core_values( cip, core_hashes, graph, sampler):
     if sampler.probabilistic_core_choice:
         for core_hash in core_hashes:
             core_weights.append(sampler.lsgg.frequency[cip.interface_hash][core_hash])
-
+    elif sampler.core_choice_bytrial:
+        core_weights= map( lambda x: sampler.lsgg.productions[cip.interface_hash][x].bytrialscore*100 ,core_hashes)
+        #print '*'*80
+        #print 'cip_select'
+        #print core_weights
     elif sampler.score_core_choice:
         for core_hash in core_hashes:
             core_weights.append(sampler.lsgg.score_core_dict[core_hash])

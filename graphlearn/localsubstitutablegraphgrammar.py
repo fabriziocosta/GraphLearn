@@ -34,14 +34,14 @@ class LocalSubstitutableGraphGrammar(object):
         self.prep_is_outdated = True
         self.productions = {}
 
-
     def preprocessing(self,
                       n_jobs=0,
                       core_size_required=False,
                       probabilistic_core_choice=False,
                       score_cores=False,
                       score_cores_vectorizer=None,
-                      score_cores_estimator=None):
+                      score_cores_estimator=None,
+                      bytrial=False):
         """
         Preprocess need to be done before sampling.
 
@@ -82,11 +82,39 @@ class LocalSubstitutableGraphGrammar(object):
                     score = score_cores_estimator.predict(
                         transformed_graph)  # cal_estimator.predict_proba(transformed_graph)[0, 1]
                     self.score_core_dict[core] = score
-
+        if bytrial:
+            self.bytrial_normalise_all()
 
         self.prep_is_outdated = False
         if n_jobs > 1:
             self._multicore_transform()
+
+    def bytrial_normalise_all(self):
+        for interface_hash,dic in self.productions.items():
+            self.bytrial_normalise_dict(dic,True)
+
+
+    def bytrial_update(self,cip,scorediff):
+
+        interface = self.productions[cip.interface_hash]
+        # prints the status ooo
+        #print map(lambda k: interface[k].bytrialscore,interface.keys())
+
+        score = interface[cip.core_hash].bytrialscore + scorediff
+        interface[cip.core_hash].bytrialscore = max(0,score)
+        self.bytrial_normalise_dict(interface)
+
+
+    def bytrial_normalise_dict(self,dic,usefreq=False):
+        if usefreq:
+            stuff = float( sum([ dic[core].count for core in dic]))
+            for core_hash in dic:
+                dic[core_hash].bytrialscore=dic[core_hash].count/stuff
+        else:
+            stuff = float(sum([ dic[core].bytrialscore for core in dic]))
+            for core_hash in dic:
+                dic[core_hash].bytrialscore= dic[core_hash].bytrialscore/stuff
+
 
     def fit(self, graphmanagerlist, n_jobs=4, batch_size=10):
 
@@ -141,6 +169,7 @@ class LocalSubstitutableGraphGrammar(object):
                     md[k2] = v2
                 shelve[k] = md
             self.productions = shelve
+
 
     def difference(self, other_grammar, substract_cip_count=False):
         """difference between grammars"""
@@ -245,9 +274,11 @@ class LocalSubstitutableGraphGrammar(object):
 
         if core not in self.productions[interface]:
             self.productions[interface][core] = cip
-
         self.productions[interface][core].count += 1
 
+            #print 'cant find '
+            #print self.productions.keys()
+            #print self.productions[interface].keys()
     def _read_single(self, graphs):
         """
             for graph in graphs:

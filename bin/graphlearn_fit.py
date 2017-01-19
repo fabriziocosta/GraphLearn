@@ -64,7 +64,7 @@ if __name__ == "__main__":
         args['estimator']=estimate.TwoClassEstimator( cv=2, n_jobs=-1)
         
     #args for fitting:
-    from eden.converter.graph.gspan import gspan_to_eden
+    from eden.io.gspan import gspan_to_eden
     from itertools import islice
     fitargs={ k:args.pop(k) for k in ['lsgg_include_negatives','grammar_n_jobs','grammar_batch_size']}
 

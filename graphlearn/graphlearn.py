@@ -15,15 +15,18 @@ import logging
 from utils import draw
 import transform
 import decompose
+
 logger = logging.getLogger(__name__)
 import utils.monitor as monitor
 import networkx as nx
 import copy
-from cip_select import  select_original_cip, _select_cips
+from cip_select import select_original_cip, _select_cips
+
+import utils
+
 
 
 class Sampler(object):
-
     def __neg__(self):
         '''
         samplers are connectable via + and - symbols.
@@ -46,7 +49,7 @@ class Sampler(object):
             for spawn in self.spawn_list:
                 spawn._nocopy_negate()
 
-    def __mul__(self,other):
+    def __mul__(self, other):
         '''
         samplers are connectable via + and - symbols.
         mul is currently not supported
@@ -56,16 +59,16 @@ class Sampler(object):
         '''
         # other musst be int oO
         # ==> also apply to its children
-        #if 'multiplier' not in self.__dict__:
+        # if 'multiplier' not in self.__dict__:
         #    self.multiplier=1
-        #self.multiplier*=other
+        # self.multiplier*=other
         raise Exception('multiplication is basically n_steps ooO')
-        #if 'spawn_list' in self.__dict__:
+        # if 'spawn_list' in self.__dict__:
         #    for spawn in self.spawn_list:
         #        spawn.__multi__(other)
-        #return self
+        # return self
 
-    def __sub__(self,other):
+    def __sub__(self, other):
         '''
         samplers are connectable via + and - symbols.
         this takes care of subtraction.
@@ -76,7 +79,7 @@ class Sampler(object):
         duplicate = copy.deepcopy(self)
         return duplicate.__add__(other.__neg__())
 
-    def __add__(self,other):
+    def __add__(self, other):
         '''
         samplers are connectable via + and - symbols.
         this takes care of adding samplers.
@@ -86,7 +89,7 @@ class Sampler(object):
         '''
         duplicate = copy.deepcopy(self)
         if 'spawn_list' not in duplicate.__dict__:
-            duplicate.spawn_list=[]
+            duplicate.spawn_list = []
         duplicate.spawn_list.append(other)
         return duplicate
 
@@ -106,20 +109,24 @@ class Sampler(object):
         self._init_new_params()
         return self
 
-
     def __init__(self,
 
-
-                 vectorizer=Vectorizer(complexity=3),
+                 vectorizer=Vectorizer(complexity=3, n_jobs=1),
                  random_state=None,
                  estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
                  graphtransformer=transform.GraphTransformer(),
                  feasibility_checker=feasibility.FeasibilityChecker(),
                  decomposer=decompose.Decomposer(node_entity_check=lambda x, y: True, nbit=20),
-                 grammar=LocalSubstitutableGraphGrammar(radius_list=[0,1], thickness_list=[1,2], min_cip_count=2,min_interface_count=2),
+                 grammar=LocalSubstitutableGraphGrammar(radius_list=[0, 1],
+                                                        thickness_list=[1, 2],
+                                                        min_cip_count=2,
+                                                        min_interface_count=2),
                  size_diff_core_filter=-1,
-                 probabilistic_core_choice=True,
-                 score_core_choice=False,
+                 core_choice_byfrequency=True,
+                 core_choice_byscore=False,
+                 core_choice_bytrial=False,
+                 core_choice_bytrial_multiplier=1.0,
+
                  size_constrained_core_choice=-1,
                  similarity=-1,
                  n_samples=None,
@@ -197,9 +204,9 @@ class Sampler(object):
         size_diff_core_filter: int
             filters the cores for size before the other core_choices are applied.
             i just hard-filter all the cips whose implantation would result in a graph thats not in +- arg of the seed
-        probabilistic_core_choice : bool
+        core_choice_byfrequency : bool
             cores are chosen according to their frequency in the grammar...
-        score_core_choice : bool
+        core_choice_byscore : bool
             cores are chosen  probabilisticaly according to their score
         size_constrained_core_choice : int
             linear increasing penalty is applied to enforce that the graphs
@@ -266,6 +273,7 @@ class Sampler(object):
         an initialized sampler
 
         '''
+        self.core_choice_bytrial_multiplier=core_choice_bytrial_multiplier
         self.graph_transformer = graphtransformer
         self.feasibility_checker = feasibility_checker
         self.vectorizer = vectorizer
@@ -277,14 +285,15 @@ class Sampler(object):
         self.accept_min_similarity = accept_min_similarity
         self.proposal_probability = proposal_probability
         self.similarity = similarity
-        self.probabilistic_core_choice = probabilistic_core_choice
-        self.n_samples=n_samples
+        self.probabilistic_core_choice = core_choice_byfrequency
+        self.core_choice_bytrial = core_choice_bytrial
+        self.n_samples = n_samples
         self.n_steps = n_steps
         self.quick_skip_orig_cip = quick_skip_orig_cip
         self.n_jobs = n_jobs
         self.orig_cip_max_positives = orig_cip_max_positives
         self.orig_cip_min_positives = orig_cip_min_positives
-        self.size_diff_core_filter=size_diff_core_filter
+        self.size_diff_core_filter = size_diff_core_filter
         # the user doesnt know about edge nodes.. so this needs to be done
         self.improving_threshold_fraction = improving_threshold_fraction
         self.improving_linear_start_fraction = improving_linear_start_fraction
@@ -293,20 +302,19 @@ class Sampler(object):
         self.burnin = burnin
         self.include_seed = include_seed
         self.batch_size = batch_size
-        self.score_core_choice = score_core_choice
+        self.score_core_choice = core_choice_byscore
         self.keep_duplicates = keep_duplicates
-        self.lsgg=grammar
+        self.lsgg = grammar
         self.random_state = random_state
-        self.decomposer=decomposer
+        self.decomposer = decomposer
         self.size_constrained_core_choice = size_constrained_core_choice
 
         # init, since someone might call set_param which might also require a reinit.
         self._init_new_params()
 
-
     def _init_new_params(self):
 
-        self.improving_threshold_absolute=self.n_steps
+        self.improving_threshold_absolute = self.n_steps
         self.improving_linear_start_absolute = 0
 
         self.orig_cip_score_tricks = self.orig_cip_max_positives != 1 or self.orig_cip_min_positives != 0
@@ -321,14 +329,13 @@ class Sampler(object):
         self.improving_penalty_per_step = (1 - self.accept_static_penalty) / float(
             self.improving_threshold_absolute - self.improving_linear_start_absolute)
 
-        if self.probabilistic_core_choice + self.score_core_choice + (self.size_constrained_core_choice > -1) > 1:
+        if self.core_choice_bytrial + self.probabilistic_core_choice + self.score_core_choice + (
+            self.size_constrained_core_choice > -1) > 1:
             raise Exception('choose only one parameter core_choice')
         if self.n_samples:
             self.sampling_interval = int((self.n_steps - self.burnin) / (self.n_samples + self.include_seed - 1))
         else:
             self.sampling_interval = 9999
-
-
 
         logger.debug(serialize_dict(self.__dict__))
 
@@ -336,17 +343,16 @@ class Sampler(object):
             random.seed(self.random_state)
 
 
-
     def _init_grammar_prep(self):
         # adapt grammar to task:
         self.lsgg.preprocessing(n_jobs=self.n_jobs,
-                                core_size_required=(self.size_constrained_core_choice + self.size_diff_core_filter) > -2,
+                                core_size_required=(
+                                                   self.size_constrained_core_choice + self.size_diff_core_filter) > -2,
                                 probabilistic_core_choice=self.probabilistic_core_choice,
                                 score_cores=self.score_core_choice,
                                 score_cores_vectorizer=self.vectorizer,
-                                score_cores_estimator=self.estimatorobject)
-
-
+                                score_cores_estimator=self.estimatorobject,
+                                bytrial=self.core_choice_bytrial)
 
     def set_parmas(self, **params):
         '''
@@ -358,7 +364,6 @@ class Sampler(object):
         '''
         self.__dict__.update(params)
         self._init_new_params()
-
 
     def save(self, file_name):
         self.lsgg._revert_multicore_transform()
@@ -372,42 +377,51 @@ class Sampler(object):
     def grammar(self):
         return self.lsgg
 
-
-    def fit_transformer(self,graphs):
+    def fit_transformer(self, graphs):
         self.graph_transformer.fit(graphs)
 
-    def fit_make_decomposers(self,graphs):
+    def fit_make_decomposers(self, graphs):
         return [self.decomposer.make_new_decomposer(data)
                 for data in self.graph_transformer.transform(graphs)]
 
-    def fit_grammar(self,decomposers,n_jobs=-1, batch_size=10):
+    def fit_grammar(self, decomposers, n_jobs=-1, batch_size=10):
         self.lsgg.fit(decomposers, n_jobs=n_jobs, batch_size=batch_size)
-        #self._init_grammar_prep() cant do it here cuz esti might not be ready
+        # self._init_grammar_prep() cant do it here cuz esti might not be ready
 
-    def fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None):
-        positive = [d.pre_vectorizer_graph() for d in decomposers]
-        if  negative_decomposers==None and regression_targets==None:
-            self.estimatorobject.fit(self.vectorizer.transform(positive),
+
+    def decomps_to_graphs(self,decomposers):
+        return [d.pre_vectorizer_graph() for d in decomposers]
+
+    def decomps_to_vectors(self,decomposers):
+        return self.vectorizer.transform(self.decomps_to_graphs(decomposers))
+
+    def fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None,**args):
+        positive = self.decomps_to_vectors(decomposers)
+        if negative_decomposers == None and regression_targets == None:
+
+            # draw.graphlearn(positive[:5], contract=False)
+            # print positive[0].graph
+            self.estimatorobject.fit(positive,
                                      random_state=self.random_state)
         elif negative_decomposers == None:
             self.estimatorobject = estimate.Regressor()
-            self.estimatorobject.fit(self.vectorizer.transform(positive), regression_targets,
+            self.estimatorobject.fit(positive, regression_targets,
                                      random_state=self.random_state)
         else:
             # twoclass
-            negative = [d.pre_vectorizer_graph() for d in negative_decomposers]
-            self.estimatorobject.fit(self.vectorizer.transform(positive), self.vectorizer.transform(negative),
-                                     random_state=self.random_state)
+            negative = self.decomps_to_vectors(negative_decomposers)#[d.pre_vectorizer_graph() for d in negative_decomposers]
+            self.estimatorobject.fit(positive, negative,
+                                     random_state=self.random_state,**args)
 
-    def fit(self,graphs):
+    def fit(self, graphs):
         decomposers = [self.decomposer.make_new_decomposer(data)
                        for data in self.graph_transformer.fit_transform(graphs)]
         self.fit_grammar(decomposers)
         self.fit_estimator(decomposers)
 
-    def fit_transform(self,graphs):
-        graphs=[g for g in graphs]
-        graphs2=copy.deepcopy(graphs)
+    def fit_transform(self, graphs):
+        graphs = [g for g in graphs]
+        graphs2 = copy.deepcopy(graphs)
         self.fit(graphs)
         for out in self.transform(graphs2):
             yield out
@@ -422,17 +436,16 @@ class Sampler(object):
         -------
             lists of graphs
         '''
-        self._init_grammar_prep() # this has to be here since fittin is now all split up and i cant controll the oder in which things happen
+        self._init_grammar_prep()  # this has to be here since fittin is now all split up and i cant controll the oder in which things happen
 
         if self.n_jobs in [0, 1]:
             for out in self._single_process(graph_iter):
                 yield out
         else:
-            for out in self._multi_process(self.n_jobs,graph_iter):
+            for out in self._multi_process(self.n_jobs, graph_iter):
                 yield out
 
-
-    def _multi_process(self,n_jobs,graph_iter):
+    def _multi_process(self, n_jobs, graph_iter):
         if n_jobs > 1:
             pool = Pool(processes=n_jobs)
         else:
@@ -443,9 +456,9 @@ class Sampler(object):
 
         jobs_done = 0
         for batch in sampled_graphs:
-            for graphlist, moni  in batch:
+            for graphlist, moni in batch:
                 moni = dill.loads(moni)
-                #dill.loads(what[0])
+                # dill.loads(what[0])
                 # print type(graph)
                 # currently formatter only returns one element and thats fine, one day this may be changed
 
@@ -464,16 +477,14 @@ class Sampler(object):
         #                                           _sample_multi,self,n_jobs=n_jobs,batch_size=batch_size):
         #    yield pair
 
-    def _single_process(self,graph_iter):
+    def _single_process(self, graph_iter):
         for graph in graph_iter:
             # sampled_graph = self._sample(graph)
             # yield sampled_graph
             graphlist, monitor = self.transform_single(graph)
-            monitor = dill.dumps(monitor)
+            monitor = dill.loads(monitor)
             for new_graph in self._return_formatter(graphlist, monitor):
                 yield new_graph
-
-
 
     def _return_formatter(self, graphlist, mon):
         '''
@@ -590,7 +601,6 @@ class Sampler(object):
         # and we return a nice graph as well as a dictionary of additional information
         self._sample_path_append(graph_decomposer, force=True)
 
-
         sampling_info = {'score_history': self._score_list,
                          'accept_count': accept_counter,
                          'notes': self._sample_notes}
@@ -666,7 +676,7 @@ class Sampler(object):
         decomposer = self.decomposer.make_new_decomposer(self.graph_transformer.transform([graph])[0])
 
         graph = decomposer.base_graph()
-        if self.size_constrained_core_choice > -1 or self.size_diff_core_filter>-1:
+        if self.size_constrained_core_choice > -1 or self.size_diff_core_filter > -1:
             self.seed_size = len(graph)
         self._score(decomposer)
         self._sample_notes = ''
@@ -707,7 +717,7 @@ class Sampler(object):
         if self.similarity > 0:
             if self.step == 0:
                 self.vectorizer._reference_vec = self.vectorizer._convert_dict_to_sparse_matrix(
-                        self.vectorizer._transform(0, graph.copy()))
+                    self.vectorizer._transform(0, graph.copy()))
             else:
                 similarity = self.vectorizer._similarity(graph, [1])
                 if similarity < self.similarity:
@@ -728,10 +738,10 @@ class Sampler(object):
         """
 
         if 'vectorized_graph' not in decomposer.__dict__:
-            decomposer.vectorized_graph= self.vectorizer.transform([decomposer.pre_vectorizer_graph()])
+            decomposer.vectorized_graph = self.vectorizer.transform([decomposer.pre_vectorizer_graph()])
 
         if '_score' not in decomposer.__dict__:
-            decomposer._score  = self.estimatorobject.predict(decomposer.vectorized_graph)
+            decomposer._score = self.estimatorobject.predict(decomposer.vectorized_graph)
             self.monitorobject.info('score', decomposer._score)
 
         return decomposer._score
@@ -756,8 +766,15 @@ class Sampler(object):
 
         score_ratio = score_graph_new / score_graph_old
 
+        # this is to make sure that the forward and backward prop in the markovchain are similar
         if self.proposal_probability:
             score_ratio *= self.proposal_probability_value
+        # updating the trial core weighting rule
+        if self.core_choice_bytrial:
+            score_diff =( score_graph_new - score_graph_old) / score_graph_old
+            self.lsgg.bytrial_update(self.last_cip, score_diff* self.core_choice_bytrial_multiplier)
+
+
 
         # if the new graph scores higher, the ratio is > 1 and we accept
         if score_ratio > 1.0:
@@ -779,7 +796,6 @@ class Sampler(object):
                 return False
 
             score_ratio = score_ratio - self.accept_static_penalty
-
             # score_ratio is smaller than 1. random.random generates a float between 0 and 1
             # the smaller the score_ratio the smaller the chance of getting accepted.
             accept_decision = (score_ratio > random.random())
@@ -831,10 +847,10 @@ class Sampler(object):
         as soon as we found one replacement that works we are good and return.
         """
 
-        for orig_cip_ctr, original_cip in enumerate(select_original_cip(decomposer,self)):
+        for orig_cip_ctr, original_cip in enumerate(select_original_cip(decomposer, self)):
             # for all cips we are allowed to find in the original graph:
 
-            candidate_cips = _select_cips(original_cip, decomposer,self)
+            candidate_cips = _select_cips(original_cip, decomposer, self)
             for attempt, candidate_cip in enumerate(candidate_cips):
                 # look at all possible replacements
 
@@ -846,7 +862,7 @@ class Sampler(object):
                                          candidate_cip.core_hash))
 
                 new_graph = decomposer.core_substitution(original_cip.graph, candidate_cip.graph)
-
+                self.last_cip=candidate_cip # required for the bytrial flag (adjusts core pick rate by graphscoredelta)
 
                 if self.feasibility_checker.check(new_graph):
                     new_decomposer = self.decomposer.make_new_decomposer(
@@ -856,15 +872,15 @@ class Sampler(object):
                     continue
 
                 if new_decomposer:
-                        self.compute_proposal_probability(decomposer, new_decomposer, original_cip)
+                    self.compute_proposal_probability(decomposer, new_decomposer, original_cip)
 
-                        self._samplelog(
-                            "_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
-                            (self.step, attempt, choices, orig_cip_ctr, decomposer._base_graph.number_of_nodes()))
+                    self._samplelog(
+                        "_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
+                        (self.step, attempt, choices, orig_cip_ctr, decomposer._base_graph.number_of_nodes()))
 
-                        new_decomposer.clean()  # i clean only here because i need the interface mark for reverse_dir_prob
-                        return new_decomposer
-                        # this codeblock successfuly susbstituted a cip, and create a new graphmanager w/o problems
+                    new_decomposer.clean()  # i clean only here because i need the interface mark for reverse_dir_prob
+                    return new_decomposer
+                    # this codeblock successfuly susbstituted a cip, and create a new graphmanager w/o problems
 
                 if self.quick_skip_orig_cip:
                     break
@@ -924,8 +940,6 @@ class Sampler(object):
             value = float(v1) / v2
             self.proposal_probability_value = value
             self._samplelog('reverse_direction_modifier: %f' % value, level=5)
-
-
 
 
 def _sample_multi(what):
