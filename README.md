@@ -91,6 +91,7 @@ git clone https://github.com/fabriziocosta/GraphLearn
 git clone https://github.com/smautner/Generative_Adversarial_Graphlearn
 cd ..
 mkdir EDEN 
+cd EDEN 
 git clone https://github.com/fabriziocosta/EDeN
 git clone https://github.com/fabriziocosta/eden_chem
 git clone https://github.com/fabriziocosta/eden_extra
