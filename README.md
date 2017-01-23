@@ -71,6 +71,39 @@ for i in range(5):
 ![''](https://raw.githubusercontent.com/smautner/GraphLearn/master/example.png)
 
 
+#### Install 
+
+```bash
+PYTHONPATH=''
+HOMEE='/home/mautner/scratch'
+PYTHONPATH="${PYTHONPATH}:$HOMEE/GRAPHLEARN/GraphLearn"
+PYTHONPATH="${PYTHONPATH}:$HOMEE/EDEN/EDeN"
+PYTHONPATH="${PYTHONPATH}:$HOMEE/EDEN"
+PYTHONPATH="${PYTHONPATH}:$HOMEE/EDEN/eden_chem"
+PYTHONPATH="${PYTHONPATH}:$HOMEE/GRAPHLEARN/LearnedLayer"
+export PYTHONPATH
+```
+
+```bash 
+mkdir GRAPHLEAN 
+cd GRAPHLEARN
+git clone https://github.com/fabriziocosta/GraphLearn
+git clone https://github.com/smautner/Generative_Adversarial_Graphlearn
+cd ..
+mkdir EDEN 
+git clone https://github.com/fabriziocosta/EDeN
+git clone https://github.com/fabriziocosta/eden_chem
+git clone https://github.com/fabriziocosta/eden_extra
+git clone https://github.com/fabriziocosta/eden_rna
+cd .. 
+```
+
+
+
+
+
+
+
 
 
 
