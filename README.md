@@ -85,7 +85,7 @@ export PYTHONPATH
 ```
 
 ```bash 
-mkdir GRAPHLEAN 
+mkdir GRAPHLEARN 
 cd GRAPHLEARN
 git clone https://github.com/fabriziocosta/GraphLearn
 git clone https://github.com/smautner/Generative_Adversarial_Graphlearn
