@@ -25,7 +25,7 @@ def get_sampler():
         core_choice_byscore=False,
         core_choice_bytrial=True,
         core_choice_bytrial_multiplier=1.3,
-        size_diff_core_filter=4,  # BROKEN ?
+        size_diff_core_filter=4,
         burnin=10,
         include_seed=False,
         proposal_probability=False,
