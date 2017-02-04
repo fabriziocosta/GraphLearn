@@ -87,7 +87,8 @@ class LocalSubstitutableGraphGrammar(object):
 
         self.prep_is_outdated = False
         if n_jobs > 1:
-            self._multicore_transform()
+            pass
+            #self._multicore_transform()
 
     def bytrial_normalise_all(self):
         for interface_hash,dic in self.productions.items():
@@ -274,6 +275,7 @@ class LocalSubstitutableGraphGrammar(object):
 
         if core not in self.productions[interface]:
             self.productions[interface][core] = cip
+
         self.productions[interface][core].count += 1
 
             #print 'cant find '

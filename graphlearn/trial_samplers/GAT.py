@@ -3,22 +3,29 @@ from graphlearn.estimate import TwoClassEstimator as TwoClass
 import copy
 import graphlearn.minor.molecule.transform_cycle as mol
 import graphlearn.minor.decompose as decompose
-
+from graphlearn import feasibility
 from scipy.sparse import vstack
+
+from eden.graph import Vectorizer
 
 def get_sampler():
     return Sampler(
+        #USE THIS:
+        #graphtransformer=mol.GraphTransformerCircles(),
+        #decomposer = decompose.MinorDecomposer(),
+
+        # OR THIS:
+        feasibility_checker=feasibility.cycle_feasibility_checker(6),
+
+        #  some default stuff
+        #grammar=LocalSubstitutableGraphGrammar(radius_list=[0,1], thickness_list=[1,2], min_cip_count=2,min_interface_count=2),
         # vectorizer=eden.graph.Vectorizer(complexity=3,n_jobs=2),
-        random_state=None,
         # estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
-        # graphtransformer=transform.GraphTransformer(),
-
-        graphtransformer=mol.GraphTransformerCircles(),
-        decomposer = decompose.MinorDecomposer(),
-
         # feasibility_checker=feasibility.FeasibilityChecker(),
-        # decomposer=decompose.Decomposer(node_entity_check=lambda x, y:True, nbit=20),
-        # grammar=LocalSubstitutableGraphGrammar(radius_list=[0,1], thickness_list=[1,2], min_cip_count=2,min_interface_count=2),
+        #graphtransformer=transform.GraphTransformer(),
+        #decomposer=decompose.Decomposer(node_entity_check=lambda x, y:True, nbit=20),
+        vectorizer=Vectorizer(r=3,d=3),
+        random_state=None,
         n_steps=30,
         n_samples=2,
         core_choice_byfrequency=False,
@@ -32,7 +39,7 @@ def get_sampler():
         improving_threshold_fraction=.5,
         improving_linear_start_fraction=0.0,
         accept_static_penalty=0.0,
-        n_jobs=1,
+        n_jobs=4,
         select_cip_max_tries=100,
         keep_duplicates=False,
         monitor=False)
@@ -44,13 +51,18 @@ def flatten(thing):
 def get_sample_weights(pos, genlist):
     res = []
     cweight = 1.0
+
+    weight_of_pos_instances=0.0
+
     for sublist in reversed(genlist):
         if sublist:
             res.append([cweight] * len(sublist))
+            # this is a little bit like 1+.5+.25+.125 etc
+            weight_of_pos_instances += (float(len(sublist))/len(pos))*cweight
             cweight /= 2
 
     res = flatten(reversed(res))
-    res = [2] * len(pos) + res
+    res = [weight_of_pos_instances] * len(pos) + res
     return res
 
 
@@ -112,7 +124,6 @@ def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None, p
             #print len(weights),seed_vectors.shape, vstack(constructed_vectors).shape, len(flatten(constructed_graphs))
             #sampler.estimatorobject.fit(seed_vectors,vstack(constructed_vectors[1:]),sample_weight=weights)
             sampler.estimatorobject.fit(seed_vectors,vstack(constructed_vectors),sample_weight=weights)
-
 
         # save esti
         estimators.append(copy.deepcopy(sampler.estimatorobject.cal_estimator))

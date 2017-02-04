@@ -106,9 +106,12 @@ def getargz(sampler):
             # 'filter':sampler.node_entity_check
             }
 
-
-def get_cips(graphman, sampler, root, d):
+import draw
+def get_cips(graphman, sampler, root, d, debug=False):
     cips = graphman.rooted_core_interface_pairs(root, **d)
+    if debug:
+        draw.graphlearn([c.graph for c in cips])
+
     res = []
     counter = 0
     for cip in cips:

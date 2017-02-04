@@ -299,7 +299,12 @@ def extract_core_and_interface(root_node=None, graph=None, radius_list=None, thi
     # print root_node,max(radius_list) + max(thickness_list)
     # myutils.display(graph,vertex_label='id',size=15)
 
-    undir_graph = nx.Graph(graph)
+
+    if type(graph) == nx.DiGraph:
+        undir_graph = nx.Graph(graph)
+    else:
+        undir_graph = graph
+
     horizon = max(radius_list) + max(thickness_list)
     dist = nx.single_source_shortest_path_length(undir_graph, root_node, horizon)
 
@@ -341,7 +346,11 @@ def extract_core_and_interface(root_node=None, graph=None, radius_list=None, thi
 
             # get relevant subgraph
             nodes = [node for i in range(radius_ + thickness_ + 1) for node in node_dict[i]]
+
+
+
             cip_graph = master_cip_graph.subgraph(nodes).copy()
+
 
             # marking cores and interfaces in subgraphs
             for i in range(radius_ + 1):

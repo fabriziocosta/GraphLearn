@@ -572,7 +572,12 @@ def contract_edges(original_graph):
                 v = endpoints[1]
             elif len(endpoints) == 1:  # support for digraph
                 u = endpoints[0]
-                v = original_graph.predecessors(n)[0]
+                try:
+                    v = original_graph.predecessors(n)[0]
+                except:
+                    print "ERRO TERRO"
+                    graphlearn(original_graph,contract=False)
+                    continue
             else:
                 print "DRAW:SOMETHING IS WRONG IN CONTRACT EDGES  ends:", len(endpoints), n
                 continue
