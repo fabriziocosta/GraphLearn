@@ -49,7 +49,7 @@ def flatten(thing):
     return [i for e in thing for i in e]
 
 
-def get_sample_weights(pos,genlist):
+def get_sample_weights2(pos,genlist):
 
     res=[]
     for graphs in genlist:
@@ -59,7 +59,7 @@ def get_sample_weights(pos,genlist):
     print res
     return res
 
-def get_sample_weights2(pos, genlist):
+def get_sample_weights(pos, genlist):
     res = []
     cweight = 1.0
 
