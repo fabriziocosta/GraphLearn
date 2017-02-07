@@ -67,7 +67,7 @@ def set_coordinates(chemlist):
             print '''set coordinates failed..'''
 
 
-def draw(graphs, n_graphs_per_line=5, size=250, title_key=None, titles=None, smiles=False):
+def draw(graphs, n_graphs_per_line=3, size=500, title_key=None, titles=None, smiles=False):
     # we want a list of graphs
     if isinstance(graphs, nx.Graph):
         print "give me a list of graphs"

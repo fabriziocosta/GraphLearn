@@ -48,7 +48,18 @@ def get_sampler():
 def flatten(thing):
     return [i for e in thing for i in e]
 
-def get_sample_weights(pos, genlist):
+
+def get_sample_weights(pos,genlist):
+
+    res=[]
+    for graphs in genlist:
+        res+=[-1]*len(graphs)
+
+    res+= [ float(len(res))/len(pos)  ]*len(pos)
+    print res
+    return res
+
+def get_sample_weights2(pos, genlist):
     res = []
     cweight = 1.0
 
@@ -110,6 +121,8 @@ def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None, p
     for i in range(n_iterations):
         # construct
         constructed_graphs.append(flatten(sampler.transform(seedgraphs)))
+        if len(constructed_graphs[-1]) == 0:
+            print "NO GRAPHZ GENERATED,, eden will die soon"
         constructed_vectors.append(graphs_to_vectors(sampler,constructed_graphs[-1]))
 
         # partial fit:
