@@ -139,6 +139,6 @@ def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None, p
 
         # save esti
         estimators.append(copy.deepcopy(sampler.estimatorobject.cal_estimator))
-        print '%d ' % i
+        print '%d ' % i,
 
     return estimators, constructed_graphs #, seed_vectors
