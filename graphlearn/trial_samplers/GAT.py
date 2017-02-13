@@ -39,7 +39,7 @@ def get_sampler():
         improving_threshold_fraction=.5,
         improving_linear_start_fraction=0.0,
         accept_static_penalty=0.0,
-        n_jobs=4,
+        n_jobs=8,
         select_cip_max_tries=100,
         keep_duplicates=False,
         monitor=False)
