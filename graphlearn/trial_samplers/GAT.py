@@ -117,7 +117,6 @@ def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None, p
         X= vstack((vectors, seed_vectors))
         return  X, [-1]*len(graphs)+[1]*len(seedgraphs)
 
-    print 'loopstart'
     for i in range(n_iterations):
         # construct
         constructed_graphs.append(flatten(sampler.transform(seedgraphs)))
@@ -140,5 +139,6 @@ def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None, p
 
         # save esti
         estimators.append(copy.deepcopy(sampler.estimatorobject.cal_estimator))
+        print '%d ' % i
 
     return estimators, constructed_graphs #, seed_vectors
