@@ -161,6 +161,29 @@ def generative_adersarial_training(sampler, n_iterations= 3, seedgraphs= None, p
 ########################################################
 # this is the hack version
 
+def get_sample_weights_HACK(pos,genlist):
+
+    res = []
+    cweight = 1.0
+
+    weight_of_pos_instances=1  # len pos should be len neg... so this should be ok since the calc below does things that way
+
+
+    for sublist in reversed(genlist):
+        if sublist:
+            res.append([cweight] * len(sublist))
+            # this is a little bit like 1+.5+.25+.125 etc
+            weight_of_pos_instances += (float(len(sublist))/len(pos))*cweight
+            cweight /= 2
+
+    res = flatten(reversed(res))
+
+    res = [weight_of_pos_instances] * len(pos) + [1]*len(pos) +res # note: last len pos is actually for the negs
+
+    return res
+
+
+
 
 def generative_adersarial_training_HACK(sampler, n_iterations= 3, seedgraphs= None,neg_vectors=None, partial_estimator=True):
 
@@ -183,7 +206,7 @@ def generative_adersarial_training_HACK(sampler, n_iterations= 3, seedgraphs= No
 
     # save constructed graphs...
     constructed_graphs = []
-    constructed_vectors = []
+    constructed_vectors = [neg_vectors]   # note this .. since i only want the test err this is fine i think...
     constructed_graphs.append(flatten(sampler.transform(seedgraphs)))
     constructed_vectors.append(graphs_to_vectors(sampler,constructed_graphs[-1]))
 
@@ -221,8 +244,8 @@ def generative_adersarial_training_HACK(sampler, n_iterations= 3, seedgraphs= No
             X,y =make_partial_fit_args(constructed_graphs[-1])
             sampler.estimatorobject.cal_estimator.partial_fit(X,y)
         else:
-            weights=get_sample_weights(seedgraphs,constructed_graphs)
-            #print len(weights),seed_vectors.shape, vstack(constructed_vectors).shape, len(flatten(constructed_graphs))
+            weights=get_sample_weights_HACK(seedgraphs, constructed_graphs)
+            #print len(weights),seed_vectors.shape, vstack(constructedvectors).shape, len(flatten(constructed_graphs))
             #sampler.estimatorobject.fit(seed_vectors,vstack(constructed_vectors[1:]),sample_weight=weights)
             sampler.estimatorobject.fit(seed_vectors,vstack(constructed_vectors),sample_weight=weights)
 
