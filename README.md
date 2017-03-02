@@ -73,22 +73,6 @@ for i in range(5):
 
 #### Install 
 
-```bash
-PYTHONPATH="${PYTHONPATH}:$HOME/GRAPHLEARN/GraphLearn"
-PYTHONPATH="${PYTHONPATH}:$HOME/EDEN/EDeN"
-PYTHONPATH="${PYTHONPATH}:$HOME/EDEN"
-PYTHONPATH="${PYTHONPATH}:$HOME/EDEN/eden_chem"
-PYTHONPATH="${PYTHONPATH}:$HOME/GRAPHLEARN/LearnedLayer"
-export PYTHONPATH
-
-#fish: 
-set PYTHONPATH $HOME/GRAPHLEARN/GraphLearn:$PYTHONPATH
-set PYTHONPATH $HOME/EDEN/myeden:$PYTHONPATH 
-set PYTHONPATH $HOME/EDEN:$HOME/EDEN/eden_chem:$PYTHONPATH
-set PYTHONPATH $HOME/GRAPHLEARN/LearnedLayer:$PYTHONPATH
-set -x PYTHONPATH "/usr/lib/python2.7/dist-packages":$PYTHONPATH
-```
-
 ```bash 
 mkdir GRAPHLEARN 
 cd GRAPHLEARN
@@ -103,6 +87,22 @@ git clone https://github.com/fabriziocosta/eden_extra
 git clone https://github.com/fabriziocosta/eden_rna
 cd .. 
 ```
+
+```bash
+#bash:
+PYTHONPATH="${PYTHONPATH}:$HOME/GRAPHLEARN/GraphLearn"
+PYTHONPATH="${PYTHONPATH}:$HOME/EDEN/EDeN"
+PYTHONPATH="${PYTHONPATH}:$HOME/EDEN"
+PYTHONPATH="${PYTHONPATH}:$HOME/EDEN/eden_chem"
+export PYTHONPATH
+
+#fish: 
+set PYTHONPATH $HOME/GRAPHLEARN/GraphLearn:$PYTHONPATH
+set PYTHONPATH $HOME/EDEN/myeden:$PYTHONPATH 
+set PYTHONPATH $HOME/EDEN:$HOME/EDEN/eden_chem:$PYTHONPATH
+set -x PYTHONPATH "/usr/lib/python2.7/dist-packages":$PYTHONPATH
+```
+
 
 
 
