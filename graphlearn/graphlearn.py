@@ -122,7 +122,7 @@ class Sampler(object):
                                                         min_cip_count=2,
                                                         min_interface_count=2),
                  size_diff_core_filter=-1,
-                 core_choice_byfrequency=True,
+                 core_choice_byfrequency=False,
                  core_choice_byscore=False,
                  core_choice_bytrial=False,
                  core_choice_bytrial_multiplier=1.0,
@@ -330,8 +330,14 @@ class Sampler(object):
             self.improving_threshold_absolute - self.improving_linear_start_absolute)
 
         if self.core_choice_bytrial + self.probabilistic_core_choice + self.score_core_choice + (
+                    self.size_constrained_core_choice > -1) == 0:
+            self.probabilistic_core_choice = True
+
+        if self.core_choice_bytrial + self.probabilistic_core_choice + self.score_core_choice + (
             self.size_constrained_core_choice > -1) > 1:
             raise Exception('choose only one parameter core_choice')
+
+
         if self.n_samples:
             self.sampling_interval = int((self.n_steps - self.burnin) / (self.n_samples + self.include_seed - 1))
         else:
