@@ -117,7 +117,9 @@ class LocalSubstitutableGraphGrammar(object):
                 dic[core_hash].bytrialscore= dic[core_hash].bytrialscore/stuff
 
 
-    def fit(self, graphmanagerlist, n_jobs=4, batch_size=10):
+    def fit(self, graphmanagerlist, n_jobs=4, batch_size=10, reinit_productions=True):
+        if reinit_productions:
+            self.productions={}
 
         self.dataset_size = len(graphmanagerlist)
 
