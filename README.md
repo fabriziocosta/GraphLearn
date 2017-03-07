@@ -77,7 +77,6 @@ for i in range(5):
 mkdir GRAPHLEARN 
 cd GRAPHLEARN
 git clone https://github.com/fabriziocosta/GraphLearn
-git clone https://github.com/smautner/Generative_Adversarial_Graphlearn
 cd ..
 mkdir EDEN 
 cd EDEN 
