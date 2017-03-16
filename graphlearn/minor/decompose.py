@@ -111,7 +111,11 @@ class MinorDecomposer(Decomposer):
         try:
             g = nx.union_all(graphs)
         except:
-            draw.graphlearn([graphs], vertex_label='id')
+            draw.graphlearn(graphs, vertex_label='id')
+            # nobody cares... i just need to fix the overlap in ids
+            #import graphlearn.minor.old.rnasampler as egraph
+            #graphs = map (egraph._revert_edge_to_vertex_transform, graphs)
+            #draw.graphlearn(graphs, vertex_label='id', font_size=7)
 
         if nested:
             # edge_nodes -> edges
@@ -177,13 +181,18 @@ class MinorDecomposer(Decomposer):
         # now i want to add the edges of the base graph to the contracted set of the abstract :)
 
 
-        # this code should do this somehow...
-        # TODO work out the details...
+        # SOME TRNASFORMERS (EG RNA) want to do this themselfes also the code below is only for undirected graphs..
+        # sososo
+        if 'contracted' in self._abstract_graph.node[self._abstract_graph.nodes()[0]]:
+
+            #print 'mindecomp _prep_extraction.. skipping contracted buulding ... this should only be the case with rna'
+            return
+
+
+
 
         #  make a dictionary that maps from base_graph_node -> node in contracted graph
         getabstr = {contra: node for node, d in self._abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
-
-
         # so this basically assigns edges in the base_graph to nodes in the abstract graph.
         for n, d in self._base_graph.nodes(data=True):
             if 'edge' in d:
@@ -257,7 +266,10 @@ class MinorDecomposer(Decomposer):
                                nbit=self.nbit, base_thickness_list=self.some_thickness_list,
                                include_base=self.include_base)  # node_entity_check=self.node_entity_check, nbit=self.nbit)
 
-    def rooted_core_interface_pairs(self, root, thickness_list=None, for_base=False, radius_list=[],
+    def rooted_core_interface_pairs(self, root,
+                                    thickness_list=None,
+                                    for_base=False,
+                                    radius_list=[],
                                     base_thickness_list=False):
         '''
              get cips for a root
@@ -270,6 +282,7 @@ class MinorDecomposer(Decomposer):
 
         for_base:bool
             do we want to extract from the base graph?
+            this will produce a normal graphlearn cip without abstract/'coarsening schemes
 
         **args: dict
             everything needed by extract_cips

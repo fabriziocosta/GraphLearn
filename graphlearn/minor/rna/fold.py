@@ -8,8 +8,8 @@ EdenNNF is aligning and then folding
 import os
 import subprocess as sp
 import sklearn
-from eden import path
-from eden.RNA import Vectorizer as EdenRnaVectorizer
+from eden import sequence as eden_sequence
+from eden_rna import RNAFolder
 from graphlearn.minor.rna import write_fasta, _pairs
 
 
@@ -24,7 +24,7 @@ class NearestNeighborFolding(object):
 
     def fit(self, sequencelist):
         self.sequencelist = sequencelist
-        self.vectorizer = path.Vectorizer(nbits=8)
+        self.vectorizer = eden_sequence.Vectorizer(nbits=8)
         data_matrix = self.vectorizer.transform(self.sequencelist)
         self.neigh = sklearn.neighbors.LSHForest()
         # self.neigh =sklearn.neighbors.NearestNeighbors()
@@ -98,7 +98,7 @@ class EdenNNF(NearestNeighborFolding):
 
 
     def fit(self, sequencelist):
-        self.eden_rna_vectorizer = EdenRnaVectorizer(n_neighbors=self.n_neighbors)
+        self.eden_rna_vectorizer = RNAFolder.Vectorizer(n_neighbors=self.n_neighbors)
         self.eden_rna_vectorizer.fit(sequencelist)
 
         # after the initial thing: settting min enery high so we never do mfe

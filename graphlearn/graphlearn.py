@@ -558,7 +558,7 @@ class Sampler(object):
         '''
             we sample a single graph.
             input: a graph
-            output: (sampled_graph,{info dictionary})
+            output: ??
         '''
 
         if graph is None:
