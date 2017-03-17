@@ -1,7 +1,6 @@
 '''
 OneClassEstimator
 '''
-from eden.util import fit_estimator as eden_fit_estimator
 import numpy
 from sklearn.calibration import CalibratedClassifierCV
 from scipy.sparse import vstack
@@ -12,6 +11,14 @@ from utils import hash_eden_vector as hashvec
 import numpy as np
 
 # Train the model using the training sets
+
+
+
+def simple_fit_estimator(esti, pos, neg):
+    y=np.array([1]*pos.shape[0] + [-1]*neg.shape[0])
+    matrix = vstack([pos,neg], format="csr")
+    esti.fit(matrix,y)
+    return esti
 
 
 
@@ -89,12 +96,9 @@ class TwoClassEstimator:
             if e in vectwo:
                 print 'same instances in pos/neg set.....(graphlearn/estimator/twoclass)'
 
-        self.estimator = eden_fit_estimator(self.classifier, positive_data_matrix=data_matrix,
-                                            negative_data_matrix=data_matrix_neg,
-                                            cv=self.cv,
-                                            n_jobs=self.n_jobs,
-                                            n_iter_search=10,
-                                            random_state=random_state)
+        self.estimator = simple_fit_estimator(self.classifier, data_matrix,
+                                              data_matrix_neg)
+
         self.cal_estimator = self.estimator
         self.status = 'trained'
         return self
@@ -249,12 +253,10 @@ class OneClassEstimator:
         data_matrix_neg = data_matrix.multiply(-1)
         # i hope loss is log.. not 100% sure..
         # probably calibration will fix this#
-        return eden_fit_estimator(self.classifier, positive_data_matrix=data_matrix,
-                                  negative_data_matrix=data_matrix_neg,
-                                  cv=cv,
-                                  n_jobs=n_jobs,
-                                  n_iter_search=10,
-                                  random_state=random_state)
+        return simple_fit_estimator(self.classifier, data_matrix,
+                                    data_matrix_neg)
+
+
 
     def move_bias(self, data_matrix, estimator=None, nu=.5, cv=2):
         '''
@@ -394,12 +396,7 @@ class ExperimentalOneClassEstimator:
         data_matrix_neg = data_matrix.multiply(-1)
         # i hope loss is log.. not 100% sure..
         # probably calibration will fix this#
-        return eden_fit_estimator(self.classifier, positive_data_matrix=data_matrix,
-                                  negative_data_matrix=data_matrix_neg,
-                                  cv=cv,
-                                  n_jobs=n_jobs,
-                                  n_iter_search=10,
-                                  random_state=random_state)
+        return simple_fit_estimator(self.classifier, data_matrix, data_matrix_neg)
 
     def move_bias(self, data_matrix, estimator=None, nu=.5, cv=2):
         '''
