@@ -14,7 +14,7 @@ from eden.graph import _edge_to_vertex_transform
 
 
 class GraphTransformerForgi(GraphTransformer):
-    def __init__(self):
+    def __init__(self,fold_only=False):
 
 
         '''
@@ -32,7 +32,7 @@ class GraphTransformerForgi(GraphTransformer):
         -------
 
         '''
-
+        self.fold_only = fold_only
 
     def fit(self, inputs, vectorizer=Vectorizer()):
         # mmmm earlier graphlearn was exprected to pass its vectorizer..
@@ -157,7 +157,10 @@ class GraphTransformerForgi(GraphTransformer):
             base_graph.graph['energy'] = energy
             base_graph.graph['sequence'] = sequence
             base_graph.graph['structure'] = structure
-            result.append(self.abstract_graph(base_graph))
+            if self.fold_only:
+                result.append(base_graph)
+            else:
+                result.append(self.abstract_graph(base_graph))
 
             # result.append(
             #       (sequence, structure, base_graph, self.abstract_graph(base_graph))
