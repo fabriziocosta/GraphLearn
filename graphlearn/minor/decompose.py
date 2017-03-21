@@ -183,8 +183,7 @@ class MinorDecomposer(Decomposer):
 
         # SOME TRNASFORMERS (EG RNA) want to do this themselfes also the code below is only for undirected graphs..
         # sososo
-        if 'contracted' in self._abstract_graph.node[self._abstract_graph.nodes()[0]]:
-
+        if not self.calc_contracted_edge_nodes:
             #print 'mindecomp _prep_extraction.. skipping contracted buulding ... this should only be the case with rna'
             return
 
@@ -216,10 +215,18 @@ class MinorDecomposer(Decomposer):
     def __init__(self, graph=None,
                  node_entity_check=lambda x, y: True,
                  nbit=20, base_thickness_list=[2],
+                 calc_contracted_edge_nodes=True,
+
                  include_base=False):
         '''
         Parameters
         ----------
+        calc_contracted_edge_nodes:
+            we get an abstract and a base graph from the transformer.
+            if calc conc edge node is true we look at the edges of the edge-to-vertex
+            transformed abstract graph. and find the corresponding nodes in the base_graphs to write them
+            in the contracted set.
+            
         graph: nx.graph
             the graph is the minor graph. it has a .graph['original'] set.
         node_entity_check
@@ -230,7 +237,7 @@ class MinorDecomposer(Decomposer):
 
         # print "asd",data
         self.some_thickness_list = base_thickness_list
-
+        self.calc_contracted_edge_nodes= calc_contracted_edge_nodes
         if graph:
             self._unaltered_graph=graph
             try:
@@ -244,7 +251,6 @@ class MinorDecomposer(Decomposer):
                 for e,d in self._abstract_graph.nodes(data=True):
                     print d
 
-                exit()
             #self._base_graph = graph.graph['original'].copy()
             #if len(self._base_graph) > 0:
             #    self._base_graph = edengraphtools._edge_to_vertex_transform(self._base_graph)
@@ -513,7 +519,7 @@ def edge_type_in_radius_abstraction(graph):
 
 
 def extract_cips(node,
-                 graphmanager,
+                 decomposerinstance,
                  base_thickness_list=None,
                  hash_bitmask=None,
                  mod_dict={},
@@ -526,7 +532,7 @@ def extract_cips(node,
     Parameters
     ----------
     node: node in the abstract graph
-    graphmanager
+    decomposerinstance
     base_thickness_list
     hash_bitmask
     mod_dict
@@ -541,8 +547,8 @@ def extract_cips(node,
     #    return []
 
     # PREPARE
-    abstract_graph = graphmanager.abstract_graph()
-    base_graph = graphmanager.base_graph()
+    abstract_graph = decomposerinstance.abstract_graph()
+    base_graph = decomposerinstance.base_graph()
     if 'hlabel' not in abstract_graph.node[abstract_graph.nodes()[0]]:
         edengraphtools._label_preprocessing(abstract_graph)
     if 'hlabel' not in base_graph.node[base_graph.nodes()[0]]:
@@ -643,9 +649,12 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
 
     """
 
-    mergeids = [base_graph_id for radius in range(
-        abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
+    try:
+        mergeids = [base_graph_id for radius in range(
+            abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
                 for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
+    except:
+        draw.graphlearn(abstract_graph, vertex_label='contracted', size=10)
 
     # remove duplicates:
     mergeids = list(set(mergeids))
