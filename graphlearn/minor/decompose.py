@@ -226,7 +226,7 @@ class MinorDecomposer(Decomposer):
             if calc conc edge node is true we look at the edges of the edge-to-vertex
             transformed abstract graph. and find the corresponding nodes in the base_graphs to write them
             in the contracted set.
-            
+
         graph: nx.graph
             the graph is the minor graph. it has a .graph['original'] set.
         node_entity_check
@@ -270,7 +270,7 @@ class MinorDecomposer(Decomposer):
     def make_new_decomposer(self, transformout):
         return MinorDecomposer(transformout, node_entity_check=self.node_entity_check,
                                nbit=self.nbit, base_thickness_list=self.some_thickness_list,
-                               include_base=self.include_base)  # node_entity_check=self.node_entity_check, nbit=self.nbit)
+                               include_base=self.include_base, calc_contracted_edge_nodes=self.calc_contracted_edge_nodes)  # node_entity_check=self.node_entity_check, nbit=self.nbit)
 
     def rooted_core_interface_pairs(self, root,
                                     thickness_list=None,

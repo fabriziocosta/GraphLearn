@@ -107,6 +107,7 @@ class EdenNNF(NearestNeighborFolding):
 
     def transform_single(self, sequence):
         s, neigh = self.eden_rna_vectorizer._compute_neighbors([sequence]).next()
+
         head, seq, stru, en = self.eden_rna_vectorizer._align_sequence_structure(s, neigh, structure_deletions=True)
         # stru = self._clean_structure(seq,stru) # this is a way to limit the deleted bracket count, idea does not work well
         sequence=sequence[1]

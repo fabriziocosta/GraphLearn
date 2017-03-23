@@ -40,6 +40,7 @@ class GraphMinorTransformer(GraphTransformer):
                  # cluster_max_members=-1,
                  group_score_threshold=0.4,
                  debug=False,
+                 debug_rna=False,
                  # subgraph_cluster=,
                  cluster_classifier=ClusterClassifier(debug=False,vectorizer=eden.graph.Vectorizer()),
                  # save_graphclusters=False,
@@ -53,6 +54,7 @@ class GraphMinorTransformer(GraphTransformer):
         self.min_size = group_min_size
         self.score_threshold = group_score_threshold
         self.debug = debug
+        self.debug_rna=debug_rna
         # self.subgraph_cluster=subgraph_cluster
         self.cluster_classifier = cluster_classifier
         # self.save_graphclusters=save_graphclusters
@@ -99,7 +101,10 @@ class GraphMinorTransformer(GraphTransformer):
         # info
         if self.debug:
             print 'minortransform_fit'
-            draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='label')
+            if self.debug_rna:
+                draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='label')
+            else:
+                draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='label')
 
         # annotate graphs and GET SUBGRAPHS
         graphs = self.annotator.fit_transform(graphs, graphs_neg)
@@ -108,7 +113,10 @@ class GraphMinorTransformer(GraphTransformer):
         # info
         if self.debug:
             print 'minortransform_scores'
-            draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='importance')
+            if self.debug_rna:
+                draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='importance')
+            else:
+                draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='importance')
             # vertex_color='importance', colormap='inferno')
 
         subgraphs = list(self.abstractor.get_subgraphs(graphs))
@@ -148,5 +156,8 @@ class GraphMinorTransformer(GraphTransformer):
         result = self.abstractor.transform(graphs)
         if self.debug:
             print 'minortransform  transform. the new layer  '
-            draw.graphlearn(result[:5], contract=False, size=6, vertex_label='contracted')
+            if self.debug_rna:
+                draw.graphlearn(result[:5], contract=False, size=12, vertex_label='contracted' )
+            else:
+                draw.graphlearn(result[:5], contract=False, size=6, vertex_label='contracted' )
         return result

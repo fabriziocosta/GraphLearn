@@ -56,7 +56,8 @@ class RnaDecomposer(MinorDecomposer):
                             output_sequence=self.output_sequence,
                             ignore_internal_loops= self.ignore_internal_loops,
                             pre_vectorizer_rm_f=self.pre_vectorizer_rm_f,
-                            pre_vectorizer_nested=self.pre_vectorizer_nested)
+                            pre_vectorizer_nested=self.pre_vectorizer_nested,
+                             calc_contracted_edge_nodes=self.calc_contracted_edge_nodes)
 
 
     def rooted_core_interface_pairs(self, root,
