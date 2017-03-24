@@ -188,9 +188,6 @@ class MinorDecomposer(Decomposer):
             #print 'mindecomp _prep_extraction.. skipping contracted buulding ... this should only be the case with rna'
             return
 
-
-
-
         #  make a dictionary that maps from base_graph_node -> node in contracted graph
         getabstr = {contra: node for node, d in self._abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
         # so this basically assigns edges in the base_graph to nodes in the abstract graph.
@@ -644,6 +641,9 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
     abstract_graph:  we want the contracted info.. maybe we also find this in the cip.. not sure
     abstract_cip: the abstract cip
 
+    NOTE: the edges in the abstract graph need to point to edges in the basegraph
+
+
     Returns
     -------
         we merge all the nodes in the base_graph, that belong to the core of the abstract_cip
@@ -651,9 +651,9 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
     """
 
     try:
-        mergeids = [base_graph_id for radius in range(
-            abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
-                for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
+        mergeids = [base_graph_id for radius in range(abstract_cip.radius + 1)
+                                     for abstract_node_id in abstract_cip.distance_dict.get(radius)
+                                        for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
     except:
         print 'merge core decomp draws a graph'
         draw.graphlearn(abstract_graph, vertex_label='contracted', size=10)
