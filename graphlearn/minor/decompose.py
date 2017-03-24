@@ -111,6 +111,7 @@ class MinorDecomposer(Decomposer):
         try:
             g = nx.union_all(graphs)
         except:
+            print 'prevec graph'
             draw.graphlearn(graphs, vertex_label='id')
             # nobody cares... i just need to fix the overlap in ids
             #import graphlearn.minor.old.rnasampler as egraph
@@ -654,6 +655,7 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
             abstract_cip.radius + 1) for abstract_node_id in abstract_cip.distance_dict.get(radius)
                 for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
     except:
+        print 'merge core decomp draws a graph'
         draw.graphlearn(abstract_graph, vertex_label='contracted', size=10)
 
     # remove duplicates:
