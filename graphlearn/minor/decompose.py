@@ -188,6 +188,14 @@ class MinorDecomposer(Decomposer):
             #print 'mindecomp _prep_extraction.. skipping contracted buulding ... this should only be the case with rna'
             return
 
+
+        def base_graph_neighbors(n):
+            if type(self._base_graph) == nx.DiGraph:
+                return self._base_graph.neighbors(n)+self._base_graph.predecessors(n)
+            else:
+                return self._base_graph.neighbors(n)
+
+
         #  make a dictionary that maps from base_graph_node -> node in contracted graph
         getabstr = {contra: node for node, d in self._abstract_graph.nodes(data=True) for contra in d.get('contracted', [])}
         # so this basically assigns edges in the base_graph to nodes in the abstract graph.
@@ -195,7 +203,7 @@ class MinorDecomposer(Decomposer):
             if 'edge' in d:
                 # if we have found an edge node...
                 # lets see whos left and right of it:
-                n1, n2 = self._base_graph.neighbors(n)
+                n1, n2 = base_graph_neighbors(n)
                 # case1: ok those belong to the same gang so we most likely also belong there.
                 if getabstr[n1] == getabstr[n2]:
                     self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
