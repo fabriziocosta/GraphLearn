@@ -191,7 +191,7 @@ class MinorDecomposer(Decomposer):
 
         def base_graph_neighbors(n):
             if type(self._base_graph) == nx.DiGraph:
-                return self._base_graph.neighbors(n)+self._base_graph.predecessors(n)
+                return set(self._base_graph.neighbors(n)+self._base_graph.predecessors(n))
             else:
                 return self._base_graph.neighbors(n)
 
