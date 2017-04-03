@@ -115,21 +115,25 @@ import graphlearn.minor.rna as rna
 
 class RNACascade(Cascade):
 
-    def fit(self,sequences):
+    def fit(self, eden_sequences):
         self.NNmodel = EdenNNF(n_neighbors=4)
-        self.NNmodel.fit(sequences)
+        self.NNmodel.fit(eden_sequences)
+
+
+        sequences= [b for a,b in eden_sequences]
         seslist = self.NNmodel.transform(sequences)
 
         return super(self.__class__, self).fit_transform( map(ses_to_graph,seslist) )
 
 
-    def transform(self, sequences_or_graphs,isgraph=True ):
+    def transform(self, eden_sequences_or_graphs,isgraph=True ):
+
 
         def refold(graphs):
             if isgraph:
                 sequences = map(rna.get_sequence,graphs)
             else:
-                sequences=graphs
+                sequences= [b for a,b in graphs]
             seslist=self.NNmodel.transform(sequences)
             return map(ses_to_graph,seslist)
 
@@ -141,7 +145,7 @@ class RNACascade(Cascade):
             graph = nx.convert_node_labels_to_integers(graph,first_label=1000)
             return graph
 
-        undirgraphs =  super(self.__class__, self).transform(refold(sequences_or_graphs))
+        undirgraphs =  super(self.__class__, self).transform(refold(eden_sequences_or_graphs))
 
         return map(postprocess_transformer_out, undirgraphs)
 

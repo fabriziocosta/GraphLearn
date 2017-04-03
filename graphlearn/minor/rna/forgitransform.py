@@ -34,14 +34,14 @@ class GraphTransformerForgi(GraphTransformer):
         '''
         self.fold_only = fold_only
 
-    def fit(self, inputs, vectorizer=Vectorizer()):
+    def fit(self, eden_sequences, vectorizer=Vectorizer()):
         # mmmm earlier graphlearn was exprected to pass its vectorizer..
         """
 
 
         Parameters
         ----------
-        inputs: sequence list
+        eden_sequences: sequence list
         vectorizer: a vectorizer
 
         Returns
@@ -51,25 +51,25 @@ class GraphTransformerForgi(GraphTransformer):
 
         self.vectorizer = vectorizer
         self.NNmodel = EdenNNF(n_neighbors=4)
-        self.NNmodel.fit(inputs)
+        self.NNmodel.fit(eden_sequences)
         return self
 
-    def fit_transform(self, inputs):
+    def fit_transform(self, eden_sequences):
         """
 
         Parameters
         ----------
-        inputs: sequences
+        eden_sequences: sequences
 
         Returns
         -------
         many graphdecomposers
         """
 
-        inputs = list(inputs)
-        self.fit(inputs)
-        inputs = [b for a, b in inputs]
-        return self.transform(inputs)
+        eden_sequences = list(eden_sequences)
+        self.fit(eden_sequences)
+        sequences = [b for a, b in eden_sequences]
+        return self.transform(sequences)
 
     def re_transform_single(self, graph):
         """
@@ -136,20 +136,13 @@ class GraphTransformerForgi(GraphTransformer):
         """
         result = []
         for sequence in sequences:
-
-            # if we eat a tupple, it musst be a (name, sequence) type :)  we only want a sequence
-            if type(sequence) == type(()):
-                logger.warning('YOUR INPUT IS A TUPPLE, GIVE ME A SEQUENCE, SINCERELY -- YOUR RNA PREPROCESSOR')
-
             # get structure
-            structure, energy, sequence = self.NNmodel.transform_single(('fake', sequence))
+            structure, energy, sequence = self.NNmodel.transform_single(sequence)
             # FIXING STRUCTURE
             structure, sequence = fix_structure(structure, sequence)
             if structure == None:
                 result.append(None)
                 continue
-
-
             # built base_graph
             base_graph = eden_rna.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
             base_graph = _edge_to_vertex_transform(base_graph)
