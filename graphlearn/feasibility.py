@@ -55,7 +55,7 @@ class FeasibilityChecker():
                 # we may draw the graph
                 if self.draw_problem and len(graph) > 0:
                     print 'feasibility failed: drawing graph'
-                    draw.graphlearn(graph)
+                    draw.graphlearn(graph, size=10)
                 # and claim unfeasible
                 return False
         # no errors found so we are probably good

@@ -2,7 +2,7 @@ import networkx as nx
 from networkx.algorithms import isomorphism as iso
 import logging
 logger = logging.getLogger(__name__)
-
+from graphlearn import draw
 
 def merge(graph, node, node2):
     '''
@@ -134,6 +134,8 @@ def core_substitution(graph, orig_cip_graph, new_cip_graph):
         # print iso
         # draw.display(orig_cip_graph)
         # draw.display(new_cip_graph)
+        #draw.graphlearn([orig_cip_graph, new_cip_graph],size=10)
+        logger.log(5,"grammar hash collision, discovered in 'core_substution' ")
         return nx.Graph()
 
     # ok we got an isomorphism so lets do the merging
@@ -152,4 +154,6 @@ def core_substitution(graph, orig_cip_graph, new_cip_graph):
             'interface'] = True  # i am marking the interface only for the backflow probability calculation in graphlearn, this is probably deleteable because we also do this in merge, also this line is superlong Ooo
         merge(graph, str(k), '-' + str(v))
     # unionizing killed my labels so we need to relabel
+
+
     return nx.convert_node_labels_to_integers(graph)

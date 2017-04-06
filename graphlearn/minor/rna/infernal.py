@@ -12,6 +12,10 @@ class AbstractSampler(Sampler):
         self._sample_notes += graph._base_graph.graph['sequence'] + "n"
         super(self.__class__, self)._sample_path_append(graph, force=force)
 
+    def fit_transform(self,eden_sequences):
+        self.fit(eden_sequences)
+        sequences = [x for y,x in eden_sequences]
+        return self.transform(sequences)
 
 def infernal_checker(sequence_list, cmfile='rf00005.cm', cmsearchbinarypath='../toolsdata/cmsearch'):
     '''

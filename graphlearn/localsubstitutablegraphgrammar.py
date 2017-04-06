@@ -5,11 +5,8 @@ cips with same interface are grouped together.
 '''
 
 from multiprocessing import Pool, Manager
-from itertools import tee
-import decompose
 import dill
 from eden import grouper
-from eden.graph import Vectorizer
 import logging
 import traceback
 
