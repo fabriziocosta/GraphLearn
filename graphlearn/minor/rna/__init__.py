@@ -150,7 +150,10 @@ def get_start_and_end_node(graph):
 
     # check and return
     if start == -1 or end == -1:
+        #import graphlearn.utils.draw as draw
+        #draw.graphlearn(graph)
         raise Exception('your beautiful "rna" has no clear start or end')
+
     return start, end
 
 

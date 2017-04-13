@@ -36,7 +36,7 @@ def select_original_cip( decomposer, sampler):
         else:
             failcount += 1
 
-        sampler._samplelog(
+    sampler._samplelog(
             'select_cip_for_substitution failed because no suiting interface was found, \
             extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount),level=5)
 

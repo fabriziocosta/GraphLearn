@@ -83,13 +83,13 @@ class GraphTransformerForgi(GraphTransformer):
         graph decomposer
         """
 
+
         try:
             sequence = get_sequence(graph)
-        except:
-            logger.debug('sequenceproblem: this is not an rna (forgitransform)')
-            print "forgitransform re_transform_single problem"
-            import graphlearn.utils.draw as draw
-            draw.graphlearn(graph, size=20)
+        except Exception as exc:
+            logger.debug('sequenceproblem: this is not an rna (forgitransform) %s'% exc)
+            #import graphlearn.utils.draw as draw
+            #draw.graphlearn(graph, size=20)
             return None
 
         sequence = sequence.replace("F", '')

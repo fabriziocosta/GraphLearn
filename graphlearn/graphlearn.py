@@ -894,7 +894,7 @@ class Sampler(object):
                     # we only try one substitution on each original cip.
                     # reason: if the first hit was not replaceable, due to a hash collision, it is faster to
                     # try the next orig cip, than to risk another collision
-            #logger.log(5,'_propose_graph orig_cip# %d cips_tried# %d' % (orig_cip_ctr,attempt) )
+            logger.log(5,'_propose_graph orig_cip# %d cips_tried# %d' % (orig_cip_ctr,attempt) )
 
         #draw.graphlearn(original_cip,self.lsgg.productions[original_cip].vlues())
 
