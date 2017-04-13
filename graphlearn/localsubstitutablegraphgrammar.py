@@ -31,6 +31,18 @@ class LocalSubstitutableGraphGrammar(object):
         self.prep_is_outdated = True
         self.productions = {}
 
+
+    def __str__(self):
+        s=''
+        for k,v in self.__dict__.items():
+            if k != 'productions':
+                s+= "%s %s" % ( k,str(v) )
+            else:
+                s+= "%s %s" % (k,str(len(v)))
+        return s
+
+
+
     def preprocessing(self,
                       n_jobs=0,
                       core_size_required=False,
