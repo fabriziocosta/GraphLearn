@@ -19,64 +19,8 @@ class mywrap(Decomposer):
 # i should use the init_only flag in the sampler for initialisation.
 
 def setparameters(sampler):
-    '''
-    ok,lets set all the options just to make sure we didnt miss any
-    '''
-    '''
-    # note, i just copy pasted  sample of graphlearn.sampler..
-    # this way we are flexible and dont have to think if future changes are incoming
-    probabilistic_core_choice = True
-    score_core_choice = False
-    size_constrained_core_choice = -1
-    size_diff_core_filter=-1
-    similarity = -1
-    n_samples = None
-    proposal_probability = False
-    batch_size = 10
-    target_orig_cip = False
-    quick_skip_orig_cip = False
-    select_cip_max_tries = 20
-    burnin = 0
-    generator_mode = False
-    include_seed = False
-    keep_duplicates = False
-
-    sampler.proposal_probability = proposal_probability
-    sampler.similarity = similarity
-
-    if probabilistic_core_choice + score_core_choice + size_constrained_core_choice == -1 > 1:
-        raise Exception('choose max one cip choice strategy')
-
-    # if n_samples:
-    #    sampler.sampling_interval = int((n_steps - burnin) / (n_samples + omit_seed - 1))
-    # else:
-    #    sampler.sampling_interval = 9999
-
-
-    sampler.quick_skip_orig_cip = quick_skip_orig_cip
-    sampler.target_orig_cip = target_orig_cip
-
-    # the user doesnt know about edge nodes.. so this needs to be done
-    sampler.size_diff_core_filter_max = size_diff_core_filter
-    max_core_size_diff = size_constrained_core_choice * 2
-    sampler.max_core_size_diff = max_core_size_diff
-    sampler.select_cip_max_tries = select_cip_max_tries
-    sampler.burnin = burnin
-    sampler.include_seed = include_seed
-    sampler.batch_size = batch_size
-    sampler.probabilistic_core_choice = probabilistic_core_choice
-    sampler.score_core_choice = score_core_choice
-    sampler.monitor = False
-    sampler.monitors = []
-    sampler.maxbacktrack = 0
-    sampler.keep_duplicates = keep_duplicates
-    sampler.accept_min_similarity = 0.0
-    # adapt grammar to task:
-    sampler.lsgg.preprocessing(4,
-                               max_core_size_diff,
-                               probabilistic_core_choice)
-    '''
     sampler.step = 3  # whatever
+    sampler._init_grammar_prep()
 
 
 # for the easy mode:
