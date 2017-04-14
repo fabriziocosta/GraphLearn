@@ -35,10 +35,11 @@ class LocalSubstitutableGraphGrammar(object):
     def __str__(self):
         s=''
         for k,v in self.__dict__.items():
-            if k != 'productions':
-                s+= "%s %s" % ( k,str(v) )
+
+            if not isinstance(v ,type({})):
+                s+= "%s %s \n" % ( k,str(v) )
             else:
-                s+= "%s %s" % (k,str(len(v)))
+                s+= "%s %s \n" % (k,str(len(v)))
         return s
 
 

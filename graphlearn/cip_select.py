@@ -87,7 +87,7 @@ def _accept_original_cip( cip,grammar=None,
     if len(grammar.productions.get(cip.interface_hash, {})) > 1:
         in_grammar = True
 
-    sampler._samplelog('accept_orig_cip: %r %r' % (score_ok, in_grammar), level=5)
+    sampler._samplelog('accept_orig_cip: scpre:%r inGramar:%r' % (score_ok, in_grammar), level=5)
 
     return in_grammar and score_ok
 
