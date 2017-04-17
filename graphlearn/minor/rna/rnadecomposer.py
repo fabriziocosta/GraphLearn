@@ -24,7 +24,7 @@ last update: 2017-03-15
 import networkx as nx
 from graphlearn.minor.decompose import MinorDecomposer
 from graphlearn.minor.rna import get_sequence
-
+import graphlearn.minor.rna as rna
 
 class RnaDecomposer(MinorDecomposer):
 
@@ -39,6 +39,9 @@ class RnaDecomposer(MinorDecomposer):
         self.ignore_internal_loops = ignore_internal_loops
         self.pre_vectorizer_rm_f=pre_vectorizer_rm_f
         self.pre_vectorizer_nested=pre_vectorizer_nested
+
+
+
 
         super(self.__class__, self).__init__(graph=graph,**kwargs)
 

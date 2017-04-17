@@ -361,6 +361,20 @@ def set_ids(graph):
         d['id_LABEL'] = str(n)
 
 
+def debug(graph,label='label'):
+
+    G=graph.copy()
+    graph_pos = nx.graphviz_layout(G)
+
+    nx.draw_networkx_nodes(G, graph_pos, node_size=400,label=label, node_color='yellow', alpha=0.8)
+    nx.draw_networkx_edges(G, graph_pos, width=2, alpha=0.3, edge_color='green')
+    nx.draw_networkx_labels(G, graph_pos, font_size=12, font_family='sans-serif')
+
+    # show graph
+    plt.show()
+
+
+
 def graphlearn(graphs,
                size=6,
                font_size=15,

@@ -120,8 +120,6 @@ def get_start_and_end_node(graph):
     returns: (id_of_start_node,id_of_endnode)
     '''
 
-
-
     start = -1
     end = -1
     for n, d in graph.nodes_iter(data=True):

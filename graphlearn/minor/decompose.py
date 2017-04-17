@@ -664,7 +664,7 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
                                         for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
     except:
         print 'merge core decomp draws a graph'
-        draw.graphlearn(abstract_graph, vertex_label='contracted', size=10)
+        draw.debug(abstract_graph)
 
     # remove duplicates:
     mergeids = list(set(mergeids))

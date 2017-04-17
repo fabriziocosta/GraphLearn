@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 from eden.sequence import Vectorizer
 
 from eden.graph import _edge_to_vertex_transform
-
+from graphlearn.utils import draw
 
 class GraphTransformerForgi(GraphTransformer):
     def __init__(self,fold_only=False):
@@ -121,6 +121,8 @@ class GraphTransformerForgi(GraphTransformer):
 
 
         completed_abstract_graph.graph['original']=base_graph
+
+        completed_abstract_graph.graph['mod_dict']={0:123, len(base_graph.graph['sequence'])-1:555}
         return completed_abstract_graph
 
 
@@ -146,6 +148,7 @@ class GraphTransformerForgi(GraphTransformer):
                 continue
             # built base_graph
             base_graph = eden_rna.sequence_dotbracket_to_graph(seq_info=sequence, seq_struct=structure)
+
             base_graph = _edge_to_vertex_transform(base_graph)
             base_graph = expanded_rna_graph_to_digraph(base_graph)
             base_graph.graph['energy'] = energy
