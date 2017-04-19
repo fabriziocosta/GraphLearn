@@ -126,6 +126,11 @@ class RNACascade(Cascade):
         return super(self.__class__, self).fit_transform( map(ses_to_graph,seslist) )
 
 
+
+    def re_transform_single(self, thing):
+        return self.transform([thing])[0]
+
+
     def transform(self, eden_sequences_or_graphs,isgraph=True ):
 
 

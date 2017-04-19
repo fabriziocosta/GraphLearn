@@ -40,6 +40,11 @@ def select_original_cip( decomposer, sampler):
             'select_cip_for_substitution failed because no suiting interface was found, \
             extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount),level=5)
 
+    from utils import draw
+
+    draw.debug(decomposer._base_graph, label="label")
+
+
 def _get_original_cip( decomposer,grammar=None):
     '''
     selects a cip to alter in the graph.
