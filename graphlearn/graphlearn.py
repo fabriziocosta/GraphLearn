@@ -2,6 +2,7 @@
 graphsampler, takes graphs in input and generates graphs with similar properties
 '''
 import random
+import time
 import estimate
 import feasibility
 from localsubstitutablegraphgrammar import LocalSubstitutableGraphGrammar
@@ -343,7 +344,7 @@ class Sampler(object):
         else:
             self.sampling_interval = 9999
 
-        logger.debug(serialize_dict(self.__dict__))
+        #logger.debug(serialize_dict(self.__dict__))
 
         if self.random_state is not None:
             random.seed(self.random_state)
@@ -420,10 +421,12 @@ class Sampler(object):
                                      random_state=self.random_state,**args)
 
     def fit(self, graphs):
+        fit_time=time.time()
         decomposers = [self.decomposer.make_new_decomposer(data)
                        for data in self.graph_transformer.fit_transform(graphs)]
         self.fit_grammar(decomposers)
         self.fit_estimator(decomposers)
+        logger.debug('sampler fit time: '+str(time.time()-fit_time) )
 
     def fit_transform(self, graphs):
         graphs = [g for g in graphs]
@@ -459,6 +462,7 @@ class Sampler(object):
             pool = Pool()
 
         sampled_graphs = pool.imap_unordered(_sample_multi, self._make_multi_process_batches(graph_iter))
+        #sampled_graphs = map(_sample_multi, self._make_multi_process_batches(graph_iter))
 
         jobs_done = 0
         for batch in sampled_graphs:
@@ -466,8 +470,8 @@ class Sampler(object):
                 moni = dill.loads(moni)
                 # dill.loads(what[0])
                 # print type(graph)
-                # currently formatter only returns one element and thats fine, one day this may be changed
-
+                # currently formatter only returns one element and thats 
+                #fine, one day this may be changed
                 for new_graph in self._return_formatter(graphlist, moni):
                     yield new_graph
 
@@ -524,9 +528,14 @@ class Sampler(object):
         -------
             yields a batchsize sized problem chunks
         '''
-        s = dill.dumps(self)
+        try:
+            s = dill.dumps(self, byref=False)
+        except Exception as exc:
+            print exc
+            print "dill dump failed in graphlearn.py (dill dies silently sometimes)"
         self.multiprocess_jobcount = 0
         self.multiprocess_all_prepared = False
+
         for e in grouper(problem_iter, self.batch_size):
             # cant just take batch size here because output of nons will be suppressed
             problems = [1 for problem in e if problem != None]
@@ -597,9 +606,9 @@ class Sampler(object):
                 self.step += 1
 
         except Exception as exc:
-            self._samplelog(exc)
-            self._samplelog(traceback.format_exc(10))
-            self._samplelog('_sample stopped at %d out of %d n_steps' % (self.step, self.n_steps))
+            #self._samplelog(exc)
+            self._samplelog(traceback.format_exc(10),level=5)
+            self._samplelog('transform_single stopped at %d out of %d n_steps' % (self.step, self.n_steps))
             self._sample_notes += '\nstopped at step %d' % self.step
 
         self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
@@ -875,15 +884,15 @@ class Sampler(object):
                     new_decomposer = self.decomposer.make_new_decomposer(
                         self.graph_transformer.re_transform_single(new_graph))
                 else:
-                    self._samplelog("feasibility failed")
+                    self._samplelog("feasibility failed",level=5)
                     continue
 
                 if new_decomposer:
                     self.compute_proposal_probability(decomposer, new_decomposer, original_cip)
 
                     self._samplelog(
-                        "_propose_graph: iteration %d ; core %d of %d ; original_cips tried  %d ; size %d" %
-                        (self.step, attempt, choices, orig_cip_ctr, decomposer._base_graph.number_of_nodes()))
+                        "_propose_graph: step %d; core %d/%d; original_cips tried  %d; size %d; last_score %.4f" %
+                        (self.step, attempt, choices, orig_cip_ctr, decomposer._base_graph.number_of_nodes(),decomposer._score) )
 
                     new_decomposer.clean()  # i clean only here because i need the interface mark for reverse_dir_prob
                     return new_decomposer
@@ -958,6 +967,9 @@ def _sample_multi(what):
     graphlist = dill.loads(what[1])
     # if jobsize % batchsize != 0, sample will not give me a tuple,
     # here i filter for these
-    result = [graphlearner.transform_single(g) for g in graphlist]
+    multisampletime=time.time()
+    #result = [graphlearner.transform_single(g) for g in graphlist]
+    result = map(graphlearner.transform_single, graphlist)
+    logger.log(5,'sampled a batch in %.2fs' % (time.time()-multisampletime))
     # print result
     return [e for e in result if type(e) == type(())]

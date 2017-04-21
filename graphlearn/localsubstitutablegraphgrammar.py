@@ -73,8 +73,8 @@ class LocalSubstitutableGraphGrammar(object):
         -------
 
         """
-        logger.debug('preprocessing grammar')
-
+        
+        logger.log(5,'preprocessing grammar')
         if core_size_required:
             if self.prep_is_outdated or 'core_size' not in self.__dict__:
                 self._add_core_size_quicklookup()
@@ -97,8 +97,8 @@ class LocalSubstitutableGraphGrammar(object):
 
         self.prep_is_outdated = False
         if n_jobs > 1:
-            pass
-            #self._multicore_transform()
+            #pass
+            self._multicore_transform()
 
     def bytrial_normalise_all(self):
         for interface_hash,dic in self.productions.items():

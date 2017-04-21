@@ -76,6 +76,8 @@ def get_sequence(digraph):
     '''
     if type(digraph) == str:
         return digraph
+    #from graphlearn.utils import draw
+    #draw.debug(digraph)
     current, end = get_start_and_end_node(digraph)
     seq = digraph.node[current]['label']
     while current != end:

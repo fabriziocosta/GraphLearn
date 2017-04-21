@@ -137,8 +137,8 @@ class MinorDecomposer(Decomposer):
                                 g.add_edge(n, e, nesting=True, label='')
             except:
                 print 'can not build nested graph... input looks like this:'
-                draw.graphlearn(self._unaltered_graph.graph['original'], vertex_label='id', size=15)
-                draw.graphlearn(self._unaltered_graph, vertex_label='contracted', size=15)
+                #draw.graphlearn(self._unaltered_graph.graph['original'], vertex_label='id', size=15)
+                #draw.graphlearn(self._unaltered_graph, vertex_label='contracted', size=15)
 
         # add labels to all edges ( this is needed for eden. .. bu
         # g = fix_graph(g)
@@ -664,7 +664,7 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
                                         for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
     except:
         print 'merge core decomp draws a graph'
-        draw.debug(abstract_graph)
+        #draw.debug(abstract_graph)
 
     # remove duplicates:
     mergeids = list(set(mergeids))

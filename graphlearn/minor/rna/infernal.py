@@ -10,7 +10,8 @@ class AbstractSampler(Sampler):
     def _sample_path_append(self, graph, force=False):
         #self._sample_notes += graph.sequence + "n"
         self._sample_notes += graph._base_graph.graph['sequence'] + "n"
-        super(self.__class__, self)._sample_path_append(graph, force=force)
+        #super(self.__class__, self)._sample_path_append(graph, force=force) 
+        super(AbstractSampler, self)._sample_path_append(graph, force=force)
 
     def fit_transform(self,eden_sequences):
         self.fit(eden_sequences)
