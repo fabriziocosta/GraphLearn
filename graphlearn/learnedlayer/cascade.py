@@ -5,7 +5,7 @@ import eden
 import transform
 from name_subgraphs import ClusterClassifier
 import networkx as nx
-
+import graphlearn.utils as utils
 class Cascade(object):
     def __init__(self,  depth=2,
                         debug=False,
@@ -108,6 +108,11 @@ class Cascade(object):
 
     def re_transform_single(self, graph):
         # the thing has probably expanded edges...
+        
+        #print utils.ascii.nx_to_ascii(graph,xmax=100,ymax=40) 
+        #print "writing graph:%s" % hash(graph)
+        #nx.write_dot(graph,"dump/%s.dot" % hash(graph)) 
+
         thing = eden.graph._revert_edge_to_vertex_transform(graph) 
         return self.transform([graph])[0]
 

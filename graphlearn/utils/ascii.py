@@ -1,14 +1,40 @@
-import math
+import math 
+import networkx as nx
 
+
+colordict={'black':0,'red':1,
+'green':2,
+'yellow':3,
+'blue':4,
+'cyan':6,
+'magenta':5,
+'gray':7}
 
 #http://stackoverflow.com/questions/287871/print-in-terminal-with-colors-using-python
 def color(symbol,col='red'):
-    #return '\x1b[6;30;42m' + 'Success!' + '\x1b[0m'
-    return '\x1b[1;30;48m' + symbol + '\x1b[0m' 
-    #return  '\x1b[%sm %s\x1b[0m' % (symbol, '6;30;42')
+    return '\x1b[1;3%d;48m%s\x1b[0m' % (colordict[col],symbol)
 
-def nx_to_ascii(graph,xmax=80,ymax=20):
-    # ok need coordinates..
+def colorize(symbol,nodecolor,edgecolor,usecolor,colorlabel,node=None):
+    if not usecolor:
+        return symbol
+    if node==None: 
+        # we are in an edge and we need to use color
+        return color(symbol,edgecolor)
+    else:
+        # node 
+        mycolor = nodecolor if colorlabel==None else d.get('colorlabel',nodecolor)
+        return color(symbol,mycolor)
+
+
+def nx_to_ascii(graph,xmax=80,ymax=20,
+        label='label',
+        nodecolor='red',
+        edgecolor='black',
+        edgesymbol='.',
+        usecolors=True,
+        colorlabel=None):
+
+    # ok need coordinates and a canvas
     canvas = [ list(' '*(xmax+1)) for i in range(ymax+1)]
     pos=nx.graphviz_layout(graph,prog='neato')
 
@@ -32,7 +58,7 @@ def nx_to_ascii(graph,xmax=80,ymax=20):
     
         x,y = pos[n]
         for e in symbol:
-            canvas[y][x] = e # need to adress the row first
+            canvas[y][x] = colorize(e,nodecolor,edgecolor,usecolors,colorlabel,node=d) # need to adress the row first
             if x < xmax:
                 x+=1
             else:
@@ -40,21 +66,17 @@ def nx_to_ascii(graph,xmax=80,ymax=20):
 
         
     # draw edges
-    
     for (a,b) in graph.edges():
-        
         ax,ay = pos[a]
         bx,by = pos[b]
-        resolution = int(math.sqrt( (ax-bx)**2+(ay-by)**2) /2)
+        resolution =  max(1,  int(math.sqrt( (ax-bx)**2+(ay-by)**2) /2))
         dx = float((bx-ax))/resolution
         dy = float((by-ay))/resolution
         for step in range(resolution):
             x=int(ax+dx*step)
             y=int(ay+dy*step)
             if canvas[y][x] == ' ':
-                canvas[y][x] = color('.')
-
-    
+                canvas[y][x] = colorize(edgesymbol,nodecolor,edgecolor,usecolors,colorlabel) # need to adress the row first
 
     canvas = '\n'.join( [ ''.join(e) for e in canvas])
     
@@ -70,7 +92,6 @@ def nx_to_ascii(graph,xmax=80,ymax=20):
 
 
 if __name__ == "__main__":
-    import networkx as nx
     graph=nx.path_graph(3)
     stuff = nx_to_ascii(graph)
     print stuff

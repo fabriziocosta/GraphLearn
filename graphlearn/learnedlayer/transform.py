@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 from name_subgraphs import ClusterClassifier
 import abstractor
 import graphlearn.utils.draw as draw
+import graphlearn.utils.ascii as ascii
 from graphlearn.estimate import ExperimentalOneClassEstimator
 from graphlearn.transform import GraphTransformer
 # import graphlearn.utils as utils
