@@ -1,5 +1,12 @@
 import math
 
+
+#http://stackoverflow.com/questions/287871/print-in-terminal-with-colors-using-python
+def color(symbol,col='red'):
+    #return '\x1b[6;30;42m' + 'Success!' + '\x1b[0m'
+    return '\x1b[1;30;48m' + symbol + '\x1b[0m' 
+    #return  '\x1b[%sm %s\x1b[0m' % (symbol, '6;30;42')
+
 def nx_to_ascii(graph,xmax=80,ymax=20):
     # ok need coordinates..
     canvas = [ list(' '*(xmax+1)) for i in range(ymax+1)]
@@ -45,7 +52,7 @@ def nx_to_ascii(graph,xmax=80,ymax=20):
             x=int(ax+dx*step)
             y=int(ay+dy*step)
             if canvas[y][x] == ' ':
-                canvas[y][x] = '.'
+                canvas[y][x] = color('.')
 
     
 
