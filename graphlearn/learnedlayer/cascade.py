@@ -106,7 +106,10 @@ class Cascade(object):
         return supergraph
 
 
-
+    def re_transform_single(self, graph):
+        # the thing has probably expanded edges...
+        thing = eden.graph._revert_edge_to_vertex_transform(graph) 
+        return self.transform([graph])[0]
 
 from graphlearn.minor.rna.fold import EdenNNF
 from eden.graph import _edge_to_vertex_transform

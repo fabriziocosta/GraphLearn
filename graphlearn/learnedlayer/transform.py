@@ -152,7 +152,14 @@ class GraphMinorTransformer(GraphTransformer):
             [(edge_expanded_graph, minor),...]
         '''
 
+
         graphs = self.annotator.transform(graphs)
+
+        #print "I AM HERE LCIK ME"
+        #for gg in graphs: 
+        #    print gg.nodes(data=True)
+        #    draw.debug(gg)
+
         result = self.abstractor.transform(graphs)
         if self.debug:
             print 'minortransform  transform. the new layer  '

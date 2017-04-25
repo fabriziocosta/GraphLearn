@@ -472,6 +472,7 @@ class Sampler(object):
                 # print type(graph)
                 # currently formatter only returns one element and thats 
                 #fine, one day this may be changed
+                
                 for new_graph in self._return_formatter(graphlist, moni):
                     yield new_graph
 

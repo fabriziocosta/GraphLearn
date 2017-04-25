@@ -204,8 +204,12 @@ def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimat
         try:
             data = vectorizer.transform(subgraphs)
         except:
-            print 'name estimation in abstractor draws graph'
-            draw.graphlearn(subgraphs, contract= False)
+            print 'name_estimation learnedlayer abstractor, draw:'
+            #draw.graphlearn(subgraphs, contract= False)
+            for e in subgraphs:
+                e.notes(data=True)
+                draw.debug(e)
+
         clusterids = nameestimator.predict(data)
 
         #for d, g in zip(data, subgraphs):
