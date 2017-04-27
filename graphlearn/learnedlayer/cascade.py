@@ -109,9 +109,10 @@ class Cascade(object):
     def re_transform_single(self, graph):
         # the thing has probably expanded edges...
         
-        #print utils.ascii.nx_to_ascii(graph,xmax=100,ymax=40) 
-        #print "writing graph:%s" % hash(graph)
-        #nx.write_dot(graph,"dump/%s.dot" % hash(graph)) 
+        print utils.ascii.nx_to_ascii(graph,
+                ymax=30,
+                edgesymbol='*',
+                debug="/dev/shm/dump") 
 
         thing = eden.graph._revert_edge_to_vertex_transform(graph) 
         return self.transform([graph])[0]

@@ -27,22 +27,35 @@ def colorize(symbol,nodecolor,edgecolor,usecolor,colorlabel,node=None):
 
 
 def nx_to_ascii(graph,xmax=80,ymax=20,
+        debug=None, 
         label='label',
         nodecolor='red',
         edgecolor='black',
         edgesymbol='.',
         usecolors=True,
         colorlabel=None):
+    '''
+        debug would be a path to the folder where we write the dot file.
+    '''
 
     # ok need coordinates and a canvas
     canvas = [ list(' '*(xmax+1)) for i in range(ymax+1)]
-    pos=nx.graphviz_layout(graph,prog='neato')
+    pos=nx.graphviz_layout(graph,prog='neato', args="-Gratio='2'")
+
+    # alternative way to get pos. for chem graphs.
+    # seems a little bit unnecessary now... maybe ill built it later
+    #import molecule
+    #chem=molecule.nx_to_rdkit(graph)
+    #m.GetConformer().GetAtomPosition(0)
+
 
     # transform coordinates
     weird_maxx = max([x for (x,y) in pos.values()])
     weird_minx = min([x for (x,y) in pos.values()])
     weird_maxy = max([y for (x,y) in pos.values()])
     weird_miny = min([y for (x,y) in pos.values()])
+
+
     xfac= (weird_maxx - weird_minx) / xmax
     yfac= (weird_maxy - weird_miny) / ymax
     for key in pos.keys():
@@ -58,7 +71,11 @@ def nx_to_ascii(graph,xmax=80,ymax=20,
     
         x,y = pos[n]
         for e in symbol:
-            canvas[y][x] = colorize(e,nodecolor,edgecolor,usecolors,colorlabel,node=d) # need to adress the row first
+            try:
+                canvas[y][x] = colorize(e,nodecolor,edgecolor,usecolors,colorlabel,node=d) # need to adress the row first
+            except:
+                print y,x
+                return ''
             if x < xmax:
                 x+=1
             else:
@@ -69,7 +86,7 @@ def nx_to_ascii(graph,xmax=80,ymax=20,
     for (a,b) in graph.edges():
         ax,ay = pos[a]
         bx,by = pos[b]
-        resolution =  max(1,  int(math.sqrt( (ax-bx)**2+(ay-by)**2) /2))
+        resolution =  max(3,  int(math.sqrt( (ax-bx)**2+(ay-by)**2) )) 
         dx = float((bx-ax))/resolution
         dy = float((by-ay))/resolution
         for step in range(resolution):
@@ -79,6 +96,11 @@ def nx_to_ascii(graph,xmax=80,ymax=20,
                 canvas[y][x] = colorize(edgesymbol,nodecolor,edgecolor,usecolors,colorlabel) # need to adress the row first
 
     canvas = '\n'.join( [ ''.join(e) for e in canvas])
+    if debug:
+
+        path= "%s/%s.dot" %(debug, hash(graph))
+        canvas+="\nwriting graph:%s" % path
+        nx.write_dot(graph,path) 
     
     return canvas
    
