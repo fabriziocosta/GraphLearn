@@ -29,6 +29,7 @@ from graphlearn.transform import GraphTransformer
 # import graphlearn.utils as utils
 import eden
 import annotate
+import graphlearn
 
 
 class GraphMinorTransformer(GraphTransformer):
@@ -121,6 +122,11 @@ class GraphMinorTransformer(GraphTransformer):
             # vertex_color='importance', colormap='inferno')
 
         subgraphs = list(self.abstractor.get_subgraphs(graphs))
+        
+        #print "ASDASDAS"
+        #for g in subgraphs:
+        #    print graphlearn.utils.ascii.nx_to_ascii(g)
+
         # if self.num_classes==2:
         #    nusgs = list(self.abstractor.get_subgraphs(graphs_neg))
         #    #draw.graphlearn([nusgs[0],subgraphs[-1]],vertex_label='importance')

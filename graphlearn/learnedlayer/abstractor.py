@@ -3,6 +3,7 @@ from eden.graph import Vectorizer
 from eden_extra.modifier.graph.structure import contraction
 from graphlearn.utils import node_operation, remove_eden_annotation , draw
 from sklearn.base import BaseEstimator, TransformerMixin
+import graphlearn.utils as utils
 
 class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
     """ThresholdedConnectedComponents."""
@@ -207,8 +208,9 @@ def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimat
             print 'name_estimation learnedlayer abstractor, draw:'
             #draw.graphlearn(subgraphs, contract= False)
             for e in subgraphs:
-                e.notes(data=True)
-                draw.debug(e)
+                print utils.ascii.nx_to_ascii(e)
+                print e.nodes(data=True)
+                #draw.debug(e)
 
         clusterids = nameestimator.predict(data)
 

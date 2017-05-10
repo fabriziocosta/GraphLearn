@@ -43,7 +43,6 @@ class Cascade(object):
             self.transformers.append(transformer)
 
     def fit_transform(self, graphs, graphs_neg=[],remove_intermediary_layers=True):
-
         # INIT
         graphs=list(graphs)
         graphs_neg=list(graphs_neg)
@@ -67,6 +66,8 @@ class Cascade(object):
         return self
 
     def transform(self, graphs, remove_intermediary_layers=True):
+        graphs = map(eden.graph._revert_edge_to_vertex_transform,graphs)
+
         for g in graphs:
             g.graph['layer']=0
         for i in range(self.depth):
@@ -78,7 +79,7 @@ class Cascade(object):
         #    return graphs,g2
         #else:
         #    return graphs
-
+        
         return graphs
 
     def  do_remove_intermediary_layers(self, graphs): # transform and remove intermediary layers
@@ -108,11 +109,11 @@ class Cascade(object):
 
     def re_transform_single(self, graph):
         # the thing has probably expanded edges...
-        
-        print utils.ascii.nx_to_ascii(graph,
-                ymax=30,
-                edgesymbol='*',
-                debug="/dev/shm/dump") 
+        #print "cascade retransform single was called with this graph:"
+        #print utils.ascii.nx_to_ascii(graph,
+        #        ymax=30,
+        #        edgesymbol='*',
+        #        debug="/dev/shm/dump") 
 
         thing = eden.graph._revert_edge_to_vertex_transform(graph) 
         return self.transform([graph])[0]

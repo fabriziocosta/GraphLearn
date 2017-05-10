@@ -26,6 +26,7 @@ def colorize(symbol,nodecolor,edgecolor,usecolor,colorlabel,node=None):
         return color(symbol,mycolor)
 
 
+
 def nx_to_ascii(graph,xmax=80,ymax=20,
         debug=None, 
         label='label',
