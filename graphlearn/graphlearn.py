@@ -151,7 +151,8 @@ class Sampler(object):
                  include_seed=False,
                  keep_duplicates=False,
 
-                 monitor=False
+                 monitor=False,
+                 proposed_graphs_per_step = 1
                  ):
 
         '''
@@ -309,6 +310,8 @@ class Sampler(object):
         self.random_state = random_state
         self.decomposer = decomposer
         self.size_constrained_core_choice = size_constrained_core_choice
+        self.proposed_graphs_per_step = proposed_graphs_per_step
+
 
         # init, since someone might call set_param which might also require a reinit.
         self._init_new_params()
@@ -596,7 +599,9 @@ class Sampler(object):
                 # get a proposal for a new graph
                 # keep it if we like it
 
-                candidate_graph_decomposer = self._propose(graph_decomposer)
+                candidate_graph_decomposer = self._choose_proposal(graph_decomposer)
+                        
+
 
                 if self._accept(graph_decomposer, candidate_graph_decomposer):
                     accept_counter += 1
@@ -623,6 +628,17 @@ class Sampler(object):
                          'notes': self._sample_notes}
         self.monitorobject.sampling_info = sampling_info
         return self.sample_path, dill.dumps(self.monitorobject)
+
+
+    def _choose_proposal(self,graph_decomposer):
+       props= [self._propose(graph_decomposer) 
+                        for x in range( self.proposed_graphs_per_step)]
+       scores = map(self._score, props)
+        
+       return props[scores.index( max(scores)  )]
+
+
+
 
     def _score_list_append(self, decomposer):
         '''
