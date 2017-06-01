@@ -1,30 +1,40 @@
 
 
-
+## deps 
+```bash
+# obviously not all are necessary, still leave them here in case ill have to install on a fresh system
 # -y skips the confirmation question
 sudo apt-get -y install python-pip git libfreetype6-dev graphviz libgraphviz-dev  liblapack-dev  liblapack3 libopenblas-base  libopenblas-dev git vim-gtk htop python-rdkit  python-tk  tmux  pandoc
 sudo apt-get -y update
 sudo apt-get -y upgrade
 sudo init 6
+```
 
 
+
+## install graph learn itself
+```bash
 # FISH not required for graphlearn but my clone/makepath script are fish :D
 sudo apt-add-repository ppa:fish-shell/release-2
 sudo apt-get update
 sudo apt-get install fish
-# use the fish script below to clone repos and set pypath 
+use the fish script below to clone repos and set pypath 
+```
 
 
-# PIP packages
+
+
+## PIP packages
+```bash
 pip install -r EDEN/EDeN/requirements.txt  # breaks at some point..
 pip install sklearn requests jupyter toolz dill scipy joblib networkx matplotlib pillow
+```
 
 
 
+## the fish script 
 
-
-
-
+```bash
 #!/usr/bin/fish
 #
 #######################################
@@ -116,4 +126,4 @@ statusall -- status
 commitallpy -- :)
 updateall 
 "
-
+```
