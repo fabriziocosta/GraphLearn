@@ -26,7 +26,7 @@ See [here](https://github.com/fabriziocosta/GraphLearn_examples) for more exampl
 
 ## This is a short introduction on how to use Graphlearn.
 
-
+<!--
 You want to install EDeN first:
 ```python
 pip install git+https://github.com/fabriziocosta/EDeN.git --user
@@ -35,6 +35,7 @@ Then GraphLearn
 ```python
 pip install git+https://github.com/fabriziocosta/GraphLearn.git --user
 ```
+-->
 
 #### Setting up a networkx graph generator
 
@@ -71,39 +72,9 @@ for i in range(5):
 ![''](https://raw.githubusercontent.com/smautner/GraphLearn/master/example.png)
 
 
-#### Install 
+## Install 
 
-```bash 
-mkdir GRAPHLEARN 
-cd GRAPHLEARN
-git clone https://github.com/fabriziocosta/GraphLearn
-cd ..
-mkdir EDEN 
-cd EDEN 
-git clone https://github.com/fabriziocosta/EDeN
-git clone https://github.com/fabriziocosta/eden_chem
-git clone https://github.com/fabriziocosta/eden_extra
-git clone https://github.com/fabriziocosta/eden_rna
-cd .. 
-```
-
-```bash
-#bash:
-PYTHONPATH="${PYTHONPATH}:$HOME/GRAPHLEARN/GraphLearn"
-PYTHONPATH="${PYTHONPATH}:$HOME/EDEN/EDeN"
-PYTHONPATH="${PYTHONPATH}:$HOME/EDEN/eden_extra"
-PYTHONPATH="${PYTHONPATH}:$HOME/EDEN/eden_chem"
-export PYTHONPATH
-```
-
-```bash
-#fish: 
-set PYTHONPATH $HOME/GRAPHLEARN/GraphLearn:$PYTHONPATH
-set PYTHONPATH $HOME/EDEN/eden:$PYTHONPATH 
-set PYTHONPATH $HOME/EDEN:$HOME/EDEN/eden_chem:$PYTHONPATH
-set -x PYTHONPATH "/usr/lib/python2.7/dist-packages":$PYTHONPATH
-```
-
+a complete install guide can be found [here](install.md).
 
 
 
