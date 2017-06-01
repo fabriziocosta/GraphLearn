@@ -18,7 +18,10 @@ Fish not required for graphlearn but my clone/makepath scripts are fish :D
 sudo apt-add-repository ppa:fish-shell/release-2
 sudo apt-get update
 sudo apt-get install fish
-use the fish script below to clone repos and set pypath 
+```
+
+```bash
+Use the fish script below to "getpythonpath"  and "cloneall"
 ```
 
 
