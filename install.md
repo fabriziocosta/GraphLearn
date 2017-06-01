@@ -1,7 +1,7 @@
 
 
 ## Dependencies
-obviously not all are necessary, still leave them here in case ill have to install on a fresh system
+Obviously not all are necessary, still leave them here in case ill have to install on a fresh system
 ```bash
 # -y skips the confirmation question
 sudo apt-get -y install python-pip git libfreetype6-dev graphviz libgraphviz-dev  liblapack-dev  liblapack3 libopenblas-base  libopenblas-dev git vim-gtk htop python-rdkit  python-tk  tmux  pandoc
@@ -13,7 +13,7 @@ sudo init 6
 
 
 ## Install graph learn itself
-FISH not required for graphlearn but my clone/makepath script are fish :D
+Fish not required for graphlearn but my clone/makepath scripts are fish :D
 ```bash
 sudo apt-add-repository ppa:fish-shell/release-2
 sudo apt-get update
