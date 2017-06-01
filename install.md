@@ -35,7 +35,7 @@ pip install sklearn requests jupyter toolz dill scipy joblib networkx matplotlib
 
 
 
-### the fish script mentioned above
+## The Fish Script
 
 ```bash
 #!/usr/bin/fish
