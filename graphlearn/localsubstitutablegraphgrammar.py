@@ -13,7 +13,134 @@ import traceback
 logger = logging.getLogger(__name__)
 
 
-class LocalSubstitutableGraphGrammar(object):
+
+
+class lsgg_basic(object):
+    def __init__(self, radius_list=[0,1], thickness_list=[1,2], min_cip_count=2,min_interface_count=2):
+        self.radius_list = [int(2 * r) for r in radius_list]
+        self.thickness_list = [int(2 * t) for t in thickness_list]
+        self.min_interface_count = min_interface_count
+        self.min_cip_count = min_cip_count
+        self.productions = {}
+    
+    def fit(self, graphmanagerlist, n_jobs=4, batch_size=10, reinit_productions=True):
+        if reinit_productions:
+            self.productions={}
+
+        self.dataset_size = len(graphmanagerlist)
+
+        self._read(graphmanagerlist, n_jobs, batch_size=batch_size)
+        self.clean()
+        dataset_size, interface_counts, core_counts, cip_counts = self.size()
+        logger.debug('#instances: %d  #interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
+                     (dataset_size, interface_counts, core_counts, cip_counts))
+        return self
+        
+    
+    def clean(self):
+        """remove cips and interfaces not been seen enough during grammar creation"""
+        for interface in self.productions.keys():
+            for core in self.productions[interface].keys():
+                if self.productions[interface][core].count < self.min_cip_count:
+                    self.productions[interface].pop(core)
+            if len(self.productions[interface]) < self.min_interface_count:
+                self.productions.pop(interface)
+        self.prep_is_outdated = True
+
+
+    def _read(self, graphs, n_jobs=-1, batch_size=20):
+        """find all posible cips in graph list and add them to the grammar"""
+        if n_jobs == 1:
+            self._read_single(graphs)
+        else:
+            self._read_multi(graphs, n_jobs, batch_size)
+        self.prep_is_outdated = True
+
+    def _add_core_interface_data(self, cip):
+        """add the cip to the grammar"""
+        interface = cip.interface_hash
+        core = cip.core_hash
+
+        if interface not in self.productions:
+            self.productions[interface] = {}
+
+        if core not in self.productions[interface]:
+            self.productions[interface][core] = cip
+
+        self.productions[interface][core].count += 1
+
+            #print 'cant find '
+            #print self.productions.keys()
+            #print self.productions[interface].keys()
+    def _read_single(self, graphs):
+        """
+            for graph in graphs:
+                get cips of graph
+                    put cips into grammar
+        """
+        args = self._get_args()
+        for gr in graphs:
+            problem = [gr] + args
+            for core_interface_data_list in self.get_cip_extractor()(problem):
+                for cip in core_interface_data_list:
+                    self._add_core_interface_data(cip)
+
+    def _read_multi(self, graphs, n_jobs, batch_size):
+        """
+        like read_single but with multiple processes
+        """
+
+        if n_jobs > 1:
+            pool = Pool(processes=n_jobs)
+        else:
+            pool = Pool()
+
+        # extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
+
+        results = pool.imap_unordered(extract_cips,
+                                      self._multi_process_argbuilder(graphs, batch_size=batch_size))
+
+        # the resulting chips can now be put intro the grammar
+        jobs_done = 0
+        for batch in results:
+            for exci in batch:
+                if exci:  # exci might be None because the grouper fills up with empty problems
+                    for exci_result_per_node in exci:
+                        for cip in exci_result_per_node:
+                            self._add_core_interface_data(cip)
+                jobs_done += 1
+                if jobs_done == self.multiprocess_jobcount and self.mp_prepared:
+                    pool.terminate()
+        pool.close()
+        pool.join()
+
+    def _multi_process_argbuilder(self, graphs, batch_size=10):
+
+        args = self._get_args()
+        function = self.get_cip_extractor()
+        self.multiprocess_jobcount = 0
+        self.mp_prepared = False
+        for batch in grouper(graphs, batch_size):
+            self.multiprocess_jobcount += batch_size
+            yield dill.dumps((function, args, batch))
+        self.mp_prepared = True
+
+    '''
+    these 2 let you easily change the cip extraction process...
+
+    the problem was that you needed to overwrite read_single AND read_multi when you wanted to change the cip
+    extractor. :)
+    '''
+
+    def _get_args(self):
+        return [self.radius_list,
+                self.thickness_list]
+
+    def get_cip_extractor(self):
+        return extract_cores_and_interfaces
+
+
+class LocalSubstitutableGraphGrammar(lsgg_basic):
     """
     the grammar.
         can learn from graphs
@@ -127,18 +254,7 @@ class LocalSubstitutableGraphGrammar(object):
                 dic[core_hash].bytrialscore= dic[core_hash].bytrialscore/stuff
 
 
-    def fit(self, graphmanagerlist, n_jobs=4, batch_size=10, reinit_productions=True):
-        if reinit_productions:
-            self.productions={}
 
-        self.dataset_size = len(graphmanagerlist)
-
-        self._read(graphmanagerlist, n_jobs, batch_size=batch_size)
-        self.clean()
-        dataset_size, interface_counts, core_counts, cip_counts = self.size()
-        logger.debug('#instances: %d  #interfaces: %d   #cores: %d   #core-interface-pairs: %d' %
-                     (dataset_size, interface_counts, core_counts, cip_counts))
-        return self
 
     def size(self):
         interface_counts = len(self.productions)
@@ -229,15 +345,7 @@ class LocalSubstitutableGraphGrammar(object):
                 self.productions.pop(interface)
         self.prep_is_outdated = True
 
-    def clean(self):
-        """remove cips and interfaces not been seen enough during grammar creation"""
-        for interface in self.productions.keys():
-            for core in self.productions[interface].keys():
-                if self.productions[interface][core].count < self.min_cip_count:
-                    self.productions[interface].pop(core)
-            if len(self.productions[interface]) < self.min_interface_count:
-                self.productions.pop(interface)
-        self.prep_is_outdated = True
+
 
     def _add_core_size_quicklookup(self):
         """"adds self.core_size{ interface: { core_size:[list of cores] } }"""
@@ -269,96 +377,7 @@ class LocalSubstitutableGraphGrammar(object):
                 core_frequency[hash] = cip.count
             self.frequency[interface] = core_frequency
 
-    def _read(self, graphs, n_jobs=-1, batch_size=20):
-        """find all posible cips in graph list and add them to the grammar"""
-        if n_jobs == 1:
-            self._read_single(graphs)
-        else:
-            self._read_multi(graphs, n_jobs, batch_size)
-        self.prep_is_outdated = True
-
-    def _add_core_interface_data(self, cip):
-        """add the cip to the grammar"""
-        interface = cip.interface_hash
-        core = cip.core_hash
-
-        if interface not in self.productions:
-            self.productions[interface] = {}
-
-        if core not in self.productions[interface]:
-            self.productions[interface][core] = cip
-
-        self.productions[interface][core].count += 1
-
-            #print 'cant find '
-            #print self.productions.keys()
-            #print self.productions[interface].keys()
-    def _read_single(self, graphs):
-        """
-            for graph in graphs:
-                get cips of graph
-                    put cips into grammar
-        """
-        args = self._get_args()
-        for gr in graphs:
-            problem = [gr] + args
-            for core_interface_data_list in self.get_cip_extractor()(problem):
-                for cip in core_interface_data_list:
-                    self._add_core_interface_data(cip)
-
-    def _read_multi(self, graphs, n_jobs, batch_size):
-        """
-        like read_single but with multiple processes
-        """
-
-        if n_jobs > 1:
-            pool = Pool(processes=n_jobs)
-        else:
-            pool = Pool()
-
-        # extract_c_and_i = lambda batch,args: [ extract_cores_and_interfaces(  [y]+args ) for y in batch ]
-
-        results = pool.imap_unordered(extract_cips,
-                                      self._multi_process_argbuilder(graphs, batch_size=batch_size))
-
-        # the resulting chips can now be put intro the grammar
-        jobs_done = 0
-        for batch in results:
-            for exci in batch:
-                if exci:  # exci might be None because the grouper fills up with empty problems
-                    for exci_result_per_node in exci:
-                        for cip in exci_result_per_node:
-                            self._add_core_interface_data(cip)
-                jobs_done += 1
-                if jobs_done == self.multiprocess_jobcount and self.mp_prepared:
-                    pool.terminate()
-        pool.close()
-        pool.join()
-
-    def _multi_process_argbuilder(self, graphs, batch_size=10):
-
-        args = self._get_args()
-        function = self.get_cip_extractor()
-        self.multiprocess_jobcount = 0
-        self.mp_prepared = False
-        for batch in grouper(graphs, batch_size):
-            self.multiprocess_jobcount += batch_size
-            yield dill.dumps((function, args, batch))
-        self.mp_prepared = True
-
-    '''
-    these 2 let you easily change the cip extraction process...
-
-    the problem was that you needed to overwrite read_single AND read_multi when you wanted to change the cip
-    extractor. :)
-    '''
-
-    def _get_args(self):
-        return [self.radius_list,
-                self.thickness_list]
-
-    def get_cip_extractor(self):
-        return extract_cores_and_interfaces
+   
 
 
 '''
