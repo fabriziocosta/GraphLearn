@@ -13,6 +13,14 @@ def suitors(cip,grammar):
     
 
 def getallneighbors(decomposer, grammar): 
+
+
+
+    
+    #self.decomposer.make_new_decomposer(self.graph_transformer.re_transform_single(new_graph))
+    # the above is how gl usually obtains a new deomp.. 
+    # just fyi ... 
+
     orig_cips = decomposer.all_core_interface_pairs(
             radius_list = grammar.radius_list,
             thickness_list=grammar.thickness_list)
