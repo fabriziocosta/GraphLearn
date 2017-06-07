@@ -3,7 +3,7 @@
 # graphlearn_examples/more_examples/neighbors.py 
 
 
-
+import graphlearn.decompose 
 
 def suitors(cip,grammar):
     if cip.interface_hash in grammar.productions:
@@ -11,6 +11,11 @@ def suitors(cip,grammar):
             if other.core_hash != cip.core_hash:
                 yield other
     
+
+def neighbors(graph, grammar):
+    decomp = decompose.Decomposer(data=graph)
+    return getallneighbors(decomp,grammar)
+
 
 def getallneighbors(decomposer, grammar): 
 

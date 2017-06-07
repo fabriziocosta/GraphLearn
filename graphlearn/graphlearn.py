@@ -598,11 +598,7 @@ class Sampler(object):
 
                 # get a proposal for a new graph
                 # keep it if we like it
-
                 candidate_graph_decomposer = self._choose_proposal(graph_decomposer)
-                        
-
-
                 if self._accept(graph_decomposer, candidate_graph_decomposer):
                     accept_counter += 1
                     graph_decomposer = candidate_graph_decomposer

@@ -124,6 +124,8 @@ def _select_cips( cip, decomposer, sampler):
 
     # get values and yield accordingly
     values = _core_values(cip, core_hashes, decomposer.base_graph(), sampler)
+    
+    #print "I AM THE CHIPSELECTOR AND I HAVE %s %s" % (str(core_hashes),str(values))
 
     for core_hash in probabilistic_choice(values, core_hashes):
         # print values,'choose:', values[core_hashes.index(core_hash)]
