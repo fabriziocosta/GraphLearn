@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # from eden.graph import Vectorizer
 from eden import graph as edengraphtools
 import graphlearn.utils as utils
-
+import graphlearn.utils.ascii as ascii
 
 
 
@@ -112,7 +112,8 @@ class MinorDecomposer(Decomposer):
             g = nx.union_all(graphs)
         except:
             print 'prevec graph'
-            draw.graphlearn(graphs, vertex_label='id')
+            print ascii.nx_to_ascii(graph,xmax=30,ymax=15)
+            #draw.graphlearn(graphs, vertex_label='id')
             # nobody cares... i just need to fix the overlap in ids
             #import graphlearn.minor.old.rnasampler as egraph
             #graphs = map (egraph._revert_edge_to_vertex_transform, graphs)

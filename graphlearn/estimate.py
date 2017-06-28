@@ -328,7 +328,7 @@ class ExperimentalOneClassEstimator:
         self.classifier = classifier
         self.inverse_prediction = False
 
-        self.intercept_ = .5  # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
+        #self.intercept_ = .5  # PROJECT PRETEND TO BE UNCALLIBRATED TO TRICK EDEN
 
     # tricking eden th think i am a normal estimator... hehhehe
     def decision_function(self, vector):
@@ -425,6 +425,9 @@ class ExperimentalOneClassEstimator:
             # estimator = CalibratedClassifierCV(estimator, cv=cv, method='sigmoid')
             # estimator = CalibratedClassifierCV(self.testimator, cv=cv, method='sigmoid')
             # estimator.fit(data_matrix, data_y)
+
+            self.intercept_= self.superesti.intercept_
+
         return self.superesti
 
     def predict_single(self, vectorized_graph):

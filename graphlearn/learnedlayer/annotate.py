@@ -75,6 +75,8 @@ def mass_annotate_mp(inputs, vectorizer, score_attribute='importance', estimator
 
     if multi_process == False:
         inputs = filter(lambda v: v is not None, inputs)
+
+
         res = list(vectorizer.annotate(inputs, estimator=estimator))
         #if invert_score:
         #    def f(n,d): d['importance'] = -d['importance']

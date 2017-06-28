@@ -14,20 +14,23 @@ colordict={'black':0,'red':1,
 def color(symbol,col='red'):
     return '\x1b[1;3%d;48m%s\x1b[0m' % (colordict[col],symbol)
 
-def colorize(symbol,nodecolor,edgecolor,usecolor,colorlabel,node=None):
+def colorize(symbol,nodecolor,edgecolor,usecolor,colorlabel,node=False):
     if not usecolor:
         return symbol
-    if node==None: 
+
+    if not node:
         # we are in an edge and we need to use color
         return color(symbol,edgecolor)
     else:
-        # node 
-        mycolor = nodecolor if colorlabel==None else d.get('colorlabel',nodecolor)
+        # node
+        mycolor = nodecolor if colorlabel==None else node.get(colorlabel,nodecolor)
         return color(symbol,mycolor)
 
 
 
-def nx_to_ascii(graph,xmax=80,ymax=20,
+
+
+def nx_to_ascii(graph,xmax=40,ymax=20,
         debug=None, 
         label='label',
         nodecolor='red',
@@ -72,11 +75,8 @@ def nx_to_ascii(graph,xmax=80,ymax=20,
     
         x,y = pos[n]
         for e in symbol:
-            try:
-                canvas[y][x] = colorize(e,nodecolor,edgecolor,usecolors,colorlabel,node=d) # need to adress the row first
-            except:
-                print y,x
-                return ''
+
+            canvas[y][x] = colorize(e,nodecolor,edgecolor,usecolors,colorlabel,node=d) # need to adress the row first
             if x < xmax:
                 x+=1
             else:
@@ -109,7 +109,47 @@ def nx_to_ascii(graph,xmax=80,ymax=20,
 
 
 
+def setcolors(g):
+    for n,d in g.nodes(data=True):
+        if 'core' in d:
+            d['mycolor']='cyan'
+        elif 'interface' in d:
+            d['mycolor'] = 'magenta'
+        elif 'edge' in d:
+            d['mycolor'] = 'blue'
+        else:
+            d.pop('mycolor',None)
+    return g
 
+
+
+def coltext(g,**args):
+    return nx_to_ascii(setcolors(g),usecolors=True, colorlabel='mycolor',**args)
+
+
+def colprint(g,**args):
+    print coltext(g,**args)
+
+
+def contract(graph):
+    import eden.graph as eg
+    graph = eg._revert_edge_to_vertex_transform(graph)
+    return graph
+
+def gprint(graph):
+    print nx_to_ascii(contract(graph), xmax=40, ymax=20,edgecolor='cyan',edgesymbol='.',nodecolor='black')
+
+def transpose(things):
+    return map(list,zip(*things))
+
+
+def printrow(graphs,size=7):
+    g = map(lambda x: coltext(x,xmax=size*2,ymax=size), graphs)
+    g= map( lambda x: x.split("\n") ,g)
+    g=transpose(g)
+    for row in g:
+        print "".join(row)
+    print '\n'
 
 
 

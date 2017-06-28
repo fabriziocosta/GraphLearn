@@ -30,7 +30,7 @@ from graphlearn.transform import GraphTransformer
 import eden
 import annotate
 import graphlearn
-
+import graphlearn.utils.ascii as ascii
 
 class GraphMinorTransformer(GraphTransformer):
     def __init__(self,
@@ -118,11 +118,13 @@ class GraphMinorTransformer(GraphTransformer):
             if self.debug_rna:
                 draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='importance')
             else:
-                draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='importance')
+                #draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='importance')
+                ascii.printrow(graphs[:3],size=14)
+                ascii.printrow(graphs[3:6],size=14)
             # vertex_color='importance', colormap='inferno')
-
         subgraphs = list(self.abstractor.get_subgraphs(graphs))
-        
+        if len(subgraphs) ==0:
+            print "FFFUUUUCCCCKKKK learnedlayer transform py"
         #print "ASDASDAS"
         #for g in subgraphs:
         #    print graphlearn.utils.ascii.nx_to_ascii(g)
@@ -167,11 +169,17 @@ class GraphMinorTransformer(GraphTransformer):
         #    print gg.nodes(data=True)
         #    draw.debug(gg)
 
+        #print 'graphs %d' % len(graphs)
         result = self.abstractor.transform(graphs)
+
+        #print 'res %d' % len(result)
+
+
         if self.debug:
-            print 'minortransform  transform. the new layer  '
-            if self.debug_rna:
-                draw.graphlearn(result[:5], contract=False, size=12, vertex_label='contracted' )
-            else:
-                draw.graphlearn(result[:5], contract=False, size=6, vertex_label='contracted' )
+            pass
+            #print 'minortransform  transform. the new layer  '
+            #if self.debug_rna:
+            #    draw.graphlearn(result[:5], contract=False, size=12, vertex_label='contracted' )
+            #else:
+            #    draw.graphlearn(result[:5], contract=False, size=6, vertex_label='contracted' )
         return result

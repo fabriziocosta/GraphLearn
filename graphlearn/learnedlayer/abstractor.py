@@ -22,20 +22,25 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
         self.counter = 0  # this guy looks like hes doing nothing?
 
     def transform(self, graphs):
-        """Transform."""
-        try:
-            self.counter = 0
-            for graph in graphs:
-                ccomponents = self._extract_ccomponents(
-                    graph,
-                    threshold=self.threshold,
-                    min_size=self.min_size,
-                    max_size=self.max_size)
-                yield ccomponents
-            pass
-        except Exception as e:
-            print ('Failed iteration. Reason: %s' % e)
-            #print ('Exception', exc_info=True)
+        #"""Transform."""
+        #try:
+        self.counter = 0
+        for graph in graphs:
+            ccomponents = self._extract_ccomponents(
+                graph.copy(),
+                threshold=self.threshold,
+                min_size=self.min_size,
+                max_size=self.max_size)
+            yield ccomponents
+        pass
+
+        #except Exception as e:
+        #    print ('Failed iteration. Reason: %s' % e)
+
+
+    def get_attr_from_noded(self,d):
+        return d.get(self.attribute,[False])[0]
+
 
     def _extract_ccomponents(self, graph, threshold=0, min_size=2, max_size=20):
         # remove all vertices that have a score less then threshold
@@ -44,8 +49,8 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
         if self.less_then:
             less_component_graph = graph.copy()
             for v, d in less_component_graph.nodes_iter(data=True):
-                if d.get(self.attribute, False):
-                    if d[self.attribute] < threshold:
+                if self.get_attr_from_noded(d):
+                    if self.get_attr_from_noded(d) < threshold:
                         less_component_graph.remove_node(v)
             for cc in nx.connected_component_subgraphs(less_component_graph):
                 if len(cc) >= min_size and len(cc) <= max_size:
@@ -57,8 +62,8 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
         if self.more_than:
             more_component_graph = graph.copy()
             for v, d in more_component_graph.nodes_iter(data=True):
-                if d.get(self.attribute, False):
-                    if d[self.attribute] >= threshold:
+                if self.get_attr_from_noded(d):
+                    if self.get_attr_from_noded(d) >= threshold:
                         more_component_graph.remove_node(v)
 
             for cc in nx.connected_component_subgraphs(more_component_graph):
@@ -76,7 +81,7 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
         while checklist:
             # remove lowest scoring node:
             graph = checklist.pop()
-            scores = [(d[self.attribute], n) for n, d in graph.nodes(data=True)]
+            scores = [(self.get_attr_from_noded(d), n) for n, d in graph.nodes(data=True)]
             graph.remove_node(choose_cut_node(scores)[1])
             # check the resulting components
             for g in nx.connected_component_subgraphs(graph):
@@ -144,9 +149,16 @@ class GraphToAbstractTransformer(object):
             Use estimator to annotate graph, group important nodes together to induce subgraphs.
             yields subgraphs
         '''
+        res=  list(standalone_get_subgraphs(inputs, self.score_attribute, self.group_attribute, self.score_threshold, self.min_size,
+                                        self.max_size))
+        #while not res:
+        #    print "OHSNAP"
+        #    self.score_threshold*=.9
+        #    res=  list(standalone_get_subgraphs(inputs, self.score_attribute, self.group_attribute, self.score_threshold, self.min_size,
+        #                               self.max_size))
+        return res
 
-        return standalone_get_subgraphs(inputs, self.score_attribute, self.group_attribute, self.score_threshold, self.min_size,
-                                        self.max_size)
+
 
 
     def transform(self,graphs):
