@@ -25,6 +25,12 @@ import networkx as nx
 from graphlearn.minor.decompose import MinorDecomposer
 from graphlearn.minor.rna import get_sequence
 import graphlearn.minor.rna as rna
+from eden import graph as edengraphtools
+
+
+
+
+
 
 class RnaDecomposer(MinorDecomposer):
 
@@ -131,9 +137,6 @@ class RnaDecomposer(MinorDecomposer):
             print "not sure if this works.. rnadecomposer pre_vec_graph"
 
 
-
-
-
         if self.pre_vectorizer_rm_f == False:
             return super(self.__class__, self).pre_vectorizer_graph(nested=self.pre_vectorizer_nested)
 
@@ -141,9 +144,6 @@ class RnaDecomposer(MinorDecomposer):
         # else
 
         backup = self._unaltered_graph.copy()
-
-
-
         g=self._unaltered_graph
         if g:
             if self.pre_vectorizer_rm_f:
@@ -170,7 +170,17 @@ class RnaDecomposer(MinorDecomposer):
                     # print r,d,u
 
 
+
+        #g2=g.graph['original'] eden should preserve the dict..
+        self._unaltered_graph =edengraphtools._edge_to_vertex_transform(g)
+        #g.graph['original']=g2
         g = super(self.__class__, self).pre_vectorizer_graph(nested=self.pre_vectorizer_nested)
+
+
+
+        #import graphlearn.utils.ascii as asc
+        #asc.printrow([g],size=60)
+        #exit()
 
         self._unaltered_graph = backup
 
