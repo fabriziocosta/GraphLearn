@@ -12,11 +12,11 @@ import traceback
 from eden import grouper
 from eden.graph import Vectorizer
 from eden.util import serialize_dict
-import logging
 from utils import draw
 import transform
 import decompose
 
+import logging
 logger = logging.getLogger(__name__)
 import utils.monitor as monitor
 import networkx as nx
@@ -400,7 +400,7 @@ class Sampler(object):
 
 
     def decomps_to_graphs(self,decomposers):
-        return [d.pre_vectorizer_graph() for d in decomposers]
+        return  [d.pre_vectorizer_graph() for d in decomposers]
 
     def decomps_to_vectors(self,decomposers):
         return self.vectorizer.transform(self.decomps_to_graphs(decomposers))
@@ -421,7 +421,8 @@ class Sampler(object):
             # twoclass
             negative = self.decomps_to_vectors(negative_decomposers)#[d.pre_vectorizer_graph() for d in negative_decomposers]
             self.estimatorobject.fit(positive, negative,
-                                     random_state=self.random_state,**args)
+                                     #random_state=self.random_state,
+                                     **args)
 
     def fit(self, graphs):
         fit_time=time.time()
@@ -432,6 +433,7 @@ class Sampler(object):
         logger.debug('sampler fit time: '+str(time.time()-fit_time) )
 
     def fit_transform(self, graphs):
+
         graphs = [g for g in graphs]
         graphs2 = copy.deepcopy(graphs)
         self.fit(graphs)
