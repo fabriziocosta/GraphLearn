@@ -64,13 +64,13 @@ if __name__ == "__main__":
     MODEL=args.pop('model')
 
     # CREATE SAMPLER
-    from graphlearn.graphlearn import Sampler
+    from graphlearn01.graphlearn import Sampler
     s=Sampler()
     s.load(MODEL)
     results=s.transform(**args)
 
 
-    import graphlearn.utils.draw_openbabel as ob
+    import graphlearn01.utils.draw_openbabel as ob
 
     for i,samplepath in enumerate(results):
         for j,graph in enumerate(samplepath):

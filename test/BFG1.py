@@ -4,11 +4,11 @@ import matplotlib
 matplotlib.use('Agg')
 
 from eden.io.gspan import gspan_to_eden
-from graphlearn.graphlearn import GraphLearnSampler
+from graphlearn01.graphlearn import GraphLearnSampler
 from eden.graph import Vectorizer
 import matplotlib.pyplot as plt
 import itertools
-from graphlearn.utils import myeden
+from graphlearn01.utils import myeden
 from eden.util import fit_estimator as eden_fit_estimator
 from eden.util import selection_iterator as picker
 from sklearn.linear_model import SGDClassifier

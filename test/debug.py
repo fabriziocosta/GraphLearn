@@ -46,8 +46,8 @@ def get_sequences_with_names(size=9999):
 '''
 learning a grammar
 '''
-import graphlearn.minor.rna.rnatransform as learned
-from graphlearn import feasibility
+import graphlearn01.minor.rna.rnatransform as learned
+from graphlearn01 import feasibility
 feas=feasibility.FeasibilityChecker(checklist=[feasibility.default_check, RNA.is_rna])
 graphs = get_sequences_with_names(150)
 pp=learned.GraphTransformerRNA(base_thickness_list=[2], kmeans_clusters=3, structure_mod=False)

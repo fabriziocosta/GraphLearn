@@ -8,7 +8,7 @@ matplotlib.use('Agg')
 
 
 from eden.io.gspan import gspan_to_eden
-from graphlearn.graphlearn import GraphLearnSampler
+from graphlearn01.graphlearn import GraphLearnSampler
 import itertools
 from eden.graph import Vectorizer
 import matplotlib.pyplot as plt

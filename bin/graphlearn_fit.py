@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     # estimator, if the user is providing a negative graph set, we use
     # the twoclass esti OO
-    import graphlearn.estimate as estimate
+    import graphlearn01.estimate as estimate
     if args['negative_input']==None:
         args['estimator']=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1)
     else:
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     print args
 
     # CREATE SAMPLER, dumping the rest of the parsed args :) 
-    from graphlearn.graphlearn import Sampler
+    from graphlearn01.graphlearn import Sampler
     s=Sampler(**args)
     print "*fit"
     print "*"*80
