@@ -27,7 +27,6 @@ def update_version_py():
         #        stdout=subprocess.PIPE)
         p = subprocess.Popen("git rev-list HEAD --count".split(),
                 stdout=subprocess.PIPE)
-        print ("DECIDE ON SOMETHING")
 
 
     except EnvironmentError:
@@ -37,8 +36,8 @@ def update_version_py():
     if p.returncode != 0:
         print("unable to run git, leaving graphlearn/_version.py alone")
         return
-    ver = stdout.strip()
-    ver = str(int(ver,16)) # pypi doesnt like base 16
+    ver = "0.0."+stdout.strip()
+    #ver = str(int(ver,16)) # pypi doesnt like base 16
     f = open("graphlearn/_version.py", "w")
     f.write(VERSION_PY % ver)
     f.close()
