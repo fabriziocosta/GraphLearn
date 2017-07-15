@@ -31,11 +31,11 @@ def update_version_py():
 
 
     except EnvironmentError:
-        print("unable to run git, leaving eden/_version.py alone")
+        print("unable to run git, leaving graphlearn/_version.py alone")
         return
     stdout = p.communicate()[0]
     if p.returncode != 0:
-        print("unable to run git, leaving eden/_version.py alone")
+        print("unable to run git, leaving graphlearn/_version.py alone")
         return
     ver = stdout.strip()
     ver = str(int(ver,16)) # pypi doesnt like base 16
@@ -96,7 +96,7 @@ setup(
     version=get_version(),
     author='Stefan Mautner',
     author_email='myl4stn4m3@cs.uni-freiburg.de',
-    packages=['graphlearn', 'graphlearn.extensions_lsgg'],
+    packages=['graphlearn', 'graphlearn.extensions_lsgg','graphlearn01'],
     scripts=[ ],
     include_package_data=True,
     package_data={},
