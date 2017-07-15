@@ -23,4 +23,6 @@ def test_sampler():
         graph, score = sampler.transform(graph).next()
     assert (0.000001 > abs( 0.319274373045 - score))
 
-test_sampler()
+
+if __name__=="__main__":
+    test_sampler()

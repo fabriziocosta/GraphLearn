@@ -8,10 +8,10 @@ import graphlearn.lsgg_compose_util as lcu
 def edenize(g):
     for n in g.nodes():
         g.node[n]['label']=str(n)
-
     for a,b in g.edges():
         g[a][b]['label']='.'
     return g
+
 def prep_cip_extract(g):
     g= edenize(g)
     return g
@@ -32,7 +32,6 @@ def test_fit():
     assert(30237 in lsggg.productions[49532])
     #gprint( [e.graph for e in lsggg.productions[49532].values() ])
     #gprint( [e.graph for e in lsggg.productions[29902].values() ])
-test_fit()
 
 
 def test_extract_core_and_interface():
@@ -41,7 +40,6 @@ def test_extract_core_and_interface():
     res = lcu.extract_core_and_interface(root_node=3, graph=graph, radius=1,thickness=1)
     #gprint(res.graph)
     assert ( str(res) == "cip: int:16931, cor:695036, rad:1, thi:1, rot:3")
-test_extract_core_and_interface()
 
 
 def test_neighbors():
@@ -55,4 +53,8 @@ def test_neighbors():
     stuff=list(lsggg.neighbors(g))
     assert(6 ==  len(stuff))
 
-test_neighbors()
+
+if __name__=="__main__":
+    test_fit()
+    test_extract_core_and_interface()
+    test_neighbors()

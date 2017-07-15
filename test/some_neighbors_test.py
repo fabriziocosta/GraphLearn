@@ -36,4 +36,8 @@ def test_some_neighbors():
 
 
 
-test_some_neighbors()
+
+
+if __name__=="__main__":
+    test_some_neighbors()
+
