@@ -99,7 +99,7 @@ setup(
     scripts=[ ],
     include_package_data=True,
     package_data={},
-    url='https://github.com/smautner/GraphLearn<',
+    url='https://github.com/fabriziocosta/GraphLearn<',
     license='LICENSE',
     description='recombine network graphs',
     #long_description=open('README.md').read(),
