@@ -174,11 +174,11 @@ def find_all_isomorphisms(home, other):
 
         graph_label_matcher = iso.GraphMatcher(home, other, node_match=label_matcher)
         for index, mapping in enumerate(graph_label_matcher.isomorphisms_iter()):
-            if index == 5:  # give up ..
-                logger.debug('i checked more than isomorphisms')
+            if index == 5:
+                logger.debug('lsgg_compose_util i checked more than 5 isomorphisms')
             yield mapping
     else:
-        logger.debug('faster iso check failed')
+        logger.debug('lsgg_compose_util faster iso check failed')
         raise StopIteration
 
 
@@ -190,13 +190,13 @@ def core_substitution(graph,orig_cip, new_cip):
     """
     # preprocess
     graph = _edge_to_vertex(graph)
-    assert(set(orig_cip.graph.nodes()) - set(graph.nodes()) == set([])), 'orig_cip_graph not in graph'
+    assert(set(orig_cip.graph.nodes()) - set(graph.nodes()) == set([])), 'lsgg_compose_util orig_cip_graph not in graph'
 
 
     # get isomorphism
     iso = find_all_isomorphisms(orig_cip.interface_graph, new_cip.interface_graph).next()
     if len(iso) != len(orig_cip.interface_graph):
-        logger.log(5, "grammar hash collision, discovered in 'core_substution' ")
+        logger.log(5, "lsgg_compose_util grammar hash collision, discovered in 'core_substution' ")
         return None
 
 
