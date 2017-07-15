@@ -2,7 +2,6 @@
 
 import networkx as nx
 import graphlearn.lsgg as lsgg
-from graphlearn.utils_display import gprint
 import graphlearn.lsgg_compose_util as lcu
 
 
