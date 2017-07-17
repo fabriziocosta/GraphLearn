@@ -74,9 +74,6 @@ class lsgg(object):
             if len(self.productions[interface]) < min_inter:
                 self.productions.pop(interface)
 
-    def _substitute(self, graph, orig_cip, new_cip):
-        r = core_substitution(graph, orig_cip.graph, new_cip.graph)
-        return r
 
     def _suggest_new_cips(self, graph, orig_cip):
         v = [e for e in self.productions[orig_cip.interface_hash].values()
@@ -88,7 +85,7 @@ class lsgg(object):
         for orig in original_cips:
             candidates_new = self._suggest_new_cips(graph, orig)
             for new in candidates_new:
-                r = self._substitute(graph, orig, new)
+                r = core_substitution(graph, orig, new)
                 (yield r) if r else logger.log(5, 'lsgg: a substitution returned None')
 
     def neighbors(self, graph):

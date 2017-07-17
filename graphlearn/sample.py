@@ -2,7 +2,6 @@
 
 """Provides the sampler class."""
 
-import utils
 import logging
 logger = logging.getLogger(__name__)
 
@@ -34,4 +33,4 @@ class Sampler(object):
     def score(self, graphs):
         scores = self.score_estimator.decision_function(graphs)[0]
         logger.log(5, 'sample: score scores: %s' % str(scores))
-        return utils.transpose((graphs, scores))
+        return zip(graphs, scores)
