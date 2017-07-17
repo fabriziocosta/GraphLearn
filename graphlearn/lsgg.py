@@ -34,7 +34,7 @@ class lsgg(object):
 
     def fit(self, graphs):
         self._add(graphs)
-        self._filter()
+        self._frequency_filter()
 
     def _add(self, graphs):
         for g in graphs:
@@ -52,15 +52,15 @@ class lsgg(object):
                                                  hash_bitmask=hash_bitmask)
 
     def _decompose(self, graph):
-        for root in graph.nodes():
-            for e in self._rooted_decompose(graph, root):
+        for root in graph.copy().nodes():
+            for e in self._rooted_decompose(graph.copy(), root):
                 yield e
 
     def _production_add_cip(self, cip):
         # setdefault is a fun function
         self.productions[cip.interface_hash].setdefault(cip.core_hash, cip).count += 1
 
-    def _filter(self):
+    def _frequency_filter(self):
         '''
         removes cores that have not been seen often enough
         removes interfaces that have too few cores
@@ -95,3 +95,13 @@ class lsgg(object):
         it = self._neighbors_given_orig_cips(graph, self._decompose(graph))
         for e in it:
             yield e
+
+    def size(self):
+        n_interfaces = len(self.productions)
+        cores = set()
+        for interface in self.productions.keys():
+            for core in self.productions[interface].keys():
+                cores.add(core)
+        n_cores = len(cores)
+        n_cips = sum(len(self.productions[interface]) for interface in self.productions)
+        return n_interfaces, n_cores, n_cips
