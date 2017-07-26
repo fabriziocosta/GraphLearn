@@ -156,7 +156,12 @@ class Decomposer(AbstractDecomposer):
 
     def mark_median(self, inp='importance', out='is_good', estimator=None,vectorizer=Vectorizer()):
 
-        graph2 = self._base_graph.copy()  # annotate kills the graph i assume
+        if type(self._base_graph)==nx.DiGraph:
+            graph2 = nx.Graph(self._base_graph)  # annotate kills the graph i assume
+        else:
+            graph2 = self._base_graph.copy()
+
+
         graph2 = vectorizer.annotate([graph2], estimator=estimator).next()
 
         for n, d in graph2.nodes(data=True):

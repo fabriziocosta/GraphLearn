@@ -83,15 +83,23 @@ def _accept_original_cip( cip,grammar=None,
             if 'interface' not in d and 'edge' not in d:
                 imp.append(d['is_good'])
 
-        if (float(sum(imp)) / len(imp)) > orig_cip_max_positives:
-            score_ok = False
-        if (float(sum(imp)) / len(imp)) < orig_cip_min_positives:
-            score_ok = False
+
+        positives=(float(sum(imp)) / len(imp))
+
+        if not (orig_cip_min_positives <= positives <= orig_cip_max_positives ):
+            score_ok=False
+            sampler._samplelog(  'cip_select orig: scores_ok: %.4f %.4f %.4f' % (orig_cip_min_positives,positives,orig_cip_max_positives))
+
+
+        #if (float(sum(imp)) / len(imp)) > orig_cip_max_positives:
+        #    score_ok = False
+        #if (float(sum(imp)) / len(imp)) < orig_cip_min_positives:
+        #    score_ok = False
     in_grammar = False
     if len(grammar.productions.get(cip.interface_hash, {})) > 1:
         in_grammar = True
 
-    sampler._samplelog('accept_orig_cip: scpre:%r inGramar:%r' % (score_ok, in_grammar), level=5)
+    sampler._samplelog('cip_select orig: scpre:%r inGramar:%r' % (score_ok, in_grammar), level=5)
 
     return in_grammar and score_ok
 
