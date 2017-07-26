@@ -1,14 +1,19 @@
+#!/usr/bin/env python
+
+"""Provides a modified graph grammar class."""
+
 import random
 import graphlearn.lsgg as base_grammar
 
+
 class lsgg(base_grammar.lsgg):
 
-    def some_neighbors(self,graph,num_neighbors):
-
-        for n in random.sample(graph.nodes(),len(graph)):
-            for graph2 in self._neighbors_given_orig_cips(graph,self._rooted_decompose(graph,n)):
-                if num_neighbors > 0:
-                    num_neighbors -= 1
-                    yield graph2
+    def neighbors_sample(self, graph, n_neighbors):
+        for root in random.sample(graph.nodes(), len(graph)):
+            cips = self._rooted_decompose(graph, root)
+            for neighbor in self._neighbors_given_cips(graph, cips):
+                if n_neighbors > 0:
+                    n_neighbors -= 1
+                    yield neighbor
                 else:
                     raise StopIteration
