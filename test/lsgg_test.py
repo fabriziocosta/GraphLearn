@@ -2,7 +2,7 @@
 
 import networkx as nx
 import graphlearn.lsgg as lsgg
-import graphlearn.lsgg_compose_util as lcu
+import graphlearn.lsgg_cip as lcu
 
 
 def edenize(g):
@@ -53,8 +53,26 @@ def test_neighbors():
     stuff=list(lsggg.neighbors(g))
     assert(6 ==  len(stuff))
 
+def test_some_neighbors():
+    # make a grammar
+    lsggg = get_grammar()
+    #make agraph
+    g=nx.path_graph(4)
+    g=edenize(g)
+    g.node[3]['label']='5'
+    assert ( 1== len(list( lsggg.neighbors_sample(g,1) )))
+    assert ( 2== len(list( lsggg.neighbors_sample(g,2) )))
+    assert ( 3== len(list( lsggg.neighbors_sample(g,3) )))
+    #gprint(list( lsggg.some_neighbors(g,1) ))
+    #gprint(list( lsggg.some_neighbors(g,2) ))
+    #gprint(list( lsggg.some_neighbors(g,3) ))
+
+
+
+
 
 if __name__=="__main__":
     test_fit()
     test_extract_core_and_interface()
     test_neighbors()
+    test_some_neighbors()

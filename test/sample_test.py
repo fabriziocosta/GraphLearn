@@ -2,7 +2,7 @@
 
 
 
-from graphlearn.estimators import simple_directed_estimator as sde
+from graphlearn.estimator import simpleDirectedEstimator as sde
 
 
 import graphlearn.sample as sample
@@ -14,7 +14,7 @@ def test_sampler():
     lsggg=lsgg_test.get_grammar()
     graph = lsgg_test.edenize(nx.path_graph(4))
     graph.node[3]['label']='5'
-    score_estimator= sde( lsgg_test.edenize(nx.path_graph(4)) )
+    score_estimator=  sde().fit(lsgg_test.edenize(nx.path_graph(4)))
 
     sampler = sample.Sampler(grammar=lsggg,score_estimator=score_estimator, n_steps=2)
 

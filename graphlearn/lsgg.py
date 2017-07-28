@@ -4,7 +4,7 @@
 
 import random
 from collections import defaultdict
-from lsgg_compose_util import extract_core_and_interface, core_substitution
+from lsgg_cip import extract_core_and_interface, core_substitution
 import logging
 logger = logging.getLogger(__name__)
 
@@ -33,17 +33,32 @@ class lsgg(object):
         self.decomposition_args = decomposition_args
         self.filter_args = filter_args
 
+    ###########
+    # FITTING
+    ##########
     def fit(self, graphs):
-        """fit."""
+        """fit.
+            _add_production will extract all CIPS
+            _add_cip will add to the production dictionary self.productions[interfacehash][corehash]=cip
+            _cip_frequency filter applies the filter_args that are set in __init__
+        """
         for graph in graphs:
             self._add_productions(graph)
         self._cip_frequency_filter()
 
     def _add_productions(self, graph):
+        """see fit"""
         for cip in self._cip_extraction(graph):
             self._add_cip(cip)
 
+    def _cip_extraction(self, graph):
+        """see fit"""
+        for root in graph.nodes():
+            for cip in self._cip_extraction_given_root(graph, root):
+                yield cip
+
     def _cip_extraction_given_root(self, graph, root):
+        """helper of _cip_extraction. See fit"""
         hash_bitmask = self.decomposition_args['hash_bitmask']
         for radius in self.decomposition_args['radius_list']:
             radius = radius * 2
@@ -55,17 +70,13 @@ class lsgg(object):
                                                  thickness=thickness,
                                                  hash_bitmask=hash_bitmask)
 
-    def _cip_extraction(self, graph):
-        for root in graph.nodes():
-            for cip in self._cip_extraction_given_root(graph, root):
-                yield cip
-
     def _add_cip(self, cip):
+        """see fit"""
         # setdefault is a fun function
         self.productions[cip.interface_hash].setdefault(cip.core_hash, cip).count += 1
 
     def _cip_frequency_filter(self):
-        """Remove infrequent cores and interfaces."""
+        """Remove infrequent cores and interfaces. see fit"""
         min_cip = self.filter_args['min_cip_count']
         min_inter = self.filter_args['min_interface_count']
         for interface in self.productions.keys():
@@ -75,22 +86,28 @@ class lsgg(object):
             if len(self.productions[interface]) < min_inter:
                 self.productions.pop(interface)
 
-    def _same_interface_cips(self, graph, cip):
+    ##############
+    #  APPLYING A PRODUCTION
+    #############
+    def _congruent_cips(self, cip):
+        """all cips in the grammar that are congruent to cip in random order.
+        congruent means they have the same interface-hash-value"""
         cips = self.productions[cip.interface_hash].values()
         cips_ = [cip_ for cip_ in cips if cip_.core_hash != cip.core_hash]
         random.shuffle(cips_)
         return cips_
 
-    def _neighbors_given_cips(self, graph, cips):
-        for cip in cips:
-            cips_ = self._same_interface_cips(graph, cip)
+    def _neighbors_given_cips(self, graph, orig_cips):
+        """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
+        for cip in orig_cips:
+            cips_ = self._congruent_cips(cip)
             for cip_ in cips_:
                 graph_ = core_substitution(graph, cip, cip_)
                 if graph_ is not None:
                     yield graph_
 
     def neighbors(self, graph):
-        """neighbors."""
+        """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
         cips = self._cip_extraction(graph)
         it = self._neighbors_given_cips(graph, cips)
         for neighbor in it:

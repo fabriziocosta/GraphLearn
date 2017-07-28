@@ -80,7 +80,6 @@ def graph_hash(graph, hash_bitmask, node_name_label=lambda id, node: node['hlabe
 def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label=lambda id, node: node['hlabel']):
     '''
      part of generating the hash for a graph is calculating the hash of a node in the graph
-
      # the case that n has no neighbors is currently untested...
     '''
     d = nx.single_source_shortest_path_length(interfacegraph, node, 20)
