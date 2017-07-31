@@ -144,7 +144,7 @@ class Sampler(object):
                  improving_linear_start_fraction=0,
                  accept_static_penalty=0.0,
                  accept_min_similarity=0.0,
-                 select_cip_max_tries=20,
+                 select_cip_max_tries=25,
                  burnin=0,
                  backtrack=0,
 
@@ -330,8 +330,12 @@ class Sampler(object):
         if self.improving_threshold_fraction > 0:
             self.improving_threshold_absolute = int(self.improving_threshold_fraction * self.n_steps)
 
-        self.improving_penalty_per_step = (1 - self.accept_static_penalty) / float(
-            self.improving_threshold_absolute - self.improving_linear_start_absolute)
+        if self.improving_linear_start_absolute == self.improving_threshold_absolute:
+            self.improving_penalty_per_step = 1
+            # the main thing happens in the else branch, the if branch catches the divByZero
+        else:
+            self.improving_penalty_per_step = (1 - self.accept_static_penalty) / float(
+                self.improving_threshold_absolute - self.improving_linear_start_absolute)
 
         if self.core_choice_bytrial + self.probabilistic_core_choice + self.score_core_choice + (
                     self.size_constrained_core_choice > -1) == 0:
@@ -866,7 +870,7 @@ class Sampler(object):
         if proposed_decomposer:
             return proposed_decomposer
 
-        raise Exception("propose failed.. usualy the problem is _propose_graph?")
+        raise Exception("propose failed.. _propose_graph returned nothing")
 
     def _propose_graph(self, decomposer):
         """
@@ -879,47 +883,47 @@ class Sampler(object):
         as soon as we found one replacement that works we are good and return.
         """
 
-        for orig_cip_ctr, original_cip in enumerate(select_original_cip(decomposer, self)):
-            # for all cips we are allowed to find in the original graph:
 
+        # ORIG CIPS
+        for orig_cip_ctr, original_cip in enumerate(select_original_cip(decomposer, self)):
+
+            # CANDIDATES
             candidate_cips = _select_cips(original_cip, decomposer, self)
             attempt='no candidates for this orig cip' # -> set for the logger.
             for attempt, candidate_cip in enumerate(candidate_cips):
-                # look at all possible replacements
 
+
+
+                # SUBSTITUTE
                 choices = len(self.lsgg.productions[candidate_cip.interface_hash].keys()) - 1
-                # count possible replacements for debug output
-
                 self.monitorobject.info('substitution', "root: %d , newcip: %d / %d" %
                                         (original_cip.distance_dict[0][0], candidate_cip.interface_hash,
                                          candidate_cip.core_hash))
-
                 new_graph = decomposer.core_substitution(original_cip.graph, candidate_cip.graph)
                 self.last_cip=candidate_cip # required for the bytrial flag (adjusts core pick rate by graphscoredelta)
 
+
+                # FEASIBILITY
                 if self.feasibility_checker.check(new_graph):
                     new_decomposer = self.decomposer.make_new_decomposer(
                         self.graph_transformer.re_transform_single(new_graph))
                 else:
-                    self._samplelog("feasibility failed",level=5)
+                    self._samplelog("_propose_graph: feasibility failed",level=5)
                     continue
 
+                # RETURN IF OK
                 if new_decomposer:
                     self.compute_proposal_probability(decomposer, new_decomposer, original_cip)
-
                     self._samplelog(
                         "_propose_graph: step %d; core %d/%d; original_cips tried  %d; size %d; last_score %.4f" %
                         (self.step, attempt, choices, orig_cip_ctr, decomposer._base_graph.number_of_nodes(),decomposer._score) )
-
                     new_decomposer.clean()  # i clean only here because i need the interface mark for reverse_dir_prob
                     return new_decomposer
-                    # this codeblock successfuly susbstituted a cip, and create a new graphmanager w/o problems
+                else:
+                    logger.log("_propose_graph: new_decomposer was None")
 
-                if self.quick_skip_orig_cip:
-                    break
-                    # we only try one substitution on each original cip.
-                    # reason: if the first hit was not replaceable, due to a hash collision, it is faster to
-                    # try the next orig cip, than to risk another collision
+                # quick skip was moved to cip_select
+
             logger.log(5,'_propose_graph orig_cip# %d cips_tried# %s' % (orig_cip_ctr,str(attempt)) )
 
         #draw.graphlearn(original_cip,self.lsgg.productions[original_cip].vlues())

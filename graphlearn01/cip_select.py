@@ -15,7 +15,8 @@ def select_original_cip( decomposer, sampler):
     # draw.graphlearn(graphman._abstract_graph, size=10)
     # print graphman
 
-    failcount = 0
+    failcount_score = 0
+    failcount_grammar = 0
     nocip = 0
     for x in range(sampler.select_cip_max_tries):
         # exteract_core_and_interface will return a list of results,
@@ -29,16 +30,19 @@ def select_original_cip( decomposer, sampler):
         cip = cip[0]
 
         # print cip
-        if _accept_original_cip(cip,grammar=sampler.lsgg,orig_cip_max_positives=sampler.orig_cip_max_positives,
+        grammar_ok, score_ok= _accept_original_cip(cip,grammar=sampler.lsgg,orig_cip_max_positives=sampler.orig_cip_max_positives,
                                      orig_cip_min_positives=sampler.orig_cip_min_positives
-                                     ,orig_cip_score_tricks=sampler.orig_cip_score_tricks, sampler=sampler):
+                                     ,orig_cip_score_tricks=sampler.orig_cip_score_tricks, sampler=sampler)
+        if grammar_ok and score_ok:
             yield cip
         else:
-            failcount += 1
+            failcount_grammar += not grammar_ok
+            failcount_score += not score_ok
 
     sampler._samplelog(
-            'select_cip_for_substitution failed because no suiting interface was found, \
-            extract failed %d times; cip found but unacceptable:%s ' % (failcount + nocip, failcount),level=5)
+            'cip_select select orig cip failed; obtained %d cips in %d tries, \
+of which: bad_score:%d, not_in_grammar:%d '
+            % (sampler.select_cip_max_tries-nocip,sampler.select_cip_max_tries, failcount_score,failcount_grammar),level=5)
 
     #from utils import draw
     #draw.debug(decomposer._base_graph, label="label")
@@ -88,7 +92,7 @@ def _accept_original_cip( cip,grammar=None,
 
         if not (orig_cip_min_positives <= positives <= orig_cip_max_positives ):
             score_ok=False
-            sampler._samplelog(  'cip_select orig: scores_ok: %.4f %.4f %.4f' % (orig_cip_min_positives,positives,orig_cip_max_positives))
+            #sampler._samplelog(  'cip_select orig: scores_ok: %.4f %.4f %.4f' % (orig_cip_min_positives,positives,orig_cip_max_positives))
 
 
         #if (float(sum(imp)) / len(imp)) > orig_cip_max_positives:
@@ -99,9 +103,10 @@ def _accept_original_cip( cip,grammar=None,
     if len(grammar.productions.get(cip.interface_hash, {})) > 1:
         in_grammar = True
 
-    sampler._samplelog('cip_select orig: scpre:%r inGramar:%r' % (score_ok, in_grammar), level=5)
+    #sampler._samplelog('cip_select orig: scpre:%r inGramar:%r' % (score_ok, in_grammar), level=5)
 
-    return in_grammar and score_ok
+    #return in_grammar and score_ok
+    return in_grammar, score_ok
 
 ## SELECTING A CIP FROM THE GRAMMAR
 
@@ -138,6 +143,8 @@ def _select_cips( cip, decomposer, sampler):
     for core_hash in probabilistic_choice(values, core_hashes):
         # print values,'choose:', values[core_hashes.index(core_hash)]
         yield sampler.lsgg.productions[cip.interface_hash][core_hash]
+        if sampler.quick_skip_orig_cip:
+            yield StopIteration
 
 def _core_values( cip, core_hashes, graph, sampler):
     '''

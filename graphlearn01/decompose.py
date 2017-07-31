@@ -245,7 +245,10 @@ def graph_hash(graph, hash_bitmask, node_name_label=None):
         if hb == -1:
             hb = calc_node_name(graph, b, hash_bitmask, node_name_label)
             node_name_cache[b] = hb
-        l.append((ha ^ hb) + (ha + hb))
+        #l.append((ha ^ hb) + (ha + hb))
+        blub= lambda ha,hb: (ha ^ hb) + (ha + hb)
+        l.append(fast_hash([min(ha,hb),max(ha,hb),blub(ha,hb)],hash_bitmask))
+
         # z=(ha ^ hb) + (ha + hb)
         # l.append( fast_hash([ha,hb],hash_bitmask) +z )
     l.sort()
