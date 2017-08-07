@@ -118,21 +118,19 @@ class GraphMinorTransformer(GraphTransformer):
             if self.debug_rna:
                 draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='importance')
             else:
-                #draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='importance')
-                ascii.printrow(graphs[:3],size=14)
-                ascii.printrow(graphs[3:6],size=14)
+                for g in graphs[:5]:
+                    for e,d in g.nodes(data=True):
+                        d['importance_sd'] = d['importance'][0]
+                draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='importance_sd')
+                #ascii.printrow(graphs[:3],size=14)
+                #ascii.printrow(graphs[3:6],size=14)
             # vertex_color='importance', colormap='inferno')
+
+
+
         subgraphs = list(self.abstractor.get_subgraphs(graphs))
         if len(subgraphs) ==0:
             print "FFFUUUUCCCCKKKK learnedlayer transform py"
-        #print "ASDASDAS"
-        #for g in subgraphs:
-        #    print graphlearn.utils.ascii.nx_to_ascii(g)
-
-        # if self.num_classes==2:
-        #    nusgs = list(self.abstractor.get_subgraphs(graphs_neg))
-        #    #draw.graphlearn([nusgs[0],subgraphs[-1]],vertex_label='importance')
-        #    subgraphs += nusgs
 
         # FILTER UNIQUES AND TRAIN THE CLUSTERER
         self.cluster_classifier.fit(subgraphs)

@@ -10,6 +10,8 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import DBSCAN
 from eden.graph import Vectorizer
 
+from graphlearn01.utils import draw
+
 class ClusterClassifier():
     def __init__(self,debug=False, vectorizer=Vectorizer()):
         self.debug=debug
@@ -84,6 +86,12 @@ class ClusterClassifier():
             # info
             logger.debug('num clusters: %d' % max(self.cluster_ids))
             logger.debug(eden.util.report_base_statistics(self.cluster_ids).replace('\t', '\n'))
+
+            # ok now we want to print the INFO from above
+            for cid in set(self.cluster_ids):
+                print "cluster: %d  len %d" % (cid, len(self.graphclusters[cid]))
+                draw.graphlearn(self.graphclusters[cid][:5])
+
 
         # deletelist = [i for i, e in enumerate(cluster_ids) if e in self.ignore_clusters]
         # targetlist = [e for e in cluster_ids if e not in self.ignore_clusters ]

@@ -1,11 +1,43 @@
 '''
 automatic minor graph generation
+
+
+# it also seems that the cascade has this interface to GL:
+    -- fit, transform, fit_transform, retransform
+
+cascade  -- manages a stack of transformers, OMG I SHOULD RLY DEFINE AN INTERF
+transform  --  "annotate" and "abstractor"
+annotate  -- write score to nodes
+abstractor -- uses name_subgraph, probably mainly extract subgraphs
+name_subgraph -- gets a bunch of subgraphs and trains does the clustering
+
+
+each transformer does this:
+    train a classifier
+    annotate
+    extract
+    train another classifier
+    contract
+    // also it seems that it handles pos/neg input... also it seems that retransform has to contract the graph
+
+
+steps to debug would be:
+
+train class
+annotate + get subgrs
+train classifier
+abstract
+
+
 '''
 import eden
 import transform
 from name_subgraphs import ClusterClassifier
 import networkx as nx
 import graphlearn01.utils as utils
+
+
+
 class Cascade(object):
     def __init__(self,  depth=2,
                         debug=False,
@@ -15,6 +47,7 @@ class Cascade(object):
                         group_score_threshold=0,
                         num_classes=2,
                         debug_rna=False):
+
         self.debug_rna=debug_rna
 
         self.depth = depth
@@ -58,7 +91,7 @@ class Cascade(object):
             graphs = self.transformers[i].fit_transform(graphs[:numpos], graphs[numpos:])
         if remove_intermediary_layers:
             graphs = self.do_remove_intermediary_layers(graphs)
-        #print graphs, graphs_neg, self.num_classes
+
         return graphs
 
     def fit(self, graphs, g2=[]):
@@ -117,6 +150,10 @@ class Cascade(object):
 
         thing = eden.graph._revert_edge_to_vertex_transform(graph) 
         return self.transform([graph])[0]
+
+
+
+
 
 from graphlearn01.minor.rna.fold import EdenNNF
 from eden.graph import _edge_to_vertex_transform
