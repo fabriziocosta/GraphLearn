@@ -183,7 +183,7 @@ def find_all_isomorphisms(home, other):
                 logger.debug('lsgg_compose_util i checked more than 5 isomorphisms')
             yield mapping
     else:
-        logger.debug('lsgg_compose_util faster iso check failed')
+        logger.log(5,'lsgg_compose_util faster iso check failed')
         raise StopIteration
 
 
