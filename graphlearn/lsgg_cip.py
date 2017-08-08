@@ -64,12 +64,22 @@ def graph_hash(graph, hash_bitmask, node_name_label=lambda id, node: node['hlabe
     """
         so we calculate a hash of a graph
     """
+
+
     node_names = {n: calc_node_name(graph, n, hash_bitmask, node_name_label) for n in graph.nodes()}
 
+
+    '''
     tmp_fast_hash = lambda x, y: (y ^ x) + (y + x)
+    blub= lambda ha,hb: (ha ^ hb) + (ha + hb)
+    l.append(fast_hash([min(ha,hb),max(ha,hb),blub(ha,hb)],hash_bitmask))
+    '''
+    tmp_fast_hash= lambda a,b: fast_hash( [ (a ^ b) + (a + b) , min(a,b),max(a,b) ] )
     l = [tmp_fast_hash(node_names[a], node_names[b]) for (a, b) in graph.edges()]
     l.sort()
 
+
+    # isolates are isolated nodes
     isolates = [n for (n, d) in graph.degree_iter() if d == 0]
     z = [node_name_label(node_id, graph.node[node_id]) for node_id in isolates]
     z.sort()
