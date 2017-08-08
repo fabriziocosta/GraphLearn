@@ -26,10 +26,10 @@ def test_fit():
     lsggg= get_grammar()
 
     assert( 4 == sum( len(e)  for e in lsggg.productions.values()) )
-    assert(43568 in lsggg.productions[29902])
-    assert(32346 in lsggg.productions[29902])
-    assert(3760 in lsggg.productions[49532])
-    assert(30237 in lsggg.productions[49532])
+    assert(32346 in lsggg.productions[1354])
+    assert(55730 in lsggg.productions[1354])
+    assert(39282 in lsggg.productions[31148])
+    assert(30237 in lsggg.productions[31148])
     #gprint( [e.graph for e in lsggg.productions[49532].values() ])
     #gprint( [e.graph for e in lsggg.productions[29902].values() ])
 
@@ -39,7 +39,7 @@ def test_extract_core_and_interface():
     prep_cip_extract(graph)
     res = lcu.extract_core_and_interface(root_node=3, graph=graph, radius=1,thickness=1)
     #gprint(res.graph)
-    assert ( str(res) == "cip: int:16931, cor:695036, rad:1, thi:1, rot:3")
+    assert ( str(res) == "cip: int:16931, cor:352004, rad:1, thi:1, rot:3")
 
 
 def test_neighbors():
