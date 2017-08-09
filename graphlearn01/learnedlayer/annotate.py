@@ -59,9 +59,19 @@ class Annotator():
     def annotate(self,graphs):
         if not graphs:
             return []
-        return mass_annotate_mp(graphs,self.vectorizer,score_attribute=self.score_attribute,estimator=self.estimator,
-                                multi_process=self.multi_process)
 
+
+        res =  mass_annotate_mp(graphs,self.vectorizer,score_attribute=self.score_attribute,estimator=self.estimator,
+                                multi_process=self.multi_process)
+        if False: # checking for annotation bug
+            for g in res:
+                for n,d in g.nodes(data=True):
+                    if type(d[self.score_attribute])==type(None):
+                        from graphlearn01.utils import draw
+                        print "graphlearn01 learnedlayer annotate.py"
+                        draw.graphlearn(g)
+
+        return res
 
 
 def mass_annotate_mp(inputs, vectorizer, score_attribute='importance', estimator=None, multi_process=False):

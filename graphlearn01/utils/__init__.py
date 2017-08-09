@@ -1,8 +1,9 @@
 import eden
+from eden.graph import _label_preprocessing
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+import graphlearn01.decompose as decompose
 
 def plot_scores(scoreslist='list of lists',x=[], labels=[]):
     if len(labels)==0:
@@ -81,24 +82,28 @@ def hash_eden_vector(vec):
 
 def remove_eden_annotation(graph):
     # eden contaminates graphs with all sorts of stuff..
-    for attribute in ['weight','hlabel']:
+    for attribute in ['weight','vector','features', 'importance']:
         node_operation(graph, lambda n, d: d.pop(attribute, None))
     eden.graph._clean_graph(graph)
     return graph
 
 
-
-
-
-
 def unique_graphs(graphs, vectorizer):
     # returns datamatrix, subgraphs
-    map(remove_eden_annotation, graphs)
+    graphs=map(remove_eden_annotation, graphs)
     data = vectorizer.transform(graphs)
     # remove duplicates   from data and subgraph_list
     data, indices = unique_csr(data)
     graphs = [graphs[i] for i in indices]
     return data, graphs
+
+
+def unique_graphs_graphlearn_graphhash(graphs):
+    map (_label_preprocessing,graphs)
+    hashes = map(lambda x:decompose.graph_hash(x,2**20-1,'hlabel'),graphs)
+    di={h:i  for i,h in enumerate(hashes) }
+    return [graphs[i] for i in di.values()]
+
 
 
 def delete_rows_csr(mat, indices, keep=False):

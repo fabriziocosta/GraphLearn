@@ -2,7 +2,6 @@ import networkx as nx
 from networkx.algorithms import isomorphism as iso
 import logging
 logger = logging.getLogger(__name__)
-from graphlearn import draw
 
 def merge(graph, node, node2):
     '''

@@ -4,6 +4,8 @@ from eden_extra.modifier.graph.structure import contraction
 from graphlearn01.utils import node_operation, remove_eden_annotation , draw
 from sklearn.base import BaseEstimator, TransformerMixin
 import graphlearn01.utils as utils
+import logging
+logger = logging.getLogger(__name__)
 
 class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
     """ThresholdedConnectedComponents."""
@@ -183,8 +185,15 @@ class GraphToAbstractTransformer(object):
         # node_operation(graph,f)
 
         tcc = ThresholdedConnectedComponents(attribute=self.score_attribute, more_than=False, shrink_graphs=True)
-        components = tcc._extract_ccomponents(graph, threshold=self.score_threshold, min_size=self.min_size,
+        try:
+            components = tcc._extract_ccomponents(graph, threshold=self.score_threshold, min_size=self.min_size,
                                               max_size=self.max_size)
+        except Exception as inst:
+            s= 'abstractor.py Thresholdedconnectedcomponents failed\n'
+            for node,d in graph.nodes(data=True):
+                s+=str(node)+str(d)+"\n"
+            logger.log(20,s)
+            raise inst
 
         nodeset = {n for g in components for n in g.nodes()}
 

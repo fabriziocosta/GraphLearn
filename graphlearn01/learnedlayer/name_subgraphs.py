@@ -23,9 +23,15 @@ class ClusterClassifier():
         2. use this to get distances to train DBSCAN
         3. use DBSCAN clusters to train SGDClassifier
         '''
+        #print "i am the clusterclassifier and i have %d subgraphs" % len(subgraphs)
 
-        data, subgraphs = utils.unique_graphs(subgraphs,self.vectorizer)
+        if False: # previous thing wich does something wrong
+            data, subgraphs = utils.unique_graphs(subgraphs,self.vectorizer)
+        else:
+            subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
+            data= self.vectorizer.transform(subgraphs)
 
+        #print "reduced instances to: %d \n\n" % len(subgraphs)
         # just make sure to have a backup for now
         self.data = data
 
@@ -39,7 +45,7 @@ class ClusterClassifier():
         from bioinf_learn import MinHash
         minHash = MinHash(n_neighbors=NTH_NEIGHBOR+1)
         minHash.fit(data)
-        dist, indices = minHash.kneighbors(return_distance=True)
+        dist, indices = minHash.kneighbors(r    eturn_distance=True)
         print dist
         neigh = sklearn.neighbors.NearestNeighbors(n_neighbors=NTH_NEIGHBOR+1, metric='euclidean')
         neigh.fit(data)
@@ -91,6 +97,8 @@ class ClusterClassifier():
             for cid in set(self.cluster_ids):
                 print "cluster: %d  len %d" % (cid, len(self.graphclusters[cid]))
                 draw.graphlearn(self.graphclusters[cid][:5])
+
+
 
 
         # deletelist = [i for i, e in enumerate(cluster_ids) if e in self.ignore_clusters]

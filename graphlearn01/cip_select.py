@@ -9,7 +9,7 @@ def select_original_cip( decomposer, sampler):
     - accept_original_cip makes sure that the cip we got is indeed in the grammar
     """
     if sampler.orig_cip_score_tricks:
-        decomposer.mark_median(inp='importance', out='is_good', estimator=sampler.estimatorobject.estimator, vectorizer=sampler.vectorizer)
+        decomposer.mark_median(out='is_good', estimator=sampler.estimatorobject.estimator, vectorizer=sampler.vectorizer)
 
     # draw.graphlearn(graphman.abstract_graph(), size=10)
     # draw.graphlearn(graphman._abstract_graph, size=10)

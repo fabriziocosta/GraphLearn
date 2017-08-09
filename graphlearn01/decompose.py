@@ -154,7 +154,7 @@ class Decomposer(AbstractDecomposer):
         graph = Compose.core_substitution(self._base_graph, orig_cip_graph, new_cip_graph)
         return graph
 
-    def mark_median(self, inp='importance', out='is_good', estimator=None,vectorizer=Vectorizer()):
+    def mark_median(self, out='is_good', estimator=None,vectorizer=Vectorizer()):
 
         if type(self._base_graph)==nx.DiGraph:
             graph2 = nx.Graph(self._base_graph)  # annotate kills the graph i assume
@@ -166,9 +166,9 @@ class Decomposer(AbstractDecomposer):
 
         for n, d in graph2.nodes(data=True):
             if 'edge' not in d:
-                self._base_graph.node[n][inp] = d['importance']
+                self._base_graph.node[n]['markmed_imp'] = d['importance']
 
-        mark_median(self._base_graph, inp=inp, out=out)
+        mark_median(self._base_graph, inp='markmed_imp', out=out)
 
     def clean(self):
         graph_clean(self._base_graph)
