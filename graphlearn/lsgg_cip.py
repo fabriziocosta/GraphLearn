@@ -59,26 +59,18 @@ class CoreInterfacePair:
 #  decompose
 ###############
 
-
 def graph_hash(graph, hash_bitmask, node_name_label=lambda id, node: node['hlabel']):
     """
         so we calculate a hash of a graph
     """
-
-
     node_names = {n: calc_node_name(graph, n, hash_bitmask, node_name_label) for n in graph.nodes()}
-
-
     tmp_fast_hash= lambda a,b: fast_hash( [ (a ^ b) + (a + b) , min(a,b),max(a,b) ] )
     l = [tmp_fast_hash(node_names[a], node_names[b]) for (a, b) in graph.edges()]
     l.sort()
-
-
     # isolates are isolated nodes
     isolates = [n for (n, d) in graph.degree_iter() if d == 0]
     z = [node_name_label(node_id, graph.node[node_id]) for node_id in isolates]
     z.sort()
-
     return fast_hash(l + z, hash_bitmask)
 
 
@@ -92,6 +84,9 @@ def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label=lambda id
     l.sort()
     return fast_hash(l, hash_bitmask)
 
+
+def graph_hash_core(graph, hash_bitmask, node_name_label=lambda id, node: node['hlabel']):
+    return graph_hash(graph,hash_bitmask,node_name_label)
 
 def extract_core_and_interface(root_node=None,
                                graph=None,
@@ -125,7 +120,7 @@ def extract_core_and_interface(root_node=None,
                        if radius < dst <= radius + thickness]
 
     # calculate hashes
-    core_hash = graph_hash(graph.subgraph(core_nodes), hash_bitmask)
+    core_hash = graph_hash_core(graph.subgraph(core_nodes+interface_nodes), hash_bitmask)
     node_name_label = lambda id, node: node['hlabel'] + dist[id] - radius
     interface_hash = graph_hash(graph.subgraph(interface_nodes),
                                 hash_bitmask,
