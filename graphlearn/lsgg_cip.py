@@ -154,21 +154,16 @@ def extract_core_and_interface(root_node=None,
 ######
 
 
-def merge(graph, node, node2):
+def merge(graph, node_orig_interface, node_cip_interface):
     '''
-    merge node2 into the node.
-    input nodes are strings,
-    node is the king
+    so i merge the nodes in the interface,  keeping the node in the cip
     '''
-
-    for n in graph.neighbors(node2):
-        graph.add_edge(node, n)
-
+    for n in graph.neighbors(node_orig_interface):
+        graph.add_edge(node_cip_interface, n)
     if isinstance(graph, nx.DiGraph):
-        for n in graph.predecessors(node2):
-            graph.add_edge(n, node)
-
-    graph.remove_node(node2)
+        for n in graph.predecessors(node_orig_interface):
+            graph.add_edge(n, node_cip_interface)
+    graph.remove_node(node_orig_interface)
 
 
 def find_all_isomorphisms(home, other):

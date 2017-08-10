@@ -76,6 +76,10 @@ class Cascade(object):
             self.transformers.append(transformer)
 
     def fit_transform(self, graphs, graphs_neg=[],remove_intermediary_layers=True):
+        if self.depth==0:
+            return map(add_fake_abstract_layer,list(graphs)+list(graphs_neg))
+
+
         # INIT
         graphs=list(graphs)
         graphs_neg=list(graphs_neg)
@@ -99,6 +103,9 @@ class Cascade(object):
         return self
 
     def transform(self, graphs, remove_intermediary_layers=True):
+        if self.depth==0:
+            return map(add_fake_abstract_layer,graphs)
+
         graphs = map(eden.graph._revert_edge_to_vertex_transform,graphs)
 
         for g in graphs:
@@ -148,11 +155,19 @@ class Cascade(object):
         #        edgesymbol='*',
         #        debug="/dev/shm/dump") 
 
-        thing = eden.graph._revert_edge_to_vertex_transform(graph) 
+        # thing = eden.graph._revert_edge_to_vertex_transform(graph)  # this line seems pointless since it is repeated in transform
         return self.transform([graph])[0]
 
-
-
+def add_fake_abstract_layer(graph):
+    '''simply copies the input graph and "associates" the nodes'''
+    graph.graph['layer']=0
+    g2 = nx.convert_node_labels_to_integers(graph, first_label=max(graph.nodes())+1)
+    for a,b in zip(sorted(graph),sorted(g2)):
+        g2.node[b]['contracted']=set([a])
+        g2.node[b]['importance']=[1.0]
+        graph.node[a]['importance']=[1.0]
+    g2.graph['original']=graph
+    return g2
 
 
 from graphlearn01.minor.rna.fold import EdenNNF
