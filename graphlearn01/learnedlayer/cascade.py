@@ -39,6 +39,13 @@ import graphlearn01.utils as utils
 
 
 class Cascade(object):
+
+    def toggledebug(self):
+        self.debug= not self.debug
+        for e in self.transformers:
+            e.toggledebug()
+
+
     def __init__(self,  depth=2,
                         debug=False,
                         multiprocess=True,

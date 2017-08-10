@@ -33,6 +33,12 @@ import graphlearn01
 import graphlearn01.utils.ascii as ascii
 
 class GraphMinorTransformer(GraphTransformer):
+
+    def toggledebug(self):
+        self.debug= not self.debug
+        self.annotator.debug= not self.debug
+        self.cluster_classifier.debug = not self.debug
+
     def __init__(self,
                  vectorizer=eden.graph.Vectorizer(complexity=3),
                  estimator=ExperimentalOneClassEstimator(),
