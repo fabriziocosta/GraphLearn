@@ -39,8 +39,10 @@ class Annotator():
             #print 'choosing to train binary esti'
             self.estimator = twoclass() #SGDClassifier()
             classes= [1]*len(graphs_pos)+[-1]*len(graphs_neg)
+
             self.estimator.fit(self.vectorizer.transform(graphs_pos+graphs_neg),classes)
         else:
+            print 'annotator fits 1 class esti..'
             self.estimator = ExperimentalOneClassEstimator()
             self.estimator.fit(self.vectorizer.transform(graphs_pos))
         return self

@@ -303,7 +303,6 @@ def graphlearn_layered2(graphs, **args):
             layered_graphs.append(graph.graph['original'])
             graph = graph.graph['original']
         maxlayers = len(layered_graphs)
-
         # make the layout for the biggest one :)
         pos = nx.graphviz_layout(layered_graphs[-1], prog='neato', args="-Gmode=KK")
         if DEBUG: print 'biggest:', pos
@@ -422,7 +421,7 @@ def graphlearn(graphs,
 
         if vertex_label == 'importance' or args.get('secondary_vertex_label', '') == 'importance':
             for n, d in graph.nodes(data=True):
-                d['importance'] = round(d['importance'], 2)
+                d['importance'] = round(d['importance'][0], 2)
 
     # now we need to change the attribute
     # because there is a label collission in json graph saving

@@ -404,7 +404,8 @@ class Sampler(object):
 
 
     def decomps_to_graphs(self,decomposers):
-        return  [d.pre_vectorizer_graph() for d in decomposers]
+        res = [d.pre_vectorizer_graph() for d in decomposers]
+        return res
 
     def decomps_to_vectors(self,decomposers):
         return self.vectorizer.transform(self.decomps_to_graphs(decomposers))

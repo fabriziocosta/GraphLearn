@@ -108,11 +108,12 @@ class GraphMinorTransformer(GraphTransformer):
 
         # info
         if self.debug:
-            print 'minortransform_fit'
-            if self.debug_rna:
-                draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='label')
-            else:
-                draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='label')
+            pass
+            #print 'minortransform_fit'
+            #if self.debug_rna:
+            #    draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='label')
+            #else:
+            #    draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='label')
 
         # annotate graphs and GET SUBGRAPHS
         graphs = self.annotator.fit_transform(graphs, graphs_neg)
@@ -122,12 +123,9 @@ class GraphMinorTransformer(GraphTransformer):
         if self.debug:
             print 'minortransform_scores'
             if self.debug_rna:
-                draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='importance')
+                draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='importance',secondary_vertex_label='label')
             else:
-                for g in graphs[:5]:
-                    for e,d in g.nodes(data=True):
-                        d['importance_sd'] = d['importance'][0]
-                draw.graphlearn(graphs[:5], contract=False, size=5, vertex_label='importance_sd')
+                draw.graphlearn(graphs[:5], contract=False, size=7,vertex_size=800, vertex_label='importance',secondary_vertex_label='label')
                 #ascii.printrow(graphs[:3],size=14)
                 #ascii.printrow(graphs[3:6],size=14)
             # vertex_color='importance', colormap='inferno')
@@ -144,7 +142,11 @@ class GraphMinorTransformer(GraphTransformer):
 
         # annotating is super slow. so in case of fit_transform i can save that step
         if fit_transform:
-            return self.transform(graphs)
+            res = self.transform(graphs)
+            if self.debug:
+                print "minortransform_added_layer"
+                draw.graphlearn_layered2(res[:10], vertex_label='importance')
+            return res
 
     def fit_transform(self, inputs, inputs_neg=[]):
         return self.fit(inputs, inputs_neg, fit_transform=True)

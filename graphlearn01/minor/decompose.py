@@ -66,7 +66,7 @@ class MinorDecomposer(Decomposer):
             self._abstract_graph.graph['original'] = graph
         return self
 
-    def pre_vectorizer_graph(self, nested=False):
+    def pre_vectorizer_graph(self, nested=True):
         '''
         generate the graph that will be used for evaluation ( it will be vectorized by eden and then used
         in a machine learning scheme).
@@ -111,7 +111,7 @@ class MinorDecomposer(Decomposer):
         try:
             g = nx.union_all(graphs)
         except:
-            print 'prevec graph'
+            print 'decompose prevec graph union failed. '
             print ascii.nx_to_ascii(graph,xmax=30,ymax=15)
             #draw.graphlearn(graphs, vertex_label='id')
             # nobody cares... i just need to fix the overlap in ids

@@ -65,7 +65,7 @@ class ClusterClassifier():                                                 #!!!!
             # ok now we want to print the INFO from above
             for cid in set(cluster_ids):
                 print "cluster: %d  len %d" % (cid, len(graphclusters[cid]))
-                draw.graphlearn(graphclusters[cid][:5])
+                draw.graphlearn(graphclusters[cid][:5], size=3)
 
 
 

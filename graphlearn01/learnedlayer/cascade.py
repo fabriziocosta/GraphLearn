@@ -34,6 +34,7 @@ import eden
 import transform
 from name_subgraphs import ClusterClassifier
 import networkx as nx
+from graphlearn01.utils import draw
 import graphlearn01.utils as utils
 
 
@@ -102,6 +103,10 @@ class Cascade(object):
             graphs = self.transformers[i].fit_transform(graphs[:numpos], graphs[numpos:])
         if remove_intermediary_layers:
             graphs = self.do_remove_intermediary_layers(graphs)
+
+        if self.debug:
+            draw.graphlearn_layered2(graphs[:10], vertex_label='importance')
+
 
         return graphs
 
