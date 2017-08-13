@@ -105,6 +105,9 @@ class Cascade(object):
             graphs = self.do_remove_intermediary_layers(graphs)
 
         if self.debug:
+            #draw.graphlearn([graphs[0], graphs[0].graph['original']], contract =False, vertex_label='contracted')
+            #for n , d in graphs[0].graph['original'].nodes(data=True):
+            #    print n, d
             draw.graphlearn_layered2(graphs[:10], vertex_label='importance')
 
 

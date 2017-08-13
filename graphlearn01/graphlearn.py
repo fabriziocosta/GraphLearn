@@ -410,9 +410,9 @@ class Sampler(object):
     def decomps_to_vectors(self,decomposers):
         return self.vectorizer.transform(self.decomps_to_graphs(decomposers))
 
-    def fit_estimator(self, decomposers, negative_decomposers=None, regression_targets=None,**args):
+    def fit_estimator(self, decomposers, negative_decomposers=[], regression_targets=None,**args):
         positive = self.decomps_to_vectors(decomposers)
-        if negative_decomposers == None and regression_targets == None:
+        if negative_decomposers == [] and regression_targets == None:
 
             # draw.graphlearn(positive[:5], contract=False)
             # print positive[0].graph

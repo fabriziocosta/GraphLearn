@@ -13,7 +13,7 @@ class GraphTransformer(object):
     def fit(self, inputs):
         return self
 
-    def fit_transform(self, inputs):
+    def fit_transform(self, inputs,negstuff=[]):
         '''
 
         Parameters
@@ -26,7 +26,7 @@ class GraphTransformer(object):
         '''
         inputs=list(inputs)
         self.fit(inputs)
-        return self.transform(inputs)
+        return self.transform(inputs+negstuff)
 
     def re_transform_single(self, graph):
         '''

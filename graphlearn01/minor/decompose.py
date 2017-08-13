@@ -660,12 +660,14 @@ def merge_core(base_graph, abstract_graph, abstract_cip):
     """
 
     try:
-        mergeids = [base_graph_id for radius in range(abstract_cip.radius + 1)
-                                     for abstract_node_id in abstract_cip.distance_dict.get(radius)
-                                        for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
+        mergeids = [base_graph_id
+                        for radius in range(abstract_cip.radius + 1)
+                            for abstract_node_id in abstract_cip.distance_dict.get(radius)
+                                for base_graph_id in abstract_graph.node[abstract_node_id]['contracted']]
     except:
         print 'merge core decomp draws a graph'
-        #draw.debug(abstract_graph)
+        print len(base_graph),len(abstract_graph)
+        draw.graphlearn_layered2(abstract_graph)
 
     # remove duplicates:
     mergeids = list(set(mergeids))

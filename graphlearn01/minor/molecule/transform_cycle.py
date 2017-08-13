@@ -26,6 +26,7 @@ class GraphTransformerCircles(GraphTransformer):
         -------
         void
         """
+        self.debug=False
         pass
 
     def wrap(self, graph):
@@ -48,7 +49,21 @@ class GraphTransformerCircles(GraphTransformer):
 
     def transform(self, inputs):
         return   map( self.transform_single, inputs)
+    
+    def transform_single(self, graph):
+        res= make_abstract(graph.copy())
+        res.graph['original']=graph
 
+        if self.debug:
+            draw.graphlearn([res, res.graph['original']], vertex_label='id')
+            for n,d in res.nodes(data=True):
+                print n,d
+            draw.graphlearn_layered2([res])
+            self.debug=False
+
+        return res
+
+'''
     def transform_single(self, graph):
         product = self.abstract(graph)
         product.graph['original']= edengraphtools._edge_to_vertex_transform(graph)
@@ -85,7 +100,7 @@ class GraphTransformerCircles(GraphTransformer):
                             _abstract_graph.node[blob]['contracted'] = set([n])
 
         return _abstract_graph
-
+'''
 
 '''
 here we invent the abstractor function
