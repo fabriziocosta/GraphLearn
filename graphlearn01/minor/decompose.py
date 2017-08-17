@@ -131,11 +131,12 @@ class MinorDecomposer(Decomposer):
                 #        d['contracted']=set( [reconstrdict[e] for e in d['contracted']] )
 
 
-                for n, d in g.nodes(data=True):
+                for node_union_graph, d in g.nodes(data=True):
                     if 'contracted' in d:
                         for e in d['contracted']:
-                            if e in g.nodes():
-                                g.add_edge(n, e, nesting=True, label='')
+                            if e in g.nodes() and "edge" not in graph.node.get(e,{}): # graph is the original graph.
+                                g.add_edge(node_union_graph, e, nesting=True, label='')
+                g=eden.graph._revert_edge_to_vertex_transform(g)
             except:
                 print 'can not build nested graph... input looks like this:'
                 #draw.graphlearn(self._unaltered_graph.graph['original'], vertex_label='id', size=15)
