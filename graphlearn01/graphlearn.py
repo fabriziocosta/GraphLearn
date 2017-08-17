@@ -636,6 +636,10 @@ class Sampler(object):
     def _choose_proposal(self,graph_decomposer):
        props= [self._propose(graph_decomposer) 
                         for x in range( self.proposed_graphs_per_step)]
+
+       #draw.graphlearn(map(lambda x:x._abstract_graph, props), contract=False, vertex_label='id', secondary_vertex_label='contracted')
+       #draw.graphlearn(map(lambda x:x._base_graph, props), contract=False, vertex_label='id', secondary_vertex_label='contracted')
+
        scores = map(self._score, props)
         
        return props[scores.index( max(scores)  )]

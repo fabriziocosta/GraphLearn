@@ -49,21 +49,22 @@ class GraphTransformerCircles(GraphTransformer):
 
     def transform(self, inputs):
         return   map( self.transform_single, inputs)
-    
+
+    '''
     def transform_single(self, graph):
-        res= make_abstract(graph.copy())
+        res = make_abstract(graph.copy())
         res.graph['original']=graph
 
         if self.debug:
-            draw.graphlearn([res, res.graph['original']], vertex_label='id')
+            draw.graphlearn([res, res.graph['original']], vertex_label='id', secondary_vertex_label='contracted')
             for n,d in res.nodes(data=True):
                 print n,d
             draw.graphlearn_layered2([res])
-            self.debug=False
+            #self.debug=False
 
         return res
 
-'''
+    '''
     def transform_single(self, graph):
         product = self.abstract(graph)
         product.graph['original']= edengraphtools._edge_to_vertex_transform(graph)
@@ -100,7 +101,6 @@ class GraphTransformerCircles(GraphTransformer):
                             _abstract_graph.node[blob]['contracted'] = set([n])
 
         return _abstract_graph
-'''
 
 '''
 here we invent the abstractor function
@@ -132,7 +132,7 @@ def make_abstract(graph):
     # make sure most of the abstract nodes are created.
     abstract_graph = nx.Graph()
     for n, d in graph.nodes(data=True):
-        cyclash = fhash(d['cycle'])
+        cyclash = fhash(d['cycle'])+max(graph.nodes())+1
         if cyclash not in abstract_graph.node:
             abstract_graph.add_node(cyclash)
             abstract_graph.node[cyclash]['contracted'] = set(d['cycle'])

@@ -286,6 +286,8 @@ def graphlearn_layered2(graphs, **args):
     def calc_avg_position(nodelist, posdict):
         # print 'calc avg pos'
         if len(nodelist) == 0:
+            import traceback
+            traceback.print_stack()
             print 'bad node list'
             return (0, 0)
         xpos = sum([posdict[i][0] for i in nodelist]) / len(nodelist)
@@ -356,7 +358,7 @@ def draw_center(graph, root_node, radius, **args):
 
 
 def set_ids(graph):
-    for n, d in graph.nodes_iter(data=True):
+    for n, d in graph.nodes(data=True):
         d['id_LABEL'] = str(n)
 
 
@@ -441,6 +443,11 @@ def graphlearn(graphs,
     if show_direction or abstract_color:
         edge_color = 'color'
         edge_alpha = 1.0
+
+    if args.get('secondary_vertex_label', '') == 'contracted':
+        for g in graphs:
+            for n,d in g.nodes(data=True):
+                d['contracted'] = str(list(d.get('contracted',[])))
 
     if contract:
         # tmp=[]
@@ -592,7 +599,7 @@ def contract_edges(original_graph):
                     graphlearn(original_graph,contract=False)
                     continue
             else:
-                print "DRAW:SOMETHING IS WRONG IN CONTRACT EDGES  ends:", len(endpoints), n
+                print "draw.py: contract edges failed. node id: %d   numneighbors: %d  " % (n, len(endpoints))
                 continue
 
             # add the corresponding edge
