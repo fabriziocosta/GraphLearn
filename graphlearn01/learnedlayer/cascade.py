@@ -32,7 +32,8 @@ abstract
 '''
 import eden
 import transform
-from name_subgraphs import ClusterClassifier
+from name_subgraphs import ClusterClassifier_keepduplicates as ClusterClassifier
+#from name_subgraphs import ClusterClassifier
 import networkx as nx
 from graphlearn01.utils import draw
 import graphlearn01.utils as utils
@@ -54,10 +55,11 @@ class Cascade(object):
                         min_group_size=2,
                         group_score_threshold=0,
                         num_classes=2,
+                        min_clustersize=2,
                         debug_rna=False):
 
         self.debug_rna=debug_rna
-
+        self.min_clustersize=min_clustersize
         self.depth = depth
         self.debug = debug
         self.multiprocess = multiprocess
@@ -71,7 +73,7 @@ class Cascade(object):
         for i in range(self.depth):
             transformer = transform.GraphMinorTransformer(
                 vectorizer=eden.graph.Vectorizer(complexity=3,n_jobs=1),
-                cluster_classifier=ClusterClassifier(debug=False,vectorizer=eden.graph.Vectorizer(n_jobs=1)),
+                cluster_classifier=ClusterClassifier(debug=False,vectorizer=eden.graph.Vectorizer(n_jobs=1), min_clustersize=self.min_clustersize),
                 num_classes=self.num_classes,
                 group_score_threshold= self.group_score_threshold,
                 group_max_size=self.max_group_size,
