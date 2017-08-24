@@ -41,7 +41,8 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
 
 
     def get_attr_from_noded(self,d):
-        return d.get(self.attribute,[False])[0]
+        return self.attribute(d)
+        #return d.get(self.attribute,[False,False])[0]
 
 
     def _extract_ccomponents(self, graph, threshold=0, min_size=2, max_size=20):
@@ -151,8 +152,22 @@ class GraphToAbstractTransformer(object):
             Use estimator to annotate graph, group important nodes together to induce subgraphs.
             yields subgraphs
         '''
-        res=  list(standalone_get_subgraphs(inputs, self.score_attribute, self.group_attribute, self.score_threshold, self.min_size,
-                                        self.max_size))
+        res=  list(standalone_get_subgraphs(inputs,
+                                            lambda d: d.get( self.score_attribute,[False])[0],
+                                            self.group_attribute,
+                                            self.score_threshold,
+                                            self.min_size,
+                                            self.max_size))
+        '''
+        res +=  list(standalone_get_subgraphs(inputs,                         # adding negatives
+                                            lambda d: d.get(self.score_attribute,[False,False])[1],
+                                            self.group_attribute,
+                                            self.score_threshold,
+                                            self.min_size,
+                                            self.max_size,more_then=True,less_then=False))
+        '''
+
+
         #while not res:
         #    print "OHSNAP"
         #    self.score_threshold*=.9
@@ -184,10 +199,11 @@ class GraphToAbstractTransformer(object):
         # def f(n,d): d[score_attribute] = graph.degree(n)
         # node_operation(graph,f)
 
-        tcc = ThresholdedConnectedComponents(attribute=self.score_attribute, more_than=False, shrink_graphs=True)
+        #tcc = ThresholdedConnectedComponents(attribute=  lambda d: d.get( self.score_attribute,[False])[0] , more_than=False, shrink_graphs=True)
         try:
-            components = tcc._extract_ccomponents(graph, threshold=self.score_threshold, min_size=self.min_size,
-                                              max_size=self.max_size)
+            components=self.get_subgraphs([graph])
+
+
         except Exception as inst:
             s= 'abstractor.py Thresholdedconnectedcomponents failed\n'
             for node,d in graph.nodes(data=True):
@@ -257,8 +273,8 @@ def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimat
 
 
 
-def standalone_get_subgraphs(inputs, score_attribute, group, threshold, min_size, max_size):
-    tcc = ThresholdedConnectedComponents(attribute=score_attribute, more_than=False, shrink_graphs=True,
+def standalone_get_subgraphs(inputs, nodedict_to_score, group, threshold, min_size, max_size,more_then=False, less_then=True):
+    tcc = ThresholdedConnectedComponents(attribute=nodedict_to_score, more_than=more_then,less_then=less_then, shrink_graphs=True,
                                          threshold=threshold,
                                          min_size=min_size,
                                          max_size=max_size)

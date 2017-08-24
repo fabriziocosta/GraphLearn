@@ -41,7 +41,7 @@ class GraphMinorTransformer(GraphTransformer):
 
     def __init__(self,
                  vectorizer=eden.graph.Vectorizer(complexity=3),
-                 estimator=ExperimentalOneClassEstimator(),
+                 #estimator=ExperimentalOneClassEstimator(),
                  group_min_size=3,
                  group_max_size=6,
                  # cluster_min_members=0,
@@ -57,7 +57,7 @@ class GraphMinorTransformer(GraphTransformer):
                  layer=0):
 
         self.vectorizer = vectorizer
-        self.estimator = estimator
+        #self.estimator = estimator
         self.max_size = group_max_size
         self.min_size = group_min_size
         self.score_threshold = group_score_threshold

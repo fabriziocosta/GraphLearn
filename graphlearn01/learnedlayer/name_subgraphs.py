@@ -37,7 +37,7 @@ class ClusterClassifier():                                                 #!!!!
 
         if self.min_clustersize < 1.0:
             minsamp = matrix.shape[0]*self.min_clustersize
-            print minsamp,matrix.shape, self.min_clustersize
+            #print minsamp,matrix.shape, self.min_clustersize
         else:
             minsamp = self.min_clustersize
 
@@ -98,10 +98,20 @@ class ClusterClassifier_keepduplicates():                                       
             return distances[ x[idd],y[idd]]
 
 
-        dist = np.median( distances_select_first_non_id_neighbor(dist))
+        dists =  distances_select_first_non_id_neighbor(dist)
+        #dist = np.median(dists)
+        dists=np.sort(dists)
+        dist=dists[int(len(dists)*.75)]
+
+
+        if self.min_clustersize < 1.0:
+            minsamp = max(int(matrix.shape[0]*self.min_clustersize),2)
+            logger.debug( "minimum cluster size is: %d" % minsamp )
+        else:
+            minsamp = self.min_clustersize
 
         # get the clusters
-        scan = DBSCAN(eps=dist, min_samples=self.min_clustersize)
+        scan = DBSCAN(eps=dist, min_samples=minsamp)
         return scan.fit_predict(matrix)
 
     def predict(self, matrix):
@@ -132,7 +142,8 @@ class ClusterClassifier_keepduplicates():                                       
             # ok now we want to print the INFO from above
             for cid in set(cluster_ids):
                 print "cluster: %d  len: %d" % (cid, len(graphclusters[cid]))
-                draw.graphlearn(graphclusters[cid][:5], size=3)
+                #subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
+                draw.graphlearn(utils.unique_graphs_graphlearn_graphhash(graphclusters[cid])[:5],edge_label='label', size=3)
 
 
 

@@ -16,6 +16,11 @@ class twoclass(SGDClassifier):
     if i hack something like this in the future maybe the intercept array needs to be provided..
     (see the annotator code)
     '''
+
+    # default guy:
+    #def decision_function(self, vector):
+    #    answer =  super(self.__class__,self).decision_function(vector)
+    #    return np.vstack((answer, (answer-1))).T
     def decision_function(self, vector):
         answer =  super(self.__class__,self).decision_function(vector)
         return np.vstack((answer, (answer-1))).T
@@ -37,7 +42,7 @@ class Annotator():
 
         if graphs_neg:
             #print 'choosing to train binary esti'
-            self.estimator = twoclass() #SGDClassifier()
+            self.estimator = twoclass(loss='log') #SGDClassifier()
             classes= [1]*len(graphs_pos)+[-1]*len(graphs_neg)
 
             self.estimator.fit(self.vectorizer.transform(graphs_pos+graphs_neg),classes)
