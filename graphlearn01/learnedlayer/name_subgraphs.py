@@ -88,7 +88,11 @@ class ClusterClassifier_keepduplicates():                                       
         get the median distance to the NTH neighbor with NN
         use that distance to cluster with scan
         '''
-        neigh = NearestNeighbors(n_neighbors=nth_neighbor+100, metric='euclidean')
+        n_neighbors = min(100, matrix.shape[0])
+        if n_neighbors < 100:
+            print 'name_subgraphs: there are %d graphs to cluster' % matrix.shape[0]
+
+        neigh = NearestNeighbors(n_neighbors=n_neighbors, metric='euclidean')
         neigh.fit(matrix)
         dist, indices = neigh.kneighbors(matrix)
 

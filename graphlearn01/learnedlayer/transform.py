@@ -125,7 +125,7 @@ class GraphMinorTransformer(GraphTransformer):
             if self.debug_rna:
                 draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='importance',secondary_vertex_label='label')
             else:
-                draw.graphlearn(graphs[:5], contract=False, size=7,vertex_size=800, vertex_label='importance',secondary_vertex_label='label')
+                draw.graphlearn(graphs[:20], contract=False, size=7,vertex_size=800, vertex_label='importance',secondary_vertex_label='label')
                 #ascii.printrow(graphs[:3],size=14)
                 #ascii.printrow(graphs[3:6],size=14)
             # vertex_color='importance', colormap='inferno')
