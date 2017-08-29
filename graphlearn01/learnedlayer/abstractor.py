@@ -7,6 +7,32 @@ import graphlearn01.utils as utils
 import logging
 logger = logging.getLogger(__name__)
 
+
+
+
+class Cutter(object):
+
+    def __init__(self,attribute=lambda x:x, threshold=.5, min_size=3,max_size=10):
+        self.attribute = attribute
+        self.threshold=threshold
+        self.min_size= min_size
+        self.max_size= max_size
+
+
+    def cut(self,graphs):
+        for graph in graphs:
+            graph=graph.copy()
+            for a,b in graph.edges():
+                if  abs(self.attribute(graph.node[a]) - self.attribute(graph.node[b])) > self.threshold:
+                    graph.remove_edge(a,b)
+            for sg in nx.connected_component_subgraphs(graph):
+                if self.min_size < len(sg) <self.max_size:
+                    yield sg
+
+
+
+
+
 class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
     """ThresholdedConnectedComponents."""
 
@@ -152,6 +178,16 @@ class GraphToAbstractTransformer(object):
             Use estimator to annotate graph, group important nodes together to induce subgraphs.
             yields subgraphs
         '''
+
+        cutter=Cutter(
+                attribute= lambda d: d.get( self.score_attribute,[False])[0],
+                max_size=self.max_size,
+                min_size=self.min_size,
+                threshold=self.score_threshold
+                )
+        return list(cutter.cut(inputs))
+
+
         res=  list(standalone_get_subgraphs(inputs,
                                             lambda d: d.get( self.score_attribute,[False])[0],
                                             self.group_attribute,
@@ -166,8 +202,6 @@ class GraphToAbstractTransformer(object):
                                             self.min_size,
                                             self.max_size,more_then=True,less_then=False))
         '''
-
-
         #while not res:
         #    print "OHSNAP"
         #    self.score_threshold*=.9
