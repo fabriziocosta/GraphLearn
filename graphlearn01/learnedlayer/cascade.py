@@ -32,8 +32,8 @@ abstract
 '''
 import eden
 import transform
-from name_subgraphs import ClusterClassifier_keepduplicates as ClusterClassifier
-#from name_subgraphs import ClusterClassifier
+#from name_subgraphs import ClusterClassifier_keepduplicates as ClusterClassifier
+from name_subgraphs import ClusterClassifier
 import networkx as nx
 from graphlearn01.utils import draw
 import graphlearn01.utils as utils
