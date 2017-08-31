@@ -19,8 +19,9 @@ from graphlearn01.utils import draw
 
 class ClusterClassifier():                                                 #!!!!!!!!!!!!!
 
-    def __init__(self,debug=False, vectorizer=Vectorizer(),min_clustersize=2):
+    def __init__(self,debug=False, vectorizer=Vectorizer(),min_clustersize=2,dbscan_range=.6):
         self.debug=debug
+        self.dbscan_range=dbscan_range # not used here but is a good idea, see below
         self.vectorizer=vectorizer
         self.min_clustersize=min_clustersize
 
@@ -78,10 +79,11 @@ class ClusterClassifier():                                                 #!!!!
 
 class ClusterClassifier_keepduplicates():                                                 #!!!!!!!!!!!!!
 
-    def __init__(self,debug=False, vectorizer=Vectorizer(),min_clustersize=2):
+    def __init__(self,debug=False, vectorizer=Vectorizer(),min_clustersize=2,dbscan_range=.6):
         self.debug=debug
         self.vectorizer=vectorizer
         self.min_clustersize=min_clustersize
+        self.dbscan_range=dbscan_range
 
     def cluster_subgraphs(self, matrix, nth_neighbor=1):
         '''
@@ -96,16 +98,32 @@ class ClusterClassifier_keepduplicates():                                       
         neigh.fit(matrix)
         dist, indices = neigh.kneighbors(matrix)
 
+        def distances_select_NTH_non_id_neighbor(distances,N):
+            x,y = distances.nonzero()
+            print x
+            state=(-1,-1)
+            idd=[]
+            for idx,xx in enumerate(x):
+                if xx!=state[1]:   # we see a new letter -> state is 1
+                    state = (1,xx)
+                elif state[0] == 1:
+                    idd.append(idx)
+                    state=(2,xx)
+
+            return distances[ x[idd],y[idd]]
+
         def distances_select_first_non_id_neighbor(distances):
             x,y = distances.nonzero()
             _, idd = np.unique(x, return_index=True)
             return distances[ x[idd],y[idd]]
 
 
-        dists =  distances_select_first_non_id_neighbor(dist)
+        dists =  distances_select_NTH_non_id_neighbor(dist,2)
         #dist = np.median(dists)
         dists=np.sort(dists)
-        dist=dists[int(len(dists)*.75)]
+        idx=int(len(dists)*self.dbscan_range)
+        dist=dists[idx]
+        print "name_subgraph: choosing dist %d of %d" % (idx, len(dists))
 
 
         if self.min_clustersize < 1.0:
@@ -113,6 +131,7 @@ class ClusterClassifier_keepduplicates():                                       
             logger.debug( "minimum cluster size is: %d" % minsamp )
         else:
             minsamp = self.min_clustersize
+
 
         # get the clusters
         scan = DBSCAN(eps=dist, min_samples=minsamp)

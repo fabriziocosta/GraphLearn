@@ -50,7 +50,7 @@ class GraphMinorTransformer(GraphTransformer):
                  debug=False,
                  debug_rna=False,
                  # subgraph_cluster=,
-                 cluster_classifier=ClusterClassifier(debug=False,vectorizer=eden.graph.Vectorizer()),
+                 cluster_classifier= ClusterClassifier(debug=False,vectorizer=eden.graph.Vectorizer()),
                  # save_graphclusters=False,
                  multiprocess=True,
                  num_classes=2,
@@ -121,11 +121,11 @@ class GraphMinorTransformer(GraphTransformer):
         # draw.graphlearn([graphs[0], graphs_neg[-1]], vertex_label='importance')
         # info
         if self.debug:
-            print 'minortransform_scores'
+            print 'transform minortransform_scores'
             if self.debug_rna:
                 draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='importance',secondary_vertex_label='label')
             else:
-                draw.graphlearn(graphs[:20], contract=False, size=7,vertex_size=800, vertex_label='importance',secondary_vertex_label='label')
+                draw.graphlearn(graphs[:5], contract=False, size=7,vertex_size=800, vertex_label='importance',secondary_vertex_label='label',edge_label='label')
                 #ascii.printrow(graphs[:3],size=14)
                 #ascii.printrow(graphs[3:6],size=14)
             # vertex_color='importance', colormap='inferno')

@@ -26,7 +26,7 @@ class Cutter(object):
                 if  abs(self.attribute(graph.node[a]) - self.attribute(graph.node[b])) > self.threshold:
                     graph.remove_edge(a,b)
             for sg in nx.connected_component_subgraphs(graph):
-                if self.min_size < len(sg) <self.max_size:
+                if self.min_size <= len(sg) <= self.max_size:
                     yield sg
 
 

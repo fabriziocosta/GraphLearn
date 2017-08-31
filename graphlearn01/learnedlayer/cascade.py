@@ -56,8 +56,11 @@ class Cascade(object):
                         group_score_threshold=0,
                         num_classes=2,
                         min_clustersize=2,
+                        dbscan_range=.5,
+                        vectorizer_annotation=eden.graph.Vectorizer(complexity=3,n_jobs=1),
+                        vectorizer_cluster=eden.graph.Vectorizer(complexity=3,n_jobs=1),
                         debug_rna=False):
-
+        self.dbscan_range=dbscan_range
         self.debug_rna=debug_rna
         self.min_clustersize=min_clustersize
         self.depth = depth
@@ -67,13 +70,26 @@ class Cascade(object):
         self.min_group_size = min_group_size
         self.group_score_threshold = group_score_threshold
         self.num_classes= num_classes
+        self.vectorizer_annotation=vectorizer_annotation
+        self.vectorizer_cluster = vectorizer_cluster
+
+
+        if debug:
+            print "an instance of cascade was created:"
+            print "dbscan_range: ",dbscan_range
+            print "min_clustersize: ",min_clustersize
+            print "min_group_size: ",min_group_size
+            print "vectorizer_cluster: ",vectorizer_cluster
+            print ""
+
+
 
     def setup_transformers(self):
         self.transformers = []
         for i in range(self.depth):
             transformer = transform.GraphMinorTransformer(
-                vectorizer=eden.graph.Vectorizer(complexity=3,n_jobs=1),
-                cluster_classifier=ClusterClassifier(debug=False,vectorizer=eden.graph.Vectorizer(n_jobs=1), min_clustersize=self.min_clustersize),
+                vectorizer=self.vectorizer_annotation,
+                cluster_classifier= ClusterClassifier(debug=False,vectorizer=self.vectorizer_cluster, min_clustersize=self.min_clustersize,dbscan_range=self.dbscan_range),
                 num_classes=self.num_classes,
                 group_score_threshold= self.group_score_threshold,
                 group_max_size=self.max_group_size,
@@ -110,7 +126,8 @@ class Cascade(object):
             #draw.graphlearn([graphs[0], graphs[0].graph['original']], contract =False, vertex_label='contracted')
             #for n , d in graphs[0].graph['original'].nodes(data=True):
             #    print n, d
-            draw.graphlearn_layered2(graphs[:10], vertex_label='importance')
+            print "cascase: full transformation"
+            draw.graphlearn_layered2(graphs[:10], vertex_label='label',scoretricks=True )
 
 
         return graphs

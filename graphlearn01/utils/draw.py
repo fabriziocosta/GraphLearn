@@ -389,6 +389,7 @@ def graphlearn(graphs,
                vertex_label='label',
                edge_label=None,
                edge_alpha=.5,
+               scoretricks = False,
                **args):
     if isinstance(graphs, nx.Graph):
         graphs = [graphs]
@@ -421,7 +422,7 @@ def graphlearn(graphs,
         if vertex_label == 'id' or args.get("secondary_vertex_label", "no") == 'id':
             set_ids(graph)
 
-        if vertex_label == 'importance' or args.get('secondary_vertex_label', '') == 'importance':
+        if vertex_label == 'importance' or args.get('secondary_vertex_label', '') == 'importance' or scoretricks:
             for n, d in graph.nodes(data=True):
                 d['importance'] = round(d['importance'][0], 2)
 
@@ -433,7 +434,7 @@ def graphlearn(graphs,
     if args.get("secondary_vertex_label", "no") == 'id':
         args["secondary_vertex_label"] = 'id_LABEL'
 
-    if vertex_label == 'importance' and vertex_color == None:
+    if (vertex_label == 'importance' and vertex_color == None) or scoretricks:
         vertex_color = 'importance'
         args['colormap'] = 'inferno'
 
