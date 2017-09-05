@@ -436,7 +436,7 @@ def graphlearn(graphs,
 
     if (vertex_label == 'importance' and vertex_color == None) or scoretricks:
         vertex_color = 'importance'
-        args['colormap'] = 'inferno'
+        args['colormap'] = 'hot'
 
     if vertex_color is None:
         vertex_color = 'col'

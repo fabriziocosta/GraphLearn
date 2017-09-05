@@ -127,7 +127,9 @@ class Cascade(object):
             #for n , d in graphs[0].graph['original'].nodes(data=True):
             #    print n, d
             print "cascase: full transformation"
-            draw.graphlearn_layered2(graphs[:10], vertex_label='label',scoretricks=True )
+
+            #draw.graphlearn(graphs[:5], contract=False, size=7,vertex_size=600, vertex_label='importance',font_size=9,secondary_vertex_label='label',edge_label='label')
+            draw.graphlearn_layered2(graphs[:10], vertex_label='label',scoretricks=True, edge_label='label' )
 
 
         return graphs

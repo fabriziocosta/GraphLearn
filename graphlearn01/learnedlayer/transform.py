@@ -125,7 +125,7 @@ class GraphMinorTransformer(GraphTransformer):
             if self.debug_rna:
                 draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='importance',secondary_vertex_label='label')
             else:
-                draw.graphlearn(graphs[:5], contract=False, size=7,vertex_size=800, vertex_label='importance',secondary_vertex_label='label',edge_label='label')
+                draw.graphlearn(graphs[:5], contract=False, size=7,vertex_size=600, vertex_label='importance',font_size=9,secondary_vertex_label='label',edge_label='label')
                 #ascii.printrow(graphs[:3],size=14)
                 #ascii.printrow(graphs[3:6],size=14)
             # vertex_color='importance', colormap='inferno')
@@ -145,7 +145,7 @@ class GraphMinorTransformer(GraphTransformer):
             res = self.transform(graphs)
             if self.debug:
                 print "minortransform_added_layer"
-                draw.graphlearn_layered2(res[:10], vertex_label='importance')
+                draw.graphlearn_layered2(res[:10], vertex_label='importance', font_size=10)
             return res
 
     def fit_transform(self, inputs, inputs_neg=[]):

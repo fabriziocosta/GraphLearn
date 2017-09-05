@@ -7,6 +7,16 @@ import multiprocessing as mp
 import numpy as np
 
 class twoclass(SGDClassifier):
+    # THE HACK IS NOW GETTING EVEN MORE EVIL
+    def __init__(self):
+        self.clazz= SGDClassifier(loss='log')
+
+    def fit(self,X,y):
+        self.clazz.fit(X,y)
+        self.intercept_= self.clazz.intercept_
+        self.classes_= self.clazz.classes_
+        return self
+
     # eden cant annotate two classes if the esti is not a sgdregressor
     #  -> this hack is made!
     '''
@@ -21,9 +31,16 @@ class twoclass(SGDClassifier):
     #def decision_function(self, vector):
     #    answer =  super(self.__class__,self).decision_function(vector)
     #    return np.vstack((answer, (answer-1))).T
+
+    def decision_function(self,vector):
+        return self.clazz.predict_proba(vector)
+
+    '''
     def decision_function(self, vector):
-        answer =  super(self.__class__,self).decision_function(vector)
+        #answer =  super(self.__class__,self).decision_function(vector)
+        answer =  super(self.__class__,self).predict_proba(vector)
         return np.vstack((answer, (answer-1))).T
+    '''
 
 
 class Annotator():
@@ -42,7 +59,7 @@ class Annotator():
 
         if graphs_neg:
             #print 'choosing to train binary esti'
-            self.estimator = twoclass(loss='log') #SGDClassifier()
+            self.estimator = twoclass() #SGDClassifier()
             classes= [1]*len(graphs_pos)+[-1]*len(graphs_neg)
 
             self.estimator.fit(self.vectorizer.transform(graphs_pos+graphs_neg),classes)

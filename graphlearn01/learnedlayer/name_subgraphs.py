@@ -115,10 +115,19 @@ class ClusterClassifier_keepduplicates():                                       
         def distances_select_first_non_id_neighbor(distances):
             x,y = distances.nonzero()
             _, idd = np.unique(x, return_index=True)
+
+            """
+            for i,e in enumerate(zip(list(x), list(y))):
+                print e, distances[e]
+                if i in idd:
+                    print "!!!"
+            print idd
+            """
             return distances[ x[idd],y[idd]]
 
 
-        dists =  distances_select_NTH_non_id_neighbor(dist,2)
+        #dists =  distances_select_NTH_non_id_neighbor(dist,2)
+        dists =  distances_select_first_non_id_neighbor(dist)
         #dist = np.median(dists)
         dists=np.sort(dists)
         idx=int(len(dists)*self.dbscan_range)
