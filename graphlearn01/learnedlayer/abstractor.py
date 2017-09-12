@@ -8,6 +8,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class RmTrash(object):
+
+    def __init__(self,attribute=lambda x:x, threshold=.5, min_size=3,max_size=10):
+        self.attribute = attribute
+        self.threshold_low=threshold
+        self.threshold_high=1-threshold
+        self.min_size= min_size
+        self.max_size= max_size
+
+
+    def cut(self,graphs):
+        for graph in graphs:
+            graph=graph.copy()
+            for n in graph.nodes():
+                if  self.threshold_low < self.attribute(graph.node[n]) < self.threshold_high:
+                    graph.remove_node(n)
+            for sg in nx.connected_component_subgraphs(graph):
+                if self.min_size <= len(sg) <= self.max_size:
+                    yield sg
+
 
 
 class Cutter(object):
@@ -301,6 +321,7 @@ def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimat
     def f(n, d):
         d['label'] = graphreference.node[max(d['contracted'])]['label'] \
             if d['label'] == '-' else "L%sC%s" % (layer, d['label'])
+        d.pop("importance",None)
 
     node_operation(graph, f)
     return graph
