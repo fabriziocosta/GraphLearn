@@ -32,6 +32,10 @@ class RmTrash(object):
 
 class Cutter(object):
 
+
+
+
+
     def __init__(self,attribute=lambda x:x, threshold=.5, min_size=3,max_size=10):
         self.attribute = attribute
         self.threshold=threshold
@@ -42,12 +46,17 @@ class Cutter(object):
     def cut(self,graphs):
         for graph in graphs:
             graph=graph.copy()
+            #asd = self.attribute
+            #self.attribute = lambda x:x['tmpscore']
+
             for a,b in graph.edges():
                 if  abs(self.attribute(graph.node[a]) - self.attribute(graph.node[b])) > self.threshold:
                     graph.remove_edge(a,b)
             for sg in nx.connected_component_subgraphs(graph):
                 if self.min_size <= len(sg) <= self.max_size:
                     yield sg
+
+            #self.attribute = asd
 
 
 

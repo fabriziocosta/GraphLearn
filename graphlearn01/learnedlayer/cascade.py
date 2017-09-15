@@ -59,6 +59,7 @@ class Cascade(object):
                         dbscan_range=.5,
                         vectorizer_annotation=eden.graph.Vectorizer(complexity=3,n_jobs=1),
                         vectorizer_cluster=eden.graph.Vectorizer(complexity=3,n_jobs=1),
+                        annotate_dilude_score=False,
                         debug_rna=False):
         self.dbscan_range=dbscan_range
         self.debug_rna=debug_rna
@@ -72,6 +73,7 @@ class Cascade(object):
         self.num_classes= num_classes
         self.vectorizer_annotation=vectorizer_annotation
         self.vectorizer_cluster = vectorizer_cluster
+        self.annotate_dilude_score=annotate_dilude_score
 
 
         if debug:
@@ -95,6 +97,7 @@ class Cascade(object):
                 group_max_size=self.max_group_size,
                 group_min_size=self.min_group_size,
                 multiprocess=self.multiprocess,
+                annotate_dilude_score=self.annotate_dilude_score,
                 # cluster_max_members=-1,
                 layer=i,
                 debug=self.debug,

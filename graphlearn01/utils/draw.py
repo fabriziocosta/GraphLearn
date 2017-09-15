@@ -424,9 +424,9 @@ def graphlearn(graphs,
 
         if vertex_label == 'importance' or args.get('secondary_vertex_label', '') == 'importance' or scoretricks:
             for n, d in graph.nodes(data=True):
-                d['importance'] = round(d['importance'][0], 2)
+                d['importance'] = round(d.get('importance', [1337])[0], 2)
 
-    # now we need to change the attribute
+            # now we need to change the attribute
     # because there is a label collission in json graph saving
     if vertex_label == 'id':
         vertex_label = 'id_LABEL'

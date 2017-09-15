@@ -52,6 +52,7 @@ class GraphMinorTransformer(GraphTransformer):
                  # subgraph_cluster=,
                  cluster_classifier= ClusterClassifier(debug=False,vectorizer=eden.graph.Vectorizer()),
                  # save_graphclusters=False,
+                 annotate_dilude_score=False,
                  multiprocess=True,
                  num_classes=2,
                  layer=0):
@@ -71,6 +72,7 @@ class GraphMinorTransformer(GraphTransformer):
         self.layer = layer
         self.multiprocess = multiprocess
         self.num_classes = num_classes
+        self.annotate_dilude_score=annotate_dilude_score
 
     def prepfit(self):
         self.cluster_classifier.debug = self.debug
@@ -83,7 +85,7 @@ class GraphMinorTransformer(GraphTransformer):
             layer=self.layer,
             vectorizer=self.vectorizer)
 
-        self.annotator = annotate.Annotator(vectorizer=self.vectorizer,multiprocess=False)
+        self.annotator = annotate.Annotator(vectorizer=self.vectorizer,multiprocess=False, debug=self.debug, annotate_dilude_scores=self.annotate_dilude_score)
 
     def fit(self, graphs, graphs_neg=[], fit_transform=False):
         '''

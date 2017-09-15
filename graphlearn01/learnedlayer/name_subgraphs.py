@@ -21,7 +21,7 @@ class ClusterClassifier():                                                 #!!!!
 
     def __init__(self,debug=False, vectorizer=Vectorizer(),min_clustersize=2,dbscan_range=.6):
         self.debug=debug
-        self.dbscan_range=dbscan_range # not used here but is a good idea, see below
+        self.dbscan_range=dbscan_range
         self.vectorizer=vectorizer
         self.min_clustersize=min_clustersize
 
@@ -33,7 +33,7 @@ class ClusterClassifier():                                                 #!!!!
         neigh = NearestNeighbors(n_neighbors=nth_neighbor+1, metric='euclidean')
         neigh.fit(matrix)
         dist, indices = neigh.kneighbors(matrix)
-        dist = np.median(dist[:, nth_neighbor], axis=0) # 1 is the Nth neigh
+        #dist = np.median(dist[:, nth_neighbor], axis=0) # 1 is the Nth neigh
 
 
         if self.min_clustersize < 1.0:
@@ -41,6 +41,31 @@ class ClusterClassifier():                                                 #!!!!
             #print minsamp,matrix.shape, self.min_clustersize
         else:
             minsamp = self.min_clustersize
+
+        def distances_select_first_non_id_neighbor(distances):
+            x,y = distances.nonzero()
+            _, idd = np.unique(x, return_index=True)
+
+            """
+            for i,e in enumerate(zip(list(x), list(y))):
+                print e, distances[e]
+                if i in idd:
+                    print "!!!"
+            print idd
+            """
+            return distances[ x[idd],y[idd]]
+
+
+        #dists =  distances_select_NTH_non_id_neighbor(dist,2)
+        dists =  distances_select_first_non_id_neighbor(dist)
+        #dist = np.median(dists)
+        dists=np.sort(dists)
+        idx=int(len(dists)*self.dbscan_range)
+        dist=dists[idx]
+        if self.debug:
+            print "name_subgraph: choosing dist %d of %d" % (idx, len(dists))
+
+
 
         # get the clusters
         scan = DBSCAN(eps=dist, min_samples=minsamp)
@@ -51,6 +76,7 @@ class ClusterClassifier():                                                 #!!!!
 
     def fit(self, subgraphs):
         # delete duplicates
+        print "got %d subgraphs" % len(subgraphs)
         subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
         matrix = self.vectorizer.transform(subgraphs)
         cluster_ids = self.cluster_subgraphs(matrix)
@@ -91,7 +117,7 @@ class ClusterClassifier_keepduplicates():                                       
         use that distance to cluster with scan
         '''
         n_neighbors = min(100, matrix.shape[0])
-        if n_neighbors < 100:
+        if n_neighbors < 100 and self.debug:
             print 'name_subgraphs: there are %d graphs to cluster' % matrix.shape[0]
 
         neigh = NearestNeighbors(n_neighbors=n_neighbors, metric='euclidean')
@@ -132,7 +158,8 @@ class ClusterClassifier_keepduplicates():                                       
         dists=np.sort(dists)
         idx=int(len(dists)*self.dbscan_range)
         dist=dists[idx]
-        print "name_subgraph: choosing dist %d of %d" % (idx, len(dists))
+        if self.debug:
+            print "name_subgraph: choosing dist %d of %d" % (idx, len(dists))
 
 
         if self.min_clustersize < 1.0:

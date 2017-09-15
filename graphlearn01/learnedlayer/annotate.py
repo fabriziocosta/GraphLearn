@@ -5,13 +5,18 @@ from graphlearn01.estimate import ExperimentalOneClassEstimator
 import eden
 import multiprocessing as mp
 import numpy as np
+import sklearn
 
 class twoclass(SGDClassifier):
     # THE HACK IS NOW GETTING EVEN MORE EVIL
     def __init__(self):
         self.clazz= SGDClassifier(loss='log')
 
-    def fit(self,X,y):
+    def fit(self,X,y, crossval=False):
+
+        if crossval:
+            print "layers crossvalscore:",sklearn.model_selection.cross_val_score(SGDClassifier(loss='log'),X, y).mean()
+
         self.clazz.fit(X,y)
         self.intercept_= self.clazz.intercept_
         self.classes_= self.clazz.classes_
@@ -45,11 +50,13 @@ class twoclass(SGDClassifier):
 
 class Annotator():
 
-    def __init__(self, multiprocess=True, score_attribute='importance',vectorizer=eden.graph.Vectorizer()):
+    def __init__(self, multiprocess=True, score_attribute='importance',vectorizer=eden.graph.Vectorizer(),debug=False, annotate_dilude_scores=False):
         self.score_attribute=score_attribute
         self.vectorizer=vectorizer
         self.multi_process=multiprocess
         self.trained=False
+        self.debug=debug
+        self.annotate_dilude_scores = annotate_dilude_scores
 
     def fit(self, graphs_pos, graphs_neg=[]):
 
@@ -62,7 +69,7 @@ class Annotator():
             self.estimator = twoclass() #SGDClassifier()
             classes= [1]*len(graphs_pos)+[-1]*len(graphs_neg)
 
-            self.estimator.fit(self.vectorizer.transform(graphs_pos+graphs_neg),classes)
+            self.estimator.fit(self.vectorizer.transform(graphs_pos+graphs_neg),classes,crossval=self.debug)
         else:
             print 'annotator fits 1 class esti..'
             self.estimator = ExperimentalOneClassEstimator()
@@ -83,7 +90,8 @@ class Annotator():
 
 
         res =  mass_annotate_mp(graphs,self.vectorizer,score_attribute=self.score_attribute,estimator=self.estimator,
-                                multi_process=self.multi_process)
+                                multi_process=self.multi_process, annotate_dilude_scores=self.annotate_dilude_scores)
+
         if False: # checking for annotation bug
             for g in res:
                 for n,d in g.nodes(data=True):
@@ -95,7 +103,7 @@ class Annotator():
         return res
 
 
-def mass_annotate_mp(inputs, vectorizer, score_attribute='importance', estimator=None, multi_process=False):
+def mass_annotate_mp(inputs, vectorizer, score_attribute='importance', estimator=None, multi_process=False, annotate_dilude_scores=False):
     '''
     graph annotation is slow. i dont want to do it twice in fit and predict :)
     '''
@@ -109,6 +117,23 @@ def mass_annotate_mp(inputs, vectorizer, score_attribute='importance', estimator
 
 
         res = list(vectorizer.annotate(inputs, estimator=estimator))
+
+        def dilute_graph( graph):
+            for n, d in graph.nodes(data=True):
+                neighsum = [graph.node[other][score_attribute][0] for other in graph.neighbors(n)]
+                if neighsum != []:
+                    allfacs = neighsum + [graph.node[n][score_attribute][0]] * len(neighsum)
+                    score = sum(allfacs) / float(len(allfacs))
+                else:
+                    score = d[score_attribute][0]
+                d['tmpscore'] = score
+
+            for n, d in graph.nodes(data=True):
+                d[score_attribute] = [d['tmpscore'], 0]
+                # self.attribute =  lambda x: x['tmpscore']
+        if annotate_dilude_scores:
+            map(dilute_graph,res)
+
         #if invert_score:
         #    def f(n,d): d['importance'] = -d['importance']
         #    res=utils.map_node_operation(res,f)
