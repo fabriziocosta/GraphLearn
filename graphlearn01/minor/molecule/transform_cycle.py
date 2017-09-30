@@ -12,6 +12,7 @@ import networkx as nx
 import graphlearn01.utils.draw as draw
 from eden.graph import Vectorizer
 from eden import graph as edengraphtools
+import hashlib
 
 class GraphTransformerCircles(GraphTransformer):
     def __init__(self):
@@ -117,7 +118,8 @@ def make_abstract(graph):
     '''
     # prepare fast hash function
     def fhash(stuff):
-        return eden.fast_hash(stuff, 2 ** 20 - 1)
+        return int(hashlib.sha224(str(stuff)).hexdigest(),16)
+        #return eden.fast_hash(stuff, 2 ** 20 - 1)
 
 
 
@@ -132,7 +134,7 @@ def make_abstract(graph):
     # make sure most of the abstract nodes are created.
     abstract_graph = nx.Graph()
     for n, d in graph.nodes(data=True):
-        cyclash = fhash(d['cycle'])+max(graph.nodes())+1
+        cyclash = fhash(d['cycle'])+ max(graph.nodes())+1
         if cyclash not in abstract_graph.node:
             abstract_graph.add_node(cyclash)
             abstract_graph.node[cyclash]['contracted'] = set(d['cycle'])
@@ -145,9 +147,6 @@ def make_abstract(graph):
                     node['parent'] = set()
                 node['parent'].add(cyclash)
 
-    # HERE THE ACTUAL ABSTRACTION BEGINS
-
-    # connect nodes in the abstract graph
     get_element = lambda x: list(x)[0]
 
     # FOR ALL ABSTRACT NODES
@@ -204,8 +203,17 @@ def make_abstract(graph):
                                 abstract_graph.add_edge(connector, n)
                             '''
                 else:
-                    for e in graph.node[neigh]['parent']:
-                        abstract_graph.add_edge(n, e, label='e')
+                    try:
+                        for e in graph.node[neigh]['parent']:
+                            abstract_graph.add_edge(n, e, label='e')
+                    except:
+                        print neigh, e ,n
+                        import pprint
+                        for n,d in graph.nodes_iter(data=True):
+                            pprint.pprint(d)
+                            print fhash(d['cycle'])+max(graph.nodes())+1
+                        draw.graphlearn([abstract_graph, graph], size=20, vertex_label="label", secondary_vertex_label="parent")
+                        exit()
     return abstract_graph
 
 

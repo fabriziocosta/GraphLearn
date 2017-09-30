@@ -191,3 +191,7 @@ class GraphMinorTransformer(GraphTransformer):
             #else:
             #    draw.graphlearn(result[:5], contract=False, size=6, vertex_label='contracted' )
         return result
+
+
+
+

@@ -61,7 +61,15 @@ class Cascade(object):
                         vectorizer_cluster=eden.graph.Vectorizer(complexity=3,n_jobs=1),
                         annotate_dilude_score=False,
                         debug_rna=False):
+
+
+        if type(dbscan_range) != list:
+            dbscan_range= [dbscan_range]*depth
         self.dbscan_range=dbscan_range
+        if type(group_score_threshold) != list:
+            group_score_threshold=[group_score_threshold]*depth
+        self.group_score_threshold = group_score_threshold
+
         self.debug_rna=debug_rna
         self.min_clustersize=min_clustersize
         self.depth = depth
@@ -69,7 +77,6 @@ class Cascade(object):
         self.multiprocess = multiprocess
         self.max_group_size = max_group_size
         self.min_group_size = min_group_size
-        self.group_score_threshold = group_score_threshold
         self.num_classes= num_classes
         self.vectorizer_annotation=vectorizer_annotation
         self.vectorizer_cluster = vectorizer_cluster
@@ -91,9 +98,9 @@ class Cascade(object):
         for i in range(self.depth):
             transformer = transform.GraphMinorTransformer(
                 vectorizer=self.vectorizer_annotation,
-                cluster_classifier= ClusterClassifier(debug=False,vectorizer=self.vectorizer_cluster, min_clustersize=self.min_clustersize,dbscan_range=self.dbscan_range),
+                cluster_classifier= ClusterClassifier(debug=False,vectorizer=self.vectorizer_cluster, min_clustersize=self.min_clustersize,dbscan_range=self.dbscan_range[i]),
                 num_classes=self.num_classes,
-                group_score_threshold= self.group_score_threshold,
+                group_score_threshold= self.group_score_threshold[i],
                 group_max_size=self.max_group_size,
                 group_min_size=self.min_group_size,
                 multiprocess=self.multiprocess,
