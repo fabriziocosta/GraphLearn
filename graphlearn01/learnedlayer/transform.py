@@ -136,7 +136,7 @@ class GraphMinorTransformer(GraphTransformer):
 
         subgraphs = list(self.abstractor.get_subgraphs(graphs))
         if len(subgraphs) ==0:
-            print "FFFUUUUCCCCKKKK learnedlayer transform py"
+            print ":( learnedlayer transform py"
 
         # FILTER UNIQUES AND TRAIN THE CLUSTERER
         self.cluster_classifier.fit(subgraphs)

@@ -7,6 +7,9 @@ import graphlearn01.utils as utils
 import logging
 logger = logging.getLogger(__name__)
 
+import graphlearn01.compose as compose
+import graphlearn01.decompose as decompose
+from collections import defaultdict
 
 class RmTrash(object):
 
@@ -32,31 +35,53 @@ class RmTrash(object):
 
 class Cutter(object):
 
-
-
-
-
     def __init__(self,attribute=lambda x:x, threshold=.5, min_size=3,max_size=10):
         self.attribute = attribute
         self.threshold=threshold
         self.min_size= min_size
         self.max_size= max_size
 
+    def cut_single(self,graph):
+        graph=graph.copy()
+        #asd = self.attribute
+        #self.attribute = lambda x:x['tmpscore']
+
+        for a,b in graph.edges():
+            if  abs(self.attribute(graph.node[a]) - self.attribute(graph.node[b])) > self.threshold:
+                graph.remove_edge(a,b)
+        for sg in nx.connected_component_subgraphs(graph):
+            if self.min_size <= len(sg) <= self.max_size:
+                yield sg
+
+    def cut_single_add_interface(self,graph, thickness):
+
+        def merge(graph,core):
+            nodes=core.nodes()
+            for node_id in nodes[1:]:
+                compose.merge(graph, node[0], node_id)
+            return nodes[0]
+
+        for core in self.cut_single(graph):
+            g=graph.copy()
+            root = merge(g,core)
+            cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
+                                                       thicknesslist=[thickness],
+                                                       )[0]
+            yield core, cip.interface_hash
+
+    def cut_add_interface(self,graphs,thickness):
+
+
+        corelib=defaultdict(list)
+        for g in graphs:
+            for i,c in self.cut_single_add_interface(g, thickness):
+                corelib[i].append(c)
+        return corelib
 
     def cut(self,graphs):
         for graph in graphs:
-            graph=graph.copy()
-            #asd = self.attribute
-            #self.attribute = lambda x:x['tmpscore']
-
-            for a,b in graph.edges():
-                if  abs(self.attribute(graph.node[a]) - self.attribute(graph.node[b])) > self.threshold:
-                    graph.remove_edge(a,b)
-            for sg in nx.connected_component_subgraphs(graph):
-                if self.min_size <= len(sg) <= self.max_size:
-                    yield sg
-
-            #self.attribute = asd
+            for e in self.cut_single(graph):
+                yield e
 
 
 

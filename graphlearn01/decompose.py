@@ -280,8 +280,11 @@ def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label):
     return l
 
 
-def extract_core_and_interface(root_node=None, graph=None, radius_list=None, thickness_list=None,
-                               hash_bitmask=2 ** 20 - 1, node_filter=lambda x, y: True):
+def extract_core_and_interface(root_node=None, graph=None,
+                               radius_list=None,
+                               thickness_list=None,
+                               hash_bitmask=2 ** 20 - 1,
+                               node_filter=lambda x, y: True):
     """
     :param root_node: root root_node
     :param graph: graph
