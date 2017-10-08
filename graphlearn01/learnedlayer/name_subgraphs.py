@@ -71,7 +71,7 @@ class ClusterClassifier():                                                 #!!!!
         scan = DBSCAN(eps=dist, min_samples=minsamp)
         return scan.fit_predict(matrix)
 
-    def predict(self, matrix):
+    def predict(self, matrix, _):
         return self.cluster_classifier.predict(matrix)
 
     def fit(self, subgraphs):
@@ -173,7 +173,7 @@ class ClusterClassifier_keepduplicates():                                       
         scan = DBSCAN(eps=dist, min_samples=minsamp)
         return scan.fit_predict(matrix)
 
-    def predict(self, matrix):
+    def predict(self, matrix,_):
         return self.cluster_classifier.predict(matrix)
 
     def fit(self, subgraphs):
@@ -203,6 +203,46 @@ class ClusterClassifier_keepduplicates():                                       
                 print "cluster: %d  len: %d" % (cid, len(graphclusters[cid]))
                 #subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
                 draw.graphlearn(utils.unique_graphs_graphlearn_graphhash(graphclusters[cid])[:5],edge_label='label', size=3)
+
+
+
+class ClusterClassifier_keepduplicates_interfaced():                                                 #!!!!!!!!!!!!!
+
+    def __init__(self,debug=False, vectorizer=Vectorizer(),min_clustersize=2,dbscan_range=.6):
+        self.debug=debug
+        self.vectorizer=vectorizer
+        self.min_clustersize=min_clustersize
+        self.dbscan_range=dbscan_range
+
+
+    def fit(self, subgraphs):
+
+        subgraphs_by_keys = defaultdict(list)
+        for e in subgraphs:
+            subgraphs_by_keys[subgraphs.graph['interface_hash']]= subgraphs
+
+
+        self.classifiers={}
+        for e in subgraphs_by_keys.keys():
+            if len(subgraphs_by_keys[e]) > 10:
+                classifier = ClusterClassifier_keepduplicates(self.debug, self.vectorizer, self.min_clustersize,self.dbscan_range)
+                classifier.fit(subgraphs_by_keys[e])
+                self.classifiers[e]=classifier
+
+
+    def hash(self, thing):
+        return hashlib.sha224(thing).hexdigest()
+
+    def predict(self, matrix, subgraphs):
+        res=[]
+        for vec,subgraph in zip(matrix,subgraphs):
+            res.append(    hash( str( self.classifiers[subgraph.graph['interface_hash']].predict(matrix))+"#"+str(subgraph.graph['interface_hash'])   ))
+        return res
+
+
+
+
+
 
 
 

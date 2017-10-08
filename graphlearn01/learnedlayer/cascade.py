@@ -32,8 +32,9 @@ abstract
 '''
 import eden
 import transform
-from name_subgraphs import ClusterClassifier_keepduplicates as ClusterClassifier
-#from name_subgraphs import ClusterClassifier
+from name_subgraphs import ClusterClassifier_keepduplicates as CC_keep
+from name_subgraphs import ClusterClassifier as CC_nokeep
+from name_subgraphs import ClusterClassifier_keepduplicates_interfaced as CC_keep_interface
 import networkx as nx
 from graphlearn01.utils import draw
 import graphlearn01.utils as utils
@@ -48,19 +49,20 @@ class Cascade(object):
             e.toggledebug()
 
 
-    def __init__(self,  depth=2,
-                        debug=False,
-                        multiprocess=True,
-                        max_group_size=6,
-                        min_group_size=2,
-                        group_score_threshold=0,
-                        num_classes=2,
-                        min_clustersize=2,
-                        dbscan_range=.5,
-                        vectorizer_annotation=eden.graph.Vectorizer(complexity=3,n_jobs=1),
-                        vectorizer_cluster=eden.graph.Vectorizer(complexity=3,n_jobs=1),
-                        annotate_dilude_score=False,
-                        debug_rna=False):
+    def __init__(self, depth=2,
+                 debug=False,
+                 multiprocess=True,
+                 max_group_size=6,
+                 min_group_size=2,
+                 group_score_threshold=0,
+                 clusterclassifier='keep',
+                 num_classes=2,
+                 min_clustersize=2,
+                 dbscan_range=.5,
+                 vectorizer_annotation=eden.graph.Vectorizer(complexity=3,n_jobs=1),
+                 vectorizer_cluster=eden.graph.Vectorizer(complexity=3,n_jobs=1),
+                 annotate_dilude_score=False,
+                 debug_rna=False):
 
 
         if type(dbscan_range) != list:
@@ -69,6 +71,14 @@ class Cascade(object):
         if type(group_score_threshold) != list:
             group_score_threshold=[group_score_threshold]*depth
         self.group_score_threshold = group_score_threshold
+
+
+        if clusterclassifier== 'keep':
+            self.makeclusterclassifier = lambda **kwargs: CC_keep(kwargs)
+        elif clusterclassifier == 'nokeep':
+            self.makeclusterclassifier = lambda **kwargs: CC_nokeep(kwargs)
+        else:
+            self.makeclusterclassifier = lambda **kwargs: CC_keep_interface(kwargs)
 
         self.debug_rna=debug_rna
         self.min_clustersize=min_clustersize
@@ -98,7 +108,7 @@ class Cascade(object):
         for i in range(self.depth):
             transformer = transform.GraphMinorTransformer(
                 vectorizer=self.vectorizer_annotation,
-                cluster_classifier= ClusterClassifier(debug=False,vectorizer=self.vectorizer_cluster, min_clustersize=self.min_clustersize,dbscan_range=self.dbscan_range[i]),
+                cluster_classifier= self.makeclusterclassifier(debug=False,vectorizer=self.vectorizer_cluster, min_clustersize=self.min_clustersize,dbscan_range=self.dbscan_range[i]),
                 num_classes=self.num_classes,
                 group_score_threshold= self.group_score_threshold[i],
                 group_max_size=self.max_group_size,

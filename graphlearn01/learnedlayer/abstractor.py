@@ -86,7 +86,6 @@ class Cutter(object):
 
 
 
-
 class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
     """ThresholdedConnectedComponents."""
 
@@ -174,6 +173,28 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
                     yield g
 
 
+class TCC_with_interface(ThresholdedConnectedComponents):
+
+
+    def transform2(self,graphs, thickness=2):
+        def merge(graph,core):
+            nodes=core.nodes()
+            for node_id in nodes[1:]:
+                compose.merge(graph, node[0], node_id)
+            return nodes[0]
+
+        for graph in graphs:
+            cc = self.transform(graph) # get components
+            for core in cc:
+                g=graph.copy()
+                root = merge(g,core)
+                cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
+                                                           thicknesslist=[thickness],
+                                                           )[0]
+                core.graph['interface_hash']=cip.interface_hash
+                yield core
+
+
 class GraphToAbstractTransformer(object):
     '''
     MAKE MINOR GRAPH LAYOUT
@@ -231,7 +252,6 @@ class GraphToAbstractTransformer(object):
         -------
             Use estimator to annotate graph, group important nodes together to induce subgraphs.
             yields subgraphs
-        '''
 
         cutter=Cutter(
                 attribute= lambda d: d.get( self.score_attribute,[False])[0],
@@ -241,6 +261,10 @@ class GraphToAbstractTransformer(object):
                 )
         return list(cutter.cut(inputs))
 
+        '''
+
+
+
 
         res=  list(standalone_get_subgraphs(inputs,
                                             lambda d: d.get( self.score_attribute,[False])[0],
@@ -248,6 +272,8 @@ class GraphToAbstractTransformer(object):
                                             self.score_threshold,
                                             self.min_size,
                                             self.max_size))
+
+
         '''
         res +=  list(standalone_get_subgraphs(inputs,                         # adding negatives
                                             lambda d: d.get(self.score_attribute,[False,False])[1],
@@ -337,7 +363,7 @@ def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimat
                 print e.nodes(data=True)
                 #draw.debug(e)
 
-        clusterids = nameestimator.predict(data)
+        clusterids = nameestimator.predict(data,subgraphs)
 
         #for d, g in zip(data, subgraphs):
         #    g.graph['hash_title'] = hash_function(d)
