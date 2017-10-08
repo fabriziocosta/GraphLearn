@@ -174,24 +174,27 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
 
 
 class TCC_with_interface(ThresholdedConnectedComponents):
-
-
     def transform2(self,graphs, thickness=2):
+
         def merge(graph,core):
             nodes=core.nodes()
             for node_id in nodes[1:]:
-                compose.merge(graph, node[0], node_id)
+                compose.merge(graph, nodes[0], node_id)
             return nodes[0]
 
-        for graph in graphs:
-            cc = self.transform(graph) # get components
+
+        for graph,cc in zip(graphs, self.transform(graphs)):
             for core in cc:
                 g=graph.copy()
                 root = merge(g,core)
+
                 cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
-                                                           thicknesslist=[thickness],
-                                                           )[0]
-                core.graph['interface_hash']=cip.interface_hash
+                                                           thickness_list=[thickness],
+                                                           )
+                if len(cip) == 0:
+                    continue
+
+                core.graph['interface_hash']=cip[0].interface_hash
                 yield core
 
 
@@ -263,8 +266,12 @@ class GraphToAbstractTransformer(object):
 
         '''
 
-
-
+        tcc = TCC_with_interface(attribute=lambda d: d.get( self.score_attribute,[False])[0],
+                                  more_than=False,less_then=True, shrink_graphs=True,
+                                         threshold=self.score_threshold,
+                                         min_size=self.min_size,
+                                         max_size=self.max_size)
+        return list(tcc.transform2(inputs, thickness=1))
 
         res=  list(standalone_get_subgraphs(inputs,
                                             lambda d: d.get( self.score_attribute,[False])[0],
@@ -351,12 +358,13 @@ class GraphToAbstractTransformer(object):
 
 
 def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimator, subgraphs):
+
     if subgraphs:
         map(remove_eden_annotation, subgraphs)
         try:
-            data = vectorizer.transform(subgraphs)
+            data = vectorizer._transform_serial(subgraphs)
         except:
-            print 'name_estimation learnedlayer abstractor, draw:'
+            print 'name_estimation learnedlayer abstractor, sumsubgraphs: %d, draw:' % len(subgraphs)
             #draw.graphlearn(subgraphs, contract= False)
             for e in subgraphs:
                 print utils.ascii.nx_to_ascii(e)

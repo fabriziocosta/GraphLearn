@@ -78,7 +78,7 @@ class ClusterClassifier():                                                 #!!!!
         # delete duplicates
         print "got %d subgraphs" % len(subgraphs)
         subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
-        matrix = self.vectorizer.transform(subgraphs)
+        matrix = self.vectorizer._transform_serial(subgraphs)
         cluster_ids = self.cluster_subgraphs(matrix)
 
         self.cluster_classifier = SGDClassifier()
@@ -179,7 +179,7 @@ class ClusterClassifier_keepduplicates():                                       
     def fit(self, subgraphs):
         # delete duplicates
         #subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
-        matrix = self.vectorizer.transform(subgraphs)
+        matrix = self.vectorizer._transform_serial(subgraphs)
         cluster_ids = self.cluster_subgraphs(matrix)
 
         self.cluster_classifier = SGDClassifier()
@@ -219,7 +219,7 @@ class ClusterClassifier_keepduplicates_interfaced():                            
 
         subgraphs_by_keys = defaultdict(list)
         for e in subgraphs:
-            subgraphs_by_keys[subgraphs.graph['interface_hash']]= subgraphs
+            subgraphs_by_keys[e.graph['interface_hash']].append(e)
 
 
         self.classifiers={}
@@ -236,7 +236,8 @@ class ClusterClassifier_keepduplicates_interfaced():                            
     def predict(self, matrix, subgraphs):
         res=[]
         for vec,subgraph in zip(matrix,subgraphs):
-            res.append(    hash( str( self.classifiers[subgraph.graph['interface_hash']].predict(matrix))+"#"+str(subgraph.graph['interface_hash'])   ))
+            if subgraph.graph['interface_hash'] in self.classifiers:
+                res.append(    hash( str( self.classifiers[subgraph.graph['interface_hash']].predict(vec,subgraph))+"#"+str(subgraph.graph['interface_hash'])   ))
         return res
 
 
