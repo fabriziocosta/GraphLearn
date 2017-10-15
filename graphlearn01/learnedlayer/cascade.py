@@ -35,6 +35,7 @@ import transform
 from name_subgraphs import ClusterClassifier_keepduplicates as CC_keep
 from name_subgraphs import ClusterClassifier as CC_nokeep
 from name_subgraphs import ClusterClassifier_keepduplicates_interfaced as CC_keep_interface
+from name_subgraphs import ClusterClassifier_fake as CC_noclust
 import networkx as nx
 from graphlearn01.utils import draw
 import graphlearn01.utils as utils
@@ -56,6 +57,7 @@ class Cascade(object):
                  min_group_size=2,
                  group_score_threshold=0,
                  clusterclassifier='keep',
+                 subgraphextraction='best', # cut , best_interface
                  num_classes=2,
                  min_clustersize=2,
                  dbscan_range=.5,
@@ -74,12 +76,17 @@ class Cascade(object):
 
 
         if clusterclassifier== 'keep':
-            self.makeclusterclassifier = lambda **kwargs: CC_keep(kwargs)
+            self.makeclusterclassifier = lambda **kwargs: CC_keep(**kwargs)
         elif clusterclassifier == 'nokeep':
-            self.makeclusterclassifier = lambda **kwargs: CC_nokeep(kwargs)
+            self.makeclusterclassifier = lambda **kwargs: CC_nokeep(**kwargs)
+        elif clusterclassifier == 'interface_nocluster':
+            self.makeclusterclassifier = lambda **kwargs: CC_noclust(**kwargs)
+        elif clusterclassifier == 'interface_keep':
+            self.makeclusterclassifier = lambda **kwargs: CC_keep_interface(**kwargs)
         else:
-            self.makeclusterclassifier = lambda **kwargs: CC_keep_interface(kwargs)
+            exit()
 
+        self.subgraphextraction= subgraphextraction
         self.debug_rna=debug_rna
         self.min_clustersize=min_clustersize
         self.depth = depth
@@ -91,6 +98,7 @@ class Cascade(object):
         self.vectorizer_annotation=vectorizer_annotation
         self.vectorizer_cluster = vectorizer_cluster
         self.annotate_dilude_score=annotate_dilude_score
+
 
 
         if debug:
@@ -108,13 +116,14 @@ class Cascade(object):
         for i in range(self.depth):
             transformer = transform.GraphMinorTransformer(
                 vectorizer=self.vectorizer_annotation,
-                cluster_classifier= self.makeclusterclassifier(debug=False,vectorizer=self.vectorizer_cluster, min_clustersize=self.min_clustersize,dbscan_range=self.dbscan_range[i]),
+                cluster_classifier= self.makeclusterclassifier(debug=self.debug,vectorizer=self.vectorizer_cluster, min_clustersize=self.min_clustersize,dbscan_range=self.dbscan_range[i]),
                 num_classes=self.num_classes,
                 group_score_threshold= self.group_score_threshold[i],
                 group_max_size=self.max_group_size,
                 group_min_size=self.min_group_size,
                 multiprocess=self.multiprocess,
                 annotate_dilude_score=self.annotate_dilude_score,
+                subgraphextraction=self.subgraphextraction,
                 # cluster_max_members=-1,
                 layer=i,
                 debug=self.debug,

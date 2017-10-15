@@ -53,30 +53,6 @@ class Cutter(object):
             if self.min_size <= len(sg) <= self.max_size:
                 yield sg
 
-    def cut_single_add_interface(self,graph, thickness):
-
-        def merge(graph,core):
-            nodes=core.nodes()
-            for node_id in nodes[1:]:
-                compose.merge(graph, node[0], node_id)
-            return nodes[0]
-
-        for core in self.cut_single(graph):
-            g=graph.copy()
-            root = merge(g,core)
-            cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
-                                                       thicknesslist=[thickness],
-                                                       )[0]
-            yield core, cip.interface_hash
-
-    def cut_add_interface(self,graphs,thickness):
-
-
-        corelib=defaultdict(list)
-        for g in graphs:
-            for i,c in self.cut_single_add_interface(g, thickness):
-                corelib[i].append(c)
-        return corelib
 
     def cut(self,graphs):
         for graph in graphs:
@@ -84,6 +60,30 @@ class Cutter(object):
                 yield e
 
 
+class cutter_with_interface(Cutter):
+    def transform2(self,graphs, thickness=1):
+
+        def merge(graph,core):
+            nodes=core.nodes()
+            for node_id in nodes[1:]:
+                compose.merge(graph, nodes[0], node_id)
+            return nodes[0]
+
+
+        for graph in graphs:
+            cc = list(self.cut_single(graph))
+            for core in cc:
+                g=graph.copy()
+                root = merge(g,core)
+
+                cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
+                                                           thickness_list=[thickness],
+                                                           )
+                if len(cip) == 0:
+                    continue
+
+                core.graph['interface_hash']=cip[0].interface_hash
+                yield core
 
 
 class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
@@ -213,6 +213,7 @@ class GraphToAbstractTransformer(object):
                  layer=False,
                  vectorizer=Vectorizer(),
                  score_attribute='importance',
+                 subgraphextraction='best',
                  group_attribute ='class'):
         '''
         Parameters
@@ -239,6 +240,7 @@ class GraphToAbstractTransformer(object):
         self.layer = layer
         self.score_attribute=score_attribute
         self.group_attribute = group_attribute
+        self.subgraphextraction=subgraphextraction
 
     def get_subgraphs(self, inputs):
         '''
@@ -266,20 +268,45 @@ class GraphToAbstractTransformer(object):
 
         '''
 
-        tcc = TCC_with_interface(attribute=lambda d: d.get( self.score_attribute,[False])[0],
-                                  more_than=False,less_then=True, shrink_graphs=True,
-                                         threshold=self.score_threshold,
-                                         min_size=self.min_size,
-                                         max_size=self.max_size)
-        return list(tcc.transform2(inputs, thickness=1))
+        if self.subgraphextraction == 'best_interface':
+            tcc = TCC_with_interface(attribute=lambda d: d.get( self.score_attribute,[False])[0],
+                                      more_than=False,less_then=True, shrink_graphs=True,
+                                             threshold=self.score_threshold,
+                                             min_size=self.min_size,
+                                             max_size=self.max_size)
+            return list(tcc.transform2(inputs, thickness=1))
 
-        res=  list(standalone_get_subgraphs(inputs,
-                                            lambda d: d.get( self.score_attribute,[False])[0],
-                                            self.group_attribute,
-                                            self.score_threshold,
-                                            self.min_size,
-                                            self.max_size))
 
+        if self.subgraphextraction == 'best':
+            res=  list(standalone_get_subgraphs(inputs,
+                                                lambda d: d.get( self.score_attribute,[False])[0],
+                                                self.group_attribute,
+                                                self.score_threshold,
+                                                self.min_size,
+                                                self.max_size))
+            return res
+
+
+        if self.subgraphextraction == 'cut':
+                cutter=Cutter(
+                    attribute= lambda d: d.get( self.score_attribute,[False])[0],
+                    max_size=self.max_size,
+                    min_size=self.min_size,
+                    threshold=self.score_threshold)
+                return list(cutter.cut(inputs))
+
+
+        if self.subgraphextraction == 'cut_interface':
+            cutter=cutter_with_interface(
+                attribute= lambda d: d.get( self.score_attribute,[False])[0],
+                max_size=self.max_size,
+                min_size=self.min_size,
+                threshold=self.score_threshold)
+            return list(cutter.transform2(inputs))
+
+
+
+        print "please tell me the subgraphextraction strategy"
 
         '''
         res +=  list(standalone_get_subgraphs(inputs,                         # adding negatives

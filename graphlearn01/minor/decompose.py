@@ -33,6 +33,8 @@ class MinorDecomposer(Decomposer):
     def compress_layers(self):
         '''
         might be the same as in the cascade, where all the intermediary layers are removed
+
+        .. the cascade one tabun works better..
         '''
         # only compress if there is more than 1 layer to compress
         if self.abstract_graph().graph.get('contracted_layers', 0) > 1:
@@ -65,6 +67,18 @@ class MinorDecomposer(Decomposer):
             self._base_graph = graph
             self._abstract_graph.graph['original'] = graph
         return self
+
+
+
+    def get_layers(self):
+        '''the idea is to return the layers as list of grpahs'''
+
+        graph = self._unaltered_graph
+        result=[graph]
+        while 'original' in graph.graph:
+            graph = graph.graph['original']
+            result.append(graph)
+        return result
 
     def pre_vectorizer_graph(self, nested=True):
         '''

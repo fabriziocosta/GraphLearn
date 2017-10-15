@@ -79,7 +79,7 @@ def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_s
     plt.show()
 
 
-def plot_charts2(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_scale=True):
+def plot_charts2(data1, data2=None,datalabels=[None, None], xlabel=None, ylabel=None, size=(10, 4), log_scale=True):
     plt.figure(figsize=size)
     plt.grid()
     plt.xlabel(xlabel)
@@ -90,6 +90,7 @@ def plot_charts2(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_
              markerfacecolor='white',
              markeredgecolor='blue',
              marker='o',
+             label=datalabels[0],
              markeredgewidth=2,
              markersize=8)
     if data2 is not None:
@@ -97,12 +98,17 @@ def plot_charts2(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_
         plt.plot(data2,
                  linestyle='None',
                  markerfacecolor='white',
+                 label=datalabels[1],
                  markeredgecolor='red',
                  marker='o',
                  markeredgewidth=2,
                  markersize=8)
     if log_scale:
         plt.yscale('log')
+
+    if any(datalabels):
+        plt.legend(loc="upper left")
+
     plt.xlim(-0.2, len(data1) + 0.2)
     plt.ylim(0.8)
     plt.show()
@@ -269,7 +275,13 @@ def graphlearn_layered1(graphs, **args):
     graphlearn(finished_graphs, **args)
 
 
-def graphlearn_layered2(graphs, **args):
+
+
+
+
+
+
+def graphlearn_layered2(graphs, **args): # THIS IS THE NORMAL ONE
     '''
     this is to draw a graph that has its layers as graph.graph['origial']
 
@@ -280,7 +292,106 @@ def graphlearn_layered2(graphs, **args):
     Returns:
 
     '''
+    DEBUG = False
 
+    if args.get('n_graphs_per_line',5)!=1:
+        for graph in graphs:
+            graphlearn_layered2([graph],n_graphs_per_line=1)
+        return
+
+
+    def calc_avg_position(nodelist, posdict):
+        # print 'calc avg pos'
+        if len(nodelist) == 0:
+            import traceback
+            traceback.print_stack()
+            print 'bad node list'
+            return (0, 0)
+        xpos = sum([posdict[i][0] for i in nodelist]) / len(nodelist)
+        ypos = sum([posdict[i][1] for i in nodelist]) / len(nodelist)
+        return (xpos, ypos)
+
+    finished_graphs = []
+    poslist = []
+    for graph in graphs:
+
+        # make a list of all the graphs
+        layered_graphs = [graph]
+        while 'original' in graph.graph:
+            layered_graphs.append(graph.graph['original'])
+            graph = graph.graph['original']
+        maxlayers = len(layered_graphs)
+        # make the layout for the biggest one :)
+
+        XSCALE,YSCALE=.1,.1
+        from eden_chem.io import rdkitutils  as rd
+        from rdkit.Chem import AllChem
+        chem=rd.nx_to_rdkit(graph)
+        chem.UpdatePropertyCache(strict=False)
+        AllChem.Compute2DCoords(chem)
+        conf = chem.GetConformer(0)
+        rawpos = [(conf.GetAtomPosition(i).x*XSCALE,conf.GetAtomPosition(i).y*YSCALE) for i in range(conf.GetNumAtoms())]
+
+
+        aa,bb=zip(*rawpos)
+        SCALE = (max(aa)-min(aa)) / (max(bb)-min(bb))
+        #SCALE = (max(bb)-min(bb)) / (max(aa)-min(aa))
+        print "SCALE",SCALE
+        xmov=(0-min(aa))*1.1
+        pos={n:(p[0]+xmov,p[1]) for n,p in zip(graph.nodes(),rawpos)}
+
+
+
+        if DEBUG: print 'biggest:', pos
+
+        # pos attribute loks like this:
+        # pos = {i: (rna_object.get(i).X, rna_object.get(i).Y)
+        #           for i in range(len(graph.graph['structure']))}
+
+        for i in range(len(layered_graphs) - 2, -1, -1):
+            new_positions = {}
+            for node in layered_graphs[i].nodes():
+                new_positions[node] = calc_avg_position(layered_graphs[i].node[node].get('contracted', set()), pos)
+            if DEBUG: print 'new posis', new_positions
+            # move all the nodes by such and such
+            # nodes in prev layer:
+            minpos = min([pos[n][0] for n in layered_graphs[i + 1].nodes()])
+            moveby_x = (max([pos[n][0] for n in layered_graphs[i + 1].nodes()])  - minpos) * 1.2
+            #print moveby_x
+            moveby_y = ((-1) ** i) * 30
+            moveby_y= 0
+            for k, v in new_positions.items():
+                new_positions[k] = (v[0] + moveby_x, v[1] + moveby_y)
+
+            if DEBUG: print 'new posis updated', new_positions
+            pos.update(new_positions)
+
+        g = nx.union_all(layered_graphs)
+        for n, d in g.nodes(data=True):
+            for n2 in d.get('contracted', []):
+                g.add_edge(n, n2, nesting=True, label='')
+        finished_graphs.append(g)
+        poslist.append(pos)
+
+    # draw
+    args['size_x_to_y_ratio'] = maxlayers*SCALE
+    args['pos'] = poslist
+    args['dark_edge_color'] = 'dark_edge_color'
+    graphlearn(finished_graphs, **args)
+
+
+
+def graphlearn_layered3(graphs, **args): # THIS IS THE NORMAL ONE
+    '''
+    this is to draw a graph that has its layers as graph.graph['origial']
+
+    Args:
+        graphs:
+        **args:
+
+    Returns:
+
+    '''
     DEBUG = False
 
     def calc_avg_position(nodelist, posdict):
@@ -296,7 +407,6 @@ def graphlearn_layered2(graphs, **args):
 
     finished_graphs = []
     poslist = []
-
     for graph in graphs:
 
         # make a list of all the graphs
@@ -306,7 +416,11 @@ def graphlearn_layered2(graphs, **args):
             graph = graph.graph['original']
         maxlayers = len(layered_graphs)
         # make the layout for the biggest one :)
+
         pos = nx.graphviz_layout(layered_graphs[-1], prog='neato', args="-Gmode=KK")
+        print pos
+
+
         if DEBUG: print 'biggest:', pos
 
         # pos attribute loks like this:

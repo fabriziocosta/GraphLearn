@@ -4,14 +4,17 @@ import sklearn
 import logging
 logger = logging.getLogger(__name__)
 from sklearn.linear_model import SGDClassifier
+import copy
+import sklearn
 from graphlearn01 import utils
 from collections import defaultdict
 from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import DBSCAN
 from eden.graph import Vectorizer
-
+import hashlib
 from graphlearn01.utils import draw
-
+from collections import Counter
+import numpy as np
 
 
 
@@ -76,7 +79,7 @@ class ClusterClassifier():                                                 #!!!!
 
     def fit(self, subgraphs):
         # delete duplicates
-        print "got %d subgraphs" % len(subgraphs)
+        #print "got %d subgraphs" % len(subgraphs)
         subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
         matrix = self.vectorizer._transform_serial(subgraphs)
         cluster_ids = self.cluster_subgraphs(matrix)
@@ -110,6 +113,7 @@ class ClusterClassifier_keepduplicates():                                       
         self.vectorizer=vectorizer
         self.min_clustersize=min_clustersize
         self.dbscan_range=dbscan_range
+        self.cluster_classifier_failed=False
 
     def cluster_subgraphs(self, matrix, nth_neighbor=1):
         '''
@@ -174,23 +178,24 @@ class ClusterClassifier_keepduplicates():                                       
         return scan.fit_predict(matrix)
 
     def predict(self, matrix,_):
+        if self.cluster_classifier_failed:
+            return  [1]*len(_)
         return self.cluster_classifier.predict(matrix)
+
 
     def fit(self, subgraphs):
         # delete duplicates
         #subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
-        matrix = self.vectorizer._transform_serial(subgraphs)
-        cluster_ids = self.cluster_subgraphs(matrix)
+        try:
+            matrix = self.vectorizer._transform_serial(subgraphs)
+            cluster_ids = self.cluster_subgraphs(matrix)
 
-        self.cluster_classifier = SGDClassifier()
-        self.cluster_classifier.fit(matrix, cluster_ids)
-
-
-
+            self.cluster_classifier = SGDClassifier()
+            self.cluster_classifier.fit(matrix, cluster_ids)
+        except:
+            self.cluster_classifier_failed=True
         if self.debug:
             graphclusters = defaultdict(list)
-            for d,g in zip(matrix,subgraphs):
-                g.graph['hash_title']= utils.hash_eden_vector(d)
             for i, cluster_id in enumerate(cluster_ids):
                 # if cluster_id not in self.ignore_clusters:
                 graphclusters[cluster_id].append(subgraphs[i])
@@ -198,12 +203,64 @@ class ClusterClassifier_keepduplicates():                                       
             logger.debug('num clusters: %d' % max(cluster_ids))
             logger.debug(eden.util.report_base_statistics(cluster_ids).replace('\t', '\n'))
 
+            idcounter=Counter(cluster_ids)
             # ok now we want to print the INFO from above
-            for cid in set(cluster_ids):
-                print "cluster: %d  len: %d" % (cid, len(graphclusters[cid]))
-                #subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
-                draw.graphlearn(utils.unique_graphs_graphlearn_graphhash(graphclusters[cid])[:5],edge_label='label', size=3)
+            for cid, count in idcounter.most_common():
 
+                # this dist stuff is untested btw.. the idea was to order the graphs s.th the center one comes first
+                uniquegraphs = utils.unique_graphs_graphlearn_graphhash(graphclusters[cid])
+                dists = sklearn.metrics.pairwise.pairwise_distances(self.vectorizer._transform_serial(copy.deepcopy(uniquegraphs)))
+                argmins = np.min(dists, axis=0)
+                posstuff = [ (e,i) for i,e in enumerate(argmins) ]
+                posstuff.sort()
+                res= [e[1] for e in posstuff[:5] ]
+                print "cluster: %d  len: %d" % (cid, len(graphclusters[cid]))
+                #subgraphs = utils.unique_graphs_graphlearn_grahhash(subgraphs)
+                draw.graphlearn([uniquegraphs[i] for i in res],edge_label='label', size=3)
+
+
+class ClusterClassifier_fake():
+
+    def __init__(self,debug=False, vectorizer=Vectorizer(),min_clustersize=2,dbscan_range=.6):
+        self.debug=debug
+        self.vectorizer=vectorizer
+        self.min_clustersize=min_clustersize
+        self.dbscan_range=dbscan_range
+
+    def fit(self, subgraphs):
+        subgraphs_by_keys = defaultdict(list)
+        for e in subgraphs:
+            subgraphs_by_keys[e.graph['interface_hash']].append(e)
+
+        self.clusters={}
+        for k,v in subgraphs_by_keys.iteritems():
+            if len(v) >= self.min_clustersize:
+                self.clusters[k]=1
+
+
+        if self.debug:
+            histodata=[]
+            for k,v in subgraphs_by_keys.iteritems():
+                if len(v) >= self.min_clustersize:
+                    noduplen = len( utils.unique_graphs_graphlearn_graphhash(copy.deepcopy(v)))
+                    histodata.append((len(v), noduplen))
+            histodata.sort()
+
+            print 'there are %d subgraphs with interfaces, those unter min_clustersize are omitted' % len(subgraphs)
+
+            a,b = zip(*histodata)
+            draw.plot_charts2(a,b, datalabels=["all subgraphs","removed duplicates"] ,xlabel='Interfaces', ylabel="Count",  log_scale=False )
+
+
+
+
+    def predict(self, matrix, subgraphs):
+        res=[]
+        for subgraph in subgraphs:
+            if subgraph.graph['interface_hash'] in self.clusters:
+                res.append( subgraph.graph['interface_hash'])
+            res.append(-1)
+        return res
 
 
 class ClusterClassifier_keepduplicates_interfaced():                                                 #!!!!!!!!!!!!!
@@ -213,6 +270,8 @@ class ClusterClassifier_keepduplicates_interfaced():                            
         self.vectorizer=vectorizer
         self.min_clustersize=min_clustersize
         self.dbscan_range=dbscan_range
+
+
 
 
     def fit(self, subgraphs):
@@ -229,15 +288,39 @@ class ClusterClassifier_keepduplicates_interfaced():                            
                 classifier.fit(subgraphs_by_keys[e])
                 self.classifiers[e]=classifier
 
+        if self.debug:
+            histodata=[]
+            for k,v in subgraphs_by_keys.iteritems():
+                if len(v) >= self.min_clustersize:
+                    noduplen = len( utils.unique_graphs_graphlearn_graphhash(copy.deepcopy(v)))
+                    histodata.append((len(v), noduplen))
+            histodata.sort()
 
-    def hash(self, thing):
-        return hashlib.sha224(thing).hexdigest()
+            print 'there are %d subgraphs with interfaces, those unter min_clustersize are omitted' % len(subgraphs)
+
+            a,b = zip(*histodata)
+            draw.plot_charts2(a,b, datalabels=["all subgraphs","removed duplicates"] ,xlabel='Interfaces', ylabel="Count",  log_scale=False )
+
 
     def predict(self, matrix, subgraphs):
         res=[]
+
         for vec,subgraph in zip(matrix,subgraphs):
+
+
+            # we append -1
+            appendvalue=-1
+            #  except when we find the interface in the classifiers
             if subgraph.graph['interface_hash'] in self.classifiers:
-                res.append(    hash( str( self.classifiers[subgraph.graph['interface_hash']].predict(vec,subgraph))+"#"+str(subgraph.graph['interface_hash'])   ))
+                cluster = self.classifiers[subgraph.graph['interface_hash']].predict(vec,[subgraph])[0]
+                if cluster != -1:
+                    try:
+                        appendvalue =  "%d#%d" % ( cluster, subgraph.graph['interface_hash'])
+                    except:
+                        print 'name subgraph keep interf has a problem', subgraph.graph['interface_hash']
+
+            res.append(appendvalue)
+
         return res
 
 

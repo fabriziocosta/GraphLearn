@@ -51,6 +51,7 @@ class GraphMinorTransformer(GraphTransformer):
                  debug_rna=False,
                  # subgraph_cluster=,
                  cluster_classifier= ClusterClassifier(debug=False,vectorizer=eden.graph.Vectorizer()),
+                 subgraphextraction='',
                  # save_graphclusters=False,
                  annotate_dilude_score=False,
                  multiprocess=True,
@@ -73,10 +74,12 @@ class GraphMinorTransformer(GraphTransformer):
         self.multiprocess = multiprocess
         self.num_classes = num_classes
         self.annotate_dilude_score=annotate_dilude_score
+        self.subgraphextraction=subgraphextraction
 
     def prepfit(self):
         self.cluster_classifier.debug = self.debug
         self.abstractor = abstractor.GraphToAbstractTransformer(
+            subgraphextraction=self.subgraphextraction,
             score_threshold=self.score_threshold,
             min_size=self.min_size,
             max_size=self.max_size,
