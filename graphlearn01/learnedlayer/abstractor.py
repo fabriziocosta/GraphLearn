@@ -428,7 +428,7 @@ def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimat
     if subgraphs:
         map(remove_eden_annotation, subgraphs)
         try:
-            data = vectorizer._transform_serial(subgraphs)
+            data = vectorizer.transform(subgraphs)
         except:
             print 'name_estimation learnedlayer abstractor, sumsubgraphs: %d, draw:' % len(subgraphs)
             #draw.graphlearn(subgraphs, contract= False)

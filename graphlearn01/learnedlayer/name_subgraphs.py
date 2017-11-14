@@ -81,7 +81,7 @@ class ClusterClassifier():                                                 #!!!!
         # delete duplicates
         #print "got %d subgraphs" % len(subgraphs)
         subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
-        matrix = self.vectorizer._transform_serial(subgraphs)
+        matrix = self.vectorizer.transform(subgraphs)
         cluster_ids = self.cluster_subgraphs(matrix)
 
         self.cluster_classifier = SGDClassifier()
@@ -187,7 +187,7 @@ class ClusterClassifier_keepduplicates():                                       
         # delete duplicates
         #subgraphs = utils.unique_graphs_graphlearn_graphhash(subgraphs)
         try:
-            matrix = self.vectorizer._transform_serial(subgraphs)
+            matrix = self.vectorizer.transform(subgraphs)
             cluster_ids = self.cluster_subgraphs(matrix)
 
             self.cluster_classifier = SGDClassifier()
@@ -208,7 +208,7 @@ class ClusterClassifier_keepduplicates():                                       
 
                     # this dist stuff is untested btw.. the idea was to order the graphs s.th the center one comes first
                     uniquegraphs = utils.unique_graphs_graphlearn_graphhash(graphclusters[cid])
-                    dists = sklearn.metrics.pairwise.pairwise_distances(self.vectorizer._transform_serial(copy.deepcopy(uniquegraphs)))
+                    dists = sklearn.metrics.pairwise.pairwise_distances(self.vectorizer.transform(copy.deepcopy(uniquegraphs)))
                     argmins = np.min(dists, axis=0)
                     posstuff = [ (e,i) for i,e in enumerate(argmins) ]
                     posstuff.sort()
@@ -404,16 +404,16 @@ class ClusterClassifier_soft_interface():
                 if 'label' not in d:
                     ginfo(g)
             ginfo(g)
-            self.vectorizer._transform_serial([g])
+            self.vectorizer.transform([g])
         '''
 
-        data=self.vectorizer._transform_serial(graphs)
+        data=self.vectorizer.transform(graphs)
         #        #draw.debug(e)
         return data
 
 
     def fit(self, subgraphs):
-        matrix =  self.trixify(subgraphs) #self.vectorizer._transform_serial(subgraphs)
+        matrix =  self.trixify(subgraphs) #self.vectorizer.transform(subgraphs)
         cluster_ids = self.cluster_subgraphs(matrix)
 
         self.cluster_classifier = SGDClassifier()
@@ -434,7 +434,7 @@ class ClusterClassifier_soft_interface():
 
                 # this dist stuff is untested btw.. the idea was to order the graphs s.th the center one comes first
                 uniquegraphs = utils.unique_graphs_graphlearn_graphhash(graphclusters[cid])
-                dists = sklearn.metrics.pairwise.pairwise_distances(self.vectorizer._transform_serial(copy.deepcopy(uniquegraphs)))
+                dists = sklearn.metrics.pairwise.pairwise_distances(self.vectorizer.transform(copy.deepcopy(uniquegraphs)))
                 argmins = np.min(dists, axis=0)
                 posstuff = [ (e,i) for i,e in enumerate(argmins) ]
                 posstuff.sort()

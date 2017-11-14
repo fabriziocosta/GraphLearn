@@ -779,7 +779,7 @@ class Sampler(object):
 
         if 'vectorized_graph' not in decomposer.__dict__:
             #decomposer.vectorized_graph = self.vectorizer.transform([decomposer.pre_vectorizer_graph()])
-            decomposer.vectorized_graph = self.vectorizer._transform_serial([decomposer.pre_vectorizer_graph()])
+            decomposer.vectorized_graph = self.vectorizer.transform([decomposer.pre_vectorizer_graph()])
 
         if '_score' not in decomposer.__dict__:
             decomposer._score = self.estimatorobject.predict(decomposer.vectorized_graph)
