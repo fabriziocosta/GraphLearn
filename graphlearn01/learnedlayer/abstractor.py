@@ -8,7 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 import graphlearn01.compose as compose
-import graphlearn01.decompose as decompose
+import graphlearn01.minor.decompose as decompose
+import graphlearn01.decompose as decompose2 # decompose .  extract core interface should be this
 from collections import defaultdict
 
 class RmTrash(object):
@@ -60,6 +61,8 @@ class Cutter(object):
                 yield e
 
 
+
+
 class cutter_with_interface(Cutter):
     def transform2(self,graphs, thickness=1):
 
@@ -76,14 +79,13 @@ class cutter_with_interface(Cutter):
                 g=graph.copy()
                 root = merge(g,core)
 
-                cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
-                                                           thickness_list=[thickness],
-                                                           )
+                cip = decompose2.extract_core_and_interface(root, g, radius_list=[0],
+                                                           thickness_list=[thickness] )
                 if len(cip) == 0:
                     continue
 
-                core.graph['interface_hash']=cip[0].interface_hash
-                yield core
+                #core.graph['interface_hash']=cip[0].interface_hash
+                yield core,cip[0]
 
 
 class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
@@ -173,6 +175,23 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
                     yield g
 
 
+class deci():
+    def __init__(self,big, small, root, merged):
+        self.b = big.copy()
+        self.s = small
+        # we need r and m to set up the contracted sets...
+        for n,d in self.s.nodes(data=True):
+            d['contracted'] = set([n])
+            if n==root:
+                for asd in merged:
+                    d['contracted'].add(asd)
+
+
+    def abstract_graph(self):
+        return self.s
+    def base_graph(self):
+        return self.b
+
 class TCC_with_interface(ThresholdedConnectedComponents):
     def transform2(self,graphs, thickness=2):
 
@@ -188,14 +207,15 @@ class TCC_with_interface(ThresholdedConnectedComponents):
                 g=graph.copy()
                 root = merge(g,core)
 
-                cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
-                                                           thickness_list=[thickness],
-                                                           )
+                cip = decompose.extract_cips(root, deci(graph,g,root,core.nodes()),base_thickness_list=[thickness],hash_bitmask=2*20-1,
+                                             radius_list=[0],thickness_list=[1])
+                #cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
+                #                                           thickness_list=[thickness] )
                 if len(cip) == 0:
                     continue
 
-                core.graph['interface_hash']=cip[0].interface_hash
-                yield core
+                #core.graph['interface_hash']=cip[0].interface_hash
+                yield core,cip[0]
 
 
 class GraphToAbstractTransformer(object):
@@ -267,6 +287,14 @@ class GraphToAbstractTransformer(object):
         return list(cutter.cut(inputs))
 
         '''
+        def add_ihash(core,cip):
+            core.graph['interface_hash']=cip.interface_hash
+            return core
+
+        def base_cip(core,cip):
+
+            #draw.graphlearn(cip.graph)
+            return cip.graph
 
         if self.subgraphextraction == 'best_interface':
             tcc = TCC_with_interface(attribute=lambda d: d.get( self.score_attribute,[False])[0],
@@ -274,8 +302,19 @@ class GraphToAbstractTransformer(object):
                                              threshold=self.score_threshold,
                                              min_size=self.min_size,
                                              max_size=self.max_size)
-            return list(tcc.transform2(inputs, thickness=1))
 
+            return [ add_ihash(a,b) for (a,b) in tcc.transform2(inputs, thickness=1) ]
+
+
+        if self.subgraphextraction == 'best_soft_interface':
+            tcc = TCC_with_interface(attribute=lambda d: d.get( self.score_attribute,[False])[0],
+                                      more_than=False,less_then=True, shrink_graphs=True,
+                                             threshold=self.score_threshold,
+                                             min_size=self.min_size,
+                                             max_size=self.max_size)
+
+            res =  [ base_cip(a,b) for (a,b) in tcc.transform2(inputs, thickness=1) ]
+            return res
 
         if self.subgraphextraction == 'best':
             res=  list(standalone_get_subgraphs(inputs,
@@ -302,7 +341,7 @@ class GraphToAbstractTransformer(object):
                 max_size=self.max_size,
                 min_size=self.min_size,
                 threshold=self.score_threshold)
-            return list(cutter.transform2(inputs))
+            return [ add_ihash(a,b) for (a,b) in cutter.transform2(inputs) ]
 
 
 

@@ -190,7 +190,7 @@ class MinorDecomposer(Decomposer):
             return
 
 
-        self._base_graph= edengraphtools._edge_to_vertex_transform(self._unaltered_graph.graph['original'].copy())
+        self._base_graph= edengraphtools._edge_to_vertex_transform(self.get_layers()[-1].copy())
         self._abstract_graph = edengraphtools._edge_to_vertex_transform(self._unaltered_graph.copy() )
 
 

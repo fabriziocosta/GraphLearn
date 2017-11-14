@@ -90,6 +90,56 @@ class GraphMinorTransformer(GraphTransformer):
 
         self.annotator = annotate.Annotator(vectorizer=self.vectorizer,multiprocess=False, debug=self.debug, annotate_dilude_scores=self.annotate_dilude_score)
 
+    def fit_2(self, graphs, graphs_neg=[], fit_transform=False):
+        '''
+        this version will use half the graphs  for the annotator and the other half for the abstractor
+        '''
+
+        #  PREPARE
+        graphs = list(graphs)
+        graphs_neg = list(graphs_neg)
+        if graphs[0].graph.get('expanded', False):
+            raise Exception('give me an unexpanded graph')
+        self.prepfit()
+
+
+
+
+        # annotate graphs and GET SUBGRAPHS
+        ##graphs = self.annotator.fit_transform(graphs, graphs_neg)
+        splitp=len(graphs)/2
+        splitn=len(graphs_neg)/2
+        graphs_fit = self.annotator.fit_transform(graphs[:splitp], graphs_neg[:splitn])
+        graphs_transform = self.annotator.transform(graphs[splitp:]+graphs_neg[splitn:])
+
+
+        # info
+        if self.debug:
+            print 'transform minortransform_scores'
+            if self.debug_rna:
+                draw.graphlearn(graphs[:5], contract=False, size=12, vertex_label='importance',secondary_vertex_label='label')
+            else:
+                draw.graphlearn(graphs[:5], contract=False, size=7,vertex_size=600, vertex_label='importance',font_size=9,secondary_vertex_label='label',edge_label='label')
+
+
+        subgraphs = list(self.abstractor.get_subgraphs(graphs_transform))
+        if len(subgraphs) ==0:
+            print ":( learnedlayer transform py"
+
+        # FILTER UNIQUES AND TRAIN THE CLUSTERER
+        self.cluster_classifier.fit(subgraphs)
+        self.abstractor.nameestimator = self.cluster_classifier
+
+        # annotating is super slow. so in case of fit_transform i can save that step
+        if fit_transform:
+            res = self.transform(graphs_fit[:splitp]+graphs_transform[:splitp]+graphs_fit[splitn:]+graphs_transform[splitn:])
+            if self.debug:
+                print "minortransform_added_layer"
+                draw.graphlearn_layered2(res[:10], vertex_label='importance', font_size=10)
+            return res
+
+
+
     def fit(self, graphs, graphs_neg=[], fit_transform=False):
         '''
         TODO: be sure to set the self.cluster_ids :)
@@ -123,6 +173,9 @@ class GraphMinorTransformer(GraphTransformer):
         # annotate graphs and GET SUBGRAPHS
         graphs = self.annotator.fit_transform(graphs, graphs_neg)
 
+
+
+
         # draw.graphlearn([graphs[0], graphs_neg[-1]], vertex_label='importance')
         # info
         if self.debug:
@@ -138,6 +191,7 @@ class GraphMinorTransformer(GraphTransformer):
 
 
         subgraphs = list(self.abstractor.get_subgraphs(graphs))
+
         if len(subgraphs) ==0:
             print ":( learnedlayer transform py"
 

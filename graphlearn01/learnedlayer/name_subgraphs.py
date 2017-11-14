@@ -192,32 +192,32 @@ class ClusterClassifier_keepduplicates():                                       
 
             self.cluster_classifier = SGDClassifier()
             self.cluster_classifier.fit(matrix, cluster_ids)
+
+            if self.debug:
+                graphclusters = defaultdict(list)
+                for i, cluster_id in enumerate(cluster_ids):
+                    # if cluster_id not in self.ignore_clusters:
+                    graphclusters[cluster_id].append(subgraphs[i])
+                # info
+                logger.debug('num clusters: %d' % max(cluster_ids))
+                logger.debug(eden.util.report_base_statistics(cluster_ids).replace('\t', '\n'))
+
+                idcounter=Counter(cluster_ids)
+                # ok now we want to print the INFO from above
+                for cid, count in idcounter.most_common():
+
+                    # this dist stuff is untested btw.. the idea was to order the graphs s.th the center one comes first
+                    uniquegraphs = utils.unique_graphs_graphlearn_graphhash(graphclusters[cid])
+                    dists = sklearn.metrics.pairwise.pairwise_distances(self.vectorizer._transform_serial(copy.deepcopy(uniquegraphs)))
+                    argmins = np.min(dists, axis=0)
+                    posstuff = [ (e,i) for i,e in enumerate(argmins) ]
+                    posstuff.sort()
+                    res= [e[1] for e in posstuff[:5] ]
+                    print "cluster: %d  len: %d" % (cid, len(graphclusters[cid]))
+                    #subgraphs = utils.unique_graphs_graphlearn_grahhash(subgraphs)
+                    draw.graphlearn([uniquegraphs[i] for i in res],edge_label='label', size=3)
         except:
             self.cluster_classifier_failed=True
-        if self.debug:
-            graphclusters = defaultdict(list)
-            for i, cluster_id in enumerate(cluster_ids):
-                # if cluster_id not in self.ignore_clusters:
-                graphclusters[cluster_id].append(subgraphs[i])
-            # info
-            logger.debug('num clusters: %d' % max(cluster_ids))
-            logger.debug(eden.util.report_base_statistics(cluster_ids).replace('\t', '\n'))
-
-            idcounter=Counter(cluster_ids)
-            # ok now we want to print the INFO from above
-            for cid, count in idcounter.most_common():
-
-                # this dist stuff is untested btw.. the idea was to order the graphs s.th the center one comes first
-                uniquegraphs = utils.unique_graphs_graphlearn_graphhash(graphclusters[cid])
-                dists = sklearn.metrics.pairwise.pairwise_distances(self.vectorizer._transform_serial(copy.deepcopy(uniquegraphs)))
-                argmins = np.min(dists, axis=0)
-                posstuff = [ (e,i) for i,e in enumerate(argmins) ]
-                posstuff.sort()
-                res= [e[1] for e in posstuff[:5] ]
-                print "cluster: %d  len: %d" % (cid, len(graphclusters[cid]))
-                #subgraphs = utils.unique_graphs_graphlearn_grahhash(subgraphs)
-                draw.graphlearn([uniquegraphs[i] for i in res],edge_label='label', size=3)
-
 
 class ClusterClassifier_fake():
 
@@ -325,8 +325,123 @@ class ClusterClassifier_keepduplicates_interfaced():                            
 
 
 
+class ClusterClassifier_soft_interface():
+    '''keeps duplicates'''
+
+    def __init__(self,debug=False, vectorizer=Vectorizer(),min_clustersize=2,dbscan_range=.6, interfaceweight=-2):
+        self.debug=debug
+        self.vectorizer=vectorizer
+        self.min_clustersize=min_clustersize
+        self.dbscan_range=dbscan_range
+        self.interfaceweight=interfaceweight # for vectorization
+
+    def cluster_subgraphs(self, matrix, nth_neighbor=1):
+        '''
+        get the median distance to the NTH neighbor with NN
+        use that distance to cluster with scan
+        '''
+        n_neighbors = min(100, matrix.shape[0])
+        if n_neighbors < 100 and self.debug:
+            print 'name_subgraphs: there are %d graphs to cluster' % matrix.shape[0]
+
+        neigh = NearestNeighbors(n_neighbors=n_neighbors, metric='euclidean')
+        neigh.fit(matrix)
+        dist, indices = neigh.kneighbors(matrix)
 
 
+        def distances_select_first_non_id_neighbor(distances):
+            x,y = distances.nonzero()
+            _, idd = np.unique(x, return_index=True)
+            return distances[ x[idd],y[idd]]
+
+
+        #dists =  distances_select_NTH_non_id_neighbor(dist,2)
+        dists =  distances_select_first_non_id_neighbor(dist)
+        #dist = np.median(dists)
+        dists=np.sort(dists)
+        idx=int(len(dists)*self.dbscan_range)
+        dist=dists[idx]
+        if self.debug:
+            print "name_subgraph: choosing dist %d of %d" % (idx, len(dists))
+
+
+        if self.min_clustersize < 1.0:
+            minsamp = max(int(matrix.shape[0]*self.min_clustersize),2)
+            logger.debug( "minimum cluster size is: %d" % minsamp )
+        else:
+            minsamp = self.min_clustersize
+
+        # get the clusters
+        scan = DBSCAN(eps=dist, min_samples=minsamp)
+        return scan.fit_predict(matrix)
+
+    def predict(self, _, graphs):
+
+        matrix = self.trixify(graphs)
+        return self.cluster_classifier.predict(matrix)
+
+    def trixify(self,graphs):
+
+
+        '''there are cips comming in, cips have something something'''
+        for g in graphs:
+            for n,d in g.nodes(data=True):
+                if d.get('interface',False):
+                    d['weight'] = 2**self.interfaceweight
+                else:
+                    d['weight'] = 1.0
+
+        #except:
+        #    #draw.graphlearn(subgraphs, contract= False)
+        '''
+        def ginfo(g):
+            print utils.ascii.nx_to_ascii(g)
+            print g.nodes(data=True)
+            print g.edges(data=True)
+
+        for g in graphs:
+            for n,d in g.nodes(data=True):
+                if 'label' not in d:
+                    ginfo(g)
+            ginfo(g)
+            self.vectorizer._transform_serial([g])
+        '''
+
+        data=self.vectorizer._transform_serial(graphs)
+        #        #draw.debug(e)
+        return data
+
+
+    def fit(self, subgraphs):
+        matrix =  self.trixify(subgraphs) #self.vectorizer._transform_serial(subgraphs)
+        cluster_ids = self.cluster_subgraphs(matrix)
+
+        self.cluster_classifier = SGDClassifier()
+        self.cluster_classifier.fit(matrix, cluster_ids)
+
+        if self.debug:
+            graphclusters = defaultdict(list)
+            for i, cluster_id in enumerate(cluster_ids):
+                # if cluster_id not in self.ignore_clusters:
+                graphclusters[cluster_id].append(subgraphs[i])
+            # info
+            logger.debug('num clusters: %d' % max(cluster_ids))
+            logger.debug(eden.util.report_base_statistics(cluster_ids).replace('\t', '\n'))
+
+            idcounter=Counter(cluster_ids)
+            # ok now we want to print the INFO from above
+            for cid, count in idcounter.most_common():
+
+                # this dist stuff is untested btw.. the idea was to order the graphs s.th the center one comes first
+                uniquegraphs = utils.unique_graphs_graphlearn_graphhash(graphclusters[cid])
+                dists = sklearn.metrics.pairwise.pairwise_distances(self.vectorizer._transform_serial(copy.deepcopy(uniquegraphs)))
+                argmins = np.min(dists, axis=0)
+                posstuff = [ (e,i) for i,e in enumerate(argmins) ]
+                posstuff.sort()
+                res= [e[1] for e in posstuff[:5] ]
+                print "cluster: %d  len: %d" % (cid, len(graphclusters[cid]))
+                #subgraphs = utils.unique_graphs_graphlearn_grahhash(subgraphs)
+                draw.graphlearn([uniquegraphs[i] for i in res],edge_label='label', size=3)
 
 
 

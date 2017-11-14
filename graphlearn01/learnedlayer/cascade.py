@@ -36,6 +36,7 @@ from name_subgraphs import ClusterClassifier_keepduplicates as CC_keep
 from name_subgraphs import ClusterClassifier as CC_nokeep
 from name_subgraphs import ClusterClassifier_keepduplicates_interfaced as CC_keep_interface
 from name_subgraphs import ClusterClassifier_fake as CC_noclust
+from name_subgraphs import ClusterClassifier_soft_interface as CC_soft_inter
 import networkx as nx
 from graphlearn01.utils import draw
 import graphlearn01.utils as utils
@@ -83,6 +84,8 @@ class Cascade(object):
             self.makeclusterclassifier = lambda **kwargs: CC_noclust(**kwargs)
         elif clusterclassifier == 'interface_keep':
             self.makeclusterclassifier = lambda **kwargs: CC_keep_interface(**kwargs)
+        elif clusterclassifier == 'soft':
+            self.makeclusterclassifier = lambda **kwargs: CC_soft_inter(**kwargs)
         else:
             exit()
 
@@ -130,6 +133,43 @@ class Cascade(object):
                 debug_rna=self.debug_rna)
             self.transformers.append(transformer)
 
+
+    def fit_transform_2(self, graphs, graphs_neg=[],remove_intermediary_layers=True):
+        """ this fit transform will sub divide the pos and neg graphs in these parts:
+        1. fit annotator
+        2. fit abstractor
+        3. only do transform on the 3rd set.
+
+        only uses transformer.fit2 instead of the default transformer.fit_transform
+        """
+
+        if self.depth==0:
+            return map(add_fake_abstract_layer,list(graphs)+list(graphs_neg))
+
+
+        # INIT
+        graphs=list(graphs)
+        graphs_neg=list(graphs_neg)
+        self.setup_transformers()
+        for g in graphs+graphs_neg:
+            g.graph['layer']=0
+
+
+        numpos=len(graphs)
+        graphs+=graphs_neg
+        # fitting
+        for i in range(self.depth):
+            graphs = self.transformers[i].fit_2(graphs[:numpos], graphs[numpos:],fit_transform=True)
+        if remove_intermediary_layers:
+            graphs = self.do_remove_intermediary_layers(graphs)
+
+        if self.debug:
+            print "cascase: full transformation"
+            draw.graphlearn_layered2(graphs[:10], vertex_label='label',scoretricks=True, edge_label='label' )
+
+
+        return graphs
+
     def fit_transform(self, graphs, graphs_neg=[],remove_intermediary_layers=True):
         if self.depth==0:
             return map(add_fake_abstract_layer,list(graphs)+list(graphs_neg))
@@ -159,9 +199,10 @@ class Cascade(object):
 
             #draw.graphlearn(graphs[:5], contract=False, size=7,vertex_size=600, vertex_label='importance',font_size=9,secondary_vertex_label='label',edge_label='label')
             draw.graphlearn_layered2(graphs[:10], vertex_label='label',scoretricks=True, edge_label='label' )
-
-
         return graphs
+
+
+
 
     def fit(self, graphs, g2=[]):
         self.fit_transform(graphs,g2)

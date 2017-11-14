@@ -178,6 +178,9 @@ def draw_grammar_stats(grammar, size=(10, 4)):
 
 def graphlearn_layered1(graphs, **args):
     '''
+    I FORGOT WHAT THIS DOES>>>
+
+
     if there is a graph whose nodes have a layers annotation, use this
     Args:
         graphs:
@@ -281,8 +284,10 @@ def graphlearn_layered1(graphs, **args):
 
 
 
-def graphlearn_layered2(graphs, **args): # THIS IS THE NORMAL ONE
+def graphlearn_layered3(graphs, **args): # THIS IS THE NORMAL ONE
     '''
+    HERE I TRY TO GET TEHE LAYOUT FROM RDKIT
+
     this is to draw a graph that has its layers as graph.graph['origial']
 
     Args:
@@ -296,7 +301,7 @@ def graphlearn_layered2(graphs, **args): # THIS IS THE NORMAL ONE
 
     if args.get('n_graphs_per_line',5)!=1:
         for graph in graphs:
-            graphlearn_layered2([graph],n_graphs_per_line=1)
+            graphlearn_layered3([graph],n_graphs_per_line=1)
         return
 
 
@@ -323,22 +328,20 @@ def graphlearn_layered2(graphs, **args): # THIS IS THE NORMAL ONE
         maxlayers = len(layered_graphs)
         # make the layout for the biggest one :)
 
-        XSCALE,YSCALE=.1,.1
-        from eden_chem.io import rdkitutils  as rd
-        from rdkit.Chem import AllChem
-        chem=rd.nx_to_rdkit(graph)
-        chem.UpdatePropertyCache(strict=False)
-        AllChem.Compute2DCoords(chem)
-        conf = chem.GetConformer(0)
-        rawpos = [(conf.GetAtomPosition(i).x*XSCALE,conf.GetAtomPosition(i).y*YSCALE) for i in range(conf.GetNumAtoms())]
+        from eden_chem.display.rdkitutils import nx_to_pos
+        XSCALE,YSCALE=1,1
 
+        pos = {n:(p[0]*XSCALE,p[1]*YSCALE) for n,p in nx_to_pos(graph).items()}
 
-        aa,bb=zip(*rawpos)
+        aa,bb=zip(*pos.values())
         SCALE = (max(aa)-min(aa)) / (max(bb)-min(bb))
+
+
+        aa,bb=zip(*pos.values())
         #SCALE = (max(bb)-min(bb)) / (max(aa)-min(aa))
-        print "SCALE",SCALE
-        xmov=(0-min(aa))*1.1
-        pos={n:(p[0]+xmov,p[1]) for n,p in zip(graph.nodes(),rawpos)}
+        height = max(bb)-min(bb)
+        #xmov=(0-min(aa))*1.1
+        #pos={n:(p[0]+xmov,p[1]) for n,p in pos.items()}
 
 
 
@@ -357,9 +360,9 @@ def graphlearn_layered2(graphs, **args): # THIS IS THE NORMAL ONE
             # nodes in prev layer:
             minpos = min([pos[n][0] for n in layered_graphs[i + 1].nodes()])
             moveby_x = (max([pos[n][0] for n in layered_graphs[i + 1].nodes()])  - minpos) * 1.2
-            #print moveby_x
-            moveby_y = ((-1) ** i) * 30
-            moveby_y= 0
+
+            moveby_y = ((-1) ** i) * height * 0.2
+            #moveby_y = 0
             for k, v in new_positions.items():
                 new_positions[k] = (v[0] + moveby_x, v[1] + moveby_y)
 
@@ -373,16 +376,28 @@ def graphlearn_layered2(graphs, **args): # THIS IS THE NORMAL ONE
         finished_graphs.append(g)
         poslist.append(pos)
 
+
+        aa,bb=zip(*pos.values())
+        pad=.5
+        xlim= ( min(aa)-pad,max(aa)+pad)
+        ylim= (min(bb)-pad,max(bb)+pad)
+
     # draw
-    args['size_x_to_y_ratio'] = maxlayers*SCALE
+    args['xlim']= xlim
+    args['ylim']= ylim
+    args['size_x_to_y_ratio'] = maxlayers * SCALE
+    args['n_graphs_per_line'] = 1
+    args['size'] = 4
     args['pos'] = poslist
     args['dark_edge_color'] = 'dark_edge_color'
     graphlearn(finished_graphs, **args)
 
 
 
-def graphlearn_layered3(graphs, **args): # THIS IS THE NORMAL ONE
+def graphlearn_layered2(graphs, **args): # THIS IS THE NORMAL ONE
     '''
+
+    THIS IS THE DEFAULT FOR LAYERED GRAPHZ
     this is to draw a graph that has its layers as graph.graph['origial']
 
     Args:
@@ -418,7 +433,6 @@ def graphlearn_layered3(graphs, **args): # THIS IS THE NORMAL ONE
         # make the layout for the biggest one :)
 
         pos = nx.graphviz_layout(layered_graphs[-1], prog='neato', args="-Gmode=KK")
-        print pos
 
 
         if DEBUG: print 'biggest:', pos
@@ -538,7 +552,7 @@ def graphlearn(graphs,
 
         if vertex_label == 'importance' or args.get('secondary_vertex_label', '') == 'importance' or scoretricks:
             for n, d in graph.nodes(data=True):
-                d['importance'] = round(d.get('importance', [1337])[0], 2)
+                d['importance'] = round(d.get('importance', [.5])[0], 2)
 
             # now we need to change the attribute
     # because there is a label collission in json graph saving
