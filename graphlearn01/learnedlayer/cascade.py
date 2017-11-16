@@ -62,8 +62,8 @@ class Cascade(object):
                  num_classes=2,
                  min_clustersize=2,
                  dbscan_range=.5,
-                 vectorizer_annotation=eden.graph.Vectorizer(complexity=3,n_jobs=1),
-                 vectorizer_cluster=eden.graph.Vectorizer(complexity=3,n_jobs=1),
+                 vectorizer_annotation=eden.graph.Vectorizer(complexity=3),
+                 vectorizer_cluster=eden.graph.Vectorizer(complexity=3),
                  annotate_dilude_score=False,
                  debug_rna=False):
 

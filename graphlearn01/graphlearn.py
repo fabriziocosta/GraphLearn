@@ -112,7 +112,7 @@ class Sampler(object):
 
     def __init__(self,
 
-                 vectorizer=Vectorizer(complexity=3, n_jobs=1),
+                 vectorizer=Vectorizer(complexity=3 ),
                  random_state=None,
                  estimator=estimate.OneClassEstimator(nu=.5, cv=2, n_jobs=-1),
                  graphtransformer=transform.GraphTransformer(),

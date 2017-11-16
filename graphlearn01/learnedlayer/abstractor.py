@@ -335,6 +335,14 @@ class GraphToAbstractTransformer(object):
                 return list(cutter.cut(inputs))
 
 
+        if self.subgraphextraction == 'cut_soft_interface':
+            cutter=cutter_with_interface(
+                attribute= lambda d: d.get( self.score_attribute,[False])[0],
+                max_size=self.max_size,
+                min_size=self.min_size,
+                threshold=self.score_threshold)
+            return [ base_cip(a,b) for (a,b) in cutter.transform2(inputs) ]
+
         if self.subgraphextraction == 'cut_interface':
             cutter=cutter_with_interface(
                 attribute= lambda d: d.get( self.score_attribute,[False])[0],
