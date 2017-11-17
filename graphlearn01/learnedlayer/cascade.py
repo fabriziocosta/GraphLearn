@@ -78,14 +78,19 @@ class Cascade(object):
 
         if clusterclassifier== 'keep':
             self.makeclusterclassifier = lambda **kwargs: CC_keep(**kwargs)
+
         elif clusterclassifier == 'nokeep':
             self.makeclusterclassifier = lambda **kwargs: CC_nokeep(**kwargs)
+
         elif clusterclassifier == 'interface_nocluster':
             self.makeclusterclassifier = lambda **kwargs: CC_noclust(**kwargs)
+
         elif clusterclassifier == 'interface_keep':
             self.makeclusterclassifier = lambda **kwargs: CC_keep_interface(**kwargs)
+
         elif clusterclassifier == 'soft':
             self.makeclusterclassifier = lambda **kwargs: CC_soft_inter(**kwargs)
+
         else:
             exit()
 
