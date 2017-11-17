@@ -8,8 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 import graphlearn01.compose as compose
-import graphlearn01.minor.decompose as decompose
-import graphlearn01.decompose as decompose2 # decompose .  extract core interface should be this
+import graphlearn01.minor.decompose as decompose_minor
+import graphlearn01.decompose as decompose # decompose .  extract core interface should be this
 from collections import defaultdict
 
 class RmTrash(object):
@@ -79,8 +79,10 @@ class cutter_with_interface(Cutter):
                 g=graph.copy()
                 root = merge(g,core)
 
-                cip = decompose2.extract_core_and_interface(root, g, radius_list=[0],
-                                                           thickness_list=[thickness] )
+                #cip = decompose_minor.extract_core_and_interface(root, g, radius_list=[0], thickness_list=[thickness])
+
+                cip = decompose_minor.extract_cips(root, deci(graph, g, root, core.nodes()), base_thickness_list=[thickness], hash_bitmask=2 * 20 - 1,
+                                                  radius_list = [0], thickness_list = [1])
                 if len(cip) == 0:
                     continue
 
@@ -207,8 +209,8 @@ class TCC_with_interface(ThresholdedConnectedComponents):
                 g=graph.copy()
                 root = merge(g,core)
 
-                cip = decompose.extract_cips(root, deci(graph,g,root,core.nodes()),base_thickness_list=[thickness],hash_bitmask=2*20-1,
-                                             radius_list=[0],thickness_list=[1])
+                cip = decompose_minor.extract_cips(root, deci(graph, g, root, core.nodes()), base_thickness_list=[thickness], hash_bitmask=2 * 20 - 1,
+                                                   radius_list=[0], thickness_list=[1])
                 #cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
                 #                                           thickness_list=[thickness] )
                 if len(cip) == 0:
