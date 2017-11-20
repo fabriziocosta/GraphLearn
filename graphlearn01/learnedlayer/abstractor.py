@@ -177,25 +177,26 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
                     yield g
 
 
-class deci():
-    def __init__(self,big, small, root, merged):
-        self.b = big.copy()
-        self.s = small
+def deci(self,big, small, root, merged):
+        b = big.copy()
+        s = small
         # we need r and m to set up the contracted sets...
-        for n,d in self.s.nodes(data=True):
+        for n,d in s.nodes(data=True):
             d['contracted'] = set([n])
             if n==root:
                 for asd in merged:
                     d['contracted'].add(asd)
 
+        s= nx.convert_node_labels_to_integers(s, max(b.nodes())+1)
 
-    def abstract_graph(self):
-        return self.s
-    def base_graph(self):
-        return self.b
+        s.graph['original']=b
+        # calc_contracted_edge_nodes=True,  there is this option for the minordecomp.. dunno if need
+        return decompose_minor.MinorDecomposer(s)
+
+
 
 class TCC_with_interface(ThresholdedConnectedComponents):
-    def transform2(self,graphs, thickness=2):
+    def transform2(self,graphs, thickness=1):
 
         def merge(graph,core):
             nodes=core.nodes()
