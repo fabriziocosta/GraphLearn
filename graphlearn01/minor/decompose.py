@@ -221,8 +221,19 @@ class MinorDecomposer(Decomposer):
                 # lets see whos left and right of it:
                 n1, n2 = base_graph_neighbors(n)
                 # case1: ok those belong to the same gang so we most likely also belong there.
-                if getabstr[n1] == getabstr[n2]:
-                    self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
+
+                try:
+                    if getabstr[n1] == getabstr[n2]:
+                        self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
+                except:
+                    print "key error in minor decompose.py"
+                    import structout as so
+                    def pg(g):
+                        for n,d in g.nodes(data=True):
+                            d['id']=str(n)
+                    so.gprint(pg(self._base_graph), size=80, label='id')
+                    so.gprint(pg(self._abstract_graph),size=80, label='id')
+
 
                 # case2: neighbors belong to different gangs...
                 else:
