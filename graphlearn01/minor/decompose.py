@@ -226,13 +226,26 @@ class MinorDecomposer(Decomposer):
                     if getabstr[n1] == getabstr[n2]:
                         self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
                 except:
-                    print "key error in minor decompose.py"
+                    traceback.print_stack()
+                    print "key error in minor decompose.py %d %d" % (n1,n2)
+                    '''
                     import structout as so
                     def pg(g):
                         for n,d in g.nodes(data=True):
                             d['id']=str(n)
-                    so.gprint(pg(self._base_graph), size=80, label='id')
-                    so.gprint(pg(self._abstract_graph),size=80, label='id')
+                        return g
+                    so.gprint(pg(self._unaltered_graph.graph['original']), size=35, label='id')
+                    so.gprint(pg(self._unaltered_graph),size=35, label='id')
+                    so.gprint(pg(self._base_graph), size=35, label='id')
+                    so.gprint(pg(self._abstract_graph),size=35, label='id')
+                    for n,d in self._unaltered_graph.nodes(data=True):
+                        print d
+                    for n,d in self._abstract_graph.nodes(data=True):
+                        print d
+
+                    return 0
+                    '''
+                    exit()
 
 
                 # case2: neighbors belong to different gangs...

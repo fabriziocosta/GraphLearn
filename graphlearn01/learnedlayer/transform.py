@@ -132,7 +132,7 @@ class GraphMinorTransformer(GraphTransformer):
 
         # annotating is super slow. so in case of fit_transform i can save that step
         if fit_transform:
-            res = self.transform(graphs_fit[:splitp]+graphs_transform[:splitp]+graphs_fit[splitn:]+graphs_transform[splitn:])
+            res = self.transform(graphs_fit[:splitp]+graphs_transform[:splitp]+graphs_fit[splitp:]+graphs_transform[splitp:])
             if self.debug:
                 print "minortransform_added_layer"
                 draw.graphlearn_layered2(res[:10], vertex_label='importance', font_size=10)

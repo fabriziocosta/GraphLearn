@@ -177,7 +177,7 @@ class ThresholdedConnectedComponents(BaseEstimator, TransformerMixin):
                     yield g
 
 
-def deci(self,big, small, root, merged):
+def deci(big, small, root, merged):
         b = big.copy()
         s = small
         # we need r and m to set up the contracted sets...
@@ -187,7 +187,7 @@ def deci(self,big, small, root, merged):
                 for asd in merged:
                     d['contracted'].add(asd)
 
-        s= nx.convert_node_labels_to_integers(s, max(b.nodes())+1)
+        #s= nx.convert_node_labels_to_integers(s, max(b.nodes())+1)
 
         s.graph['original']=b
         # calc_contracted_edge_nodes=True,  there is this option for the minordecomp.. dunno if need
@@ -210,8 +210,16 @@ class TCC_with_interface(ThresholdedConnectedComponents):
                 g=graph.copy()
                 root = merge(g,core)
 
+
+
+
                 cip = decompose_minor.extract_cips(root, deci(graph, g, root, core.nodes()), base_thickness_list=[thickness], hash_bitmask=2 * 20 - 1,
                                                    radius_list=[0], thickness_list=[1])
+
+
+
+
+
                 #cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
                 #                                           thickness_list=[thickness] )
                 if len(cip) == 0:
