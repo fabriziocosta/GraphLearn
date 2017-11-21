@@ -208,18 +208,29 @@ class TCC_with_interface(ThresholdedConnectedComponents):
         for graph,cc in zip(graphs, self.transform(graphs)):
             for core in cc:
                 g=graph.copy()
+
+
+
                 root = merge(g,core)
 
+
+                if True:
+                    import structout as so
+                    def pg(g):
+                        for n,d in g.nodes(data=True):
+                            d['id']=str(n)
+                        return g
+                    thing = deci(graph, g, root, core.nodes())
+                    so.gprint(pg(g), size=30, label='contracted')
+                    so.gprint(pg(thing._base_graph), size=30, label='id')
+                    so.gprint(pg(thing._abstract_graph),size=30, label='id')
+                    for n,d in thing._abstract_graph.nodes(data=True):
+                        print d
 
 
 
                 cip = decompose_minor.extract_cips(root, deci(graph, g, root, core.nodes()), base_thickness_list=[thickness], hash_bitmask=2 * 20 - 1,
                                                    radius_list=[0], thickness_list=[1])
-
-
-
-
-
                 #cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
                 #                                           thickness_list=[thickness] )
                 if len(cip) == 0:

@@ -72,7 +72,6 @@ class MinorDecomposer(Decomposer):
 
     def get_layers(self):
         '''the idea is to return the layers as list of grpahs'''
-
         graph = self._unaltered_graph
         result=[graph]
         while 'original' in graph.graph:
@@ -189,8 +188,8 @@ class MinorDecomposer(Decomposer):
         if '_base_graph' in self.__dict__:
             return
 
-
-        self._base_graph= edengraphtools._edge_to_vertex_transform(self.get_layers()[-1].copy())
+        self._base_graph= edengraphtools._edge_to_vertex_transform(self._unaltered_graph.graph['original'].copy())
+        #self._base_graph= edengraphtools._edge_to_vertex_transform(self.get_layers()[-1].copy()) # does not work/// why?
         self._abstract_graph = edengraphtools._edge_to_vertex_transform(self._unaltered_graph.copy() )
 
 
@@ -227,24 +226,16 @@ class MinorDecomposer(Decomposer):
                         self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
                 except:
                     traceback.print_stack()
-                    print "key error in minor decompose.py %d %d" % (n1,n2)
-                    '''
+                    print "key error in minor decompose.py %d %d %d" % (n1,n2,n)
                     import structout as so
                     def pg(g):
                         for n,d in g.nodes(data=True):
                             d['id']=str(n)
                         return g
-                    so.gprint(pg(self._unaltered_graph.graph['original']), size=35, label='id')
-                    so.gprint(pg(self._unaltered_graph),size=35, label='id')
                     so.gprint(pg(self._base_graph), size=35, label='id')
                     so.gprint(pg(self._abstract_graph),size=35, label='id')
-                    for n,d in self._unaltered_graph.nodes(data=True):
-                        print d
                     for n,d in self._abstract_graph.nodes(data=True):
                         print d
-
-                    return 0
-                    '''
                     exit()
 
 
