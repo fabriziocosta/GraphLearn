@@ -224,6 +224,18 @@ class MinorDecomposer(Decomposer):
                 try:
                     if getabstr[n1] == getabstr[n2]:
                         self._abstract_graph.node[getabstr[n1]]['contracted'].add(n)
+
+
+
+                    # case2: neighbors belong to different gangs...
+                    else:
+                        blub = set(self._abstract_graph.neighbors(getabstr[n1])) & set(self._abstract_graph.neighbors(getabstr[n2]))
+                        for blob in blub:
+                            if 'contracted' in self._abstract_graph.node[blob]:
+                                self._abstract_graph.node[blob]['contracted'].add(n)
+                            else:
+                                self._abstract_graph.node[blob]['contracted'] = set([n])
+
                 except:
                     traceback.print_stack()
                     print "key error in minor decompose.py %d %d %d" % (n1,n2,n)
@@ -239,14 +251,6 @@ class MinorDecomposer(Decomposer):
                     exit()
 
 
-                # case2: neighbors belong to different gangs...
-                else:
-                    blub = set(self._abstract_graph.neighbors(getabstr[n1])) & set(self._abstract_graph.neighbors(getabstr[n2]))
-                    for blob in blub:
-                        if 'contracted' in self._abstract_graph.node[blob]:
-                            self._abstract_graph.node[blob]['contracted'].add(n)
-                        else:
-                            self._abstract_graph.node[blob]['contracted'] = set([n])
 
 
     def __init__(self, graph=None,

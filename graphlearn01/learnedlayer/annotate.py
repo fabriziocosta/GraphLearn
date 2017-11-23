@@ -109,8 +109,8 @@ def mass_annotate_mp(inputs, vectorizer, score_attribute='importance', estimator
     '''
 
     #  1st check if already annotated
-    if inputs[0].graph.get('mass_annotate_mp_was_here', False):
-        return inputs
+    #if inputs[0].graph.get('mass_annotate_mp_was_here', False):
+    #    return inputs
 
     if multi_process == False:
         inputs = filter(lambda v: v is not None, inputs)

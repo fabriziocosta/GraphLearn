@@ -65,6 +65,7 @@ class Cascade(object):
                  vectorizer_annotation=eden.graph.Vectorizer(complexity=3),
                  vectorizer_cluster=eden.graph.Vectorizer(complexity=3),
                  annotate_dilude_score=False,
+                 interfaceweight=0,
                  debug_rna=False):
 
 
@@ -89,7 +90,7 @@ class Cascade(object):
             self.makeclusterclassifier = lambda **kwargs: CC_keep_interface(**kwargs)
 
         elif clusterclassifier == 'soft':
-            self.makeclusterclassifier = lambda **kwargs: CC_soft_inter(**kwargs)
+            self.makeclusterclassifier = lambda **kwargs: CC_soft_inter(interfaceweight=interfaceweight,**kwargs)
 
         else:
             exit()

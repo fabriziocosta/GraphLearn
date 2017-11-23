@@ -94,7 +94,6 @@ class GraphMinorTransformer(GraphTransformer):
         '''
         this version will use half the graphs  for the annotator and the other half for the abstractor
         '''
-
         #  PREPARE
         graphs = list(graphs)
         graphs_neg = list(graphs_neg)
@@ -110,8 +109,17 @@ class GraphMinorTransformer(GraphTransformer):
         splitp=len(graphs)/2
         splitn=len(graphs_neg)/2
         graphs_fit = self.annotator.fit_transform(graphs[:splitp], graphs_neg[:splitn])
-        graphs_transform = self.annotator.transform(graphs[splitp:]+graphs_neg[splitn:])
 
+        '''
+        import structout as so
+        import pprint
+        for gg in graphs[splitp:splitp+3]:
+            so.gprint(gg,label='importance')
+        for n,d in graphs[splitp+1].nodes(data=True):
+            pprint.pprint(d)
+        '''
+        graphs[splitp].graph.pop('mass_annotate_mp_was_here',None)
+        graphs_transform = self.annotator.transform(graphs[splitp:]+graphs_neg[splitn:])
 
         # info
         if self.debug:
@@ -124,7 +132,11 @@ class GraphMinorTransformer(GraphTransformer):
 
         subgraphs = list(self.abstractor.get_subgraphs(graphs_transform))
         if len(subgraphs) ==0:
-            print ":( learnedlayer transform py"
+            import structout as so
+            for g in graphs_transform[:5]:
+                so.gprint(g)
+                so.gprint(g, label='importance', size=30)
+            print "######### learnedlayer transform py, abstractor did not generate subgraphs"
 
         # FILTER UNIQUES AND TRAIN THE CLUSTERER
         self.cluster_classifier.fit(subgraphs)

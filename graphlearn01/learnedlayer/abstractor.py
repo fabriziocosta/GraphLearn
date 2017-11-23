@@ -1,4 +1,5 @@
 import networkx as nx
+from eden import graph as edengraphtools
 from eden.graph import Vectorizer
 from eden_extra.modifier.graph.structure import contraction
 from graphlearn01.utils import node_operation, remove_eden_annotation , draw
@@ -7,7 +8,6 @@ import graphlearn01.utils as utils
 import logging
 logger = logging.getLogger(__name__)
 
-import graphlearn01.compose as compose
 import graphlearn01.minor.decompose as decompose_minor
 import graphlearn01.decompose as decompose # decompose .  extract core interface should be this
 from collections import defaultdict
@@ -63,15 +63,24 @@ class Cutter(object):
 
 
 
+
+
+
+def merge(graph,core):
+    nodes=core.nodes()
+    for node_id in nodes[1:]:
+        for n in graph.neighbors(node_id):
+            graph.add_edge(nodes[0], n, graph[node_id][n])
+        graph.remove_node(node_id)
+
+    graph.remove_edge(nodes[0],nodes[0])
+    return nodes[0]
+
+
+
+
 class cutter_with_interface(Cutter):
-    def transform2(self,graphs, thickness=1):
-
-        def merge(graph,core):
-            nodes=core.nodes()
-            for node_id in nodes[1:]:
-                compose.merge(graph, nodes[0], node_id)
-            return nodes[0]
-
+    def transform2(self,graphs, thickness=2):
 
         for graph in graphs:
             cc = list(self.cut_single(graph))
@@ -81,8 +90,10 @@ class cutter_with_interface(Cutter):
 
                 #cip = decompose_minor.extract_core_and_interface(root, g, radius_list=[0], thickness_list=[thickness])
 
-                cip = decompose_minor.extract_cips(root, deci(graph, g, root, core.nodes()), base_thickness_list=[thickness], hash_bitmask=2 * 20 - 1,
-                                                  radius_list = [0], thickness_list = [1])
+                cip = decompose_minor.extract_cips(root, deci(graph, g, root, core.nodes()),
+                                                   base_thickness_list=[thickness],
+                                                   hash_bitmask=2 * 20 - 1,
+                                                   radius_list = [0], thickness_list = [2])
                 if len(cip) == 0:
                     continue
 
@@ -190,31 +201,21 @@ def deci(big, small, root, merged):
         #s= nx.convert_node_labels_to_integers(s, max(b.nodes())+1)
 
         s.graph['original']=b
+
         # calc_contracted_edge_nodes=True,  there is this option for the minordecomp.. dunno if need
+        edengraphtools._label_preprocessing(s)
+        edengraphtools._label_preprocessing(b)
         return decompose_minor.MinorDecomposer(s)
 
 
 
 class TCC_with_interface(ThresholdedConnectedComponents):
-    def transform2(self,graphs, thickness=1):
-
-        def merge(graph,core):
-            nodes=core.nodes()
-            for node_id in nodes[1:]:
-                compose.merge(graph, nodes[0], node_id)
-            return nodes[0]
-
-
+    def transform2(self,graphs, thickness=2):
         for graph,cc in zip(graphs, self.transform(graphs)):
             for core in cc:
                 g=graph.copy()
-
-
-
                 root = merge(g,core)
-
-
-                if True:
+                if False:
                     import structout as so
                     def pg(g):
                         for n,d in g.nodes(data=True):
@@ -222,20 +223,19 @@ class TCC_with_interface(ThresholdedConnectedComponents):
                         return g
                     thing = deci(graph, g, root, core.nodes())
                     so.gprint(pg(g), size=30, label='contracted')
+                    so.gprint(pg(graph), size=30, label='id')
                     so.gprint(pg(thing._base_graph), size=30, label='id')
                     so.gprint(pg(thing._abstract_graph),size=30, label='id')
                     for n,d in thing._abstract_graph.nodes(data=True):
                         print d
-
-
-
-                cip = decompose_minor.extract_cips(root, deci(graph, g, root, core.nodes()), base_thickness_list=[thickness], hash_bitmask=2 * 20 - 1,
-                                                   radius_list=[0], thickness_list=[1])
+                cip = decompose_minor.extract_cips(root, deci(graph, g, root, core.nodes()),
+                                                   base_thickness_list=[thickness],
+                                                   hash_bitmask=2 * 20 - 1,
+                                                   radius_list=[0], thickness_list=[2])
                 #cip = decompose.extract_core_and_interface(root, g, radius_list=[0],
                 #                                           thickness_list=[thickness] )
                 if len(cip) == 0:
                     continue
-
                 #core.graph['interface_hash']=cip[0].interface_hash
                 yield core,cip[0]
 
@@ -311,12 +311,20 @@ class GraphToAbstractTransformer(object):
         '''
         def add_ihash(core,cip):
             core.graph['interface_hash']=cip.interface_hash
+
             return core
 
         def base_cip(core,cip):
 
             #draw.graphlearn(cip.graph)
-            return cip.graph
+            try:
+                res=  edengraphtools._revert_edge_to_vertex_transform(cip.graph)
+            except:
+                print 'abstractor.py failed to return base cip...'
+                import structout as so
+                so.gprint(cip.graph)
+
+            return res
 
         if self.subgraphextraction == 'best_interface':
             tcc = TCC_with_interface(attribute=lambda d: d.get( self.score_attribute,[False])[0],
@@ -325,7 +333,7 @@ class GraphToAbstractTransformer(object):
                                              min_size=self.min_size,
                                              max_size=self.max_size)
 
-            return [ add_ihash(a,b) for (a,b) in tcc.transform2(inputs, thickness=1) ]
+            return [ add_ihash(a,b) for (a,b) in tcc.transform2(inputs, thickness=2) ]
 
 
         if self.subgraphextraction == 'best_soft_interface':
@@ -335,7 +343,7 @@ class GraphToAbstractTransformer(object):
                                              min_size=self.min_size,
                                              max_size=self.max_size)
 
-            res =  [ base_cip(a,b) for (a,b) in tcc.transform2(inputs, thickness=1) ]
+            res =  [ base_cip(a,b) for (a,b) in tcc.transform2(inputs, thickness=2) ]
             return res
 
         if self.subgraphextraction == 'best':
@@ -363,7 +371,9 @@ class GraphToAbstractTransformer(object):
                 max_size=self.max_size,
                 min_size=self.min_size,
                 threshold=self.score_threshold)
-            return [ base_cip(a,b) for (a,b) in cutter.transform2(inputs) ]
+
+            res= [ base_cip(a,b) for (a,b) in cutter.transform2(inputs, thickness=2) ]
+            return res
 
         if self.subgraphextraction == 'cut_interface':
             cutter=cutter_with_interface(
@@ -464,7 +474,8 @@ def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimat
             #draw.graphlearn(subgraphs, contract= False)
             for e in subgraphs:
                 print utils.ascii.nx_to_ascii(e)
-                print e.nodes(data=True)
+                import pprint
+                pprint.pprint( e.nodes(data=True))
                 #draw.debug(e)
 
         clusterids = nameestimator.predict(data,subgraphs)
@@ -474,8 +485,13 @@ def name_estimation(graph, group, layer, graphreference, vectorizer, nameestimat
         #draw.graphlearn(subgraphs,size=2, title_key='hash_title', edge_label='label')
 
         for sg, clid in zip(subgraphs, clusterids):
-            for n in sg.nodes():
-                graph.node[n][group] = '-' if clid == -1 else str(clid)
+            try:
+                for n in sg.nodes():
+                    graph.node[n][group] = '-' if clid == -1 else str(clid)
+            except:
+                import structout as so
+                so.gprint(graph, label='id')
+                so.gprint(sg, label='id')
 
     # doing the contraction...
     graph = contraction([graph], contraction_attribute=group, modifiers=[],

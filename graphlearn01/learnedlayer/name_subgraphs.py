@@ -413,7 +413,10 @@ class ClusterClassifier_soft_interface():
 
 
     def fit(self, subgraphs):
+        #print "asdasd"
+        #import structout as so
         matrix =  self.trixify(subgraphs) #self.vectorizer.transform(subgraphs)
+        #so.gprint(subgraphs[:3],label='weight')
         cluster_ids = self.cluster_subgraphs(matrix)
 
         self.cluster_classifier = SGDClassifier()
