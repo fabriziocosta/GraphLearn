@@ -6,9 +6,10 @@ import random
 from collections import defaultdict
 from lsgg_cip import extract_core_and_interface, core_substitution
 import logging
+
 logger = logging.getLogger(__name__)
 
-_hash_bitmask_ = 2**16 - 1
+_hash_bitmask_ = 2 ** 16 - 1
 
 
 class lsgg(object):

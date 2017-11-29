@@ -3,11 +3,11 @@
 """Provides the sampler class."""
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class Sampler(object):
-
     def __init__(self, grammar=None, score_estimator=None, n_steps=3):
         self.lsgg = grammar
         if len(self.lsgg.productions) == 0:

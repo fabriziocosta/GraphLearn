@@ -7,12 +7,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 class simpleDirectedEstimator():
-
     def __init__(self):
-        self.reference_vec,self.vectorizer=None,None
+        self.reference_vec, self.vectorizer = None, None
 
-
-    def fit(self,graph,vectorizer=Vectorizer(n_jobs=1)):
+    def fit(self, graph, vectorizer=Vectorizer()):
         self.reference_vec = vectorizer.transform([graph])
         self.vectorizer = vectorizer
         return self

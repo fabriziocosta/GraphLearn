@@ -1,8 +1,7 @@
 import eden
 import numpy as np
 import sklearn
-import logging
-logger = logging.getLogger(__name__)
+
 from sklearn.linear_model import SGDClassifier
 import copy
 import sklearn

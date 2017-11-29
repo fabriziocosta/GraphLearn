@@ -1,19 +1,19 @@
-
 from toolz.functoolz import memoize
 import eden.graph as eg
 from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
 import networkx as nx
 import logging
+
 logger = logging.getLogger(__name__)
 
 
-#@memoize(key=lambda args, kwargs: args)
+# @memoize(key=lambda args, kwargs: args)
 def _add_hlabel(graph):
     eg._label_preprocessing(graph)
 
 
-#@memoize(key=lambda args, kwargs: args)
+# @memoize(key=lambda args, kwargs: args)
 def _edge_to_vertex(graph):
     return eg._edge_to_vertex_transform(graph)
 
@@ -64,7 +64,7 @@ def graph_hash(graph, hash_bitmask, node_name_label=lambda id, node: node['hlabe
         so we calculate a hash of a graph
     """
     node_names = {n: calc_node_name(graph, n, hash_bitmask, node_name_label) for n in graph.nodes()}
-    tmp_fast_hash= lambda a,b: fast_hash( [ (a ^ b) + (a + b) , min(a,b),max(a,b) ] )
+    tmp_fast_hash = lambda a, b: fast_hash([(a ^ b) + (a + b), min(a, b), max(a, b)])
     l = [tmp_fast_hash(node_names[a], node_names[b]) for (a, b) in graph.edges()]
     l.sort()
     # isolates are isolated nodes
@@ -86,7 +86,8 @@ def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label=lambda id
 
 
 def graph_hash_core(graph, hash_bitmask, node_name_label=lambda id, node: node['hlabel']):
-    return graph_hash(graph,hash_bitmask,node_name_label)
+    return graph_hash(graph, hash_bitmask, node_name_label)
+
 
 def extract_core_and_interface(root_node=None,
                                graph=None,
@@ -120,7 +121,7 @@ def extract_core_and_interface(root_node=None,
                        if radius < dst <= radius + thickness]
 
     # calculate hashes
-    core_hash = graph_hash_core(graph.subgraph(core_nodes+interface_nodes), hash_bitmask)
+    core_hash = graph_hash_core(graph.subgraph(core_nodes + interface_nodes), hash_bitmask)
     node_name_label = lambda id, node: node['hlabel'] + dist[id] - radius
     interface_hash = graph_hash(graph.subgraph(interface_nodes),
                                 hash_bitmask,
@@ -165,7 +166,7 @@ def find_all_isomorphisms(home, other):
     if iso.faster_could_be_isomorphic(home, other):
         ddl = 'distance_dependent_label'
         label_matcher = lambda x, y: x[ddl] == y[ddl] and \
-            x.get('shard', 1) == y.get('shard', 1)
+                                     x.get('shard', 1) == y.get('shard', 1)
 
         graph_label_matcher = iso.GraphMatcher(home, other, node_match=label_matcher)
         for index, mapping in enumerate(graph_label_matcher.isomorphisms_iter()):
@@ -173,7 +174,7 @@ def find_all_isomorphisms(home, other):
                 logger.debug('lsgg_compose_util i checked more than 5 isomorphisms')
             yield mapping
     else:
-        logger.log(5,'lsgg_compose_util faster iso check failed')
+        logger.log(5, 'lsgg_compose_util faster iso check failed')
         raise StopIteration
 
 
@@ -186,7 +187,8 @@ def core_substitution(graph, orig_cip, new_cip):
 
     # preprocess
     graph = _edge_to_vertex(graph)
-    assert(set(orig_cip.graph.nodes()) - set(graph.nodes()) == set([])), 'lsgg_compose_util orig_cip_graph not in graph'
+    assert (
+    set(orig_cip.graph.nodes()) - set(graph.nodes()) == set([])), 'lsgg_compose_util orig_cip_graph not in graph'
 
     # get isomorphism
     iso = find_all_isomorphisms(orig_cip.interface_graph, new_cip.interface_graph).next()
