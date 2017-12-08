@@ -1,36 +1,60 @@
-#!/usr/bin/env python
+def sample_step(object, transformer, grammar, scorer, chooser):
+    """
+    Parameters
+    ----------
+    object:
+    transformer: transform.transform(object) -> graph
+    grammar: trained on graphs, lsgg.propose(graph) -> objects
+    scorer: score.decision_function(object) -> number
 
-"""Provides the sampler class."""
+    Returns
+    -------
+        object
+    """
+    graph = transformer.encode(object)
+    proposals = transformer.decode( grammar.propose(graph) )
+    scores = scorer.decision_function(proposals) # works on object
+    object, scorer = chooser.choose(proposals, scores)
+    return object, scorer
 
-import logging
 
-logger = logging.getLogger(__name__)
+def sample(graph, transformer=None, grammar=None, scorer=None, chooser=None, n_steps=10, return_score=False):
+    for i in range(n_steps):
+        graph, score = sample_step(graph, transformer, grammar, scorer,chooser)
+    if return_score:
+        return graph, score
+    return graph
 
 
-class Sampler(object):
-    def __init__(self, grammar=None, score_estimator=None, n_steps=3):
-        self.lsgg = grammar
-        if len(self.lsgg.productions) == 0:
-            raise Exception("sampler needs a trained grammar")
+def fit():
+    pass
 
-        self.n_steps = n_steps
-        self.score_estimator = score_estimator
+def optimize():
+    pass
 
-    def fit(self):
-        pass
 
-    def transform(self, graph):
-        logger.log(5, '\n\nsample: start transformation')
-        for self.step in range(0, self.n_steps):
-            graph, score = self.choosenext(graph)
-            yield graph, score
 
-    def choosenext(self, graph):
-        proposals = list(self.lsgg.neighbors(graph))
-        logger.log(5, 'sample: proposalcount %d' % len(proposals))
-        return max(self.score(proposals), key=lambda x: x[1])
 
-    def score(self, graphs):
-        scores = self.score_estimator.decision_function(graphs)[0]
-        logger.log(5, 'sample: score scores: %s' % str(scores))
-        return zip(graphs, scores)
+
+def test_sample_step():
+    import graphlearn as gl
+    from graphlearn.score import SimpleDistanceEstimator as SDE
+    import networkx as nx
+
+    class transformer:
+        def encode(self, thing):
+            return thing
+        def decode(self, thing):
+            return thing
+
+    class chooser:
+        def choose(self, proposals,scores):
+            return max(zip(proposals, scores), key=lambda x: x[1])
+
+    lsgg = gl.test_get_grammar()
+    graph = gl._edenize_for_testing(nx.path_graph(4))
+    graph.node[3]['label'] = '5'
+    score_estimator = SDE().fit(gl._edenize_for_testing(nx.path_graph(4)))
+    graph,score= sample(graph,transformer(),lsgg,score_estimator,chooser(),n_steps=2,return_score=True)
+
+    assert (0.000001 > abs(0.319274373045 - score))

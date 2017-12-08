@@ -6,7 +6,7 @@ from eden.graph import Vectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-class simpleDirectedEstimator():
+class SimpleDistanceEstimator():
     def __init__(self):
         self.reference_vec, self.vectorizer = None, None
 
@@ -17,4 +17,4 @@ class simpleDirectedEstimator():
 
     def decision_function(self, graphs):
         vecs = self.vectorizer.transform(graphs)
-        return cosine_similarity(self.reference_vec, vecs)
+        return cosine_similarity(self.reference_vec, vecs)[0]

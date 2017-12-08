@@ -1,4 +1,3 @@
-from toolz.functoolz import memoize
 import eden.graph as eg
 from networkx.algorithms import isomorphism as iso
 from eden import fast_hash
@@ -8,12 +7,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# @memoize(key=lambda args, kwargs: args)
 def _add_hlabel(graph):
     eg._label_preprocessing(graph)
 
 
-# @memoize(key=lambda args, kwargs: args)
 def _edge_to_vertex(graph):
     return eg._edge_to_vertex_transform(graph)
 
@@ -132,7 +129,9 @@ def extract_core_and_interface(root_node=None,
     ddl = 'distance_dependent_label'
     for no in interface_nodes:
         cip_graph.node[no][ddl] = cip_graph.node[no]['hlabel'] + dist[no] - (radius + 1)
+
     interface_graph = nx.subgraph(cip_graph, interface_nodes)
+
     return CoreInterfacePair(interface_hash,
                              core_hash,
                              cip_graph,
@@ -198,7 +197,9 @@ def core_substitution(graph, orig_cip, new_cip):
 
     # make graph union (the old graph and the new cip are now floating side by side)
     graph = nx.union(graph, new_cip.graph, rename=('', '-'))
+
     graph.remove_nodes_from(map(str, orig_cip.core_nodes))
+
     # merge interface nodes
     for k, v in iso.iteritems():
         merge(graph, str(k), '-' + str(v))

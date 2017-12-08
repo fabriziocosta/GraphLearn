@@ -4,7 +4,7 @@
 
 import random
 from collections import defaultdict
-from lsgg_cip import extract_core_and_interface, core_substitution
+import lsgg_cip
 import logging
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,9 @@ class lsgg(object):
         """
         for graph in graphs:
             self._add_productions(graph)
+
         self._cip_frequency_filter()
+        return self
 
     def _add_productions(self, graph):
         """see fit"""
@@ -65,7 +67,7 @@ class lsgg(object):
             radius = radius * 2
             for thickness in self.decomposition_args['thickness_list']:
                 thickness = thickness * 2
-                yield extract_core_and_interface(root_node=root,
+                yield lsgg_cip.extract_core_and_interface(root_node=root,
                                                  graph=graph,
                                                  radius=radius,
                                                  thickness=thickness,
@@ -98,12 +100,16 @@ class lsgg(object):
         random.shuffle(cips_)
         return cips_
 
+
+    def _core_substitution(self,graph,cip,cip_):
+        return lsgg_cip.core_substitution(graph, cip, cip_)
+
     def _neighbors_given_cips(self, graph, orig_cips):
         """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
         for cip in orig_cips:
             cips_ = self._congruent_cips(cip)
             for cip_ in cips_:
-                graph_ = core_substitution(graph, cip, cip_)
+                graph_ = self._core_substitution(graph, cip, cip_)
                 if graph_ is not None:
                     yield graph_
 
@@ -128,6 +134,19 @@ class lsgg(object):
                 else:
                     raise StopIteration
 
+
+    def propose(self,graph):
+        return list(self.neighbors(graph))
+
+
+
+
+
+
+
+    ########
+    # why is this here? is this a copy of the thing in __init__.py?
+    ########
     def size(self):
         """size."""
         n_interfaces = len(self.productions)
@@ -139,3 +158,58 @@ class lsgg(object):
         n_cips = sum(len(self.productions[interface])
                      for interface in self.productions)
         return n_interfaces, n_cores, n_cips
+
+
+
+
+
+
+
+
+
+
+import graphlearn as gl
+import networkx as nx
+def test_fit():
+    lsggg = gl.test_get_grammar()
+    assert (4 == sum(len(e) for e in lsggg.productions.values()))
+    # gprint( [e.graph for e in lsggg.productions[49532].values() ])
+    # gprint( [e.graph for e in lsggg.productions[29902].values() ])
+
+
+def test_extract_core_and_interface():
+    graph = nx.path_graph(4)
+    gl._edenize_for_testing(graph)
+    res = lsgg_cip.extract_core_and_interface(root_node=3, graph=graph, radius=1, thickness=1)
+    # gprint(res.graph)
+    assert ('cor' in str(res))
+
+
+def test_neighbors():
+    # make a grammar
+    lsgg = gl.test_get_grammar()
+
+    # make agraph
+    g = nx.path_graph(4)
+    g = gl._edenize_for_testing(g)
+    g.node[3]['label'] = '5'
+    stuff = list(lsgg.neighbors(g))
+    assert (6 == len(stuff))
+
+
+def test_some_neighbors():
+    # make a grammar
+    lsgg = gl.test_get_grammar()
+    # make agraph
+    g = nx.path_graph(4)
+    gl.g = gl._edenize_for_testing(g)
+    g.node[3]['label'] = '5'
+    assert (1 == len(list(lsgg.neighbors_sample(g, 1))))
+    assert (2 == len(list(lsgg.neighbors_sample(g, 2))))
+    assert (3 == len(list(lsgg.neighbors_sample(g, 3))))
+    # gprint(list( lsgg.some_neighbors(g,1) ))
+    # gprint(list( lsgg.some_neighbors(g,2) ))
+    # gprint(list( lsgg.some_neighbors(g,3) ))
+
+
+
