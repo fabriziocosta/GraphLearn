@@ -34,6 +34,22 @@ class lsgg(object):
         self.decomposition_args = decomposition_args
         self.filter_args = filter_args
 
+    def set_core_size(self, vals):
+        self.decomposition_args['radius_list'] = vals
+
+    def set_context(self, val):
+        self.decomposition_args['thickness_list'] = [val]
+
+    def set_min_count(self, val):
+        self.filter_args['min_interface_count'] = val
+        self.filter_args['min_cip_count'] = val
+
+    def get_min_count(self):
+        return self.filter_args['min_cip_count']
+
+    def reset_productions(self):
+        self.productions = defaultdict(dict)
+
     ###########
     # FITTING
     ##########
@@ -47,7 +63,11 @@ class lsgg(object):
             self._add_productions(graph)
 
         self._cip_frequency_filter()
+        self._is_fit = True
         return self
+
+    def is_fit(self):
+        return self._is_fit
 
     def _add_productions(self, graph):
         """see fit"""
@@ -68,10 +88,10 @@ class lsgg(object):
             for thickness in self.decomposition_args['thickness_list']:
                 thickness = thickness * 2
                 yield lsgg_cip.extract_core_and_interface(root_node=root,
-                                                 graph=graph,
-                                                 radius=radius,
-                                                 thickness=thickness,
-                                                 hash_bitmask=hash_bitmask)
+                                                          graph=graph,
+                                                          radius=radius,
+                                                          thickness=thickness,
+                                                          hash_bitmask=hash_bitmask)
 
     def _add_cip(self, cip):
         """see fit"""
@@ -100,8 +120,7 @@ class lsgg(object):
         random.shuffle(cips_)
         return cips_
 
-
-    def _core_substitution(self,graph,cip,cip_):
+    def _core_substitution(self, graph, cip, cip_):
         return lsgg_cip.core_substitution(graph, cip, cip_)
 
     def _neighbors_given_cips(self, graph, orig_cips):
@@ -134,15 +153,8 @@ class lsgg(object):
                 else:
                     raise StopIteration
 
-
-    def propose(self,graph):
+    def propose(self, graph):
         return list(self.neighbors(graph))
-
-
-
-
-
-
 
     ########
     # why is this here? is this a copy of the thing in __init__.py?
@@ -159,17 +171,18 @@ class lsgg(object):
                      for interface in self.productions)
         return n_interfaces, n_cores, n_cips
 
-
-
-
-
-
-
-
-
+    def __repr__(self):
+        """repr."""
+        n_interfaces, n_cores, n_cips = self.size()
+        txt = '#interfaces: %5d   ' % n_interfaces
+        txt += '#cores: %5d   ' % n_cores
+        txt += '#core-interface-pairs: %5d' % n_cips
+        return txt
 
 import graphlearn as gl
 import networkx as nx
+
+
 def test_fit():
     lsggg = gl.test_get_grammar()
     assert (4 == sum(len(e) for e in lsggg.productions.values()))
@@ -210,6 +223,3 @@ def test_some_neighbors():
     # gprint(list( lsgg.some_neighbors(g,1) ))
     # gprint(list( lsgg.some_neighbors(g,2) ))
     # gprint(list( lsgg.some_neighbors(g,3) ))
-
-
-
