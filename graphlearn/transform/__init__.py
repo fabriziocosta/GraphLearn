@@ -1,6 +1,10 @@
 
 
-
+class no_transform:
+    def encode(self, thing):
+        return thing
+    def decode(self, thing):
+        return thing
 
 def merge_edge(graph, u, v):
 

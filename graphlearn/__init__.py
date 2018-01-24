@@ -35,6 +35,27 @@ def test_get_grammar():
     lsggg.fit([g, g, g])
     return lsggg
 
+def test_dark_edges():
+    ''''''
+    lsggg = lsgg.lsgg()
+    g = _edenize_for_testing(nx.path_graph(3))
+
+    g_dark = g.copy()
+    for n,d in g_dark.nodes(data=True):
+        if 'edge' in d:
+            d['nesting'] = True
+
+
+    # test fit
+    lsggg.fit([g, g_dark])
+    assert 2 == len([g.graph  for v in lsggg.productions.values() for g in v.values()])
+
+    # test production
+    res = lsggg.neighbors(g_dark)
+
+    #import structout as so
+    #so.gprint([g.graph  for v in lsggg.productions.values() for g in v.values()] )
+    assert 2 == len(list(res))
 
 def test_get_circular_graph():
     G=nx.path_graph(8)

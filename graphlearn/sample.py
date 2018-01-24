@@ -41,24 +41,19 @@ def optimize():
 
 
 
-
 def test_sample_step():
     import graphlearn as gl
     from graphlearn.score import SimpleDistanceEstimator as SDE
     import networkx as nx
     import choose
+    import transform
 
-    class transformer:
-        def encode(self, thing):
-            return thing
-        def decode(self, thing):
-            return thing
 
 
     lsgg = gl.test_get_grammar()
     graph = gl._edenize_for_testing(nx.path_graph(4))
     graph.node[3]['label'] = '5'
     score_estimator = SDE().fit(gl._edenize_for_testing(nx.path_graph(4)))
-    graph,score= sample(graph,transformer(),lsgg,score_estimator,choose.Chooser(),n_steps=2,return_score=True)
+    graph,score= sample(graph,transform.no_transform(),lsgg,score_estimator,choose.Chooser(),n_steps=2,return_score=True)
 
     assert (0.000001 > abs(0.319274373045 - score))
