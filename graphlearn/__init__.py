@@ -43,9 +43,10 @@ def test_get_circular_graph():
     G=_edenize_for_testing(G)
     return G
 
-def valid_gl_graph(graph,secondlayer=True):
+def valid_gl_graph(graph):
     """checks if a graph is a valid graphlearn-intermediary product"""
 
+    secondlayer = 'original' in graph.graph
 
     # are labels in the graph?
     def label_is_set(graph):
@@ -56,11 +57,8 @@ def valid_gl_graph(graph,secondlayer=True):
         return True
 
     assert label_is_set(graph)
-
     if secondlayer:
         assert label_is_set(graph.graph['original']) == True
-
-
 
     # second layer needs contracted attributes...
     if secondlayer:
