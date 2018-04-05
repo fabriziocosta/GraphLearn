@@ -162,21 +162,27 @@ class lsgg(object):
     def size(self):
         """size."""
         n_interfaces = len(self.productions)
+
         cores = set()
+        n_productions = 0
         for interface in self.productions.keys():
+            n_productions += len(self.productions[interface]) * (len(self.productions[interface])-1)
             for core in self.productions[interface].keys():
                 cores.add(core)
+
         n_cores = len(cores)
         n_cips = sum(len(self.productions[interface])
                      for interface in self.productions)
-        return n_interfaces, n_cores, n_cips
+
+        return n_interfaces, n_cores, n_cips , n_productions
 
     def __repr__(self):
         """repr."""
-        n_interfaces, n_cores, n_cips = self.size()
+        n_interfaces, n_cores, n_cips,n_productions = self.size()
         txt = '#interfaces: %5d   ' % n_interfaces
         txt += '#cores: %5d   ' % n_cores
-        txt += '#core-interface-pairs: %5d' % n_cips
+        txt += '#core-interface-pairs: %5d  ' % n_cips
+        txt += '#production-rules: %5d' % n_productions
         return txt
 
 import graphlearn as gl
