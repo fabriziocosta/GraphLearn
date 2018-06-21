@@ -648,7 +648,7 @@ def draw_grammar(grammar,
                  n_graphs_per_production=10,
                  size=4,
                  abstract_interface=False,
-                 title_key='frequency',
+                 title_key='title',
                  **args):
     if abstract_interface:
         n_graphs_per_production -= 1
@@ -671,7 +671,10 @@ def draw_grammar(grammar,
         cips = [core_cid_dict[chash] for chash in core_cid_dict.keys()]
 
         for cip in cips:
-            cip.graph.graph['frequency'] = ' frequency:%s' % cip.count
+            cip.graph.graph['title'] = ' frequency:%s core_hash: %d' % (cip.count, cip.core_hash)
+            for nid in cip.__dict__.get("core_nodes",[]): # new grammar markes core like this
+                cip.graph.node[nid]['core']=True  
+                
 
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True)
         graphs = [cip.graph for count, cip in most_frequent_cips]
@@ -683,7 +686,6 @@ def draw_grammar(grammar,
         # if i < 5]
         print('interface id: %s [%d options]' % (interface, len(grammar[interface])))
 
-        # uebersampler gets to do this because he is the uebersampler
         if abstract_interface:
             if 'abstract_view' in cips[0].__dict__:
                 graphs = [most_frequent_cips[0][1].abstract_view] + graphs
