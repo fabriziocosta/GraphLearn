@@ -118,7 +118,7 @@ def extract_core_and_interface(root_node=None,
                        if radius < dst <= radius + thickness]
 
     # calculate hashes
-    core_hash = graph_hash_core(graph.subgraph(core_nodes + interface_nodes), hash_bitmask)
+    core_hash = graph_hash_core(graph.subgraph(core_nodes), hash_bitmask)
     node_name_label = lambda id, node: node['hlabel'] + dist[id] - radius
     interface_hash = graph_hash(graph.subgraph(interface_nodes),
                                 hash_bitmask,
