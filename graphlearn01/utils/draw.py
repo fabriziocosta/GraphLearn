@@ -642,6 +642,13 @@ def cip_to_drawable_graph(cips=[], graphs=[], mark_root=False):
     return regraphs
 
 
+
+def decorate_cip(cip):
+    cip.graph.graph['title'] = ' frequency:%s core_hash: %d' % (cip.count, cip.core_hash)
+    for nid in cip.__dict__.get("core_nodes",[]): # new grammar markes core like this
+        cip.graph.node[nid]['core']=True
+
+
 def draw_grammar(grammar,
                  n_productions=None,
                  n_graphs_per_line=5,
@@ -670,11 +677,7 @@ def draw_grammar(grammar,
 
         cips = [core_cid_dict[chash] for chash in core_cid_dict.keys()]
 
-        for cip in cips:
-            cip.graph.graph['title'] = ' frequency:%s core_hash: %d' % (cip.count, cip.core_hash)
-            for nid in cip.__dict__.get("core_nodes",[]): # new grammar markes core like this
-                cip.graph.node[nid]['core']=True  
-                
+        map(decorate_cip, cips)
 
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True)
         graphs = [cip.graph for count, cip in most_frequent_cips]
