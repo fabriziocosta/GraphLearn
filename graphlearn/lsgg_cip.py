@@ -174,7 +174,7 @@ def find_all_isomorphisms(home, other):
             yield mapping
     else:
         logger.log(5, 'lsgg_compose_util faster iso check failed')
-        return {} # iso.graphmatcher returns empty dict when nothing is found. i do the same :) 
+        yield {} # iso.graphmatcher returns empty dict when nothing is found. i do the same :) 
 
 
 def core_substitution(graph, orig_cip, new_cip):
