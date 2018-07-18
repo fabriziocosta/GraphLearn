@@ -29,6 +29,8 @@ Use the fish script below to "getpythonpath"  and "cloneall"
 ```bash
 pip install -r EDEN/EDeN/requirements.txt  # breaks at some point..
 pip install sklearn requests jupyter toolz dill scipy joblib networkx matplotlib pillow
+
+update: numpy: 1.13.3 networkx: 1.9 scipy: 0.19.1 sklearn: 0.19.0
 ```
 
 
