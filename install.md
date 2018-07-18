@@ -55,7 +55,7 @@ set dirlist $gl/GraphLearn $gl/GraphLearn_examples $gl/LearnedLayer \
 function execall --description='exec in all graphlearn git roots'
     for i in $dirlist
         cd $i
-        redline 
+        echo "####################################"
         eval $argv  # eval :)
         echo $PWD 
         cd -
