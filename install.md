@@ -1,6 +1,6 @@
 
 
-## Dependencies
+## Packetmanager basics for fresh systems
 Obviously not all are necessary, still leave them here in case ill have to install on a fresh system
 ```bash
 # -y skips the confirmation question
@@ -10,9 +10,6 @@ sudo apt-get -y upgrade
 sudo init 6
 ```
 
-
-
-## Install graph learn itself
 Fish not required for graphlearn but my clone/makepath scripts are fish :D
 ```bash
 sudo apt-add-repository ppa:fish-shell/release-2
@@ -20,14 +17,15 @@ sudo apt-get update
 sudo apt-get install fish
 ```
 
+
+
+##  Get all the graphlearn repositories
 ```bash
 Use the fish script below to "getpythonpath"  and "cloneall"
 ```
 
 
-
-
-## PIP packages
+## PIP dependencies
 ```bash
 pip install -r EDEN/EDeN/requirements.txt  # breaks at some point..
 pip install sklearn requests jupyter toolz dill scipy joblib networkx matplotlib pillow
@@ -53,14 +51,6 @@ set dirlist $gl/GraphLearn $gl/GraphLearn_examples $gl/LearnedLayer \
      $gl/Generative_Adversarial_Graphlearn $gl/long_range_deps_graphlearn \
      $ed/EDeN $ed/eden_chem $ed/eden_rna $ed/eden_extra 
      
-
-
-function redline 
-    set_color red
-    echo "####################################"
-    set_color normal
-end
-
 
 function execall --description='exec in all graphlearn git roots'
     for i in $dirlist
@@ -103,30 +93,4 @@ function getpythonpath
     echo "set -x PYTHONPATH" (string join ':' $dirlist)
 end 
 
-# update all
-function updateall
-    execall git pull 
-end 
-
-
-# cast git status on all 
-function statusall 
-    execall git status -s -uno # ignore untracked files
-end 
-
-
-function commitallpy
-    execall "git commit  -m 'hayaku! all py files' **.py"
-    echo "***************"
-    execall git push
-end
-
-
-
-echo "
-cloneall -- setup
-statusall -- status
-commitallpy -- :)
-updateall 
-"
 ```
