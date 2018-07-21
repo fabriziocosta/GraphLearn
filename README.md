@@ -59,13 +59,13 @@ for i in range(5):
 # Examples
 See [here](https://github.com/fabriziocosta/GraphLearn_examples) for more examples.
 
-* [Introduction to GraphLearn](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/Introduction.ipynb)
+* [Introduction to GraphLearn](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/notebooks/Introduction.ipynb)
 
-* [CoreMorph -- enhanced grammar](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/Abstract/CoreMorph.ipynb)
+* [CoreMorph -- enhanced grammar](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/notebooks/Abstract/CoreMorph.ipynb)
 
-* [Interactive -- sample graphs step by step](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/simple_toys/interactive_creation.ipynb)
+* [Interactive -- sample graphs step by step](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/notebooks/simple_toys/interactive_creation.ipynb)
 
-* [MultiGoal -- optimize towards multiple goals](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/SamplerCombiner.ipynb)
+* [MultiGoal -- optimize towards multiple goals](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/notebooks/SamplerCombiner.ipynb)
 
 * [Cascading Learned Abstractions -- add learned layers to graphs](https://github.com/smautner/GraphLearn_examples/blob/master/notebooks/cascade.ipynb)
 
