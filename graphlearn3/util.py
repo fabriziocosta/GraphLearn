@@ -96,6 +96,7 @@ def decorate_cip(cip):
     #print (cip.interface_nodes)
     nx.set_node_attributes(cip.graph,{n:True for n in cip.core_nodes} ,'core')
     nx.set_node_attributes( cip.graph,{n:True for n in cip.interface_nodes} ,'interface')
+    print ('decoration not needed anymore,  pass nodecolorgrouplists to gprint')
 
 
 
@@ -122,10 +123,11 @@ def draw_grammar_term(grammar,
 
         cips = [core_cid_dict[chash] for chash in core_cid_dict.keys()]
 
-        list(map(decorate_cip, cips))
+        # list(map(decorate_cip, cips)) see color argument
 
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True, key=lambda x:x[0])
         graphs = [cip.graph for count, cip in most_frequent_cips]
+        color = [(cip.core_nodes,cip.interface_nodes) for count, cip in most_frequent_cips]
         # graphs =[cip.abstract_view for count, cip in most_frequent_cips]
 
 
@@ -136,5 +138,6 @@ def draw_grammar_term(grammar,
 
 
         so.gprint(graphs,
+                  color= color,
                    n_graphs_per_line=n_graphs_per_line,
                    size=size)
