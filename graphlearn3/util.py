@@ -3,7 +3,7 @@ import functools
 
 
 import networkx as nx
-from . import lsgg
+from graphlearn3 import lsgg
 
 def _extract_grammar_stats(grammar):
     count_corehashes = defaultdict(int)

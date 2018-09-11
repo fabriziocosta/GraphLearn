@@ -1,8 +1,8 @@
 
 
-from . import lsgg
-from . import lsgg_cip
-import transform
+from graphlearn3 import lsgg
+from graphlearn3 import lsgg_cip
+from graphlearn3.transform import util
 import networkx as nx
 import copy
 import functools
@@ -52,7 +52,7 @@ class lsgg_layered(lsgg.lsgg):
                              if 'edge' in d and all([z in nodes_in_core for z in expanded_orig_graph_collapsed.neighbors(n) ])]
 
         for n in nodes_in_core[1:]+edges_in_core:
-            transform.util.merge_edge(expanded_orig_graph_collapsed,nodes_in_core[0],n)
+            util.merge_edge(expanded_orig_graph_collapsed,nodes_in_core[0],n)
 
 
         # distances...
@@ -87,15 +87,15 @@ class lsgg_layered(lsgg.lsgg):
 
 
 def test_lsgg_layered():
-    import util
-    from transform import cycler
+    from graphlearn3 import util as util_top
+    from graphlearn3.transform import cycler
     decomposition_args={ "base_thickness_list":[2],
                         "radius_list": [0],
                         "thickness_list": [1],
                         'hash_bitmask': lsgg._hash_bitmask_}
 
     lsggg = lsgg_layered(decomposition_args=decomposition_args)
-    g = util.test_get_circular_graph()
+    g = util_top.test_get_circular_graph()
     gplus=g.copy()
     gplus.node[0]['label']='weird'
     c=cycler.Cycler()
@@ -103,6 +103,7 @@ def test_lsgg_layered():
     gplus = c.encode_single(gplus)
     assert lsggg.fit([g, gplus, g,gplus])
     assert len(lsggg.neighbors(gplus).__next__()) == 8
+
 
 
 
