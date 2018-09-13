@@ -4,8 +4,11 @@
 
 import random
 from collections import defaultdict
-from . import lsgg_cip
+from graphlearn3 import lsgg_cip
 import logging
+import structout as so
+from graphlearn3 import util
+import networkx as nx
 
 logger = logging.getLogger(__name__)
 
@@ -128,10 +131,10 @@ class lsgg(object):
         return cips_
 
     def _core_substitution(self, graph, cip, cip_):
+        so.gprint([graph, cip.graph, cip_.graph], color =[[[],[]]]+[ [c.interface_nodes, c.core_nodes]  for c in [cip,cip_]])
         try:
             return lsgg_cip.core_substitution(graph, cip, cip_)
         except:
-            import structout as so
             print ("core sub failed:")
             so.gprint([graph, cip.graph, cip_.graph], color =[[],[]]+[ [c.interface_nodes, c.core_nodes]  for c in [cip,cip_]])
             exit()
@@ -203,8 +206,6 @@ class lsgg(object):
         txt += '#production-rules: %5d' % n_productions
         return txt
 
-from . import util
-import networkx as nx
 
 
 def test_fit():
@@ -247,3 +248,5 @@ def test_some_neighbors():
     # gprint(list( lsgg.some_neighbors(g,1) ))
     # gprint(list( lsgg.some_neighbors(g,2) ))
     # gprint(list( lsgg.some_neighbors(g,3) ))
+
+

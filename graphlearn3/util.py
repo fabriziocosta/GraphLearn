@@ -1,7 +1,5 @@
 from collections import defaultdict
 import functools
-
-
 import networkx as nx
 from graphlearn3 import lsgg
 
