@@ -133,12 +133,7 @@ class lsgg(object):
         except:
             import structout as so
             print ("core sub failed:")
-
-            util.decorate_cip(cip)
-            util.decorate_cip(cip_)
-            so.gprint([graph, cip.graph, cip_.graph])
-            #so.graph.ginfo(cip.graph)
-            #so.graph.ginfo(cip_.graph)
+            so.gprint([graph, cip.graph, cip_.graph], color =[[],[]]+[ [c.interface_nodes, c.core_nodes]  for c in [cip.graph,cip_.graph]])
             exit()
     def _neighbors_given_cips(self, graph, orig_cips):
         """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
