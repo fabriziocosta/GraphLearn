@@ -134,9 +134,10 @@ class lsgg(object):
         try:
             return lsgg_cip.core_substitution(graph, cip, cip_)
         except:
-            print ("core sub failed:")
+            print ("core sub failed (continuing anyway):")
             so.gprint([graph, cip.graph, cip_.graph], color =[[[],[]]]+[ [c.interface_nodes, c.core_nodes]  for c in [cip,cip_]])
-            exit()
+            return None
+
     def _neighbors_given_cips(self, graph, orig_cips):
         """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
         for cip in orig_cips:
