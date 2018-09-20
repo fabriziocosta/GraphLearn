@@ -122,7 +122,7 @@ def extract_core_and_interface(root_node=None,
     # this is relevant when  1. edges are root  OR 2. interface sizes are non standard
     # the problem-case is this: an interface-edge-node is connected to cores, so using it for interface
     # isomorphismchecks is nonse.
-    test = lambda idd: all([ neigh in core_nodes for neigh in graph.neighbors(idd) ])
+    test = lambda idd: 2==len([ neigh in core_nodes for neigh in graph.neighbors(idd) ])
     mv_to_core = {idd:0 for idd in interface_nodes if "edge" in graph.node[idd] and test(idd)}
     if mv_to_core:
         core_nodes+= list(mv_to_core.keys())
