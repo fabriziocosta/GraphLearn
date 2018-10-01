@@ -98,7 +98,7 @@ def decorate_cip(cip):
 
 
 
-def draw_grammar_term(grammar,
+def draw_grammar_term(grammarobject,
                        n_productions=10,
                      n_graphs_per_line=5,
                      n_graphs_per_production=5,
@@ -106,7 +106,9 @@ def draw_grammar_term(grammar,
 
     import structout as so
 
+    print (str(grammarobject)+ "          | cores are cyan")
 
+    grammar = grammarobject.productions
     if n_productions is None or len(grammar) < n_productions:
         n_productions = len(grammar)
 
@@ -125,7 +127,7 @@ def draw_grammar_term(grammar,
 
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True, key=lambda x:x[0])
         graphs = [cip.graph for count, cip in most_frequent_cips]
-        color = [(cip.core_nodes,cip.interface_nodes) for count, cip in most_frequent_cips]
+        color = [(cip.interface_nodes,cip.core_nodes) for count, cip in most_frequent_cips]
         # graphs =[cip.abstract_view for count, cip in most_frequent_cips]
 
 
@@ -139,3 +141,4 @@ def draw_grammar_term(grammar,
                   color= color,
                    n_graphs_per_line=n_graphs_per_line,
                    size=size)
+

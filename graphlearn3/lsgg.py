@@ -113,7 +113,7 @@ class lsgg(object):
         min_cip = self.filter_args['min_cip_count']
         min_inter = self.filter_args['min_interface_count']
         for interface in list(self.productions.keys()):
-            for core in self.productions[interface].keys():
+            for core in list(self.productions[interface].keys()):
                 if self.productions[interface][core].count < min_cip:
                     self.productions[interface].pop(core)
             if len(self.productions[interface]) < min_inter:
@@ -132,7 +132,8 @@ class lsgg(object):
 
     def _core_substitution(self, graph, cip, cip_):
         try:
-            return lsgg_cip.core_substitution(graph, cip, cip_)
+            return  lsgg_cip.core_substitution(graph, cip, cip_)
+            #so.gprint([graph, cip.graph, cip_.graph,res], color =[[[],[]]]+[ [c.interface_nodes, c.core_nodes]  for c in [cip,cip_]]+[[[],[]]])
         except:
             print ("core sub failed (continuing anyway):")
             so.gprint([graph, cip.graph, cip_.graph], color =[[[],[]]]+[ [c.interface_nodes, c.core_nodes]  for c in [cip,cip_]])
