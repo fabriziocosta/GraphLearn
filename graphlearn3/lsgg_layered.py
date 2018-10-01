@@ -2,7 +2,7 @@
 
 from graphlearn3 import lsgg
 from graphlearn3 import lsgg_cip
-from graphlearn3.transform import util
+from graphlearn3.test import transformutil
 import networkx as nx
 import copy
 import functools
@@ -52,7 +52,7 @@ class lsgg_layered(lsgg.lsgg):
                              if 'edge' in d and all([z in nodes_in_core for z in expanded_orig_graph_collapsed.neighbors(n) ])]
 
         for n in nodes_in_core[1:]+edges_in_core:
-            util.merge_edge(expanded_orig_graph_collapsed,nodes_in_core[0],n)
+            transformutil.merge_edge(expanded_orig_graph_collapsed, nodes_in_core[0], n)
 
 
         # distances...
@@ -87,8 +87,8 @@ class lsgg_layered(lsgg.lsgg):
 
 
 def test_lsgg_layered():
-    from graphlearn3 import util as util_top
-    from graphlearn3.transform import cycler
+    from graphlearn3.util import util as util_top
+    from graphlearn3.test import cycler
     decomposition_args={ "base_thickness_list":[2],
                         "radius_list": [0],
                         "thickness_list": [1],

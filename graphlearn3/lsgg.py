@@ -7,7 +7,7 @@ from collections import defaultdict
 from graphlearn3 import lsgg_cip
 import logging
 import structout as so
-from graphlearn3 import util
+from graphlearn3.util import util
 import networkx as nx
 
 logger = logging.getLogger(__name__)

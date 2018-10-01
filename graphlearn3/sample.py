@@ -1,10 +1,10 @@
-from . import util
+from graphlearn3.util import util
 def sample_step(object, transformer, grammar, scorer, chooser):
     """
     Parameters
     ----------
     object:
-    transformer: transform.transform(object) -> graph
+    transformer: test.test(object) -> graph
     grammar: trained on graphs, lsgg.propose(graph) -> objects
     scorer: score.decision_function(object) -> number
 
@@ -44,13 +44,13 @@ def test_sample_step():
     from score import SimpleDistanceEstimator as SDE
     import networkx as nx
     import choose
-    import transform
+    import graphlearn3.test.transformutil as transformutil
 
     lsgg = util.test_get_grammar()
     graph = util._edenize_for_testing(nx.path_graph(4))
     graph.node[3]['label'] = '5'
     score_estimator = SDE().fit(util._edenize_for_testing(nx.path_graph(4)))
-    graph,score= sample(graph,transform.util.no_transform(),lsgg,score_estimator,choose.Chooser(),n_steps=2,return_score=True)
+    graph,score= sample(graph, transformutil.no_transform(), lsgg, score_estimator, choose.Chooser(), n_steps=2, return_score=True)
 
     assert (0.000001 > abs(0.319274373045 - score)), score
     print("sambledestdone")
