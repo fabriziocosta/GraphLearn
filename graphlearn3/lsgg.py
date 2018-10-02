@@ -125,7 +125,7 @@ class lsgg(object):
     def _congruent_cips(self, cip):
         """all cips in the grammar that are congruent to cip in random order.
         congruent means they have the same interface-hash-value"""
-        cips = self.productions[cip.interface_hash].values()
+        cips = self.productions.get(cip.interface_hash,{}).values()
         cips_ = [cip_ for cip_ in cips if cip_.core_hash != cip.core_hash]
         random.shuffle(cips_)
         return cips_
