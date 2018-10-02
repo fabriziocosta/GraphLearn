@@ -12,7 +12,7 @@ import networkx as nx
 
 logger = logging.getLogger(__name__)
 
-_hash_bitmask_ = 2 ** 16 - 1
+_hash_bitmask_ = 2 ** 20 - 1
 
 
 class lsgg(object):
