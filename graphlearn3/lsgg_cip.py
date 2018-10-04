@@ -1,6 +1,5 @@
 import eden.graph as eg
 from networkx.algorithms import isomorphism as iso
-from eden import fast_hash
 import networkx as nx
 import logging
 
@@ -58,22 +57,23 @@ class CoreInterfacePair:
 #  decompose
 ###############
 
-def graph_hash(graph, hash_bitmask, node_name_label=lambda id, node: node['hlabel']):
+def graph_hash(graph, node_name_label=lambda id, node: node['hlabel']):
     """
         so we calculate a hash of a graph
     """
-    node_names = {n: calc_node_name(graph, n, hash_bitmask, node_name_label) for n in graph.nodes()}
-    tmp_fast_hash = lambda a, b: fast_hash([(a ^ b) + (a + b), min(a, b), max(a, b)])
-    l = [tmp_fast_hash(node_names[a], node_names[b]) for (a, b) in graph.edges()]
+    node_names = {n: calc_node_name(graph, n,  node_name_label) for n in graph.nodes()}
+    #tmp_fast_hash = lambda a, b: fast_hash([(a ^ b) + (a + b), min(a, b), max(a, b)])
+    tmp_hash = lambda a, b: hash((min(a,b), max(a,b)))
+    l = [tmp_hash(node_names[a], node_names[b]) for (a, b) in graph.edges()] # was tmp fast hash before
     l.sort()
     # isolates are isolated nodes
     isolates = [n for (n, d) in graph.degree if d == 0]
     z = [node_name_label(node_id, graph.node[node_id]) for node_id in isolates]
     z.sort()
-    return fast_hash(l + z, hash_bitmask)
+    return hash(tuple(l + z))
 
 
-def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label=lambda id, node: node['hlabel']):
+def calc_node_name(interfacegraph, node, node_name_label=lambda id, node: node['hlabel']):
     '''
      part of generating the hash for a graph is calculating the hash of a node in the graph
      # the case that n has no neighbors is currently untested...
@@ -81,18 +81,17 @@ def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label=lambda id
     d = nx.single_source_shortest_path_length(interfacegraph, node, 20)
     l = [node_name_label(nid, interfacegraph.node[nid]) + dis for nid, dis in d.items()]
     l.sort()
-    return fast_hash(l, hash_bitmask)
+    return hash(tuple(l))
 
 
-def graph_hash_core(graph, hash_bitmask, node_name_label=lambda id, node: node['hlabel']):
-    return graph_hash(graph, hash_bitmask, node_name_label)
+def graph_hash_core(graph, node_name_label=lambda id, node: node['hlabel']):
+    return graph_hash(graph,  node_name_label)
 
 
 def extract_core_and_interface(root_node=None,
                                graph=None,
                                radius=None,
-                               thickness=None,
-                               hash_bitmask=2 ** 20 - 1):
+                               thickness=None):
     '''
 
     Parameters
@@ -130,10 +129,9 @@ def extract_core_and_interface(root_node=None,
 
 
     # calculate hashes
-    core_hash = graph_hash_core(graph.subgraph(core_nodes), hash_bitmask)
+    core_hash = graph_hash_core(graph.subgraph(core_nodes))
     node_name_label = lambda id, node: node['hlabel'] + dist[id] - radius
     interface_hash = graph_hash(graph.subgraph(interface_nodes),
-                                hash_bitmask,
                                 node_name_label=node_name_label)
 
     # copy cip and mark core/interface

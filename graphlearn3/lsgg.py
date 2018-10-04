@@ -12,7 +12,6 @@ import networkx as nx
 
 logger = logging.getLogger(__name__)
 
-_hash_bitmask_ = 2 ** 20 - 1
 
 
 class lsgg(object):
@@ -20,8 +19,7 @@ class lsgg(object):
 
     def __init__(self,
                  decomposition_args={"radius_list": [0, 1],
-                                     "thickness_list": [1, 2],
-                                     'hash_bitmask': _hash_bitmask_},
+                                     "thickness_list": [1, 2]},
                  filter_args={"min_cip_count": 2,
                               "min_interface_count": 2},
                  cip_root_all = False,
@@ -92,7 +90,6 @@ class lsgg(object):
 
     def _cip_extraction_given_root(self, graph, root):
         """helper of _cip_extraction. See fit"""
-        hash_bitmask = self.decomposition_args['hash_bitmask']
         for radius in self.decomposition_args['radius_list']:
             if not self.half_step_distance: radius = radius * 2
             for thickness in self.decomposition_args['thickness_list']:
@@ -100,8 +97,7 @@ class lsgg(object):
                 yield lsgg_cip.extract_core_and_interface(root_node=root,
                                                           graph=graph,
                                                           radius=radius,
-                                                          thickness=thickness,
-                                                          hash_bitmask=hash_bitmask)
+                                                          thickness=thickness)
 
     def _add_cip(self, cip):
         """see fit"""
