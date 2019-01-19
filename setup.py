@@ -95,7 +95,7 @@ setup(
     version=get_version(),
     author='Stefan Mautner',
     author_email='myl4stn4m3@cs.uni-freiburg.de',
-    packages=['graphlearn', 'graphlearn.transform' 
+    packages=['graphlearn', 'graphlearn.transform',
               'graphlearn3', 'graphlearn3.test', 'graphlearn3.util'
               'graphlearn01', "graphlearn01.minor", 'graphlearn01.utils', "graphlearn01.learnedlayer",
               'graphlearn01.minor.molecule',
