@@ -112,12 +112,13 @@ def extract_core_and_interface(root_node=None,
     dist = nx.single_source_shortest_path_length(graph,
                                                  root_node,
                                                  radius + thickness)
-
     # find interesting nodes:
     core_nodes = [id for id, dst in dist.items() if dst <= radius]
     interface_nodes = [id for id, dst in dist.items()
                        if radius < dst <= radius + thickness]
+    return _extract_core_and_interface(root_node,graph,radius,thickness,dist,core_nodes,interface_nodes)
 
+def _extract_core_and_interface(root_node,graph,radius,thickness,dist,core_nodes,interface_nodes):
     # this is relevant when  1. edges are root  OR 2. interface sizes are non standard
     # the problem-case is this: an interface-edge-node is connected to cores, so using it for interface
     # isomorphismchecks is nonse.

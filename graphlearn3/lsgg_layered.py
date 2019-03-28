@@ -9,6 +9,8 @@ import functools
 import logging
 logger = logging.getLogger(__name__)
 
+
+
 class lsgg_layered(lsgg.lsgg):
 
     def _core_substitution(self,graph,cip,cip_):
@@ -16,7 +18,7 @@ class lsgg_layered(lsgg.lsgg):
 
     def _cip_extraction_given_root(self, graph, root):
         """helper of _cip_extraction. See fit"""
-        hash_bitmask = self.decomposition_args['hash_bitmask']
+        #hash_bitmask = self.decomposition_args['hash_bitmask']
         for radius in self.decomposition_args['radius_list']:
             radius = radius * 2
             for thickness in self.decomposition_args['thickness_list']:
@@ -24,8 +26,8 @@ class lsgg_layered(lsgg.lsgg):
                 for e in self.extract_core_and_interface(root_node=root,
                                                  graph=graph,
                                                  radius=radius,
-                                                 thickness=thickness,
-                                                 hash_bitmask=hash_bitmask):
+                                                 thickness=thickness):
+                                                 #hash_bitmask=hash_bitmask):
                     yield e
 
     def extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
@@ -34,8 +36,8 @@ class lsgg_layered(lsgg.lsgg):
         basecip = lsgg_cip.extract_core_and_interface(root_node=root_node,
                                                  graph=graph,
                                                  radius=radius,
-                                                 thickness=thickness,
-                                                 hash_bitmask=hash_bitmask)
+                                                 thickness=thickness)
+                                                 #hash_bitmask=hash_bitmask)
 
 
 
@@ -70,13 +72,12 @@ class lsgg_layered(lsgg.lsgg):
 
             interface_nodes = [id for id, dst in dist.items()
                        if 0 < dst <= base_thickness]
-            interface_hash = lsgg_cip.graph_hash(expanded_orig_graph_collapsed.subgraph(interface_nodes),
-                                hash_bitmask)
+            interface_hash = lsgg_cip.graph_hash(expanded_orig_graph_collapsed.subgraph(interface_nodes))
             cip=copy.deepcopy(basecip)
             cip.interface_nodes=interface_nodes
             cip.interface_graph = expanded_orig_graph.subgraph(interface_nodes).copy()
             cip.core_nodes=nodes_in_core+edges_in_core
-            cip.interface_hash =  lsgg_cip.fast_hash([interface_hash,cip.interface_hash],hash_bitmask)
+            cip.interface_hash =  hash((interface_hash,cip.interface_hash))
             cip.graph= expanded_orig_graph.subgraph(interface_nodes+nodes_in_core+edges_in_core).copy()
 
 
@@ -91,8 +92,8 @@ def test_lsgg_layered():
     from graphlearn3.test import cycler
     decomposition_args={ "base_thickness_list":[2],
                         "radius_list": [0],
-                        "thickness_list": [1],
-                        'hash_bitmask': lsgg._hash_bitmask_}
+                        "thickness_list": [1]}
+                        #'hash_bitmask': 2**20-1}
 
     lsggg = lsgg_layered(decomposition_args=decomposition_args)
     g = util_top.test_get_circular_graph()

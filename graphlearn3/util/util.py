@@ -64,6 +64,25 @@ def test_get_circular_graph():
     G=_edenize_for_testing(G)
     return G
 
+def get_cyclegraphs():
+    g1 = nx.path_graph(5)
+    g1.add_edge(2,4)
+
+    g2 = nx.path_graph(7)
+    g2.add_edge(1,3)
+    g2.add_edge(5,3)
+
+    g3 = nx.path_graph(3)
+    g3.add_edge(4,3)
+    g3.add_edge(4,2)
+    g3.add_edge(4,1)
+    
+    G = [g1,g2,g3]
+    G = list(map(_edenize_for_testing,G))
+    G.append(test_get_circular_graph())
+    return G
+
+
 def valid_gl_graph(graph):
     """checks if a graph is a valid graphlearn-intermediary product"""
 

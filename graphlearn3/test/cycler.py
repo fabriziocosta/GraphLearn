@@ -11,7 +11,7 @@ import lsgg_cip
 class Cycler():
 
     def _compute_cycle_node_name(self, g, cycle):
-        return cycle, lsgg_cip.fast_hash( tuple(sorted( [g.node[n]['label'] for n in cycle] ))) , lsgg_cip.fast_hash( tuple(sorted(cycle) ))
+        return cycle, hash( tuple(sorted( [g.node[n]['label'] for n in cycle] ))) , hash( tuple(sorted(cycle) ))
 
     def _merge(self, graph, cycle_name_id):
         cycle, name,idd = cycle_name_id

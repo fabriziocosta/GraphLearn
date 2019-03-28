@@ -88,13 +88,18 @@ class lsgg(object):
             for cip in self._cip_extraction_given_root(graph, root):
                 yield cip
 
+
+    def _extract_core_and_interface(self,**kwargs):
+        return lsgg_cip.extract_core_and_interface(**kwargs)
+
+
     def _cip_extraction_given_root(self, graph, root):
         """helper of _cip_extraction. See fit"""
         for radius in self.decomposition_args['radius_list']:
             if not self.half_step_distance: radius = radius * 2
             for thickness in self.decomposition_args['thickness_list']:
                 if not self.half_step_distance: thickness = thickness * 2
-                yield lsgg_cip.extract_core_and_interface(root_node=root,
+                yield self._extract_core_and_interface(root_node=root,
                                                           graph=graph,
                                                           radius=radius,
                                                           thickness=thickness)
