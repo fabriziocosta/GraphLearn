@@ -18,16 +18,15 @@ class lsgg_layered(lsgg.lsgg):
 
     def _cip_extraction_given_root(self, graph, root):
         """helper of _cip_extraction. See fit"""
-        #hash_bitmask = self.decomposition_args['hash_bitmask']
         for radius in self.decomposition_args['radius_list']:
             radius = radius * 2
             for thickness in self.decomposition_args['thickness_list']:
                 thickness = thickness * 2
+                # note that this loop is different from the parent class :) 
                 for e in self.extract_core_and_interface(root_node=root,
                                                  graph=graph,
                                                  radius=radius,
                                                  thickness=thickness):
-                                                 #hash_bitmask=hash_bitmask):
                     yield e
 
     def extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
@@ -37,7 +36,6 @@ class lsgg_layered(lsgg.lsgg):
                                                  graph=graph,
                                                  radius=radius,
                                                  thickness=thickness)
-                                                 #hash_bitmask=hash_bitmask)
 
 
 
@@ -93,7 +91,6 @@ def test_lsgg_layered():
     decomposition_args={ "base_thickness_list":[2],
                         "radius_list": [0],
                         "thickness_list": [1]}
-                        #'hash_bitmask': 2**20-1}
 
     lsggg = lsgg_layered(decomposition_args=decomposition_args)
     g = util_top.test_get_circular_graph()

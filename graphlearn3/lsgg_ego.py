@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 from networkx.algorithms.shortest_paths.unweighted import _single_shortest_path_length as short_paths
 
 
-"""We adjust lsgg_layered such that it works with EGO"""
+"""We adjust lsgg_layered such that it works with EGO decomposition"""
 
 class lsgg_ego(lsgg.lsgg):
 
@@ -25,7 +25,6 @@ class lsgg_ego(lsgg.lsgg):
                                    radius=None,
                                    thickness=None):
         '''
-
         Parameters
         ----------
         root_node
@@ -55,17 +54,17 @@ def test_lsgg_ego():
     from graphlearn3.util import util as util_top
     from ego.cycle_basis import decompose_cycles_and_non_cycles
     from ego.component import convert 
+    from structout import gprint 
+
     decomposition_args={ 
                         'radius_list': [0], # musst be just [0]
                         "decompose_func": lambda x: [list(e) for e in   decompose_cycles_and_non_cycles(convert(x))[1]],
+                        # this also works here but basically does nothing
                         #"decompose_func": lambda x:[ [n] for n in x.nodes()],
                         "thickness_list": [1]}
-                        #'hash_bitmask': 2**20-1}
 
     lsggg = lsgg_ego(decomposition_args=decomposition_args)
 
-    # ...
-    from structout import gprint 
     g = util_top.get_cyclegraphs()
     for gg in g:
         gprint(gg)
