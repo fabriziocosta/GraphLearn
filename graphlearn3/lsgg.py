@@ -84,7 +84,7 @@ class lsgg(object):
 
     def _cip_extraction(self, graph):
         """see fit"""
-        for root in self._nodes(graph):
+        for root in self._roots(graph):
             for cip in self._cip_extraction_given_root(graph, root):
                 yield cip
 
@@ -159,7 +159,7 @@ class lsgg(object):
     def neighbors_sample(self, graph, n_neighbors):
         """neighbors_sample."""
         n_neighbors_counter = n_neighbors
-        nodes = list(self._nodes(graph))
+        nodes = list(self._roots(graph))
         random.shuffle(nodes)
         for root in nodes:
             cips = self._cip_extraction_given_root(graph, root)
@@ -173,7 +173,7 @@ class lsgg(object):
     def propose(self, graph):
         return list(self.neighbors(graph))
 
-    def _nodes(self, graph):
+    def _roots(self, graph):
         '''option to choose edge nodes as root'''
         if self.cip_root_all:
             graph = lsgg_cip._edge_to_vertex(graph)

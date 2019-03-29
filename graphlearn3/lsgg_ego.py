@@ -17,7 +17,7 @@ from networkx.algorithms.shortest_paths.unweighted import _single_shortest_path_
 class lsgg_ego(lsgg.lsgg):
 
  
-    def _nodes(self,graph): # _nodes is basically a list of extraction elements
+    def _roots(self,graph): 
         return self.decomposition_args["decompose_func"](graph)
 
     def _extract_core_and_interface(self,root_node=None,
