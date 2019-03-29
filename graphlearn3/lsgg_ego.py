@@ -21,7 +21,7 @@ class lsgg_ego(lsgg.lsgg):
   
 
 
-def test_lsgg_ego():
+def demo_lsgg_ego():
     from graphlearn3.util import util as util_top
     from ego.cycle_basis import decompose_cycles_and_non_cycles
     from ego.component import convert 
@@ -60,10 +60,9 @@ def test_lsgg_ego():
     gplus=g.copy()
     gplus.node[0]['label']='weird'
 
-
-    gprint(lsggg.neighbors(gplus))
-
     lsggg.fit([g, gplus, g,gplus])
-    assert len(lsggg.neighbors(gplus).__next__()) == 8
+    stuff= lsggg.neighbors(gplus).__next__()
+    gprint(stuff)
+    assert len(stuff) == 8
 
 
