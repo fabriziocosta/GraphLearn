@@ -3,6 +3,8 @@ from networkx.algorithms import isomorphism as iso
 import networkx as nx
 import logging
 
+# nx 2.2 has this:
+from networkx.algorithms.shortest_paths.unweighted import _single_shortest_path_length as short_paths
 logger = logging.getLogger(__name__)
 
 
@@ -109,16 +111,19 @@ def extract_core_and_interface(root_node=None,
     # preprocessing
     graph = _edge_to_vertex(graph)
     _add_hlabel(graph)
-    dist = nx.single_source_shortest_path_length(graph,
-                                                 root_node,
-                                                 radius + thickness)
+    # this was used before, but it assumes that root_node is a single node...
+    #dist = nx.single_source_shortest_path_length(graph, root_node, radius + thickness)
+    dist = {a:b for (a,b) in short_paths(graph,
+                                         root_node if isinstance(root_node,list) else [root_node],
+                                         thickness+radius)}
+
     # find interesting nodes:
     core_nodes = [id for id, dst in dist.items() if dst <= radius]
     interface_nodes = [id for id, dst in dist.items()
                        if radius < dst <= radius + thickness]
-    return _extract_core_and_interface(root_node,graph,radius,thickness,dist,core_nodes,interface_nodes)
+    return _finalize_cip(root_node,graph,radius,thickness,dist,core_nodes,interface_nodes)
 
-def _extract_core_and_interface(root_node,graph,radius,thickness,dist,core_nodes,interface_nodes):
+def _finalize_cip(root_node,graph,radius,thickness,dist,core_nodes,interface_nodes):
     # this is relevant when  1. edges are root  OR 2. interface sizes are non standard
     # the problem-case is this: an interface-edge-node is connected to cores, so using it for interface
     # isomorphismchecks is nonse.
