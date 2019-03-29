@@ -45,7 +45,25 @@ def test_lsgg_ego():
 
 
 
+def test_lsgg_ego():
+    from graphlearn3.util import util as util_top
+    from ego.cycle_basis import decompose_cycles_and_non_cycles
+    from ego.component import convert 
+    from structout import gprint 
+    decomposition_args={ 
+                        'radius_list': [0], # musst be just [0]
+                        "decompose_func": lambda x: [list(e) for e in   decompose_cycles_and_non_cycles(convert(x))[1]],
+                        "thickness_list": [1]}
+
+    lsggg = lsgg_ego(decomposition_args=decomposition_args)
+    g = util_top.test_get_circular_graph()
+    gplus=g.copy()
+    gplus.node[0]['label']='weird'
 
 
+    gprint(lsggg.neighbors(gplus))
+
+    lsggg.fit([g, gplus, g,gplus])
+    assert len(lsggg.neighbors(gplus).__next__()) == 8
 
 
