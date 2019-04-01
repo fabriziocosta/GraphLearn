@@ -8,10 +8,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# NX 2.2 hides this important function from the user
-# from networkx.algorithms.shortest_paths.unweighted import _single_shortest_path_length as short_paths
-
-
 """We adjust lsgg_layered such that it works with EGO decomposition"""
 
 class lsgg_ego(lsgg.lsgg):
@@ -29,7 +25,7 @@ def demo_lsgg_ego():
 
     decomposition_args={ 
                         'radius_list': [0], # musst be just [0]
-                        "decompose_func": lambda x: [list(e) for e in   decompose_cycles_and_non_cycles(convert(x))[1]],
+                        "decompose_func": lambda x: [list(e) for e in decompose_cycles_and_non_cycles(convert(x))[1]],
                         # this also works here but basically does nothing
                         #"decompose_func": lambda x:[ [n] for n in x.nodes()],
                         "thickness_list": [1]}
@@ -45,7 +41,7 @@ def demo_lsgg_ego():
 
 
 
-def test_lsgg_ego():
+def test_lsgg_ego(out=False):
     from graphlearn3.util import util as util_top
     from ego.cycle_basis import decompose_cycles_and_non_cycles
     from ego.component import convert 
@@ -59,10 +55,9 @@ def test_lsgg_ego():
     g = util_top.test_get_circular_graph()
     gplus=g.copy()
     gplus.node[0]['label']='weird'
-
     lsggg.fit([g, gplus, g,gplus])
     stuff= lsggg.neighbors(gplus).__next__()
-    gprint(stuff)
+    if out: gprint(stuff)
     assert len(stuff) == 8
 
 
