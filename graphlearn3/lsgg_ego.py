@@ -21,7 +21,7 @@ class lsgg_ego(lsgg.lsgg):
         return super().__init__(**kwargs)
     
     def _cip_extraction(self,graph):
-        graph = self.preprocessor(graph) 
+        graph = self.preprocessor(graph.copy())
         return super()._cip_extraction(graph)
 
     def _neighbors_given_cips(self, graph, orig_cips):
@@ -55,14 +55,10 @@ def demo_lsgg_ego():
     from ego.cycle_basis import decompose_cycles_and_non_cycles
     from structout import gprint 
 
-    decomposition_args={ 
-                        'radius_list': [0], 
-                        "decompose_func": lambda x: [list(e) for e in decompose_cycles_and_non_cycles(convert(x))[1]],
-                        # this also works here but effectively does nothing
-                        #"decompose_func": lambda x:[ [n] for n in x.nodes()],
+    decomposition_args={ 'radius_list': [0], 
                         "thickness_list": [1]}
-
-    lsggg = lsgg_ego(decomposition_args=decomposition_args)
+    lsggg = lsgg_ego(decomposition_args=decomposition_args,
+                    decomposition_function= decompose_cycles_and_non_cycles)
 
     g = util_top.get_cyclegraphs()
     for gg in g:
