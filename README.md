@@ -9,55 +9,69 @@ Discriminative systems that can deal with graphs in input are known, however, ge
 # References
 Costa, Fabrizio. "Learning an efficient constructive sampler for graphs." Artificial Intelligence (2016). [link](http://www.sciencedirect.com/science/article/pii/S0004370216000138)
 
+
 # Usage
 
-<!--
-You want to install EDeN first:
-```python
-pip install git+https://github.com/fabriziocosta/EDeN.git --user
-```
-Then GraphLearn
-```python
-pip install git+https://github.com/fabriziocosta/GraphLearn.git --user
-```
--->
-
-#### Setting up a networkx graph generator
+## python3 
 
 ```python
-%matplotlib inline
-from eden.io.gspan import gspan_to_eden
-from itertools import islice
-def get_graphs(dataset_fname='../../toolsdata/bursi.pos.gspan', size=100):
-    return  islice(gspan_to_eden(dataset_fname),size)
-```
+from graphlearn3.lsgg import lsgg
+from graphlearn3.util import util
+import structout as so
 
-#### Sampling new graphs
+# get graphs
+gr = util.get_cyclegraphs()
 
-Sampling is straight forward.
-There are many options for the sampling process available.
-
-```python
-from graphlearn.graphlearn import  Sampler
-sampler=Sampler(n_steps=50)
-samples = sampler.fit_transform(get_graphs())
-
-```
-
-#### Drawing the result
-
-Each sample output is a list of networkx graphs.
-graphlearns draw function can print these more or less nicely.
-```python
-from graphlearn.utils import draw
-for i in range(5):
-        draw.graphlearn(samples.next())
+#  train a grammar, pick a graph, and apply all possible
+mylsgg = lsgg()
+mylsgg.fit(gr)
+graphs =  list(mylsgg.neighbors(gr[0]))
+so.gprint(graphs)
 ```
 
 ![''](https://raw.githubusercontent.com/fabriziocosta/GraphLearn/master/example.png)
 
-# Examples
-See [here](https://github.com/fabriziocosta/GraphLearn_examples) for more examples.
+
+
+
+
+# Python2 
+
+```python
+
+# set up graph source
+
+from eden.io.gspan import gspan_to_eden
+from itertools import islice
+def get_graphs(dataset_fname='../../toolsdata/bursi.pos.gspan', size=100):
+    return  islice(gspan_to_eden(dataset_fname),size)
+    
+# sample some graphs
+
+from graphlearn.graphlearn import  Sampler
+sampler=Sampler(n_steps=50)
+samples = sampler.fit_transform(get_graphs())
+
+# draw result
+
+from graphlearn.utils import draw
+for i in range(5):
+        draw.graphlearn(samples.next())
+```
+![''](https://raw.githubusercontent.com/fabriziocosta/GraphLearn/master/example_py2.png)
+
+
+
+
+
+## Install (Py2)
+
+We only maintain the python3 version at this point. an outdated but detailed installation guide for the 
+python2 version is available [here](install.md).
+
+
+## Examples (py2)
+See [here](https://github.com/fabriziocosta/GraphLearn_examples) for more examples. Examples still use python2... 
 
 * [Introduction to GraphLearn](https://github.com/fabriziocosta/GraphLearn_examples/blob/master/notebooks/Introduction.ipynb)
 
@@ -70,11 +84,6 @@ See [here](https://github.com/fabriziocosta/GraphLearn_examples) for more exampl
 * [Cascading Learned Abstractions -- add learned layers to graphs](https://github.com/smautner/GraphLearn_examples/blob/master/notebooks/cascade.ipynb)
 
 
-
-
-# Install 
-
-a complete install guide can be found [here](install.md).
 
 
 
