@@ -28,11 +28,14 @@ class lsgg_ego(lsgg.lsgg):
         graph = self.preprocessor(graph) 
         return super()._neighbors_given_cips(graph,orig_cips)
 
+########################3
+#  TESTS
+###########################
 
-def test_lsgg_ego(out=False):
+def test_lsgg_ego_nodedecomp(out=False):
+    # node decompo is a decomposer that returns sets of nodes
     from graphlearn3.util import util as util_top
     from ego.cycle_basis import decompose_cycles_and_non_cycles
-    from ego.component import convert 
     from structout import gprint 
     decomposition_args={ 'radius_list': [0], 
                         "thickness_list": [1]}
@@ -48,7 +51,47 @@ def test_lsgg_ego(out=False):
     if out: gprint(stuff)
     assert len(stuff) == 8
 
+def test_lsgg_ego_edgedecomp(out=False):
+    pass 
+    # edge decompo is a decomposer that returns sets of edges
+    from graphlearn3.util import util as util_top
+    from ego.cycle_basis import decompose_cycles_and_non_cycles
+    from structout import gprint 
+    decomposition_args={ 'radius_list': [0], 
+                        "thickness_list": [1]}
 
+    lsggg = lsgg_ego(decomposition_args=decomposition_args,
+                    decomposition_function= decompose_cycles_and_non_cycles)
+
+    g = util_top.test_get_circular_graph()
+    gplus=g.copy()
+    gplus.node[0]['label']='weird'
+    lsggg.fit([g, gplus, g,gplus])
+    stuff= lsggg.neighbors(gplus).__next__()
+    if out: gprint(stuff)
+    assert len(stuff) == 8
+
+def test_lsgg_ego_preprocessor(out=False):
+    # edge decompo is a decomposer that returns sets of edges
+    from graphlearn3.util import util as util_top
+    from ego.cycle_basis import decompose_cycles_and_non_cycles
+    from structout import gprint 
+    from structout.graph import ginfo
+    from ego.abstract_label import preprocess_abstract_label
+    decomposition_args={ 'radius_list': [0], 
+                        "thickness_list": [1]}
+
+    lsggg = lsgg_ego(decomposition_args=decomposition_args,
+                    decomposition_function= decompose_cycles_and_non_cycles,
+                    preprocessor = preprocess_abstract_label(node_label='C', edge_label='1') )
+
+    g = util_top.test_get_circular_graph()
+    gplus=g.copy()
+    gplus.node[0]['label']='weird'
+    lsggg.fit([g, gplus, g,gplus])
+    stuff= lsggg.neighbors(gplus).__next__()
+    if out: gprint(stuff)
+    assert len(stuff) == 5
 
 def demo_lsgg_ego():
     from graphlearn3.util import util as util_top
