@@ -11,9 +11,10 @@ Costa, Fabrizio. "Learning an efficient constructive sampler for graphs." Artifi
 
 
 
-# python3 
+# Python3 
 
-
+This demonstrates the grammar which is the heart of graphlearn. 
+Sampling as in the py2 example is demonstrated in graphlearn3/sample.py.
 
 ```python
 from graphlearn3.lsgg import lsgg
