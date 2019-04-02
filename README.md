@@ -10,9 +10,10 @@ Discriminative systems that can deal with graphs in input are known, however, ge
 Costa, Fabrizio. "Learning an efficient constructive sampler for graphs." Artificial Intelligence (2016). [link](http://www.sciencedirect.com/science/article/pii/S0004370216000138)
 
 
-# Usage
 
-## python3 
+# python3 
+
+
 
 ```python
 from graphlearn3.lsgg import lsgg
@@ -22,7 +23,7 @@ import structout as so
 # get graphs
 gr = util.get_cyclegraphs()
 
-#  train a grammar, pick a graph, and apply all possible
+#  induce a grammar, pick a graph, and apply all possible substitutions
 mylsgg = lsgg()
 mylsgg.fit(gr)
 graphs =  list(mylsgg.neighbors(gr[0]))
@@ -59,9 +60,6 @@ for i in range(5):
         draw.graphlearn(samples.next())
 ```
 ![''](https://raw.githubusercontent.com/fabriziocosta/GraphLearn/master/example_py2.png)
-
-
-
 
 
 ## Install (Py2)
