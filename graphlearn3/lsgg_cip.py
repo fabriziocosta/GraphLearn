@@ -219,7 +219,7 @@ def core_substitution(graph, orig_cip, new_cip):
     # merge interface nodes
     for k, v in iso.items():
         merge(graph, str(k), '-' + str(v))
-
+    
     graph = eg._revert_edge_to_vertex_transform(graph)
     re = nx.convert_node_labels_to_integers(graph)
     return re

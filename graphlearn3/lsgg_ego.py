@@ -29,7 +29,7 @@ class lsgg_ego(lsgg.lsgg):
 
 
     def _extract_core_and_interface(self, root_node=None, graph=None, radius=None, thickness=None):
-
+        assert radius ==0, "musst be zero because we dont expand cores here."
         # root_node is a subgraph that we use as core (because we said so in _roots()
         # to avoid node id misstranslations in the expanded graph, i mark all the elements
         # as core before expanding
@@ -89,13 +89,16 @@ class lsgg_ego(lsgg.lsgg):
 def test_lsgg_ego_nodedecomp(out=False):
     # node decompo is a decomposer that returns sets of nodes
     from graphlearn3.util import util as util_top
-    from ego.cycle_basis import decompose_cycles_and_non_cycles
     from structout import gprint 
+    from ego.decompose import  compose , concatenate
+    from ego.paired_neighborhoods import  decompose_neighborhood
+    from ego.pair import decompose_pair
+    z = compose(decompose_pair(distance=2),  decompose_neighborhood(radius=1))
     decomposition_args={ 'radius_list': [0], 
                         "thickness_list": [1]}
 
     lsggg = lsgg_ego(decomposition_args=decomposition_args,
-                    decomposition_function= decompose_cycles_and_non_cycles)
+                    decomposition_function= z)
 
     g = util_top.test_get_circular_graph()
     gplus=g.copy()
@@ -104,6 +107,7 @@ def test_lsgg_ego_nodedecomp(out=False):
     stuff= lsggg.neighbors(gplus).__next__()
     if out: gprint(stuff)
     assert len(stuff) == 8
+
 
 def test_lsgg_ego_edgedecomp(out=False):
     # edge decompo is a decomposer that returns sets of edges
@@ -133,23 +137,5 @@ def test_lsgg_ego_edgedecomp(out=False):
     if out: gprint(stuff)
     assert len(stuff) == 8
 
-
-
-def demo_lsgg_ego():
-    from graphlearn3.util import util as util_top
-    from ego.cycle_basis import decompose_cycles_and_non_cycles
-    from structout import gprint 
-
-    decomposition_args={ 'radius_list': [0], 
-                        "thickness_list": [1]}
-    lsggg = lsgg_ego(decomposition_args=decomposition_args,
-                    decomposition_function= decompose_cycles_and_non_cycles)
-
-    g = util_top.get_cyclegraphs()
-    for gg in g:
-        gprint(gg)
-        for cip in lsggg._cip_extraction(gg):
-            gprint(cip.graph,color=[cip.interface_nodes,cip.core_nodes] )
-        print("#"*80)
 
 
