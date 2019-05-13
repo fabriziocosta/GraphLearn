@@ -41,9 +41,9 @@ def optimize():
 
 
 def test_sample_step():
-    from score import SimpleDistanceEstimator as SDE
+    from graphlearn3.score import SimpleDistanceEstimator as SDE
     import networkx as nx
-    import choose
+    from graphlearn3 import choose
     import graphlearn3.test.transformutil as transformutil
 
     lsgg = util.test_get_grammar()

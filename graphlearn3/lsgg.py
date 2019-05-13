@@ -132,6 +132,9 @@ class lsgg(object):
             return lsgg_cip.core_substitution(graph, cip, cip_)
         except:
             print("core sub failed (continuing anyway):")
+            import structout as so
+            so.gprint([graph, cip.graph, cip_.graph],color =[[[],[]]]+
+                    [ [c.interface_nodes, c.core_nodes]  for c in [cip,cip_]])
             return None
 
     def _neighbors_given_cips(self, graph, orig_cips):

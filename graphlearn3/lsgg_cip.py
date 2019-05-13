@@ -206,7 +206,8 @@ def core_substitution(graph, orig_cip, new_cip):
     set(orig_cip.graph.nodes()) - set(graph.nodes()) == set([])), 'lsgg_compose_util orig_cip_graph not in graph'
 
     # get isomorphism
-    iso = find_all_isomorphisms(orig_cip.interface_graph, new_cip.interface_graph).__next__()
+    iso = next(find_all_isomorphisms(orig_cip.interface_graph, new_cip.interface_graph))
+    #iso = next(find_all_isomorphisms(orig_cip.interface_graph, new_cip.interface_graph)) 
     if len(iso) != len(orig_cip.interface_graph):
         logger.log(5, "lsgg_compose_util grammar hash collision, discovered in 'core_substution' ")
         return None
