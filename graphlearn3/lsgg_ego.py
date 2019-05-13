@@ -16,9 +16,6 @@ class lsgg_ego(lsgg.lsgg):
 
     def _roots(self, graph):
         codes, ego_decomp_fragments = self.decomposition_function(graph)
-        #import structout as so
-        # print(dir(ego_decomp_fragments[0]))
-        # so.graph.ginfo(ego_decomp_fragments[0])
         return ego_decomp_fragments
 
     def __init__(self, decomposition_function, **kwargs):

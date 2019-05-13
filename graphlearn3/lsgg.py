@@ -128,7 +128,6 @@ class lsgg(object):
         return cips_
 
     def _core_substitution(self, graph, cip, cip_):
-        return lsgg_cip.core_substitution(graph, cip, cip_)
         try:
             return lsgg_cip.core_substitution(graph, cip, cip_)
         except:
