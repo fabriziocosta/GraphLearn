@@ -96,7 +96,8 @@ class lsgg(object):
     def _add_cip(self, cip):
         """see fit"""
         # setdefault is a fun function
-        self.productions[cip.interface_hash].setdefault(cip.core_hash, cip).count += 1
+        self.productions[cip.interface_hash].setdefault(
+            cip.core_hash, cip).count += 1
 
     def _cip_frequency_filter(self):
         """Remove infrequent cores and interfaces. see fit"""
@@ -139,6 +140,17 @@ class lsgg(object):
         for neighbor in it:
             yield neighbor
 
+    def root_neighbors(self, graph, root, n_neighbors=1000):
+        """root_neighbors."""
+        n_neighbors_counter = n_neighbors
+        cips = self._cip_extraction_given_root(graph, root)
+        for neighbor in self._neighbors_given_cips(graph, cips):
+            if n_neighbors_counter > 0:
+                n_neighbors_counter = n_neighbors_counter - 1
+                yield neighbor
+            else:
+                raise StopIteration
+
     def neighbors_sample(self, graph, n_neighbors):
         """neighbors_sample."""
         n_neighbors_counter = n_neighbors
@@ -166,7 +178,8 @@ class lsgg(object):
         cores = set()
         n_productions = 0
         for interface in self.productions.keys():
-            n_productions += len(self.productions[interface]) * (len(self.productions[interface])-1)
+            n_productions += len(self.productions[interface]) * \
+                (len(self.productions[interface]) - 1)
             for core in self.productions[interface].keys():
                 cores.add(core)
 
@@ -174,11 +187,11 @@ class lsgg(object):
         n_cips = sum(len(self.productions[interface])
                      for interface in self.productions)
 
-        return n_interfaces, n_cores, n_cips , n_productions
+        return n_interfaces, n_cores, n_cips, n_productions
 
     def __repr__(self):
         """repr."""
-        n_interfaces, n_cores, n_cips,n_productions = self.size()
+        n_interfaces, n_cores, n_cips, n_productions = self.size()
         txt = '#interfaces: %5d   ' % n_interfaces
         txt += '#cores: %5d   ' % n_cores
         txt += '#core-interface-pairs: %5d  ' % n_cips
@@ -199,7 +212,8 @@ def test_fit():
 def test_extract_core_and_interface():
     graph = nx.path_graph(4)
     gl._edenize_for_testing(graph)
-    res = lsgg_cip.extract_core_and_interface(root_node=3, graph=graph, radius=1, thickness=1)
+    res = lsgg_cip.extract_core_and_interface(
+        root_node=3, graph=graph, radius=1, thickness=1)
     # gprint(res.graph)
     assert ('cor' in str(res))
 
