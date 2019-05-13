@@ -1,7 +1,7 @@
 import networkx as nx
 import collections
 import graphlearn3.test.transformutil as util
-import lsgg_cip
+import graphlearn3.lsgg_cip
 
 
 
