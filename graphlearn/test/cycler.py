@@ -1,7 +1,7 @@
 import networkx as nx
 import collections
-import graphlearn3.test.transformutil as util
-import graphlearn3.lsgg_cip
+import graphlearn.test.transformutil as util
+import graphlearn.lsgg_cip
 
 
 
@@ -63,7 +63,7 @@ class Cycler():
 
 
 def test_cycle():
-    import graphlearn3.util.util as utilz
+    import graphlearn.util.util as utilz
     c=Cycler()
     G=utilz.test_get_circular_graph()
     result=c.encode_single(G)

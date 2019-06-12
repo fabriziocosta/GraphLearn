@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Provides scikit interface."""
 
-from graphlearn3 import lsgg
-from graphlearn3 import lsgg_cip
+from graphlearn import lsgg
+from graphlearn import lsgg_cip
 import networkx as nx
 import logging
 from ego.encode import make_encoder

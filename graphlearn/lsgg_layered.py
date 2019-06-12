@@ -1,8 +1,8 @@
 
 
-from graphlearn3 import lsgg
-from graphlearn3 import lsgg_cip
-from graphlearn3.test import transformutil
+from graphlearn import lsgg
+from graphlearn import lsgg_cip
+from graphlearn.test import transformutil
 import networkx as nx
 import copy
 import functools
@@ -86,8 +86,8 @@ class lsgg_layered(lsgg.lsgg):
 
 
 def test_lsgg_layered():
-    from graphlearn3.util import util as util_top
-    from graphlearn3.test import cycler
+    from graphlearn.util import util as util_top
+    from graphlearn.test import cycler
     decomposition_args={ "base_thickness_list":[2],
                         "radius_list": [0],
                         "thickness_list": [1]}

@@ -1,4 +1,4 @@
-from graphlearn3.util import util
+from graphlearn.util import util
 def sample_step(object, transformer, grammar, scorer, chooser):
     """
     Parameters
@@ -41,10 +41,10 @@ def optimize():
 
 
 def test_sample_step():
-    from graphlearn3.score import SimpleDistanceEstimator as SDE
+    from graphlearn.score import SimpleDistanceEstimator as SDE
     import networkx as nx
-    from graphlearn3 import choose
-    import graphlearn3.test.transformutil as transformutil
+    from graphlearn import choose
+    import graphlearn.test.transformutil as transformutil
 
     lsgg = util.test_get_grammar()
     graph = util._edenize_for_testing(nx.path_graph(4))

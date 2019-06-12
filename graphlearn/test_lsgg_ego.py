@@ -1,4 +1,4 @@
-from graphlearn3.lsgg_ego import lsgg_ego
+from graphlearn.lsgg_ego import lsgg_ego
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def test_lsgg_ego_nodedecomp(out=False):
     # node decompo is a decomposer that returns sets of nodes
-    from graphlearn3.util import util as util_top
+    from graphlearn.util import util as util_top
     from structout import gprint
     from ego.decompose import compose, concatenate
     from ego.paired_neighborhoods import decompose_neighborhood
@@ -36,7 +36,7 @@ def test_lsgg_ego_nodedecomp(out=False):
 
 def test_lsgg_ego_edgedecomp(out=False):
     # edge decompo is a decomposer that returns sets of edges
-    from graphlearn3.util import util as util_top
+    from graphlearn.util import util as util_top
     from ego.path import decompose_path
     from structout import gprint
     from structout.graph import ginfo

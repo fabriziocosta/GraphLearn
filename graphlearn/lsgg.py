@@ -4,7 +4,7 @@
 
 import random
 from collections import defaultdict
-from graphlearn3 import lsgg_cip
+from graphlearn import lsgg_cip
 import logging
 
 logger = logging.getLogger(__name__)

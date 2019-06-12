@@ -2,9 +2,9 @@
 
 """Provides the graph grammar class."""
 
-from graphlearn3 import lsgg_cip
+from graphlearn import lsgg_cip
 import logging
-from graphlearn3.util import util
+from graphlearn.util import util
 import networkx as nx
 
 logger = logging.getLogger(__name__)
