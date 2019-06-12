@@ -4,7 +4,7 @@
 
 import random
 from collections import defaultdict
-from graphlearn import lsgg_cip
+import lsgg_cip
 import logging
 
 logger = logging.getLogger(__name__)
@@ -154,7 +154,7 @@ class lsgg(object):
     def neighbors_sample(self, graph, n_neighbors):
         """neighbors_sample."""
         n_neighbors_counter = n_neighbors
-        nodes = list(graph.nodes())
+        nodes = graph.nodes()
         random.shuffle(nodes)
         for root in nodes:
             cips = self._cip_extraction_given_root(graph, root)

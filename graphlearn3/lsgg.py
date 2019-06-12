@@ -14,10 +14,10 @@ class lsgg(object):
     """Graph grammar."""
 
     def __init__(self,
-                 decomposition_args={"radius_list": [0],
-                                     "thickness_list": [2]},
-                 filter_args={"min_cip_count": 1,
-                              "min_interface_count": 1},
+                 decomposition_args={"radius_list": [0, 1],
+                                     "thickness_list": [1, 2]},
+                 filter_args={"min_cip_count": 2,
+                              "min_interface_count": 2},
                  cip_root_all=False,
                  half_step_distance=False
                  ):
@@ -80,37 +80,30 @@ class lsgg(object):
 
     def _cip_extraction(self, graph):
         """see fit"""
-        try:
-            for root in self._roots(graph):
-                for cip in self._cip_extraction_given_root(graph, root):
-                    yield cip
-        except StopIteration:
-            return
+        for root in self._roots(graph):
+            for cip in self._cip_extraction_given_root(graph, root):
+                yield cip
 
     def _extract_core_and_interface(self, **kwargs):
         return lsgg_cip.extract_core_and_interface(**kwargs)
 
     def _cip_extraction_given_root(self, graph, root):
         """helper of _cip_extraction. See fit"""
-        try:
-            for radius in self.decomposition_args['radius_list']:
+        for radius in self.decomposition_args['radius_list']:
+            if not self.half_step_distance:
+                radius = radius * 2
+            for thickness in self.decomposition_args['thickness_list']:
                 if not self.half_step_distance:
-                    radius = radius * 2
-                for thickness in self.decomposition_args['thickness_list']:
-                    if not self.half_step_distance:
-                        thickness = thickness * 2
-                    yield self._extract_core_and_interface(root_node=root,
-                                                           graph=graph,
-                                                           radius=radius,
-                                                           thickness=thickness)
-        except StopIteration:
-            return
+                    thickness = thickness * 2
+                yield self._extract_core_and_interface(root_node=root,
+                                                       graph=graph,
+                                                       radius=radius,
+                                                       thickness=thickness)
 
     def _add_cip(self, cip):
         """see fit"""
         # setdefault is a fun function
-        self.productions[cip.interface_hash].setdefault(
-            cip.core_hash, cip).count += 1
+        self.productions[cip.interface_hash].setdefault(cip.core_hash, cip).count += 1
 
     def _cip_frequency_filter(self):
         """Remove infrequent cores and interfaces. see fit"""
@@ -140,36 +133,32 @@ class lsgg(object):
         except:
             print("core sub failed (continuing anyway):")
             import structout as so
-            so.gprint([graph, cip.graph, cip_.graph], color=[[[], []]] +
-                      [[c.interface_nodes, c.core_nodes] for c in [cip, cip_]])
+            so.gprint([graph, cip.graph, cip_.graph],color =[[[],[]]]+
+                    [ [c.interface_nodes, c.core_nodes]  for c in [cip,cip_]])
             return None
 
     def _neighbors_given_cips(self, graph, orig_cips):
         """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
-        try:
-            for cip in orig_cips:
-                cips_ = self._congruent_cips(cip)
-                for cip_ in cips_:
-                    graph_ = self._core_substitution(graph, cip, cip_)
-                    if graph_ is not None:
-                        yield graph_
-        except StopIteration:
-            return
+        for cip in orig_cips:
+            cips_ = self._congruent_cips(cip)
+            for cip_ in cips_:
+                graph_ = self._core_substitution(graph, cip, cip_)
+                if graph_ is not None:
+                    yield graph_
 
     def neighbors(self, graph):
         """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
-        try:
-            cips = self._cip_extraction(graph)
-            it = self._neighbors_given_cips(graph, cips)
-            for neighbor in it:
-                yield neighbor
-        except StopIteration:
-            return
+        cips = self._cip_extraction(graph)
+        it = self._neighbors_given_cips(graph, cips)
+        for neighbor in it:
+            yield neighbor
 
-    def root_neighbors(self, graph, root, n_neighbors=1000):
-        """root_neighbors."""
-        try:
-            n_neighbors_counter = n_neighbors
+    def neighbors_sample(self, graph, n_neighbors):
+        """neighbors_sample."""
+        n_neighbors_counter = n_neighbors
+        nodes = list(self._roots(graph))
+        random.shuffle(nodes)
+        for root in nodes:
             cips = self._cip_extraction_given_root(graph, root)
             for neighbor in self._neighbors_given_cips(graph, cips):
                 if n_neighbors_counter > 0:
@@ -177,25 +166,6 @@ class lsgg(object):
                     yield neighbor
                 else:
                     raise StopIteration
-        except StopIteration:
-            return
-
-    def neighbors_sample(self, graph, n_neighbors):
-        """neighbors_sample."""
-        try:
-            n_neighbors_counter = n_neighbors
-            nodes = list(self._roots(graph))
-            random.shuffle(nodes)
-            for root in nodes:
-                cips = self._cip_extraction_given_root(graph, root)
-                for neighbor in self._neighbors_given_cips(graph, cips):
-                    if n_neighbors_counter > 0:
-                        n_neighbors_counter = n_neighbors_counter - 1
-                        yield neighbor
-                    else:
-                        raise StopIteration
-        except StopIteration:
-            return
 
     def propose(self, graph):
         return list(self.neighbors(graph))
@@ -216,8 +186,7 @@ class lsgg(object):
         cores = set()
         n_productions = 0
         for interface in self.productions.keys():
-            n_productions += len(self.productions[interface]) * \
-                (len(self.productions[interface]) - 1)
+            n_productions += len(self.productions[interface]) * (len(self.productions[interface]) - 1)
             for core in self.productions[interface].keys():
                 cores.add(core)
 
