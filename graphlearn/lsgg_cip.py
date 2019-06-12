@@ -65,8 +65,8 @@ def graph_hash(graph, hash_bitmask, node_name_label=lambda id, node: node['hlabe
     l = [tmp_fast_hash(node_names[a], node_names[b]) for (a, b) in graph.edges()]
     l.sort()
     # isolates are isolated nodes
-    isolates = [n for (n, d) in graph.degree_iter() if d == 0]
-    z = [node_name_label(node_id, graph.node[node_id]) for node_id in isolates]
+    isolates = [n for n in graph.nodes() if graph.degree[n] == 0]
+    z = [node_name_label(node_id, graph.nodes[node_id]) for node_id in isolates]
     z.sort()
     return fast_hash(l + z, hash_bitmask)
 
@@ -118,7 +118,7 @@ def extract_core_and_interface(root_node=None,
                        if radius < dst <= radius + thickness]
 
     # calculate hashes
-    core_hash = graph_hash_core(graph.subgraph(core_nodes), hash_bitmask)
+    core_hash = graph_hash_core(graph.subgraph(core_nodes).copy(), hash_bitmask)
     node_name_label = lambda id, node: node['hlabel'] + dist[id] - radius
     interface_hash = graph_hash(graph.subgraph(interface_nodes),
                                 hash_bitmask,
