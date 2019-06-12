@@ -104,12 +104,12 @@ setup(
     scripts=[ ],
     include_package_data=True,
     package_data={},
-    url='https://github.com/fabriziocosta/GraphLearn<',
+    url='https://github.com/fabriziocosta/GraphLearn',
     license='LICENSE',
     description='recombine network graphs',
     #long_description=open('README.md').read(),
     install_requires=[
-        "networkx <= 1.10",
+        "networkx == 2.2",
         "toolz"
     ],
     cmdclass={'sdist': sdist, 'install': install}
