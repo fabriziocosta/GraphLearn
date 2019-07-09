@@ -208,7 +208,7 @@ class lsgg(object):
 
 
 def internal_test_paral():
-    
+    # python -c "import lsgg as s; s.test_paral()"
     # lets get sum data
     from toolz import curry, pipe
     from eden_chem.io.pubchem import download
@@ -221,7 +221,7 @@ def internal_test_paral():
     print ("grlen",len(gr))
     gramm= lsgg().fit(gr[:100]) 
     print ("fit")
-    import basics as b 
+    import basics as b  # from my own repo :)
     b.mpmap( internal_f , [(gramm,g) for g in gr[:100]])
 
 def internal_f(g):
