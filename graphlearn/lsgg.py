@@ -204,3 +204,33 @@ class lsgg(object):
         txt += '#core-interface-pairs: %5d  ' % n_cips
         txt += '#production-rules: %5d' % n_productions
         return txt
+
+
+
+def internal_test_paral():
+    
+    # lets get sum data
+    from toolz import curry, pipe
+    from eden_chem.io.pubchem import download
+    from eden_chem.io.rdkitutils import sdf_to_nx
+    download_active = curry(download)(active=True)
+    download_inactive = curry(download)(active=False)
+    def get_pos_graphs(assay_id): return pipe(assay_id, download_active, sdf_to_nx, list)
+    assay_id='624249'
+    gr = get_pos_graphs(assay_id)
+    print ("grlen",len(gr))
+    gramm= lsgg().fit(gr[:100]) 
+    print ("fit")
+    import basics as b 
+    b.mpmap( internal_f , [(gramm,g) for g in gr[:100]])
+
+def internal_f(g):
+    return list(g[0].neighbors(g[1]))
+
+
+
+    
+    
+    
+    
+

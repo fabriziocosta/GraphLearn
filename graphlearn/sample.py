@@ -1,4 +1,5 @@
 from graphlearn.util import util
+
 def sample_step(object, transformer, grammar, scorer, chooser):
     """
     Parameters
@@ -54,3 +55,5 @@ def test_sample_step():
 
     assert (0.000001 > abs(0.319274373045 - score)), score
     print("sambledestdone")
+
+
