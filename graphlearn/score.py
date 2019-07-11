@@ -43,8 +43,8 @@ class RandomEstimator():
 
 
 
-def internal_test_oneclass():
-    # python -c "import lsgg as s; s.test_paral()"
+def internal_tessssst_oneclass():
+    # python -c "import score as s; s.internal_tessssst_oneclass()"
     # lets get sum data
     from toolz import curry, pipe
     from eden_chem.io.pubchem import download

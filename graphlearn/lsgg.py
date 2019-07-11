@@ -207,8 +207,8 @@ class lsgg(object):
 
 
 
-def internal_test_paral():
-    # python -c "import lsgg as s; s.test_paral()"
+def internal_tesst_paral():
+    # python -c "import lsgg as s; s.internal_tesst_paral()"
     # lets get sum data
     from toolz import curry, pipe
     from eden_chem.io.pubchem import download
