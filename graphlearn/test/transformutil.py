@@ -1,8 +1,10 @@
 
 
 class no_transform:
-    def encode(self, thing):
+    def encode_single(self, thing):
         return thing
+    def encode(self, thing):
+        return [thing]
     def decode(self, thing):
         return thing
 

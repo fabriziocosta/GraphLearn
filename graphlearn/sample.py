@@ -13,7 +13,7 @@ def sample_step(object, transformer, grammar, scorer, selector):
     -------
         object
     """
-    graph = transformer.encode(object)
+    graph = transformer.encode_single(object)
     util.valid_gl_graph(graph)
     proposal_graphs = grammar.propose(graph)
 
