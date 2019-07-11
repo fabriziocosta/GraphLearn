@@ -42,12 +42,14 @@ class lsgg_layered(lsgg.lsgg):
         # expand base graph
         orig_graph = graph.graph['original']
         expanded_orig_graph = lsgg_cip._edge_to_vertex(orig_graph)
+
         lsgg_cip._add_hlabel(expanded_orig_graph)
 
         # make a copy, collapse core
         expanded_orig_graph_collapsed =  expanded_orig_graph.copy()
         nodes_in_core = list ( functools.reduce(lambda x,y: x|y, [ basecip.graph.node[i]['contracted']
                                 for i in basecip.core_nodes if 'edge' not in basecip.graph.node[i] ] ))
+
         edges_in_core = [n for n,d in expanded_orig_graph_collapsed.nodes(data=True)
                              if 'edge' in d and all([z in nodes_in_core for z in expanded_orig_graph_collapsed.neighbors(n) ])]
 

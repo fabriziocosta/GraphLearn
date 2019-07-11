@@ -47,7 +47,8 @@ class Cycler():
         layer.graph['cycdic']={}
         for cycle in nx.cycle_basis(graph):
             self._merge(layer, self._compute_cycle_node_name(graph, cycle))
-
+        
+        layer = nx.relabel.convert_node_labels_to_integers(layer)
         # result :)
         layer.graph['original']=graph
         return layer
