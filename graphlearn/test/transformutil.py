@@ -1,12 +1,15 @@
 
 
-class no_transform:
+class no_transform(object):
     def encode_single(self, thing):
         return thing
+
     def encode(self, thing):
-        return [thing]
+        for e in thing:
+            yield e
     def decode(self, thing):
-        return thing
+        for e in thing:
+            yield e
 
 def merge_edge(graph, u, v):
     new_edges = ((u, w, d) for x, w, d in list(graph.edges.data(nbunch=v)) if w != u)
