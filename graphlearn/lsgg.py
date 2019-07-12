@@ -155,17 +155,21 @@ class lsgg(object):
 
     def neighbors_sample(self, graph, n_neighbors):
         """neighbors_sample."""
+
+        cips = self._cip_extraction(graph)
+        subs = [ (cip,con_cip) for cip in cips for con_cip in self._congruent_cips(cip)   ]
+        random.shuffle(subs)
+        
         n_neighbors_counter = n_neighbors
-        nodes = list(self._roots(graph))
-        random.shuffle(nodes)
-        for root in nodes:
-            cips = self._cip_extraction_given_root(graph, root)
-            for neighbor in self._neighbors_given_cips(graph, cips):
+        while subs:
+            cip,cip_ = subs.pop()
+            graph_ = self._core_substitution(graph, cip, cip_)
+            if graph_ is not None:
                 if n_neighbors_counter > 0:
                     n_neighbors_counter = n_neighbors_counter - 1
-                    yield neighbor
+                    yield graph_
                 else:
-                    raise StopIteration
+                    return
 
     def propose(self, graph):
         return list(self.neighbors(graph))
