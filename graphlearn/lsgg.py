@@ -154,7 +154,7 @@ class lsgg(object):
             yield neighbor
 
     def neighbors_sample(self, graph, n_neighbors):
-        """neighbors_sample."""
+        """neighbors_sample. samples from all possible replacements"""
 
         cips = self._cip_extraction(graph)
         subs = [ (cip,con_cip) for cip in cips for con_cip in self._congruent_cips(cip)   ]
@@ -170,6 +170,38 @@ class lsgg(object):
                     yield graph_
                 else:
                     return
+    def neighbors_sample_faster(self, graph, n_neighbors):
+        """neighbors_sample. might be a little bit faster by avoiding cip extractions,
+        chooses a node first and then picks form the subs evenly
+        """
+        n_neighbors_counter = n_neighbors
+        sanity = n_neighbors*3
+        mycips = {}
+        while sanity: 
+            sanity -=1
+            rootradthi = (random.choice(list(graph)), 
+                random.choice( self.decomposition_args['radius_list'] ),
+                random.choice( self.decomposition_args['thickness_list'] ))
+            if rootradthi in mycips:
+                cips = mycips[rootradthi]
+            else:
+                root,rad, thi = rootradthi
+                cips=list(self.extract_core_and_interface(root,graph,rad*2,thi*2))
+                mycips[rootradthi] = cips
+            cip = random.choice(cips)
+            cong = self._congruent_cips(cip)
+            if len(cong) == 0:
+                continue
+            else:
+                cip_ = random.choice(cong)
+            graph_ = self._core_substitution(graph, cip, cip_)
+            if graph_ is not None:
+                if n_neighbors_counter > 0:
+                    n_neighbors_counter = n_neighbors_counter - 1
+                    yield graph_
+                else:
+                    return
+        logger.info("neighbors_sample_faster sampled few graphs")
 
     def propose(self, graph):
         return list(self.neighbors(graph))
