@@ -23,13 +23,13 @@ class lsgg_layered(lsgg.lsgg):
             for thickness in self.decomposition_args['thickness_list']:
                 thickness = thickness * 2
                 # note that this loop is different from the parent class :) 
-                for e in self.extract_core_and_interface(root_node=root,
+                for e in self._extract_core_and_interface(root_node=root,
                                                  graph=graph,
                                                  radius=radius,
                                                  thickness=thickness):
                     yield e
 
-    def extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
+    def _extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
 
         # get CIP
         basecip = lsgg_cip.extract_core_and_interface(root_node=root_node,

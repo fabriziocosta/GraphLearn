@@ -68,6 +68,8 @@ def multi_sample_step(objects, transformer, grammar, scorer, selector, n_neighbo
 
 
 def multi_sample(graph, transformer=None, grammar=None, scorer=None, selector=None, n_steps=10, n_neighbors=20):
+
+    # tests are basically in  long_range_graphlearn/code/chem
     graphs=[graph]
     for i in range(n_steps):
         graphs, scores= multi_sample_step(graphs, transformer, grammar, scorer,selector,n_neighbors)

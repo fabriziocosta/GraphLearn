@@ -186,7 +186,8 @@ class lsgg(object):
                 cips = mycips[rootradthi]
             else:
                 root,rad, thi = rootradthi
-                cips=list(self.extract_core_and_interface(root,graph,rad*2,thi*2))
+                zzz= self._extract_core_and_interface(root_node=root,graph=graph,radius=rad*2,thickness=thi*2)
+                cips = [zzz] if type(zzz) == lsgg_cip.CoreInterfacePair  else list(zzz)
                 mycips[rootradthi] = cips
             cip = random.choice(cips)
             cong = self._congruent_cips(cip)
