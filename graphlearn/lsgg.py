@@ -195,8 +195,8 @@ class lsgg(object):
             if len(cong) == 0:
                 continue
             else:
-                tame = lambda x: min(10,max(0,x))
-                cip_ = random.choices(cong,[ 1-tame( len(new.core_nodes)-len(cip.core_nodes))*.1  for new in cong  ],k=1)[0]
+                tame = lambda x: 1.0 if x <= 0 else 0 if x >=10 else .5-.05*x
+                cip_ = random.choices(cong,[ tame( len(new.core_nodes)-len(cip.core_nodes))  for new in cong  ],k=1)[0]
 
             graph_ = self._core_substitution(graph, cip, cip_)
             if graph_ is not None:
