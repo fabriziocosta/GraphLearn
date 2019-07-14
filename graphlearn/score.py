@@ -21,9 +21,14 @@ class SimpleDistanceEstimator():
         return cosine_similarity(self.reference_vec, vecs)[0]
 
 class OneClassEstimator():
+    
+    def __init__(self,model=None):
+        if not model: 
+            self.model = OneClassSVM()
+        else:
+            self.model=model
 
     def fit(self,graphs, vectorizer=Vectorizer()):
-        self.model = OneClassSVM()
         self.model.fit(vectorizer.transform(graphs) )
         self.vectorizer = vectorizer
         return self
