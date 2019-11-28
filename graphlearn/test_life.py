@@ -5,7 +5,7 @@ import networkx as nx
 import structout as so
 import random
 def getgraphs():
-    with open("chemtest.json", 'r') as handle:                                      
+    with open("test/chemtest.json", 'r') as handle:                                      
           stuff = json.loads(handle.read())
           def js_to_graph(x):
               g= nx.readwrite.node_link_graph(x)

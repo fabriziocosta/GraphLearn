@@ -15,7 +15,6 @@ class LIFE(lsgg.lsgg):
     
     def _congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()
-        
         def dist(a,b):
             if type(a)==np.ndarray and type(b)==np.ndarray:
                 return np.dot(a,b.T)[0][0]
@@ -54,8 +53,8 @@ def extract_core_and_interface(root_node=None,
     life_graph = graph.subgraph(life_nodes) 
     
     loosecontext = nx.Graph(life_graph)
-    #so.gprint(loosecontext)
     nn = loosecontext.number_of_nodes() > 2
+    # eden doesnt like empty graphs, they should just be a 0 vector... 
     normal_cip.life_vector = lsgg_cip.eg.vectorize([loosecontext])[0].toarray() if nn else None
 
     return normal_cip

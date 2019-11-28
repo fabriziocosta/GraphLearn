@@ -105,7 +105,8 @@ setup(
     #long_description=open('README.md').read(),
     install_requires=[
         "networkx == 2.2",
-        "toolz"
+        "toolz",
+        "structout"
     ],
     cmdclass={'sdist': sdist, 'install': install}
 )
