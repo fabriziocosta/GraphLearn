@@ -30,4 +30,4 @@ def test_life():
     so.gprint(list(grammar.neighbors(g[55]))[:3])
 
 
-test_life()
+#test_life()
