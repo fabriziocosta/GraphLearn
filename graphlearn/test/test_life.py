@@ -20,6 +20,7 @@ def test_life():
     grammar = lsgg_life.LIFE(  
             decomposition_args={"radius_list": [0,1], 
                                 "thickness_list": [1],  
+                                "life_minsimilarity": .9, 
                                 "thickness_life": 4},
             filter_args={"min_cip_count": 1,                               
                          "min_interface_count": 1}
@@ -27,7 +28,9 @@ def test_life():
     #print(g[:10])
     grammar.fit(g[:100])
     print("fitting done")
-    so.gprint(list(grammar.neighbors(g[55]))[:3])
+    neighs = list(grammar.neighbors(g[55]))
+    so.gprint(neighs [:3])
+    print ("numnei:", len(neighs))
 
 
 #test_life()

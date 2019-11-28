@@ -5,13 +5,13 @@ import networkx as nx
 import numpy as np
 import random
 # lsgg_life -> Loose InterFacE around the actual interface
-# mmm lscc LOCO loose context is also ok... 
 
 
 class LIFE(lsgg.lsgg):
 
     def _extract_core_and_interface(self, **kwargs):
-        return extract_core_and_interface(thickness_life=self.decomposition_args['thickness_life'] , **kwargs)
+        return extract_core_and_interface(thickness_life=self.decomposition_args['thickness_life'],
+                                          **kwargs)
     
     def _congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()
@@ -19,11 +19,12 @@ class LIFE(lsgg.lsgg):
             if type(a)==np.ndarray and type(b)==np.ndarray:
                 return np.dot(a,b.T)[0][0]
             else: 
-                return 0
-        cips_ = [(cip_,dist(cip_.life_vector,cip.life_vector)) for cip_ in cips if cip_.core_hash != cip.core_hash]
+                return 1
+        cips_ = [(cip_,dist(cip_.life_vector,cip.life_vector)) 
+                     for cip_ in cips if cip_.core_hash != cip.core_hash]
 
         random.shuffle(cips_)
-        return [ c for c,i in  cips_ ]
+        return [ c for c,i in  cips_ if i > self.decomposition_args['life_minsimilarity'] ]
 
 def extract_core_and_interface(root_node=None,
                                graph=None,
