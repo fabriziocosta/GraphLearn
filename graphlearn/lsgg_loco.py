@@ -4,13 +4,13 @@ from graphlearn import lsgg_cip
 import networkx as nx
 import numpy as np
 import random
-# lsgg_life -> Loose InterFacE around the actual interface
+# lsgg_loco   loose context around the interface
 
 
-class LIFE(lsgg.lsgg):
+class LOCO(lsgg.lsgg):
 
     def _extract_core_and_interface(self, **kwargs):
-        return extract_core_and_interface(thickness_life=self.decomposition_args['thickness_life'],
+        return extract_core_and_interface(thickness_loco=self.decomposition_args['thickness_loco'],
                                           **kwargs)
     
     def _congruent_cips(self, cip):
@@ -20,24 +20,24 @@ class LIFE(lsgg.lsgg):
                 return np.dot(a,b.T)[0][0]
             else: 
                 return 1
-        cips_ = [(cip_,dist(cip_.life_vector,cip.life_vector)) 
+        cips_ = [(cip_,dist(cip_.loco_vector,cip.loco_vector)) 
                      for cip_ in cips if cip_.core_hash != cip.core_hash]
 
         random.shuffle(cips_)
-        return [ c for c,i in  cips_ if i > self.decomposition_args['life_minsimilarity'] ]
+        return [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
 
 def extract_core_and_interface(root_node=None,
                                graph=None,
                                radius=None,
                                thickness=None,
-			       thickness_life=2):
+			       thickness_loco=2):
    
     # MAKE A NORMAL CIP AS IN LSGG_CIP
     graph =  lsgg_cip._edge_to_vertex(graph)
     lsgg_cip._add_hlabel(graph)
     dist = {a:b for (a,b) in lsgg_cip.short_paths(graph,
                                          root_node if isinstance(root_node,list) else [root_node],
-                                         thickness+radius+thickness_life)}
+                                         thickness+radius+thickness_loco)}
 
     core_nodes = [id for id, dst in dist.items() if dst <= radius]
     interface_nodes = [id for id, dst in dist.items()
@@ -46,17 +46,17 @@ def extract_core_and_interface(root_node=None,
     normal_cip =  lsgg_cip._finalize_cip(root_node,graph,radius,thickness,dist,core_nodes,interface_nodes)
 
 
-    # NOW COMES THE LIFE PART
+    # NOW COMES THE loco PART
 
-    life_nodes = [id for id, dst in dist.items()
-                       if (radius+thickness) < dst <= (radius + thickness+ thickness_life)]
+    loco_nodes = [id for id, dst in dist.items()
+                       if (radius+thickness) < dst <= (radius + thickness+ thickness_loco)]
 
-    life_graph = graph.subgraph(life_nodes) 
+    loco_graph = graph.subgraph(loco_nodes) 
     
-    loosecontext = nx.Graph(life_graph)
+    loosecontext = nx.Graph(loco_graph)
     nn = loosecontext.number_of_nodes() > 2
     # eden doesnt like empty graphs, they should just be a 0 vector... 
-    normal_cip.life_vector = lsgg_cip.eg.vectorize([loosecontext])[0].toarray() if nn else None
+    normal_cip.loco_vector = lsgg_cip.eg.vectorize([loosecontext])[0].toarray() if nn else None
 
     return normal_cip
 

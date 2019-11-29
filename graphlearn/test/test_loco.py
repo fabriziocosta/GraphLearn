@@ -1,5 +1,5 @@
 #from graphlearn 
-import lsgg_life 
+import lsgg_loco
 import json 
 import networkx as nx 
 import structout as so
@@ -15,13 +15,13 @@ def getgraphs():
 
 
 
-def test_life():
+def test_loco():
     g= getgraphs()
-    grammar = lsgg_life.LIFE(  
+    grammar = lsgg_loco.LOCO(  
             decomposition_args={"radius_list": [0,1], 
                                 "thickness_list": [1],  
-                                "life_minsimilarity": .9, 
-                                "thickness_life": 4},
+                                "loco_minsimilarity": .9, 
+                                "thickness_loco": 4},
             filter_args={"min_cip_count": 1,                               
                          "min_interface_count": 1}
             )
@@ -33,4 +33,4 @@ def test_life():
     print ("numnei:", len(neighs))
 
 
-#test_life()
+#test_loco()
