@@ -27,8 +27,13 @@ def test_loco():
             )
     #print(g[:10])
     grammar.fit(g[:100])
+    '''
+    for k,v in grammar.productions.items():
+        for kk, vv in v.items():
+            print(len(vv.loco_vectors),vv.count)
+    '''
     print("fitting done")
-    neighs = list(grammar.neighbors(g[55]))
+    neighs = list(grammar.neighbors(g[44]))
     so.gprint(neighs [:3])
     print ("numnei:", len(neighs))
 

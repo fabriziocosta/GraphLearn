@@ -4,6 +4,7 @@ from graphlearn import lsgg_cip
 import networkx as nx
 import numpy as np
 import random
+from scipy.sparse import csr_matrix
 # lsgg_loco   loose context around the interface
 
 
@@ -16,15 +17,39 @@ class LOCO(lsgg.lsgg):
     def _congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()
         def dist(a,b):
-            if type(a)==np.ndarray and type(b)==np.ndarray:
-                return np.dot(a,b.T)[0][0]
+
+            if type(a)==csr_matrix and type(b)==csr_matrix:
+                return a.dot(b.T).data[0]
+            elif type(a)!=csr_matrix and type(b)!=csr_matrix:
+                return 1 # both None
             else: 
-                return 1
-        cips_ = [(cip_,dist(cip_.loco_vector,cip.loco_vector)) 
+                return 0 # one is none
+
+        cips_ = [(cip_,max([dist(cip_.loco_vectors,b) for b in cip.loco_vectors]))
                      for cip_ in cips if cip_.core_hash != cip.core_hash]
 
+        
         random.shuffle(cips_)
         return [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
+
+    def _add_cip(self, cip):
+
+        def same(a,b):
+            if type(a)==csr_matrix and type(b)==csr_matrix:
+                return np.array_equal(a.data,b.data)and np.array_equal(a.indptr,b.indptr)and np.array_equal(a.indices,b.indices)
+
+            if type(a)!=csr_matrix and type(b)!=csr_matrix:
+                return True
+            if type(a)!=csr_matrix or  type(b)!=csr_matrix:
+                return False
+
+            print("OMGWTFBBQ")
+                    
+        grammarcip = self.productions[cip.interface_hash].setdefault(cip.core_hash, cip)
+        grammarcip.count+=1
+        if not any([same(cip.loco_vectors[0],x) for x in  grammarcip.loco_vectors]):
+            grammarcip.loco_vectors+=cip.loco_vectors
+
 
 def extract_core_and_interface(root_node=None,
                                graph=None,
@@ -56,7 +81,7 @@ def extract_core_and_interface(root_node=None,
     loosecontext = nx.Graph(loco_graph)
     nn = loosecontext.number_of_nodes() > 2
     # eden doesnt like empty graphs, they should just be a 0 vector... 
-    normal_cip.loco_vector = lsgg_cip.eg.vectorize([loosecontext])[0].toarray() if nn else None
+    normal_cip.loco_vectors = [lsgg_cip.eg.vectorize([loosecontext])] if nn else [None]
 
     return normal_cip
 
