@@ -170,6 +170,8 @@ class lsgg(object):
                     yield graph_
                 else:
                     return
+        logger.info("neighbors_sample sampled few graphs")
+
     def neighbors_sample_faster(self, graph, n_neighbors):
         """neighbors_sample. might be a little bit faster by avoiding cip extractions,
         chooses a node first and then picks form the subs evenly
