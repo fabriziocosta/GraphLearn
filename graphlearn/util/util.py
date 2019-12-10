@@ -23,7 +23,7 @@ def _extract_grammar_stats(grammar):
 
 def _edenize_for_testing(g):
     for n in g.nodes():
-        g.node[n]['label'] = str(n)
+        g.nodes[n]['label'] = str(n)
     for a, b in g.edges():
         g[a][b]['label'] = '.'
     return g

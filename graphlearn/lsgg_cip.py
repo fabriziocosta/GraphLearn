@@ -70,7 +70,7 @@ def graph_hash(graph, node_name_label=lambda id, node: node['hlabel']):
     l.sort()
     # isolates are isolated nodes
     isolates = [n for (n, d) in graph.degree if d == 0]
-    z = [node_name_label(node_id, graph.node[node_id]) for node_id in isolates]
+    z = [node_name_label(node_id, graph.nodes[node_id]) for node_id in isolates]
     z.sort()
     return hash(tuple(l + z))
 
@@ -81,7 +81,7 @@ def calc_node_name(interfacegraph, node, node_name_label=lambda id, node: node['
      # the case that n has no neighbors is currently untested...
     '''
     d = nx.single_source_shortest_path_length(interfacegraph, node, 20)
-    l = [node_name_label(nid, interfacegraph.node[nid]) + dis for nid, dis in d.items()]
+    l = [node_name_label(nid, interfacegraph.nodes[nid]) + dis for nid, dis in d.items()]
     l.sort()
     return hash(tuple(l))
 
@@ -128,7 +128,7 @@ def _finalize_cip(root_node,graph,radius,thickness,dist,core_nodes,interface_nod
     # the problem-case is this: an interface-edge-node is connected to cores, so using it for interface
     # isomorphismchecks is nonse.
     test = lambda idd: 2==sum([ neigh in core_nodes for neigh in graph.neighbors(idd) ])
-    mv_to_core = {idd:0 for idd in interface_nodes if "edge" in graph.node[idd] and test(idd)}
+    mv_to_core = {idd:0 for idd in interface_nodes if "edge" in graph.nodes[idd] and test(idd)}
     if mv_to_core:
         core_nodes+= list(mv_to_core.keys())
         interface_nodes = [i for i in interface_nodes if i not in mv_to_core ]
@@ -144,7 +144,7 @@ def _finalize_cip(root_node,graph,radius,thickness,dist,core_nodes,interface_nod
     cip_graph = graph.subgraph(core_nodes + interface_nodes).copy()
     ddl = 'distance_dependent_label'
     for no in interface_nodes:
-        cip_graph.node[no][ddl] = cip_graph.node[no]['hlabel'] + dist[no] - (radius + 1)
+        cip_graph.nodes[no][ddl] = cip_graph.nodes[no]['hlabel'] + dist[no] - (radius + 1)
 
     interface_graph = nx.subgraph(cip_graph, interface_nodes)
 

@@ -49,7 +49,7 @@ def test_sample_step():
 
     lsgg = util.test_get_grammar()
     graph = util._edenize_for_testing(nx.path_graph(4))
-    graph.node[3]['label'] = '5'
+    graph.nodes[3]['label'] = '5'
     score_estimator = SDE().fit(util._edenize_for_testing(nx.path_graph(4)))
     graph,score= sample(graph, transformutil.no_transform(), lsgg, score_estimator, choice.SelectMax(), n_steps=2, return_score=True)
 

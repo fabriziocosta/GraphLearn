@@ -32,7 +32,7 @@ def test_neighbors():
     # make agraph
     g = nx.path_graph(4)
     g = util._edenize_for_testing(g)
-    g.node[3]['label'] = '5'
+    g.nodes[3]['label'] = '5'
     stuff = list(lsgg.neighbors(g))
     assert (6 == len(stuff))
 
@@ -43,7 +43,7 @@ def test_some_neighbors():
     # make agraph
     g = nx.path_graph(4)
     g = util._edenize_for_testing(g)
-    g.node[3]['label'] = '5'
+    g.nodes[3]['label'] = '5'
     assert (1 == len(list(lsgg.neighbors_sample(g, 1))))
     assert (2 == len(list(lsgg.neighbors_sample(g, 2))))
     assert (3 == len(list(lsgg.neighbors_sample(g, 3))))

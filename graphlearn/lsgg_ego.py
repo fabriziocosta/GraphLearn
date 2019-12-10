@@ -28,14 +28,14 @@ class lsgg_ego(lsgg.lsgg):
         # to avoid node id misstranslations in the expanded graph, i mark all the elements
         # as core before expanding
         for n in root_node.nodes:
-            graph.node[n]['core'] = True
+            graph.nodes[n]['core'] = True
         for a, b in root_node.edges:
             graph[a][b]['core'] = True
 
         egraph = lsgg_cip._edge_to_vertex(graph)
 
         for n in root_node.nodes:
-            graph.node[n].pop('core')
+            graph.nodes[n].pop('core')
         for a, b in root_node.edges:
             graph[a][b].pop('core')
 
@@ -60,7 +60,7 @@ class lsgg_ego(lsgg.lsgg):
         cip_graph = graph.subgraph(core_nodes + interface_nodes).copy()
         ddl = 'distance_dependent_label'
         for no in interface_nodes:
-            cip_graph.node[no][ddl] = cip_graph.node[no]['hlabel'] + dist[no] - (radius + 1)
+            cip_graph.nodes[no][ddl] = cip_graph.nodes[no]['hlabel'] + dist[no] - (radius + 1)
 
         interface_graph = nx.subgraph(cip_graph, interface_nodes)
 

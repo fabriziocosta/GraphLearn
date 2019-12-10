@@ -47,8 +47,8 @@ class lsgg_layered(lsgg.lsgg):
 
         # make a copy, collapse core
         expanded_orig_graph_collapsed =  expanded_orig_graph.copy()
-        nodes_in_core = list ( functools.reduce(lambda x,y: x|y, [ basecip.graph.node[i]['contracted']
-                                for i in basecip.core_nodes if 'edge' not in basecip.graph.node[i] ] ))
+        nodes_in_core = list ( functools.reduce(lambda x,y: x|y, [ basecip.graph.nodes[i]['contracted']
+                                for i in basecip.core_nodes if 'edge' not in basecip.graph.nodes[i] ] ))
 
         edges_in_core = [n for n,d in expanded_orig_graph_collapsed.nodes(data=True)
                              if 'edge' in d and all([z in nodes_in_core for z in expanded_orig_graph_collapsed.neighbors(n) ])]
@@ -65,7 +65,7 @@ class lsgg_layered(lsgg.lsgg):
         ddl = 'distance_dependent_label'
         for id, dst in dist.items():
             if dst>0:
-                expanded_orig_graph.node[id][ddl] = expanded_orig_graph.node[id]['hlabel'] + dst
+                expanded_orig_graph.nodes[id][ddl] = expanded_orig_graph.nodes[id]['hlabel'] + dst
 
 
         for base_thickness in self.decomposition_args['base_thickness_list']:
@@ -97,7 +97,7 @@ def test_lsgg_layered():
     lsggg = lsgg_layered(decomposition_args=decomposition_args)
     g = util_top.test_get_circular_graph()
     gplus=g.copy()
-    gplus.node[0]['label']='weird'
+    gplus.nodes[0]['label']='weird'
     c=cycler.Cycler()
     g=c.encode_single(g)
     gplus = c.encode_single(gplus)

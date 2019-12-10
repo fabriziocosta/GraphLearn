@@ -26,7 +26,7 @@ def test_lsgg_ego_nodedecomp(out=False):
 
     g = util_top.test_get_circular_graph()
     gplus = g.copy()
-    gplus.node[0]['label'] = 'weird'
+    gplus.nodes[0]['label'] = 'weird'
     lsggg.fit([g, gplus, g, gplus])
     stuff = lsggg.neighbors(gplus).__next__()
     if out:
@@ -55,7 +55,7 @@ def test_lsgg_ego_edgedecomp(out=False):
 
     g = util_top.test_get_circular_graph()
     gplus = g.copy()
-    gplus.node[0]['label'] = 'weird'
+    gplus.nodes[0]['label'] = 'weird'
 
     lsggg.fit([g, gplus, g, gplus])
     stuff = lsggg.neighbors(gplus).__next__()
