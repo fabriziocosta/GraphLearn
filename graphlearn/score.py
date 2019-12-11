@@ -24,7 +24,7 @@ class OneClassEstimator():
     
     def __init__(self,model=None):
         if not model: 
-            self.model = OneClassSVM()
+            self.model = OneClassSVM(gamma='auto')
         else:
             self.model=model
 
