@@ -8,7 +8,7 @@ from graphlearn import lsgg_cip
 import logging
 
 logger = logging.getLogger(__name__)
-from graphlearn.util.util import mpmap
+from graphlearn.util.multi import mpmap
 
 class lsgg(object):
     """Graph grammar."""

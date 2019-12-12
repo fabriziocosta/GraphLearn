@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.svm import OneClassSVM
 import random
 import numpy as np
-from graphlearn.util.util import mpmap
+from graphlearn.util.multi import mpmap
 import scipy as sp
 class SimpleDistanceEstimator():
     def __init__(self):

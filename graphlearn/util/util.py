@@ -1,5 +1,4 @@
 from collections import defaultdict
-import multiprocessing as mp
 import functools
 import networkx as nx
 from graphlearn import lsgg
@@ -163,13 +162,4 @@ def draw_grammar_term(grammarobject,
                    size=size)
 
 
-
-
-def mpmap(func, iterable, chunksize=10, poolsize=2):
-    """pmap."""
-    pool = mp.Pool(poolsize)
-    result = pool.map(func, iterable, chunksize=chunksize)
-    pool.close()
-    pool.join()
-    return list(result)
 
