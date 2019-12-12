@@ -26,7 +26,7 @@ class OneClassEstimator():
     
     def __init__(self,model=None, n_jobs=1,vectorizer=Vectorizer()):
         if not model: 
-            self.model = OneClassSVM()
+            self.model = OneClassSVM(gamma='auto')
         else:
             self.model=model
         self.n_jobs=n_jobs
