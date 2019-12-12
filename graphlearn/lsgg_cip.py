@@ -80,7 +80,7 @@ def calc_node_name(interfacegraph, node, node_name_label=lambda id, node: node['
      part of generating the hash for a graph is calculating the hash of a node in the graph
      # the case that n has no neighbors is currently untested...
     '''
-    d = nx.single_source_shortest_path_length(interfacegraph, node, 20)
+    d = nx.single_source_shortest_path_length(interfacegraph, node, 5)
     l = [node_name_label(nid, interfacegraph.nodes[nid]) + dis for nid, dis in d.items()]
     l.sort()
     return hash(tuple(l))

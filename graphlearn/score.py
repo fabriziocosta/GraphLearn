@@ -7,6 +7,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.svm import OneClassSVM
 import random
 import numpy as np
+from graphlearn.util.util import mpmap
+import scipy as sp
 class SimpleDistanceEstimator():
     def __init__(self):
         self.reference_vec, self.vectorizer = None, None
@@ -22,19 +24,27 @@ class SimpleDistanceEstimator():
 
 class OneClassEstimator():
     
-    def __init__(self,model=None):
+    def __init__(self,model=None, n_jobs=1,vectorizer=Vectorizer()):
         if not model: 
             self.model = OneClassSVM()
         else:
             self.model=model
+        self.n_jobs=n_jobs
+        self.vectorizer=vectorizer
+    
+    def transform(self,graphs):
+        if self.n_jobs==1:
+            return self.vectorizer.transform(graphs)
+        else: 
+            return sp.sparse.vstack( mpmap( self.vectorizer.transform, [[g] for g in graphs], poolsize=self.n_jobs ) ) 
 
-    def fit(self,graphs, vectorizer=Vectorizer()):
-        self.model.fit(vectorizer.transform(graphs) )
-        self.vectorizer = vectorizer
+
+    def fit(self,graphs):
+        self.model.fit(self.transform(graphs) )
         return self
 
     def decision_function(self, graphs):
-        vecs = self.vectorizer.transform(graphs)
+        vecs = self.transform(graphs)
         return self.model.score_samples(vecs)
 
 class RandomEstimator():

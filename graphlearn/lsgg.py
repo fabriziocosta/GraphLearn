@@ -8,7 +8,7 @@ from graphlearn import lsgg_cip
 import logging
 
 logger = logging.getLogger(__name__)
-
+from graphlearn.util.util import mpmap
 
 class lsgg(object):
     """Graph grammar."""
@@ -56,21 +56,25 @@ class lsgg(object):
     ###########
     # FITTING
     ##########
-    def fit(self, graphs):
+    def fit(self, graphs, n_jobs=1):
         """fit.
             _add_production will extract all CIPS
             _add_cip will add to the production dictionary self.productions[interfacehash][corehash]=cip
             _cip_frequency filter applies the filter_args that are set in __init__
         """
-        for graph in graphs:
-            self._add_productions(graph)
-
+        if n_jobs==1:
+            for graph in graphs:
+                self._add_productions(graph)
+        else: 
+            res = mpmap(self.my_cip_extraction, graphs, poolsize=n_jobs)
+            for ciplist in res:
+                for cip in ciplist: 
+                    if len(cip.interface_nodes) > 0:
+                        self._add_cip(cip)
+       
         self._cip_frequency_filter()
         self._is_fit = True
         return self
-
-    def is_fit(self):
-        return self._is_fit
 
     def _add_productions(self, graph):
         """see fit"""
@@ -78,11 +82,19 @@ class lsgg(object):
             if len(cip.interface_nodes) > 0:
                 self._add_cip(cip)
 
+    def is_fit(self):
+        return self._is_fit
+
+
+
     def _cip_extraction(self, graph):
         """see fit"""
         for root in self._roots(graph):
             for cip in self._cip_extraction_given_root(graph, root):
                 yield cip
+
+    def my_cip_extraction(self,graph):
+        return list(self._cip_extraction(graph))
 
     def _extract_core_and_interface(self, **kwargs):
         return lsgg_cip.extract_core_and_interface(**kwargs)
