@@ -15,7 +15,7 @@ def sample_step(object, transformer, grammar, scorer, selector):
     """
     graph = transformer.encode_single(object)
     util.valid_gl_graph(graph)
-    proposal_graphs = grammar.propose(graph)
+    proposal_graphs = grammar.propose(graph)+[graph]
 
     proposal_objects = list(transformer.decode(proposal_graphs))
     scores = scorer.decision_function(proposal_objects)
@@ -57,10 +57,9 @@ def test_sample_step():
     print("sambledestdone")
 
 def multi_sample_step(objects, transformer, grammar, scorer, selector, n_neighbors):
-
     graphs = list(transformer.encode(objects))
     [util.valid_gl_graph(graph) for graph in graphs]
-    proposal_graphs = [ prop for graph in graphs for prop in grammar.neighbors_sample_faster(graph,n_neighbors) ]
+    proposal_graphs = [ prop for graph in graphs for prop in grammar.neighbors_sample_faster(graph,n_neighbors) ]+[graphs]
     proposal_objects = list(transformer.decode(proposal_graphs))
     scores = scorer.decision_function(proposal_objects)
     objects, scores = selector.select(proposal_objects, scores)
