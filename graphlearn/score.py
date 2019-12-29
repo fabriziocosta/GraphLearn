@@ -38,7 +38,6 @@ class OneClassEstimator():
         else: 
             return sp.sparse.vstack( mpmap( self.vectorizer.transform, [[g] for g in graphs], poolsize=self.n_jobs ) ) 
 
-
     def fit(self,graphs):
         self.model.fit(self.transform(graphs) )
         return self
@@ -46,6 +45,18 @@ class OneClassEstimator():
     def decision_function(self, graphs):
         vecs = self.transform(graphs)
         return self.model.score_samples(vecs)
+
+class OneClassAndSizeFactor(OneClassEstimator):
+    def decision_function(self,graphs):
+        if 'sizefactor' not in self.dict:
+            print ("OneClassAndSizeFactor has no size factor")
+       
+        vecs = self.transform(graphs)
+        return self.model.score_samples(vecs)*np.array([self.sizepen(x) for x in graphs])
+
+    def sizepen(self,g):
+        diff =  abs(len(g) - self.sizefactor)
+        return 1 - diff*self.sizepenalty
 
 class RandomEstimator():
     def __init__(self):
