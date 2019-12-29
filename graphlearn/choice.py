@@ -24,7 +24,10 @@ class SelectProbN(object):
         neg = min(scores)
         scores = [s-neg for s in scores]
         stuff = list (zip(proposals,scores))
-        return  list(zip(*random.choices(stuff,scores,k=self.n)))
+        if self.n > 1:
+            return  list(zip(*random.choices(stuff,scores,k=self.n)))
+        else:
+            return  random.choice(stuff,scores)
 
 
 
