@@ -44,15 +44,15 @@ class OneClassEstimator():
 
     def decision_function(self, graphs):
         vecs = self.transform(graphs)
-        return self.model.score_samples(vecs)
+        return self.model.decision_function(vecs)
 
 class OneClassAndSizeFactor(OneClassEstimator):
     def decision_function(self,graphs):
-        if 'sizefactor' not in self.dict:
+        if 'sizefactor' not in self.__dict__:
             print ("OneClassAndSizeFactor has no size factor")
        
         vecs = self.transform(graphs)
-        return self.model.score_samples(vecs)*np.array([self.sizepen(x) for x in graphs])
+        return self.model.decision_function(vecs)*np.array([self.sizepen(x) for x in graphs])
 
     def sizepen(self,g):
         diff =  abs(len(g) - self.sizefactor)

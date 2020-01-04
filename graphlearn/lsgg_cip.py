@@ -48,11 +48,12 @@ class CoreInterfacePair:
         # reference to the graph thing
         self.interface_graph = interface_graph
 
-
-
     def __str__(self):
-        return 'cip: int:%d, cor:%d, rad:%d, thi:%d, rot:%d' % \
-               (self.interface_hash, self.core_hash, self.radius, self.thickness, self.root)
+        return 'cip: int:%d, cor:%d, rad:%d, size:%d' % \
+               (self.interface_hash, 
+                       self.core_hash, 
+                       self.radius, 
+                       self.core_nodes_count)
 
 
 ################

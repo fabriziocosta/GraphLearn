@@ -19,7 +19,8 @@ class lsgg(object):
                  filter_args={"min_cip_count": 2,
                               "min_interface_count": 2},
                  cip_root_all=False,
-                 half_step_distance=False
+                 half_step_distance=False,
+                 maxgrowth = 999
                  ):
         """
         Init.
@@ -36,6 +37,7 @@ class lsgg(object):
         self.filter_args = filter_args
         self.cip_root_all = cip_root_all
         self.half_step_distance = half_step_distance
+        self.maxgrowth = maxgrowth
 
     def set_core_size(self, vals):
         self.decomposition_args['radius_list'] = vals
@@ -169,12 +171,15 @@ class lsgg(object):
         """neighbors_sample. samples from all possible replacements"""
 
         cips = self._cip_extraction(graph)
-        subs = [ (cip,con_cip) for cip in cips for con_cip in self._congruent_cips(cip)   ]
+        subs = [ (cip,con_cip) for cip in cips
+                               for con_cip in self._congruent_cips(cip)
+                               if (cip.core_nodes_count +self.maxgrowth) >= con_cip.core_nodes_count ]
         random.shuffle(subs)
         
         n_neighbors_counter = n_neighbors
         while subs:
             cip,cip_ = subs.pop()
+            #print(cip,cip_) # todo clean this up 
             graph_ = self._core_substitution(graph, cip, cip_)
             if graph_ is not None:
                 if n_neighbors_counter > 0:

@@ -15,6 +15,28 @@ class SelectMaxN(object):
         instances.sort(key=lambda x: x[1],reverse=True)
         return list(zip(*[ instances[x] for x in range(self.n) ]))
 
+
+class SelectClassic(object):
+    def __init__(self,reg=0.0):
+        self.reg = reg
+
+    def select(self, proposals, scores):
+        # assuming ill get 2 proposals.. 0 is the new one.
+        #'''accept new graph if it is better'''
+        
+        new = (proposals[0], scores[0])
+        old = (proposals[1], scores[1])
+        if scores[0]<0 or scores[1]<0: 
+            return new if scores[0]<scores[1] else old 
+
+        if scores[0] > scores[1]:
+            return new
+        elif random.random() < ((scores[0]/scores[1])  -self.reg):
+            return new
+        return old
+
+       
+
 class SelectProbN(object):
 
     def __init__(self,n):
@@ -27,7 +49,7 @@ class SelectProbN(object):
         if self.n > 1:
             return  list(zip(*random.choices(stuff,scores,k=self.n)))
         else:
-            return  random.choice(stuff,scores)
+            return  random.choices(stuff,scores,k=1)[0]
 
 
 

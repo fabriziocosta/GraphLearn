@@ -1,5 +1,9 @@
 from graphlearn.util import util
+import logging
 from graphlearn.choice import SelectMax
+
+logger = logging.getLogger(__name__)
+
 def sample_step(object, transformer, grammar, scorer, selector):
     """
     Parameters
@@ -15,21 +19,30 @@ def sample_step(object, transformer, grammar, scorer, selector):
     """
     graph = transformer.encode_single(object)
     util.valid_gl_graph(graph)
-    proposal_graphs = grammar.propose(graph)+[graph]
+    proposal_graphs = list(grammar.neighbors_sample(graph,1))+[graph]
 
     proposal_objects = list(transformer.decode(proposal_graphs))
     scores = scorer.decision_function(proposal_objects)
+    logger.info(str(scores) + str(scores[0]/scores[1]))  
     object, score = selector.select(proposal_objects, scores)
 
     return object, score
 
 
-def sample(graph, transformer=None, grammar=None, scorer=None, selector=None, n_steps=10, return_score=False):
+def sample(graph, transformer=None, grammar=None, scorer=None, selector=None, n_steps=75, return_score=False):
     for i in range(n_steps):
         graph, score = sample_step(graph, transformer, grammar, scorer,selector)
     if return_score:
         return graph, score
     return graph
+
+
+def sample_sizeconstraint(graph,penalty=0.01, **kwargs):
+    kwargs['scorer'].sizefactor = len(graph)
+    kwargs['scorer'].sizepenalty = penalty
+    return sample(graph,**kwargs)
+
+
 
 
 def fit():
