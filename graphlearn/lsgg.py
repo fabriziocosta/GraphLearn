@@ -176,6 +176,7 @@ class lsgg(object):
                                if (cip.core_nodes_count +self.maxgrowth) >= con_cip.core_nodes_count ]
         random.shuffle(subs)
         
+        if len(subs) < 1: logger.info('no congruent cips')
         n_neighbors_counter = n_neighbors
         while subs:
             cip,cip_ = subs.pop()

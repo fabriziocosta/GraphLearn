@@ -5,39 +5,45 @@ import networkx as nx
 import numpy as np
 import random
 from scipy.sparse import csr_matrix
-# lsgg_loco   loose context around the interface
+import logging
+logger = logging.getLogger(__name__)
+from sklearn.metrics.pairwise import cosine_similarity
 
+# lsgg_loco   loose context around the interface
 
 class LOCO(lsgg.lsgg):
 
     def _extract_core_and_interface(self, **kwargs):
-        return extract_core_and_interface(thickness_loco=self.decomposition_args['thickness_loco'],
+        return extract_core_and_interface(thickness_loco=2*self.decomposition_args['thickness_loco'],
                                           **kwargs)
     
     def _congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()
         def dist(a,b):
-
             if type(a)==csr_matrix and type(b)==csr_matrix:
-                return a.dot(b.T).data[0]
+                return a.dot(b.T)[0,0]
             elif type(a)!=csr_matrix and type(b)!=csr_matrix:
                 return 1 # both None
             else: 
                 return 0 # one is none
-
-        cips_ = [(cip_,max([dist(cip_.loco_vectors,b) for b in cip.loco_vectors]))
+        
+        #print ('cip',cip.loco_vectors,)
+        #print('congruent:',list(cips)[0].loco_vectors)
+        #cips_ = [(cip_,max([dist(cip_.loco_vectors,b) for b in cip.loco_vectors]))
+        cips_ = [(cip_,max([dist(cip.loco_vectors[0],b) for b in cip_.loco_vectors]))
                      for cip_ in cips if cip_.core_hash != cip.core_hash]
 
         
         random.shuffle(cips_)
-        return [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
+        ret = [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
+        #if len(ret)<1 : logger.info( [b for a,b in cips_]  )
+        return ret
 
     def _add_cip(self, cip):
 
         def same(a,b):
             if type(a)==csr_matrix and type(b)==csr_matrix:
                 return np.array_equal(a.data,b.data)and np.array_equal(a.indptr,b.indptr)and np.array_equal(a.indices,b.indices)
-
             if type(a)!=csr_matrix and type(b)!=csr_matrix:
                 return True
             if type(a)!=csr_matrix or  type(b)!=csr_matrix:

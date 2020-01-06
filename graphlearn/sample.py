@@ -1,7 +1,7 @@
 from graphlearn.util import util
-import logging
 from graphlearn.choice import SelectMax
 
+import logging
 logger = logging.getLogger(__name__)
 
 def sample_step(object, transformer, grammar, scorer, selector):
@@ -23,7 +23,7 @@ def sample_step(object, transformer, grammar, scorer, selector):
 
     proposal_objects = list(transformer.decode(proposal_graphs))
     scores = scorer.decision_function(proposal_objects)
-    logger.info(str(scores) + str(scores[0]/scores[1]))  
+    #logger.info(str(scores) + str(scores[0]/scores[1]))  
     object, score = selector.select(proposal_objects, scores)
 
     return object, score
