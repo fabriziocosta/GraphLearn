@@ -41,7 +41,7 @@ def sample_sizeconstraint(graph,penalty=0.01, **kwargs):
     return sample(graph,**kwargs)
 
 class sampler(object):
-    def __init__(self,**sampleargs):
+    def __init__(self,burnin=10,emit=5,**sampleargs):
         self.__dict__.update(sampleargs)
         self.history=[]
     
@@ -50,6 +50,15 @@ class sampler(object):
         self.scorer.sizepenalty = penalty
         return self.sample(graph)
 
+    def sample_burnin(self,graph):
+        res= []
+        for i in range(self.n_steps):
+            graph, score = self.sample_step(graph,i)
+            if i > self.burnin: 
+                if i - self.burnin % self.emit ==0:
+                    res.append(graph)
+        return res
+            
     def sample(self,graph):
         for i in range(self.n_steps):
             graph, score = self.sample_step(graph,i)
