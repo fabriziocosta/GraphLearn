@@ -46,14 +46,24 @@ class OneClassEstimator():
         vecs = self.transform(graphs)
         return self.model.decision_function(vecs)
 
+class OneClassSizeHarmMean(OneClassEstimator):
+    def fit(self,graphs):
+        le = np.array(map(len,graphs))
+        self.sizedist = sp.stats.norm(loc=le.mean(),scale=np.std())
+        super().fit(graphs)
+
+    def decision_function(self,graphs):
+        vecs = self.transform(graphs)
+        scores =  self.model.decision_function(vecs) 
+        sizefac = [ self.sizedist.pdf(len(x)) for x in graphs ]
+        return sp.stats.hmean( numpy.vstack(scores,sizefac),axis=0)
+
 class OneClassAndSizeFactor(OneClassEstimator):
     def decision_function(self,graphs):
         if 'sizefactor' not in self.__dict__:
             print ("OneClassAndSizeFactor has no size factor")
-       
         vecs = self.transform(graphs)
         return self.model.decision_function(vecs)*np.array([self.sizepen(x) for x in graphs])
-
     def sizepen(self,g):
         diff =  abs(len(g) - self.sizefactor)
         return 1 - diff*self.sizepenalty

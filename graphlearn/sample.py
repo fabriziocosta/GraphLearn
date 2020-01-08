@@ -1,4 +1,5 @@
 from graphlearn.util import util
+import warnings
 from graphlearn.choice import SelectMax
 
 import logging
