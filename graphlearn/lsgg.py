@@ -167,6 +167,11 @@ class lsgg(object):
         for neighbor in it:
             yield neighbor
 
+
+    def _neighbors_sample_order_proposals(self,subs):
+        random.shuffle(subs)
+        return subs
+        
     def neighbors_sample(self, graph, n_neighbors):
         """neighbors_sample. samples from all possible replacements"""
 
@@ -174,8 +179,9 @@ class lsgg(object):
         subs = [ (cip,con_cip) for cip in cips
                                for con_cip in self._congruent_cips(cip)
                                if (cip.core_nodes_count +self.maxgrowth) >= con_cip.core_nodes_count ]
-        random.shuffle(subs)
         
+        subs = self._neighbors_sample_order_proposals(subs)
+
         if len(subs) < 1: logger.info('no congruent cips')
         n_neighbors_counter = n_neighbors
         while subs:

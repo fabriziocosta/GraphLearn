@@ -32,12 +32,19 @@ class LOCO(lsgg.lsgg):
         #cips_ = [(cip_,max([dist(cip_.loco_vectors,b) for b in cip.loco_vectors]))
         cips_ = [(cip_,max([dist(cip.loco_vectors[0],b) for b in cip_.loco_vectors]))
                      for cip_ in cips if cip_.core_hash != cip.core_hash]
-
-        
-        random.shuffle(cips_)
-        ret = [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
+         
+        #ret = [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
         #if len(ret)<1 : logger.info( [b for a,b in cips_]  )
-        return ret
+        sumdists = sum([b for cip_,b in cips_])
+        for cip_, di in cips_:
+            cip_.locosimilarity = di/sumdists
+            yield cip_
+    
+    def _neighbors_sample_order_proposals(self,subs): 
+        samples = np.random.choice( list(range(len(subs))) ,  replace=False,
+                p=[c[1].locosimilarity for c in subs ])
+        return [subs[i] for i in samples]
+
 
     def _add_cip(self, cip):
 
