@@ -36,13 +36,18 @@ class LOCO(lsgg.lsgg):
         #ret = [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
         #if len(ret)<1 : logger.info( [b for a,b in cips_]  )
         sumdists = sum([b for cip_,b in cips_])
+        if sumdists == 0.0:
+            return 
         for cip_, di in cips_:
-            cip_.locosimilarity = di/sumdists
-            yield cip_
+            if di > 0.0:
+                cip_.locosimilarity = di/sumdists
+                yield cip_
     
     def _neighbors_sample_order_proposals(self,subs): 
-        samples = np.random.choice( list(range(len(subs))) ,  replace=False,
-                p=[c[1].locosimilarity for c in subs ])
+        sim = [c[1].locosimilarity for c in subs ]
+        suu = sum(sim)
+        samples = np.random.choice( list(range(len(subs))) ,size=len(subs),  replace=False,
+                p=[x/suu for x in sim])
         return [subs[i] for i in samples]
 
 

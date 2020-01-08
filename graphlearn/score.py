@@ -9,6 +9,8 @@ import random
 import numpy as np
 from graphlearn.util.multi import mpmap
 import scipy as sp
+
+
 class SimpleDistanceEstimator():
     def __init__(self):
         self.reference_vec, self.vectorizer = None, None
@@ -48,15 +50,16 @@ class OneClassEstimator():
 
 class OneClassSizeHarmMean(OneClassEstimator):
     def fit(self,graphs):
-        le = np.array(map(len,graphs))
-        self.sizedist = sp.stats.norm(loc=le.mean(),scale=np.std())
+        le = np.array(list(map(len,graphs)))
+        self.sizedist = sp.stats.norm(loc=le.mean(),scale=le.std())
         super().fit(graphs)
+        return self
 
     def decision_function(self,graphs):
         vecs = self.transform(graphs)
-        scores =  self.model.decision_function(vecs) 
+        scores =  self.model.decision_function(vecs)
         sizefac = [ self.sizedist.pdf(len(x)) for x in graphs ]
-        return sp.stats.hmean( numpy.vstack(scores,sizefac),axis=0)
+        return [ sp.stats.hmean((a,b)) if b > 0 else 0 for a,b in zip(sizefac,scores)  ]
 
 class OneClassAndSizeFactor(OneClassEstimator):
     def decision_function(self,graphs):

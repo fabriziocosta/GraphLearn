@@ -26,9 +26,8 @@ class SelectClassic(object):
         
         new = (proposals[0], scores[0])
         old = (proposals[1], scores[1])
-        if scores[0]<0 or scores[1]<0: 
+        if scores[0]<=0 or scores[1]<=0: 
             return new if scores[0]<scores[1] else old 
-
         if scores[0] > scores[1]:
             return new
         elif random.random() < ((scores[0]/scores[1])  -self.reg):
