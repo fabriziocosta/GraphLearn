@@ -54,7 +54,7 @@ class sampler(object):
         res= []
         for i in range(self.n_steps):
             graph, score = self.sample_step(graph,i)
-            if i > self.burnin: 
+            if i >= self.burnin: 
                 if (i - self.burnin) % self.emit ==0:
                     res.append(graph)
         return res
