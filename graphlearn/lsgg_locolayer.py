@@ -10,12 +10,13 @@ import numpy as np
 from scipy.sparse import csr_matrix
 import logging
 logger = logging.getLogger(__name__)
+from graphlearn import lsgg_layered 
+from graphlearn import lsgg_loco
 
 
+class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
 
-class lsgg_locolayer(lsgg.lsgg):
-
-
+    '''
     # theese should work the same way as loco i assume
     def _add_cip(self, cip):
 
@@ -89,9 +90,12 @@ class lsgg_locolayer(lsgg.lsgg):
                                                  radius=radius,
                                                  thickness=thickness):
                     yield e
+    '''
+
+
 
     def _extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
-        basecip = extract_core_and_interface(root_node=root_node,
+        basecip = lsgg_loco.extract_core_and_interface(root_node=root_node,
                                                  graph=graph,
                                                  radius=radius,
                                                  thickness=thickness,
@@ -143,7 +147,7 @@ class lsgg_locolayer(lsgg.lsgg):
             #print cip.interface_hash, cip.core_hash, root_node
             yield cip
 
-
+'''
 def extract_core_and_interface(root_node=None,
                                graph=None,
                                radius=None,
@@ -178,6 +182,4 @@ def extract_core_and_interface(root_node=None,
 
 
 
-
-
-
+'''
