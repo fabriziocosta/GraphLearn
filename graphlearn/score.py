@@ -58,7 +58,7 @@ class OneClassSizeHarmMean(OneClassEstimator):
 
     def decision_function(self,graphs):
         vecs = self.transform(graphs)
-        scores =  self.model.decision_function(vecs)
+        scores =  (self.model.decision_function(vecs)+2)/3
         sizefac = [ self.sizedist.pdf(len(x)) for x in graphs ]
         res= [ sp.stats.hmean((a,b)) if b > 0 else 0 for a,b in zip(sizefac,scores)  ]
         logger.log(29,"HMEAN: scores, sizescores, hmean")
