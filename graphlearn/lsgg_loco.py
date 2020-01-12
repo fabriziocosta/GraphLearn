@@ -38,6 +38,7 @@ class LOCO(lsgg.lsgg):
         sumdists = sum([b for cip_,b in cips_])
         if sumdists == 0.0:
             return 
+
         for cip_, di in cips_:
             if di > 0.0:
                 cip_.locosimilarity = di/sumdists
@@ -46,6 +47,8 @@ class LOCO(lsgg.lsgg):
     def _neighbors_sample_order_proposals(self,subs): 
         sim = [c[1].locosimilarity for c in subs ]
         suu = sum(sim)
+        logger.log(29, "cips_ priosim scores:")
+        logger.log(29, sim)
         samples = np.random.choice( list(range(len(subs))) ,size=len(subs),  replace=False,
                 p=[x/suu for x in sim])
         return [subs[i] for i in samples]

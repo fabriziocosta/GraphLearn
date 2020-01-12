@@ -9,7 +9,8 @@ import random
 import numpy as np
 from graphlearn.util.multi import mpmap
 import scipy as sp
-
+import logging 
+logger = logging.getLogger(__name__)
 
 class SimpleDistanceEstimator():
     def __init__(self):
@@ -59,7 +60,12 @@ class OneClassSizeHarmMean(OneClassEstimator):
         vecs = self.transform(graphs)
         scores =  self.model.decision_function(vecs)
         sizefac = [ self.sizedist.pdf(len(x)) for x in graphs ]
-        return [ sp.stats.hmean((a,b)) if b > 0 else 0 for a,b in zip(sizefac,scores)  ]
+        res= [ sp.stats.hmean((a,b)) if b > 0 else 0 for a,b in zip(sizefac,scores)  ]
+        logger.log(29,"HMEAN: scores, sizescores, hmean")
+        logger.log(29,scores)
+        logger.log(29,sizefac)
+        logger.log(29,res)
+        return res
 
 class OneClassAndSizeFactor(OneClassEstimator):
     def decision_function(self,graphs):
