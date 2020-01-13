@@ -52,19 +52,19 @@ class OneClassEstimator():
 class OneClassSizeHarmMean(OneClassEstimator):
     def fit(self,graphs):
         le = np.array(list(map(len,graphs)))
-        self.sizedist = sp.stats.norm(loc=le.mean(),scale=le.std())
+        self.sizedist = sp.stats.norm(loc=le.mean(),scale=le.std()/2)
+        logger.log(29,f"sizedist: mean{le.mean()}, scale {le.std()}")
         super().fit(graphs)
         return self
 
     def decision_function(self,graphs):
         vecs = self.transform(graphs)
-        scores =  (self.model.decision_function(vecs)+2)/3
-        sizefac = [ self.sizedist.pdf(len(x)) for x in graphs ]
-        res= [ sp.stats.hmean((a,b)) if b > 0 else 0 for a,b in zip(sizefac,scores)  ]
-        logger.log(29,"HMEAN: scores, sizescores, hmean")
-        logger.log(29,scores)
-        logger.log(29,sizefac)
-        logger.log(29,res)
+        scores =  self.model.decision_function(vecs)
+        sizefac = [ self.sizedist.pdf(len(x))*10 for x in graphs ]
+        res= [ sp.stats.hmean((a,sp.stats.logistic.cdf(b, 0, 1)  ))  for a,b in zip(sizefac,scores)  ]
+        logger.log(29,f"svm:   {scores}")
+        logger.log(29,f"size:  {[len(x) for x in graphs]} -> {sizefac}")
+        logger.log(29,f"hmean: {res}")
         return res
 
 class OneClassAndSizeFactor(OneClassEstimator):

@@ -38,6 +38,7 @@ class LOCO(lsgg.lsgg):
 
         for cip_, di in cips_:
             if di > 0.0:
+                cip_.locosimilarity=di
                 yield cip_
     
     def _neighbors_sample_order_proposals(self,subs): 

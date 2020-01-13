@@ -1,4 +1,6 @@
 import random
+import logging
+logger = logging.getLogger(__name__)
 
 
 class SelectMax:
@@ -17,7 +19,7 @@ class SelectMaxN(object):
 
 
 class SelectClassic(object):
-    def __init__(self,reg=0.0):
+    def __init__(self,reg=0.5):
         self.reg = reg
 
     def select(self, proposals, scores):
@@ -26,11 +28,13 @@ class SelectClassic(object):
         
         new = (proposals[0], scores[0])
         old = (proposals[1], scores[1])
+        rnd= random.random()
         if scores[0]<=0 or scores[1]<=0: 
             return new if scores[0]<scores[1] else old 
         if scores[0] > scores[1]:
             return new
-        elif random.random() < ((scores[0]/scores[1])  -self.reg):
+        elif rnd < ((scores[0]/scores[1])  -self.reg):
+            logger.log(28,f"accepting new:{rnd} < {scores[0]/scores[1]}")
             return new
         return old
 
