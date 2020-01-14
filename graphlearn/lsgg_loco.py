@@ -26,10 +26,7 @@ class LOCO(lsgg.lsgg):
                 return 1 # both None
             else: 
                 return 0 # one is none
-        
-        #print ('cip',cip.loco_vectors,)
-        #print('congruent:',list(cips)[0].loco_vectors)
-        #cips_ = [(cip_,max([dist(cip_.loco_vectors,b) for b in cip.loco_vectors]))
+
         cips_ = [(cip_,max([dist(cip.loco_vectors[0],b) for b in cip_.loco_vectors]))
                      for cip_ in cips if cip_.core_hash != cip.core_hash]
          

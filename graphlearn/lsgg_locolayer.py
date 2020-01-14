@@ -95,6 +95,7 @@ class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
 
 
     def _extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
+
         basecip = lsgg_loco.extract_core_and_interface(root_node=root_node,
                                                  graph=graph,
                                                  radius=radius,
@@ -147,39 +148,5 @@ class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
             #print cip.interface_hash, cip.core_hash, root_node
             yield cip
 
-'''
-def extract_core_and_interface(root_node=None,
-                               graph=None,
-                               radius=None,
-                               thickness=None,
-                               thickness_loco=2):
-    # MAKE A NORMAL CIP AS IN LSGG_CIP
-    graph = lsgg_cip._edge_to_vertex(graph)
-    lsgg_cip._add_hlabel(graph)
-    dist = {a: b for (a, b) in lsgg_cip.short_paths(graph,
-                                                    root_node if isinstance(root_node, list) else [root_node],
-                                                    thickness + radius + thickness_loco)}
-
-    core_nodes = [id for id, dst in dist.items() if dst <= radius]
-    interface_nodes = [id for id, dst in dist.items()
-                       if radius < dst <= radius + thickness]
-
-    normal_cip = lsgg_cip._finalize_cip(root_node, graph, radius, thickness, dist, core_nodes, interface_nodes)
-
-    # NOW COMES THE loco PART
-
-    loco_nodes = [id for id, dst in dist.items()
-                  if (radius + thickness) < dst <= (radius + thickness + thickness_loco)]
-
-    loco_graph = graph.subgraph(loco_nodes)
-
-    loosecontext = nx.Graph(loco_graph)
-    nn = loosecontext.number_of_nodes() > 2
-    # eden doesnt like empty graphs, they should just be a 0 vector...
-    normal_cip.loco_vectors = [lsgg_cip.eg.vectorize([loosecontext])] if nn else [None]
-
-    return normal_cip
 
 
-
-'''
