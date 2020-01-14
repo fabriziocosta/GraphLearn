@@ -63,11 +63,12 @@ class OneClassSizeHarmMean(OneClassEstimator):
         vecs = self.transform(graphs)
         scores =  self.model.decision_function(vecs)
         scores2 = [sp.stats.logistic.cdf(a,0,1) for a in scores]
-        sizefac = [ abs(self.size_mean - len(x))/self.size_std for x in graphs ]
-        sizefac2 = [sp.stats.logistic.cdf(-a,-2,1) for a in sizefac]
+        norm = lambda x:  math.exp((((len(x)-self.size_mean)/self.size_std)**2)*.5) 
+        sizefac = [ norm(x) if len(x)> self.size_mean else 1  for x in graphs ]
+        #sizefac2 = [sp.stats.logistic.cdf(-a,-2,1) for a in sizefac]  
         res= [ sp.stats.hmean((a,b))  for a,b in zip(sizefac2,scores2)  ]
         logger.log(29,f"svm:   {scores} -> {scores2}")
-        logger.log(29,f"size:  {[len(x) for x in graphs]} -> {sizefac} -> {sizefac2}")
+        logger.log(29,f"size:  {[len(x) for x in graphs]} -> {sizefac}")
         logger.log(29,f"hmean: {res}")
         return res
 
