@@ -77,7 +77,7 @@ def extract_core_and_interface(root_node=None,
     lsgg_cip._add_hlabel(graph)
     dist = {a:b for (a,b) in lsgg_cip.short_paths(graph,
                                          root_node if isinstance(root_node,list) else [root_node],
-                                         thickness+radius+thickness_loco)}
+                                         radius+max(thickness_loco,thickness))}
 
     core_nodes = [id for id, dst in dist.items() if dst <= radius]
     interface_nodes = [id for id, dst in dist.items()
@@ -89,7 +89,7 @@ def extract_core_and_interface(root_node=None,
     # NOW COMES THE loco PART
 
     loco_nodes = [id for id, dst in dist.items()
-                       if (radius+thickness) < dst <= (radius + thickness+ thickness_loco)]
+                       if radius < dst <= (radius + thickness_loco)]
 
     loco_graph = graph.subgraph(loco_nodes) 
     
