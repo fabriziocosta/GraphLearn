@@ -18,9 +18,9 @@ def sample_step(object, transformer, grammar, scorer, selector):
     -------
         object
     """
-    graph = transformer.encode_single(object)
+    graph = transformer.encode_single(object)  
     util.valid_gl_graph(graph)
-    proposal_graphs = list(grammar.neighbors_sample(graph,1))+[graph]
+    proposal_graphs = list(grammar.neighbors_sample(graph,1))+transformer.decode([graph])
 
     proposal_objects = list(transformer.decode(proposal_graphs))
     scores = scorer.decision_function(proposal_objects)

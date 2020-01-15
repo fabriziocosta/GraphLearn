@@ -176,10 +176,14 @@ class lsgg(object):
 
     def get_size_proba(self,subs):
         diffs = [ b.core_nodes_count-a.core_nodes_count for a,b in subs  ]
-        z =  1/diffs.count(0)
-        s = 1/sum(x<0 for x in diffs)
-        g = 1/sum(x>0 for x in diffs)
+
+        z = diffs.count(0) 
+        s = sum(x<0 for x in diffs)
+        g = sum(x>0 for x in diffs)
         logger.log(80,f"assigned probabilities: same:{z}, smaller{s}, bigger{g}")
+        z = 1/z if z !=0 else 1
+        s = 1/s if s !=0 else 1
+        g = 1/g if g !=0 else 1
         def f(d):
             if d ==0:
                 return z 

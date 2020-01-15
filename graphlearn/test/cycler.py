@@ -55,7 +55,11 @@ class Cycler():
 
     def decode(self,graphs):
         '''there is nothing to do because the output is already gl.valid_gl_graph :D'''
-        return graphs
+        return [self._decode_single(g) for g in graphs]
+    def _decode_single(self,g):
+        if 'original' in g.graph:
+            return g.graph['original']
+        return g
 
 
 
