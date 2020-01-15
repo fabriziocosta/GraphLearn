@@ -4,7 +4,7 @@ from graphlearn import lsgg_cip
 import networkx as nx
 import numpy as np
 import random
-from scipy.sparse import csr_matrix
+import  scipy.sparse as sparse
 import logging
 logger = logging.getLogger(__name__)
 from sklearn.metrics.pairwise import cosine_similarity
@@ -22,7 +22,8 @@ class LOCO(lsgg.lsgg):
         def dist(a,b):
             return a.dot(b.T)[0,0]
             
-        cips_ = [(cip_,max([dist(cip.loco_vectors[0],b) for b in cip_.loco_vectors]))
+        #cips_ = [(cip_,max([dist(cip.loco_vectors[0],b) for b in cip_.loco_vectors]))
+        cips_ = [(cip_,np.max( cips.loco_vectors.dot(cip.loco_vectors)))
                      for cip_ in cips if cip_.core_hash != cip.core_hash]
          
         #ret = [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
@@ -42,16 +43,12 @@ class LOCO(lsgg.lsgg):
 
 
     def _add_cip(self, cip):
-
-        def same(a,b):
-            if type(a)==csr_matrix and type(b)==csr_matrix:
-                return np.array_equal(a.data,b.data)and np.array_equal(a.indptr,b.indptr)and np.array_equal(a.indices,b.indices)
-            print("OMGWTFBBQ")
                     
         grammarcip = self.productions[cip.interface_hash].setdefault(cip.core_hash, cip)
         grammarcip.count+=1
-        if not any([same(cip.loco_vectors[0],x) for x in  grammarcip.loco_vectors]):
-            grammarcip.loco_vectors+=cip.loco_vectors
+        if not grammarcip.locohash.intersection(cip.locohash): 
+            grammarcip.loco_vectors= sparse.vstack( (grammarcip.loco_vectors,  cip.loco_vectors))
+            grammarcip.locohash= grammarcip.locohash.union(cip.locohash)
 
 
 def extract_core_and_interface(root_node=None,
@@ -83,7 +80,8 @@ def extract_core_and_interface(root_node=None,
     
     loosecontext = nx.Graph(loco_graph)
     if loosecontext.number_of_nodes() > 2:
-        normal_cip.loco_vectors = [lsgg_cip.eg.vectorize([loosecontext])]
+        normal_cip.loco_vectors = lsgg_cip.eg.vectorize([loosecontext])
+        normal_cip.loco_hash = set([ lsgg_cip.graph_hash(loosecontext)] ) 
         return normal_cip
     return None
 
