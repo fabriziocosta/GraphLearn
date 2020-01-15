@@ -6,6 +6,7 @@ import random
 from collections import defaultdict
 from graphlearn import lsgg_cip
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 from graphlearn.util.multi import mpmap
@@ -169,16 +170,36 @@ class lsgg(object):
 
 
     def _neighbors_sample_order_proposals(self,subs):
-        random.shuffle(subs)
-        return subs
-        
+        #random.shuffle(subs)
+        probs= self.get_size_proba(subs)
+        return self.order_proba(subs,probs)
+
+    def get_size_proba(self,subs):
+        diffs = [ b.core_nodes_count-a.core_nodes_count for a,b in subs  ]
+        z =  1/diffs.count(0)
+        s = 1/sum(x<0 for x in diffs)
+        g = 1/sum(x>0 for x in diffs)
+        logger.log(80,f"assigned probabilities: same:{z}, smaller{s}, bigger{g}")
+        def f(d):
+            if d ==0:
+                return z 
+            if d>0:
+                return g
+            return s
+        return [ f(d)  for d in diffs]
+
+    def order_proba(self,subs, probabilities):
+        suu = sum(probabilities)
+        samples = np.random.choice( list(range(len(subs))) ,size=len(subs),  replace=False,
+                p=[x/suu for x in probabilities])
+        return [subs[i] for i in samples[::-1]]
+
     def neighbors_sample(self, graph, n_neighbors):
         """neighbors_sample. samples from all possible replacements"""
 
         cips = self._cip_extraction(graph)
         subs = [ (cip,con_cip) for cip in cips
-                               for con_cip in self._congruent_cips(cip)
-                               if (cip.core_nodes_count +self.maxgrowth) >= con_cip.core_nodes_count ]
+                               for con_cip in self._congruent_cips(cip)]
         
         subs = self._neighbors_sample_order_proposals(subs)
 

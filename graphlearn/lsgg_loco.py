@@ -40,12 +40,10 @@ class LOCO(lsgg.lsgg):
     
     def _neighbors_sample_order_proposals(self,subs): 
         sim = [c[1].locosimilarity for c in subs ]
-        suu = sum(sim)
         logger.log(29, "cips_ priosim scores:")
         logger.log(29, sim)
-        samples = np.random.choice( list(range(len(subs))) ,size=len(subs),  replace=False,
-                p=[x/suu for x in sim])
-        return [subs[i] for i in samples]
+        p_size = [a*b for a,b in zip (self.get_size_proba(subs),sim)]
+        return self.order_proba(subs, p_size)
 
 
     def _add_cip(self, cip):
