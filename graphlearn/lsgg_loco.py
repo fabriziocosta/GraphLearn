@@ -23,7 +23,7 @@ class LOCO(lsgg.lsgg):
             return a.dot(b.T)[0,0]
             
         #cips_ = [(cip_,max([dist(cip.loco_vectors[0],b) for b in cip_.loco_vectors]))
-        cips_ = [(cip_,np.max( cips.loco_vectors.dot(cip.loco_vectors)))
+        cips_ = [(cip_,np.max( cip_.loco_vectors.dot(cip.loco_vectors.toarray()[0])))
                      for cip_ in cips if cip_.core_hash != cip.core_hash]
          
         #ret = [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
@@ -46,9 +46,9 @@ class LOCO(lsgg.lsgg):
                     
         grammarcip = self.productions[cip.interface_hash].setdefault(cip.core_hash, cip)
         grammarcip.count+=1
-        if not grammarcip.locohash.intersection(cip.locohash): 
+        if not grammarcip.loco_hash.intersection(cip.loco_hash): 
             grammarcip.loco_vectors= sparse.vstack( (grammarcip.loco_vectors,  cip.loco_vectors))
-            grammarcip.locohash= grammarcip.locohash.union(cip.locohash)
+            grammarcip.locohash= grammarcip.loco_hash.union(cip.loco_hash)
 
 
 def extract_core_and_interface(root_node=None,
@@ -81,6 +81,7 @@ def extract_core_and_interface(root_node=None,
     loosecontext = nx.Graph(loco_graph)
     if loosecontext.number_of_nodes() > 2:
         normal_cip.loco_vectors = lsgg_cip.eg.vectorize([loosecontext])
+        lsgg_cip._add_hlabel(loosecontext)
         normal_cip.loco_hash = set([ lsgg_cip.graph_hash(loosecontext)] ) 
         return normal_cip
     return None
