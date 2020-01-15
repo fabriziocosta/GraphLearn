@@ -20,13 +20,8 @@ class LOCO(lsgg.lsgg):
     def _congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()
         def dist(a,b):
-            if type(a)==csr_matrix and type(b)==csr_matrix:
-                return a.dot(b.T)[0,0]
-            elif type(a)!=csr_matrix and type(b)!=csr_matrix:
-                return 1 # both None
-            else: 
-                return 0 # one is none
-
+            return a.dot(b.T)[0,0]
+            
         cips_ = [(cip_,max([dist(cip.loco_vectors[0],b) for b in cip_.loco_vectors]))
                      for cip_ in cips if cip_.core_hash != cip.core_hash]
          
@@ -51,11 +46,6 @@ class LOCO(lsgg.lsgg):
         def same(a,b):
             if type(a)==csr_matrix and type(b)==csr_matrix:
                 return np.array_equal(a.data,b.data)and np.array_equal(a.indptr,b.indptr)and np.array_equal(a.indices,b.indices)
-            if type(a)!=csr_matrix and type(b)!=csr_matrix:
-                return True
-            if type(a)!=csr_matrix or  type(b)!=csr_matrix:
-                return False
-
             print("OMGWTFBBQ")
                     
         grammarcip = self.productions[cip.interface_hash].setdefault(cip.core_hash, cip)
@@ -92,9 +82,10 @@ def extract_core_and_interface(root_node=None,
     loco_graph = graph.subgraph(loco_nodes) 
     
     loosecontext = nx.Graph(loco_graph)
-    nn = loosecontext.number_of_nodes() > 2
-    # eden doesnt like empty graphs, they should just be a 0 vector... 
-    normal_cip.loco_vectors = [lsgg_cip.eg.vectorize([loosecontext])] if nn else [None]
+    if loosecontext.number_of_nodes() > 2:
+        normal_cip.loco_vectors = [lsgg_cip.eg.vectorize([loosecontext])]
+        return normal_cip
+    return None
 
-    return normal_cip
+
 

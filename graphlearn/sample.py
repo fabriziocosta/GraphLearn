@@ -21,11 +21,11 @@ def sample_step(object, transformer, grammar, scorer, selector):
     graph = transformer.encode_single(object)  
     util.valid_gl_graph(graph)
     proposal_graphs = list(grammar.neighbors_sample(graph,1))+transformer.decode([graph])
-
     proposal_objects = list(transformer.decode(proposal_graphs))
     scores = scorer.decision_function(proposal_objects)
     new_object, score = selector.select(proposal_objects, scores)
     return new_object, score
+
 
 def sample(graph, transformer=None, grammar=None, scorer=None, selector=None, n_steps=75, return_score=False):
     for i in range(n_steps):
@@ -42,6 +42,7 @@ def sample_sizeconstraint(graph,penalty=0.01, **kwargs):
 
 class sampler(object):
     def __init__(self,**sampleargs):
+        self.faster=False
         self.__dict__.update(sampleargs)
         self.history=[]
     
@@ -65,13 +66,20 @@ class sampler(object):
         return graph
 
     def sample_step(self,object,step):
+        if object is None: return None,0
         graph = self.transformer.encode_single(object)
         util.valid_gl_graph(graph)
-        proposal_graphs = list(self.grammar.neighbors_sample(graph,1))+[graph]
+        if self.faster:
+            proposal_graphs = list(self.grammar.neighbors_sample_faster(graph,1))+[graph]
+        else:
+            proposal_graphs = list(self.grammar.neighbors_sample(graph,1))+[graph]
+
         proposal_objects = list(self.transformer.decode(proposal_graphs))
         
         if len(proposal_objects) <= 1: 
             warnings.warn(f"reached a dead-end graph, attempting to backtrack at step {step}")
+            if len(self.history) < 2:
+                return None,0
             self.history.pop() # the problematic graph should be on top of the stack
             return self.history.pop() 
 

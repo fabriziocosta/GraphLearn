@@ -110,10 +110,12 @@ class lsgg(object):
             for thickness in self.decomposition_args['thickness_list']:
                 if not self.half_step_distance:
                     thickness = thickness * 2
-                yield self._extract_core_and_interface(root_node=root,
+                x= self._extract_core_and_interface(root_node=root,
                                                        graph=graph,
                                                        radius=radius,
                                                        thickness=thickness)
+                if x:
+                    yield x
 
     def _add_cip(self, cip):
         """see fit"""
@@ -229,6 +231,8 @@ class lsgg(object):
         sanity = n_neighbors*3
         mycips = {}
         while sanity: 
+
+            # select a cip: 
             sanity -=1
             rootradthi = (random.choice(list(graph)), 
                 random.choice( self.decomposition_args['radius_list'] ),
@@ -238,17 +242,22 @@ class lsgg(object):
             else:
                 root,rad, thi = rootradthi
                 zzz= self._extract_core_and_interface(root_node=root,graph=graph,radius=rad*2,thickness=thi*2)
-                cips = [zzz] if type(zzz) == lsgg_cip.CoreInterfacePair  else list(zzz)
+                cips = [zzz] if type(zzz) == lsgg_cip.CoreInterfacePair  else []
                 mycips[rootradthi] = cips
-            cip = random.choice(cips)
-            cong = self._congruent_cips(cip)
 
-            if len(cong) == 0:
+
+            if len(cips)==0: 
                 continue
-            else:
-                tame = lambda x: 1.0 if x <= 0 else 0 if x >=10 else .5-.05*x
-                cip_ = random.choices(cong,[ tame( len(new.core_nodes)-len(cip.core_nodes))  for new in cong  ],k=1)[0]
+            cip = random.choice(cips)
 
+            # select cip to substitute: 
+            subs = [(cip,congru) for congru in self._congruent_cips(cip) ]
+            if len(subs)==0: 
+                continue
+            subs = self._neighbors_sample_order_proposals(subs)
+            cip, cip_ = subs[0]
+            
+            # substitute
             graph_ = self._core_substitution(graph, cip, cip_)
             if graph_ is not None:
                 if n_neighbors_counter > 0:
