@@ -82,7 +82,7 @@ def extract_core_and_interface(root_node=None,
     # NOW COMES THE loco PART
 
     loco_nodes = [id for id, dst in dist.items()
-                       if radius < dst <= (radius + thickness_loco)]
+                       if radius+1 < dst <= (radius + thickness_loco)]
 
     loco_graph = graph.subgraph(loco_nodes) 
     
