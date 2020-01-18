@@ -1,4 +1,5 @@
 
+import structout as so 
 
 from graphlearn.test import transformutil
 import copy
@@ -16,99 +17,24 @@ from graphlearn import lsgg_loco
 
 class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
 
-    '''
-    # theese should work the same way as loco i assume
-    def _add_cip(self, cip):
-
-        def same(a, b):
-            if type(a) == csr_matrix and type(b) == csr_matrix:
-                return np.array_equal(a.data, b.data) and np.array_equal(a.indptr, b.indptr) and np.array_equal(
-                    a.indices, b.indices)
-            if type(a) != csr_matrix and type(b) != csr_matrix:
-                return True
-            if type(a) != csr_matrix or type(b) != csr_matrix:
-                return False
-
-            print("OMGWTFBBQ")
-
-        grammarcip = self.productions[cip.interface_hash].setdefault(cip.core_hash, cip)
-        grammarcip.count += 1
-        if not any([same(cip.loco_vectors[0], x) for x in grammarcip.loco_vectors]):
-            grammarcip.loco_vectors += cip.loco_vectors
-
-
-
-    def _congruent_cips(self, cip):
-        cips = self.productions.get(cip.interface_hash, {}).values()
-
-        def dist(a, b):
-            if type(a) == csr_matrix and type(b) == csr_matrix:
-                return a.dot(b.T)[0, 0]
-            elif type(a) != csr_matrix and type(b) != csr_matrix:
-                return 1  # both None
-            else:
-                return 0  # one is none
-
-        # print ('cip',cip.loco_vectors,)
-        # print('congruent:',list(cips)[0].loco_vectors)
-        # cips_ = [(cip_,max([dist(cip_.loco_vectors,b) for b in cip.loco_vectors]))
-        cips_ = [(cip_, max([dist(cip.loco_vectors[0], b) for b in cip_.loco_vectors]))
-                 for cip_ in cips if cip_.core_hash != cip.core_hash]
-
-        # ret = [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
-        # if len(ret)<1 : logger.info( [b for a,b in cips_]  )
-        sumdists = sum([b for cip_, b in cips_])
-        if sumdists == 0.0:
-            return
-        for cip_, di in cips_:
-            if di > 0.0:
-                cip_.locosimilarity = di / sumdists
-                yield cip_
-
-    def _neighbors_sample_order_proposals(self, subs):
-        sim = [c[1].locosimilarity for c in subs]
-        suu = sum(sim)
-        samples = np.random.choice(list(range(len(subs))), size=len(subs), replace=False,
-                                   p=[x / suu for x in sim])
-        return [subs[i] for i in samples]
-
-    # this should work like layered
-    def _core_substitution(self,graph,cip,cip_):
-        return lsgg_cip.core_substitution(graph.graph['original'], cip, cip_)
-
-
-
-    def _cip_extraction_given_root(self, graph, root):
-        """helper of _cip_extraction. See fit"""
-        for radius in self.decomposition_args['radius_list']:
-            radius = radius * 2
-            for thickness in self.decomposition_args['thickness_list']:
-                thickness = thickness * 2
-                # note that this loop is different from the parent class :) 
-                for e in self._extract_core_and_interface(root_node=root,
-                                                 graph=graph,
-                                                 radius=radius,
-                                                 thickness=thickness):
-                    yield e
-    '''
-
-
-
     def _extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
 
-        basecip = lsgg_loco.extract_core_and_interface(root_node=root_node,
+        basecip = lsgg_cip.extract_core_and_interface(root_node=root_node,
                                                  graph=graph,
                                                  radius=radius,
-                                                 thickness=thickness,
-                                                 thickness_loco = self.decomposition_args['thickness_loco'])
+                                                 thickness=thickness)
+
+
+        base_thickness = 2*self.decomposition_args['base_thickness']
+        pisi_thickness = 2*self.decomposition_args['thickness_loco']
 
 
 
-        # expand base graph
+
+
+        # edge to vertex Basegraph
         orig_graph = graph.graph['original']
         expanded_orig_graph = lsgg_cip._edge_to_vertex(orig_graph)
-
-        lsgg_cip._add_hlabel(expanded_orig_graph)
 
         # make a copy, collapse core
         expanded_orig_graph_collapsed =  expanded_orig_graph.copy()
@@ -122,31 +48,36 @@ class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
 
 
         # distances...
-        dist = nx.single_source_shortest_path_length(expanded_orig_graph_collapsed,
-                                        nodes_in_core[0],max(self.decomposition_args['base_thickness_list']))
+        dist = nx.single_source_shortest_path_length(
+                                expanded_orig_graph_collapsed,
+                                nodes_in_core[0], pisi_thickness)
 
         # set distance dependant label
+        lsgg_cip._add_hlabel(expanded_orig_graph)
         ddl = 'distance_dependent_label'
         for id, dst in dist.items():
             if dst>0:
                 expanded_orig_graph.nodes[id][ddl] = expanded_orig_graph.nodes[id]['hlabel'] + dst
 
 
-        for base_thickness in self.decomposition_args['base_thickness_list']:
 
-            interface_nodes = [id for id, dst in dist.items()
-                       if 0 < dst <= base_thickness]
-            interface_hash = lsgg_cip.graph_hash(expanded_orig_graph_collapsed.subgraph(interface_nodes))
-            cip=copy.deepcopy(basecip)
-            cip.interface_nodes=interface_nodes
-            cip.interface_graph = expanded_orig_graph.subgraph(interface_nodes).copy()
-            cip.core_nodes=nodes_in_core+edges_in_core
-            cip.interface_hash =  hash((interface_hash,cip.interface_hash))
-            cip.graph= expanded_orig_graph.subgraph(interface_nodes+nodes_in_core+edges_in_core).copy()
+        basecip.interface_nodes = [id for id, dst in dist.items()
+                   if 0 < dst <= base_thickness]
+        interface_hash = lsgg_cip.graph_hash(expanded_orig_graph.subgraph(basecip.interface_nodes))
+        basecip.interface_graph = expanded_orig_graph.subgraph(basecip.interface_nodes).copy()
+        basecip.core_nodes=nodes_in_core+edges_in_core
+        basecip.interface_hash =  hash((interface_hash,basecip.interface_hash))
+        basecip.graph= expanded_orig_graph.subgraph(basecip.interface_nodes+nodes_in_core+edges_in_core).copy()
 
-
-            #print cip.interface_hash, cip.core_hash, root_node
-            yield cip
+        # do the pisi stuff
+        loco_nodes = [id for id, dst in dist.items() if 1 < dst <= pisi_thickness  ]
+        if len(loco_nodes) == 0: 
+            logger.log(6,'skipping because interface empty')
+            return None
+        loco_graph = expanded_orig_graph.subgraph(loco_nodes).copy()
+        basecip.loco_hash = { lsgg_cip.graph_hash(loco_graph)}
+        basecip.loco_vectors = lsgg_cip.eg.vectorize([loco_graph])
+        return basecip
 
 
 
