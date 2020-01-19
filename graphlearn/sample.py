@@ -43,8 +43,10 @@ def sample_sizeconstraint(graph,penalty=0.01, **kwargs):
 class sampler(object):
     def __init__(self,**sampleargs):
         self.faster=False
+        self.num_sample = 1
         self.__dict__.update(sampleargs)
         self.history=[]
+        
     
     def sample_sizeconstraint(self,graph, penalty=0.0):
         self.scorer.sizefactor = len(graph)
@@ -54,7 +56,10 @@ class sampler(object):
     def sample_burnin(self,graph):
         res= []
         for i in range(self.n_steps):
-            graph, score = self.sample_step(graph,i)
+            if self.num_sample==1:
+                graph, score = self.sample_step(graph,i)
+            else:
+                graph,score = self.sample_step_multi(graph,i)
             if i >= self.burnin: 
                 if (i - self.burnin) % self.emit ==0:
                     res.append(graph)
@@ -90,7 +95,6 @@ class sampler(object):
 
     def sample_step_multi(self,object,step):
         if object is None: return None,0
-        
 
         # a graph is something that the grammar understands
         graph = self.transformer.encode_single(object)
