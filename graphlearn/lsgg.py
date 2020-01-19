@@ -173,7 +173,7 @@ class lsgg(object):
 
 
     def _neighbors_sample_order_proposals(self,subs):
-        #random.shuffle(subs)
+
         probs= self.get_size_proba(subs)
         return self.order_proba(subs,probs)
 
@@ -194,7 +194,7 @@ class lsgg(object):
                 return g
             return s
         return [ f(d)  for d in diffs]
-
+    
     def order_proba(self,subs, probabilities):
         if len(subs)==0: return []
         
@@ -206,7 +206,7 @@ class lsgg(object):
                 p=p)
         return [subs[i] for i in samples[::-1]]
 
-    def neighbors_sample(self, graph, n_neighbors):
+    def neighbors_sample(self, graph, n_neighbors,shuffle_accurate=True):
         """neighbors_sample. samples from all possible replacements"""
 
         cips = self._cip_extraction(graph)
@@ -215,7 +215,9 @@ class lsgg(object):
         
         if len(subs) < 1: logger.info('no congruent cips')
         
-        subs = self._neighbors_sample_order_proposals(subs)
+        if shuffle_accurate: subs = self._neighbors_sample_order_proposals(subs)
+        else:  random.shuffle(subs)
+
         n_neighbors_counter = n_neighbors
         while subs:
             cip,cip_ = subs.pop()

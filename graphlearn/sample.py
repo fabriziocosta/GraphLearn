@@ -1,4 +1,5 @@
 from graphlearn.util import util
+import random
 import warnings
 from graphlearn.choice import SelectMax
 
@@ -101,20 +102,35 @@ class sampler(object):
         util.valid_gl_graph(graph)
         startscore = self.scorer.decision_function([object])[0]
         current = graph, startscore
-        
-        for g in self.grammar.neighbors_sample(graph,self.num_sample):
+        scorehist= [] 
+        backupmgr = Backupmgr(15)
+        for g in self.grammar.neighbors_sample(graph,self.num_sample,shuffle_accurate=False):
             proposal_object = self.transformer._decode_single(g)
-            score = graph, self.scorer.decision_function([proposal_object])[0]
+            score = self.scorer.decision_function([proposal_object])[0]
+            scorehist.append(score)
+            backupmgr.push((score,proposal_object))
             if score > current[1]:
-                current = proposal_objects,score
+                current = proposal_object,score
             
         
         if startscore == current[1]:
-            warnings.warn(f"reached a dead-end graph, attempting to backtrack at step {step}")
-            return None,0
+            score,pobj = backupmgr.get() 
+            warnings.warn(f"reached a dead-end graph, choose probabilistically at step {step}")
+            current = pobj,score
 
         self.history.append(current)
         return current
+
+class Backupmgr():
+    def __init__(self, maxsize):
+        self.maxsize = maxsize 
+        self.data = []
+    def push(self,x):
+        self.data.append(x)
+        self.data.sort(key = lambda x: x[0] )
+        self.data=self.data[:self.maxsize]
+    def get(self):
+        return random.choices(self.data,[ p for p,g in self.data ])[0]
 
 def fit():
     pass

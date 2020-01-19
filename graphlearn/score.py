@@ -55,7 +55,7 @@ class OneClassSizeHarmMean(OneClassEstimator):
         #self.sizedist = sp.stats.norm(loc=le.mean(),scale=le.std()/2)
         self.size_mean=le.mean()
         self.size_std = le.std()
-        logger.log(29,f"sizedist: mean{le.mean()}, scale {le.std()}")
+        logger.log(5,f"sizedist: mean{le.mean()}, scale {le.std()}")
         super().fit(graphs)
         return self
 
@@ -67,9 +67,9 @@ class OneClassSizeHarmMean(OneClassEstimator):
         sizefac = [ norm(x) if len(x)> self.size_mean else 1  for x in graphs ]
         #sizefac2 = [sp.stats.logistic.cdf(-a,-2,1) for a in sizefac]  
         res= [ sp.stats.hmean((a,b))  for a,b in zip(sizefac,scores2)  ]
-        logger.log(29,f"svm:   {scores} -> {scores2}")
-        logger.log(29,f"size:  {[len(x) for x in graphs]} -> {sizefac}")
-        logger.log(29,f"hmean: {res}")
+        logger.log(5,f"svm:   {scores} -> {scores2}")
+        logger.log(5,f"size:  {[len(x) for x in graphs]} -> {sizefac}")
+        logger.log(5,f"hmean: {res}")
         return res
 
 class OneClassAndSizeFactor(OneClassEstimator):
