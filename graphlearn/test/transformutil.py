@@ -7,6 +7,8 @@ class no_transform(object):
     def encode(self, thing):
         for e in thing:
             yield e
+    def _decode_single(self,thing):
+        return thing
     def decode(self, thing):
         for e in thing:
             yield e

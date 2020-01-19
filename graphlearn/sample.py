@@ -88,6 +88,29 @@ class sampler(object):
         self.history.append(obj_score)
         return obj_score
 
+    def sample_step_multi(self,object,step):
+        if object is None: return None,0
+        
+
+        # a graph is something that the grammar understands
+        graph = self.transformer.encode_single(object)
+        util.valid_gl_graph(graph)
+        startscore = self.scorer.decision_function([object])[0]
+        current = graph, startscore
+        
+        for g in self.grammar.neighbors_sample(graph,self.num_sample):
+            proposal_object = self.transformer._decode_single(g)
+            score = graph, self.scorer.decision_function([proposal_object])[0]
+            if score > current[1]:
+                current = proposal_objects,score
+            
+        
+        if startscore == current[1]:
+            warnings.warn(f"reached a dead-end graph, attempting to backtrack at step {step}")
+            return None,0
+
+        self.history.append(current)
+        return current
 
 def fit():
     pass
