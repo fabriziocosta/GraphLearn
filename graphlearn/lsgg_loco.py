@@ -19,25 +19,22 @@ class LOCO(lsgg.lsgg):
     
     def _congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()
-        def dist(a,b):
-            return a.dot(b.T)[0,0]
-            
-        #cips_ = [(cip_,max([dist(cip.loco_vectors[0],b) for b in cip_.loco_vectors]))
-        cips_ = [(cip_,np.max( cip_.loco_vectors.dot(cip.loco_vectors.toarray()[0])))
-                     for cip_ in cips if cip_.core_hash != cip.core_hash]
-         
-        #ret = [ c for c,i in  cips_ if i > self.decomposition_args['loco_minsimilarity'] ]
-        #if len(ret)<1 : logger.info( [b for a,b in cips_]  )
+        if len(cips) == 0:
+            logger.log(5,"no congruent cip in grammar")
+        else: 
+            cips_ = [(cip_,np.max( cip_.loco_vectors.dot(cip.loco_vectors.toarray()[0])))
+                         for cip_ in cips if cip_.core_hash != cip.core_hash]
+             
+            cips_ = [ (a,b) for a,b in cips_ if b > 0]
 
-        for cip_, di in cips_:
-            if di > 0.0:
+            if len(cips_) == 0: logger.log(5,"0 cips with pisi-similarity > 0")
+            for cip_, di in cips_:
                 cip_.locosimilarity=di
                 yield cip_
     
     def _neighbors_sample_order_proposals(self,subs): 
         sim = [c[1].locosimilarity for c in subs ]
-        logger.log(29, "cips_ priosim scores:")
-        logger.log(29, sim)
+        logger.log(29, "pisi similarities: "+str(sim))
         p_size = [a*b for a,b in zip (self.get_size_proba(subs),sim)]
         return self.order_proba(subs, p_size)
 
@@ -48,7 +45,18 @@ class LOCO(lsgg.lsgg):
         grammarcip.count+=1
         if not grammarcip.loco_hash.intersection(cip.loco_hash): 
             grammarcip.loco_vectors= sparse.vstack( (grammarcip.loco_vectors,  cip.loco_vectors))
-            grammarcip.locohash= grammarcip.loco_hash.union(cip.loco_hash)
+            grammarcip.loco_hash= grammarcip.loco_hash.union(cip.loco_hash)
+
+    def __repr__(self):
+        """repr."""
+        n_interfaces, n_cores, n_cips, n_productions = self.size()
+        txt = '#interfaces: %5d   ' % n_interfaces
+        txt += '#cores: %5d   ' % n_cores
+        txt += '#core-interface-pairs: %5d   ' % n_cips
+        txt += '#production-rules: %5d   ' % n_productions
+        txt += '#loco vectors: %5d   ' % len(set().union(*[ cip.loco_hash for v in self.productions.values() for cip in v.values()   ]))
+        txt += '#count sum: %5d   ' % sum([ cip.count for v in self.productions.values() for cip in v.values()   ])
+        return txt
 
 
 def extract_core_and_interface(root_node=None,
@@ -74,7 +82,7 @@ def extract_core_and_interface(root_node=None,
     # NOW COMES THE loco PART
 
     loco_nodes = [id for id, dst in dist.items()
-                       if radius < dst <= (radius + thickness_loco)]
+                       if radius+1 < dst <= (radius + thickness_loco)]
 
     loco_graph = graph.subgraph(loco_nodes) 
     

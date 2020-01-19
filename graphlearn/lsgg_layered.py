@@ -15,7 +15,8 @@ class lsgg_layered(lsgg.lsgg):
 
     def _core_substitution(self,graph,cip,cip_):
         return lsgg_cip.core_substitution(graph.graph['original'], cip, cip_)
-
+    
+    '''
     def _cip_extraction_given_root(self, graph, root):
         """helper of _cip_extraction. See fit"""
         for radius in self.decomposition_args['radius_list']:
@@ -23,12 +24,12 @@ class lsgg_layered(lsgg.lsgg):
             for thickness in self.decomposition_args['thickness_list']:
                 thickness = thickness * 2
                 # note that this loop is different from the parent class :) 
-                for e in self._extract_core_and_interface(root_node=root,
+                x= self._extract_core_and_interface(root_node=root,
                                                  graph=graph,
                                                  radius=radius,
                                                  thickness=thickness):
-                    yield e
-
+                if x: yield x
+    '''
     def _extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
 
         # get CIP
@@ -38,6 +39,7 @@ class lsgg_layered(lsgg.lsgg):
                                                  thickness=thickness)
 
 
+        base_thickness = 2*self.decomposition_args['base_thickness']
 
         # expand base graph
         orig_graph = graph.graph['original']
@@ -59,7 +61,7 @@ class lsgg_layered(lsgg.lsgg):
 
         # distances...
         dist = nx.single_source_shortest_path_length(expanded_orig_graph_collapsed,
-                                        nodes_in_core[0],max(self.decomposition_args['base_thickness_list']))
+                                        nodes_in_core[0],base_thickness)
 
         # set distance dependant label
         ddl = 'distance_dependent_label'
@@ -68,21 +70,20 @@ class lsgg_layered(lsgg.lsgg):
                 expanded_orig_graph.nodes[id][ddl] = expanded_orig_graph.nodes[id]['hlabel'] + dst
 
 
-        for base_thickness in self.decomposition_args['base_thickness_list']:
 
-            interface_nodes = [id for id, dst in dist.items()
-                       if 0 < dst <= base_thickness]
-            interface_hash = lsgg_cip.graph_hash(expanded_orig_graph_collapsed.subgraph(interface_nodes))
-            cip=copy.deepcopy(basecip)
-            cip.interface_nodes=interface_nodes
-            cip.interface_graph = expanded_orig_graph.subgraph(interface_nodes).copy()
-            cip.core_nodes=nodes_in_core+edges_in_core
-            cip.interface_hash =  hash((interface_hash,cip.interface_hash))
-            cip.graph= expanded_orig_graph.subgraph(interface_nodes+nodes_in_core+edges_in_core).copy()
+        interface_nodes = [id for id, dst in dist.items()
+                   if 0 < dst <= base_thickness]
+        interface_hash = lsgg_cip.graph_hash(expanded_orig_graph_collapsed.subgraph(interface_nodes))
+        cip=basecip
+        cip.interface_nodes=interface_nodes
+        cip.interface_graph = expanded_orig_graph.subgraph(interface_nodes).copy()
+        cip.core_nodes=nodes_in_core+edges_in_core
+        cip.interface_hash =  hash((interface_hash,cip.interface_hash))
+        cip.graph= expanded_orig_graph.subgraph(interface_nodes+nodes_in_core+edges_in_core).copy()
 
 
-            #print cip.interface_hash, cip.core_hash, root_node
-            yield cip
+        #print cip.interface_hash, cip.core_hash, root_node
+        return  cip
 
 
 

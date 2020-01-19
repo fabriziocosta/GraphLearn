@@ -74,8 +74,9 @@ class lsgg(object):
                 for cip in ciplist: 
                     if len(cip.interface_nodes) > 0:
                         self._add_cip(cip)
-       
+        logger.log(5, self)
         self._cip_frequency_filter()
+        logger.log(5, self)
         self._is_fit = True
         return self
 
@@ -182,7 +183,7 @@ class lsgg(object):
         z = diffs.count(0) 
         s = sum(x<0 for x in diffs)
         g = sum(x>0 for x in diffs)
-        logger.log(80,f"assigned probabilities: same:{z}, smaller{s}, bigger{g}")
+        logger.log(5,f"assigned probabilities: same:{z}, smaller{s}, bigger{g}")
         z = 1/z if z !=0 else 1
         s = 1/s if s !=0 else 1
         g = 1/g if g !=0 else 1
@@ -195,9 +196,14 @@ class lsgg(object):
         return [ f(d)  for d in diffs]
 
     def order_proba(self,subs, probabilities):
+        if len(subs)==0: return []
+        
         suu = sum(probabilities)
-        samples = np.random.choice( list(range(len(subs))) ,size=len(subs),  replace=False,
-                p=[x/suu for x in probabilities])
+        p=[x/suu for x in probabilities]
+        samples = np.random.choice( list(range(len(subs))) ,
+                size=len(subs),
+                replace=False,
+                p=p)
         return [subs[i] for i in samples[::-1]]
 
     def neighbors_sample(self, graph, n_neighbors):
@@ -207,9 +213,9 @@ class lsgg(object):
         subs = [ (cip,con_cip) for cip in cips
                                for con_cip in self._congruent_cips(cip)]
         
-        subs = self._neighbors_sample_order_proposals(subs)
-
         if len(subs) < 1: logger.info('no congruent cips')
+        
+        subs = self._neighbors_sample_order_proposals(subs)
         n_neighbors_counter = n_neighbors
         while subs:
             cip,cip_ = subs.pop()
@@ -228,7 +234,7 @@ class lsgg(object):
         chooses a node first and then picks form the subs evenly
         """
         n_neighbors_counter = n_neighbors
-        sanity = n_neighbors*3
+        sanity = max(n_neighbors*3, 15) 
         mycips = {}
         while sanity: 
 
@@ -238,21 +244,24 @@ class lsgg(object):
                 random.choice( self.decomposition_args['radius_list'] ),
                 random.choice( self.decomposition_args['thickness_list'] ))
             if rootradthi in mycips:
-                cips = mycips[rootradthi]
+                cip = mycips[rootradthi]
             else:
                 root,rad, thi = rootradthi
-                zzz= self._extract_core_and_interface(root_node=root,graph=graph,radius=rad*2,thickness=thi*2)
-                cips = [zzz] if type(zzz) == lsgg_cip.CoreInterfacePair  else []
-                mycips[rootradthi] = cips
+                cip= self._extract_core_and_interface(root_node=root,
+                        graph=graph,
+                        radius=rad*2,
+                        thickness=thi*2)
+                mycips[rootradthi] = cip
 
 
-            if len(cips)==0: 
+            if type(cip) != lsgg_cip.CoreInterfacePair:
+                logger.log(5,'0 cips extracted')
                 continue
-            cip = random.choice(cips)
 
             # select cip to substitute: 
             subs = [(cip,congru) for congru in self._congruent_cips(cip) ]
             if len(subs)==0: 
+                logger.log(5,'no congruent cips')
                 continue
             subs = self._neighbors_sample_order_proposals(subs)
             cip, cip_ = subs[0]
