@@ -20,21 +20,21 @@ class LOCO(lsgg.lsgg):
     def _congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()
         if len(cips) == 0:
-            logger.log(5,"no congruent cip in grammar")
+            logger.log(10,"no congruent cip in grammar")
         else: 
             cips_ = [(cip_,np.max( cip_.loco_vectors.dot(cip.loco_vectors.toarray()[0])))
                          for cip_ in cips if cip_.core_hash != cip.core_hash]
              
             cips_ = [ (a,b) for a,b in cips_ if b > 0]
 
-            if len(cips_) == 0: logger.log(5,"0 cips with pisi-similarity > 0")
+            if len(cips_) == 0: logger.log(10,"0 cips with pisi-similarity > 0")
             for cip_, di in cips_:
                 cip_.locosimilarity=di
                 yield cip_
     
     def _neighbors_sample_order_proposals(self,subs): 
         sim = [c[1].locosimilarity for c in subs ]
-        logger.log(29, "pisi similarities: "+str(sim))
+        logger.log(10, "pisi similarities: "+str(sim))
         p_size = [a*b for a,b in zip (self.get_size_proba(subs),sim)]
         return self.order_proba(subs, p_size)
 

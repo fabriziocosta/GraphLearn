@@ -72,7 +72,7 @@ class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
         # do the pisi stuff
         loco_nodes = [id for id, dst in dist.items() if 1 < dst <= pisi_thickness  ]
         if len(loco_nodes) == 0: 
-            logger.log(6,'skipping because interface empty')
+            logger.log(10,'skipping because interface empty')
             return None
         loco_graph = expanded_orig_graph.subgraph(loco_nodes).copy()
         basecip.loco_hash = { lsgg_cip.graph_hash(loco_graph)}

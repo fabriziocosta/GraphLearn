@@ -34,7 +34,7 @@ class SelectClassic(object):
         if scores[0] > scores[1]:
             return new
         elif rnd < ((scores[0]/scores[1])  -self.reg):
-            logger.log(28,f"accepting new:{rnd} < {scores[0]/scores[1]}")
+            logger.log(10,f"accepting new:{rnd} < {scores[0]/scores[1]}")
             return new
         return old
 

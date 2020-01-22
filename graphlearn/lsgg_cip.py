@@ -190,7 +190,7 @@ def find_all_isomorphisms(home, other):
                 logger.debug('lsgg_compose_util i checked more than 5 isomorphisms')
             yield mapping
     else:
-        logger.log(5, 'lsgg_compose_util faster iso check failed')
+        logger.log(10, 'lsgg_compose_util faster iso check failed')
         yield {} # iso.graphmatcher returns empty dict when nothing is found. i do the same :) 
 
 
@@ -209,7 +209,7 @@ def core_substitution(graph, orig_cip, new_cip):
     # get isomorphism
     iso = next(find_all_isomorphisms(orig_cip.interface_graph, new_cip.interface_graph))
     if len(iso) != len(orig_cip.interface_graph):
-        logger.log(5, "lsgg_compose_util grammar hash collision, discovered in 'core_substution' ")
+        logger.log(10, "lsgg_compose_util grammar hash collision, discovered in 'core_substution' ")
         return None
 
     # make graph union (the old graph and the new cip are now floating side by side)

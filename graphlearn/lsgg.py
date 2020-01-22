@@ -74,9 +74,9 @@ class lsgg(object):
                 for cip in ciplist: 
                     if len(cip.interface_nodes) > 0:
                         self._add_cip(cip)
-        logger.log(5, self)
+        logger.log(10,"grammar bevore freq filter: %s" % str(self))
         self._cip_frequency_filter()
-        logger.log(5, self)
+        logger.log(10, self)
         self._is_fit = True
         return self
 
