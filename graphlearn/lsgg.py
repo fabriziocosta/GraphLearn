@@ -20,7 +20,7 @@ class lsgg(object):
                  filter_args={"min_cip_count": 2,
                               "min_interface_count": 2},
                  cip_root_all=False,
-                 half_step_distance=False
+                 double_radius_and_thickness=True
                  ):
         """
         Init.
@@ -30,13 +30,18 @@ class lsgg(object):
         decomposition_args:
         filter_args
         cip_root_all : include edges as possible roots
-        half_step_distance: interpret options for radius and thickness as half step (default is full step)
+        double_decomp_args: interpret options for radius and thickness as half step (default is full step)
         """
         self.productions = defaultdict(dict)
         self.decomposition_args = decomposition_args
         self.filter_args = filter_args
         self.cip_root_all = cip_root_all
-        self.half_step_distance = half_step_distance
+        if  double_radius_and_thickness:
+            self.double_radius_and_thickness()
+
+    def double_radius_and_thickness(self):
+            self.decomposition_args['radius_list'] = [i*2 for i in  self.decomposition_args['radius_list']]
+            self.decomposition_args['thickness'] = 2 * self.decomposition_args['thickness']
 
     def set_core_size(self, vals):
         self.decomposition_args['radius_list'] = vals
@@ -105,11 +110,8 @@ class lsgg(object):
         """helper of _cip_extraction. See fit"""
 
         thickness = self.decomposition_args['thickness']
-        if not self.half_step_distance: thickness = thickness * 2
 
         for radius in self.decomposition_args['radius_list']:
-            if not self.half_step_distance: radius = radius * 2
-
             x= self._extract_core_and_interface(root_node=root,
                                                    graph=graph,
                                                    radius=radius,
