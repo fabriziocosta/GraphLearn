@@ -16,7 +16,7 @@ class lsgg(object):
 
     def __init__(self,
                  decomposition_args={"radius_list": [0, 1],
-                                     "thickness_list": [1, 2]},
+                                     "thickness": 1},
                  filter_args={"min_cip_count": 2,
                               "min_interface_count": 2},
                  cip_root_all=False,
@@ -44,7 +44,7 @@ class lsgg(object):
         self.decomposition_args['radius_list'] = vals
 
     def set_context(self, val):
-        self.decomposition_args['thickness_list'] = [val]
+        self.decomposition_args['thickness'] = val
 
     def set_min_count(self, val):
         self.filter_args['min_interface_count'] = val
@@ -105,18 +105,19 @@ class lsgg(object):
 
     def _cip_extraction_given_root(self, graph, root):
         """helper of _cip_extraction. See fit"""
+
+        thickness = self.decomposition_args['thickness']
+        if not self.half_step_distance: thickness = thickness * 2
+
         for radius in self.decomposition_args['radius_list']:
-            if not self.half_step_distance:
-                radius = radius * 2
-            for thickness in self.decomposition_args['thickness_list']:
-                if not self.half_step_distance:
-                    thickness = thickness * 2
-                x= self._extract_core_and_interface(root_node=root,
-                                                       graph=graph,
-                                                       radius=radius,
-                                                       thickness=thickness)
-                if x:
-                    yield x
+            if not self.half_step_distance: radius = radius * 2
+
+            x= self._extract_core_and_interface(root_node=root,
+                                                   graph=graph,
+                                                   radius=radius,
+                                                   thickness=thickness)
+            if x:
+                yield x
 
     def _add_cip(self, cip):
         """see fit"""
@@ -244,7 +245,8 @@ class lsgg(object):
             sanity -=1
             rootradthi = (random.choice(list(graph)), 
                 random.choice( self.decomposition_args['radius_list'] ),
-                random.choice( self.decomposition_args['thickness_list'] ))
+                self.decomposition_args['thickness'])
+                )
             if rootradthi in mycips:
                 cip = mycips[rootradthi]
             else:

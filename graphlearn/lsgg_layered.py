@@ -16,20 +16,7 @@ class lsgg_layered(lsgg.lsgg):
     def _core_substitution(self,graph,cip,cip_):
         return lsgg_cip.core_substitution(graph.graph['original'], cip, cip_)
     
-    '''
-    def _cip_extraction_given_root(self, graph, root):
-        """helper of _cip_extraction. See fit"""
-        for radius in self.decomposition_args['radius_list']:
-            radius = radius * 2
-            for thickness in self.decomposition_args['thickness_list']:
-                thickness = thickness * 2
-                # note that this loop is different from the parent class :) 
-                x= self._extract_core_and_interface(root_node=root,
-                                                 graph=graph,
-                                                 radius=radius,
-                                                 thickness=thickness):
-                if x: yield x
-    '''
+ 
     def _extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
 
         # get CIP
@@ -91,9 +78,9 @@ class lsgg_layered(lsgg.lsgg):
 def test_lsgg_layered():
     from graphlearn.util import util as util_top
     from graphlearn.test import cycler
-    decomposition_args={ "base_thickness_list":[2],
+    decomposition_args={ "base_thickness":2,
                         "radius_list": [0],
-                        "thickness_list": [1]}
+                        "thickness": 1}
 
     lsggg = lsgg_layered(decomposition_args=decomposition_args)
     g = util_top.test_get_circular_graph()

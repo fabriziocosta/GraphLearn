@@ -19,7 +19,7 @@ def test_lsgg_ego_nodedecomp(out=False):
     from ego.pair import decompose_pair
     z = compose(decompose_pair(distance=2), decompose_neighborhood(radius=1))
     decomposition_args = {'radius_list': [0],
-                          "thickness_list": [1]}
+                          "thickness": 1}
 
     lsggg = lsgg_ego(decomposition_args=decomposition_args,
                      decomposition_function=z)
@@ -41,7 +41,7 @@ def test_lsgg_ego_edgedecomp(out=False):
     from structout import gprint
     from structout.graph import ginfo
     decomposition_args = {'radius_list': [0],
-                          "thickness_list": [1]}
+                          "thickness": 1}
 
     class testego(lsgg_ego):  # visualises the substitution
 

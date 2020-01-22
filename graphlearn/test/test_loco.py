@@ -19,7 +19,7 @@ def test_loco():
     g= getgraphs()
     grammar = lsgg_loco.LOCO(  
             decomposition_args={"radius_list": [0,1], 
-                                "thickness_list": [1],  
+                                "thickness": 1,  
                                 "loco_minsimilarity": .9, 
                                 "thickness_loco": 4},
             filter_args={"min_cip_count": 1,                               
