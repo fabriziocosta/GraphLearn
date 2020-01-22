@@ -51,10 +51,10 @@ class lsgg_ego(lsgg.lsgg):
                            if radius < dst <= radius + thickness]
 
         # calculate hashes
-        core_hash = lsgg_cip.graph_hash_core(graph.subgraph(core_nodes))
+        core_hash = lsgg_cip.graph_hash(graph.subgraph(core_nodes))
         node_name_label = lambda id, node: node['hlabel'] + dist[id] - radius
         interface_hash = lsgg_cip.graph_hash(graph.subgraph(interface_nodes),
-                                             node_name_label=node_name_label)
+                                             get_node_label=node_name_label)
 
         # copy cip and mark core/interface
         cip_graph = graph.subgraph(core_nodes + interface_nodes).copy()
