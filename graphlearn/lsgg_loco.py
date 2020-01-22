@@ -13,8 +13,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 class LOCO(lsgg.lsgg):
 
-    def _extract_core_and_interface(self, **kwargs):
-        return extract_core_and_interface(thickness_loco=2*self.decomposition_args['thickness_loco'],
+    def _extract_cip(self, **kwargs):
+        return extract_cip(thickness_loco=2*self.decomposition_args['thickness_loco'],
                                           **kwargs)
     
     def _congruent_cips(self, cip):
@@ -59,7 +59,7 @@ class LOCO(lsgg.lsgg):
         return txt
 
 
-def extract_core_and_interface(root_node=None,
+def extract_cip(root_node=None,
                                graph=None,
                                radius=None,
                                thickness=None,

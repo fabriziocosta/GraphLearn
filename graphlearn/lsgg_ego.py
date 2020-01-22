@@ -22,7 +22,7 @@ class lsgg_ego(lsgg.lsgg):
         self.decomposition_function = make_encoder(decomposition_function, bitmask=2**20 - 1)
         return super(lsgg_ego, self).__init__(**kwargs)
 
-    def _extract_core_and_interface(self, root_node=None, graph=None, radius=None, thickness=None):
+    def _extract_cip(self, root_node=None, graph=None, radius=None, thickness=None):
         assert radius == 0, "musst be zero because we dont expand cores here."
         # root_node is a subgraph that we use as core (because we said so in _roots()
         # to avoid node id misstranslations in the expanded graph, i mark all the elements

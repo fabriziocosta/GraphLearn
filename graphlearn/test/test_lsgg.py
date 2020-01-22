@@ -17,10 +17,10 @@ def test_fit():
     # gprint( [e.graph for e in lsggg.productions[29902].values() ])
 
 
-def test_extract_core_and_interface():
+def test_extract_cip():
     graph = nx.path_graph(4)
     util._edenize_for_testing(graph)
-    res = lsgg_cip.extract_core_and_interface(root_node=3, graph=graph, radius=1, thickness=1)
+    res = lsgg_cip.extract_cip(root_node=3, graph=graph, radius=1, thickness=1)
     # gprint(res.graph)
     assert ('cor' in str(res))
 

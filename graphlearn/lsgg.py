@@ -162,7 +162,7 @@ class lsgg_sample(lsgg):
                 cip = mycips[rootradthi]
             else:
                 root,rad, thi = rootradthi
-                cip= self._extract_core_and_interface(root_node=root,
+                cip= self._extract_cip(root_node=root,
                         graph=graph,
                         radius=rad*2,
                         thickness=thi*2)
@@ -251,7 +251,7 @@ class lsgg_core(object):
         thickness = self.decomposition_args['thickness']
         for root in self._roots(graph):
             for radius in self.decomposition_args['radius_list']:
-                x= self._extract_core_and_interface(root_node=root,
+                x= self._extract_cip(root_node=root,
                                                    graph=graph,
                                                    radius=radius,
                                                    thickness=thickness)
@@ -259,8 +259,8 @@ class lsgg_core(object):
                     yield x
 
 
-    def _extract_core_and_interface(self, **kwargs):
-        return lsgg_cip.extract_core_and_interface(**kwargs)
+    def _extract_cip(self, **kwargs):
+        return lsgg_cip.extract_cip(**kwargs)
 
 
     def _add_cip(self, cip):

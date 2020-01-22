@@ -86,7 +86,7 @@ def _graph_hash_neighborhood(graph, node, get_node_label=lambda id, node: node['
 
 
 
-def extract_core_and_interface(root_node=None,
+def extract_cip(root_node=None,
                                graph=None,
                                radius=None,
                                thickness=None):

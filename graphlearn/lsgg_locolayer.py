@@ -17,9 +17,9 @@ from graphlearn import lsgg_loco
 
 class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
 
-    def _extract_core_and_interface(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
+    def _extract_cip(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
 
-        basecip = lsgg_cip.extract_core_and_interface(root_node=root_node,
+        basecip = lsgg_cip.extract_cip(root_node=root_node,
                                                  graph=graph,
                                                  radius=radius,
                                                  thickness=thickness)
