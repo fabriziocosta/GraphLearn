@@ -15,7 +15,7 @@ from graphlearn import lsgg_layered
 from graphlearn import lsgg_loco
 
 
-class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
+class lsgg_pisilayer(lsgg_pisi.PiSi, lsgg_layered.lsgg_layered):
 
     def _extract_cip(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
 
@@ -26,7 +26,7 @@ class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
 
 
         base_thickness = 2*self.decomposition_args['base_thickness']
-        pisi_thickness = 2*self.decomposition_args['thickness_loco']
+        pisi_thickness = 2*self.decomposition_args['thickness_pisi']
 
 
 
@@ -70,13 +70,13 @@ class lsgg_locolayer(lsgg_loco.LOCO, lsgg_layered.lsgg_layered):
         basecip.graph= expanded_orig_graph.subgraph(basecip.interface_nodes+nodes_in_core+edges_in_core).copy()
 
         # do the pisi stuff
-        loco_nodes = [id for id, dst in dist.items() if 1 < dst <= pisi_thickness  ]
-        if len(loco_nodes) == 0: 
+        pisi_nodes = [id for id, dst in dist.items() if 1 < dst <= pisi_thickness  ]
+        if len(pisi_nodes) == 0: 
             logger.log(10,'skipping because interface empty')
             return None
-        loco_graph = expanded_orig_graph.subgraph(loco_nodes).copy()
-        basecip.loco_hash = { lsgg_cip.graph_hash(loco_graph)}
-        basecip.loco_vectors = lsgg_cip.eg.vectorize([loco_graph])
+        pisi_graph = expanded_orig_graph.subgraph(pisi_nodes).copy()
+        basecip.pisi_hash = { lsgg_cip.graph_hash(pisi_graph)}
+        basecip.pisi_vectors = lsgg_cip.eg.vectorize([pisi_graph])
         return basecip
 
 

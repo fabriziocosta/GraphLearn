@@ -12,6 +12,144 @@ logger = logging.getLogger(__name__)
 from graphlearn.util.multi import mpmap
 
 
+class lsgg_core(object):
+
+    def __init__(self,
+                 decomposition_args={"radius_list": [0, 1],
+                                     "thickness": 1},
+                 filter_args={"min_cip_count": 2,
+                              "min_interface_count": 2},
+                 cip_root_all=False,
+                 double_radius_and_thickness=True
+                 ):
+        """Parameters
+        ----------
+        decomposition_args:
+        filter_args
+        cip_root_all : include edges as possible roots
+        double_decomp_args: interpret options for radius and thickness 
+                as half step (default is full step)
+        """
+        self.productions = defaultdict(dict)
+        self.decomposition_args = decomposition_args
+        self.filter_args = filter_args
+        self.cip_root_all = cip_root_all
+        if  double_radius_and_thickness:
+            self.double_radius_and_thickness()
+
+    def double_radius_and_thickness(self):
+            self.decomposition_args['radius_list'] = [i*2 for i in  self.decomposition_args['radius_list']]
+            self.decomposition_args['thickness'] = 2 * self.decomposition_args['thickness']
+
+
+
+    ###########
+    # FITTING
+    ##########
+    def fit(self, graphs):
+        self._add_library(graphs)
+        self._cip_frequency_filter()
+        return self
+    
+
+    def _add_library(self,graphs):
+        for graph in graphs:
+            self._add_graph(graph)
+
+    def _add_graph(self, graph):
+        """see fit"""
+        for cip in self._graph_to_cips(graph):
+            if len(cip.interface_nodes) > 0:
+                self._add_cip(cip)
+
+
+    def _graph_to_cips(self, graph):
+        """see fit"""
+        thickness = self.decomposition_args['thickness']
+        for root in self._roots(graph):
+            for radius in self.decomposition_args['radius_list']:
+                x= self._extract_cip(root_node=root,
+                                                   graph=graph,
+                                                   radius=radius,
+                                                   thickness=thickness)
+                if x:
+                    yield x
+
+
+    def _extract_cip(self, **kwargs):
+        return lsgg_cip.extract_cip(**kwargs)
+
+
+    def _add_cip(self, cip):
+        """see fit"""
+        # setdefault is a fun function
+        self.productions[cip.interface_hash].setdefault(cip.core_hash, cip).count += 1
+
+    def _cip_frequency_filter(self):
+        logger.log(10,"grammar bevore freq filter: %s" % str(self))
+        """Remove infrequent cores and interfaces. see fit"""
+        min_cip = self.filter_args['min_cip_count']
+        min_inter = self.filter_args['min_interface_count']
+        for interface in list(self.productions.keys()):
+            for core in list(self.productions[interface].keys()):
+                if self.productions[interface][core].count < min_cip:
+                    self.productions[interface].pop(core)
+            if len(self.productions[interface]) < min_inter:
+                self.productions.pop(interface)
+        logger.log(10, self)
+
+    ##############
+    #  APPLYING A PRODUCTION
+    #############
+    def _congruent_cips(self, cip):
+        """all cips in the grammar that are congruent to cip in random order.
+        congruent means they have the same interface-hash-value"""
+        cips = self.productions.get(cip.interface_hash, {}).values()
+        cips_ = [cip_ for cip_ in cips if cip_.core_hash != cip.core_hash]
+        random.shuffle(cips_)
+        return cips_
+
+    def _core_substitution(self, graph, cip, cip_):
+        try:
+            return lsgg_cip.core_substitution(graph, cip, cip_)
+        except:
+            print("core sub failed (continuing anyway):")
+            import structout as so
+            so.gprint([graph, cip.graph, cip_.graph],color =[[[],[]]]+
+                    [ [c.interface_nodes, c.core_nodes]  for c in [cip,cip_]])
+            return None
+
+    def _neighbors_given_cips(self, graph, orig_cips):
+        """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
+        for cip in orig_cips:
+            cips_ = self._congruent_cips(cip)
+            for cip_ in cips_:
+                graph_ = self._core_substitution(graph, cip, cip_)
+                if graph_ is not None:
+                    yield graph_
+
+    def neighbors(self, graph):
+        """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
+        cips = self._graph_to_cips(graph)
+        it = self._neighbors_given_cips(graph, cips)
+        for neighbor in it:
+            yield neighbor
+
+    def _roots(self, graph):
+        '''option to choose edge nodes as root'''
+        if self.cip_root_all:
+            graph = lsgg_cip._edge_to_vertex(graph)
+        return graph.nodes()
+
+  
+    def __repr__(self):
+        return f"interfaces {len(self.productions)} cores: {len(set([ i.core_hash for v in self.productions.values() for i in v ]))}"
+    
+    
+    
+    
+
+
 
 class lsgg(lsgg_core):
     def set_core_size(self, vals):
@@ -193,142 +331,4 @@ class lsgg_sample(lsgg):
 
 
 
-
-
-class lsgg_core(object):
-
-    def __init__(self,
-                 decomposition_args={"radius_list": [0, 1],
-                                     "thickness": 1},
-                 filter_args={"min_cip_count": 2,
-                              "min_interface_count": 2},
-                 cip_root_all=False,
-                 double_radius_and_thickness=True
-                 ):
-        """Parameters
-        ----------
-        decomposition_args:
-        filter_args
-        cip_root_all : include edges as possible roots
-        double_decomp_args: interpret options for radius and thickness 
-                as half step (default is full step)
-        """
-        self.productions = defaultdict(dict)
-        self.decomposition_args = decomposition_args
-        self.filter_args = filter_args
-        self.cip_root_all = cip_root_all
-        if  double_radius_and_thickness:
-            self.double_radius_and_thickness()
-
-    def double_radius_and_thickness(self):
-            self.decomposition_args['radius_list'] = [i*2 for i in  self.decomposition_args['radius_list']]
-            self.decomposition_args['thickness'] = 2 * self.decomposition_args['thickness']
-
-
-
-    ###########
-    # FITTING
-    ##########
-    def fit(self, graphs):
-        self._add_library(graphs)
-        self._cip_frequency_filter()
-        return self
-    
-
-    def _add_library(self,graphs):
-        for graph in graphs:
-            self._add_graph(graph)
-
-    def _add_graph(self, graph):
-        """see fit"""
-        for cip in self._graph_to_cips(graph):
-            if len(cip.interface_nodes) > 0:
-                self._add_cip(cip)
-
-
-    def _graph_to_cips(self, graph):
-        """see fit"""
-        thickness = self.decomposition_args['thickness']
-        for root in self._roots(graph):
-            for radius in self.decomposition_args['radius_list']:
-                x= self._extract_cip(root_node=root,
-                                                   graph=graph,
-                                                   radius=radius,
-                                                   thickness=thickness)
-                if x:
-                    yield x
-
-
-    def _extract_cip(self, **kwargs):
-        return lsgg_cip.extract_cip(**kwargs)
-
-
-    def _add_cip(self, cip):
-        """see fit"""
-        # setdefault is a fun function
-        self.productions[cip.interface_hash].setdefault(cip.core_hash, cip).count += 1
-
-    def _cip_frequency_filter(self):
-        logger.log(10,"grammar bevore freq filter: %s" % str(self))
-        """Remove infrequent cores and interfaces. see fit"""
-        min_cip = self.filter_args['min_cip_count']
-        min_inter = self.filter_args['min_interface_count']
-        for interface in list(self.productions.keys()):
-            for core in list(self.productions[interface].keys()):
-                if self.productions[interface][core].count < min_cip:
-                    self.productions[interface].pop(core)
-            if len(self.productions[interface]) < min_inter:
-                self.productions.pop(interface)
-        logger.log(10, self)
-
-    ##############
-    #  APPLYING A PRODUCTION
-    #############
-    def _congruent_cips(self, cip):
-        """all cips in the grammar that are congruent to cip in random order.
-        congruent means they have the same interface-hash-value"""
-        cips = self.productions.get(cip.interface_hash, {}).values()
-        cips_ = [cip_ for cip_ in cips if cip_.core_hash != cip.core_hash]
-        random.shuffle(cips_)
-        return cips_
-
-    def _core_substitution(self, graph, cip, cip_):
-        try:
-            return lsgg_cip.core_substitution(graph, cip, cip_)
-        except:
-            print("core sub failed (continuing anyway):")
-            import structout as so
-            so.gprint([graph, cip.graph, cip_.graph],color =[[[],[]]]+
-                    [ [c.interface_nodes, c.core_nodes]  for c in [cip,cip_]])
-            return None
-
-    def _neighbors_given_cips(self, graph, orig_cips):
-        """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
-        for cip in orig_cips:
-            cips_ = self._congruent_cips(cip)
-            for cip_ in cips_:
-                graph_ = self._core_substitution(graph, cip, cip_)
-                if graph_ is not None:
-                    yield graph_
-
-    def neighbors(self, graph):
-        """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
-        cips = self._graph_to_cips(graph)
-        it = self._neighbors_given_cips(graph, cips)
-        for neighbor in it:
-            yield neighbor
-
-    def _roots(self, graph):
-        '''option to choose edge nodes as root'''
-        if self.cip_root_all:
-            graph = lsgg_cip._edge_to_vertex(graph)
-        return graph.nodes()
-
-  
-    def __repr__(self):
-        return f"interfaces {len(self.productions)} cores: {len(set([ i.core_hash for v in self.productions.values() for i in v ]))}"
-    
-    
-    
-    
 

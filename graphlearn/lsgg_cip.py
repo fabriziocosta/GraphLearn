@@ -137,7 +137,7 @@ def _mv_to_core(interface_nodes, core_nodes, graph):
     return core_nodes, interface_nodes 
 
 
-def _get_cip_graph(interface_nodes, core_nodes, graph, dist):
+def _get_cip_graph(interface_nodes, core_nodes, graph, dist, radius):
     cip_graph = graph.subgraph(core_nodes + interface_nodes) 
     ddl = 'distance_dependent_label'
     for no in interface_nodes:
@@ -154,7 +154,7 @@ def _finalize_cip(root_node,graph,radius,thickness,dist,core_nodes,interface_nod
     interface_hash = graph_hash(graph.subgraph(interface_nodes),
                                 get_node_label=get_node_label)
 
-    cip_graph  =  _get_cip_graph(interface_nodes, core_nodes, graph, dist)
+    cip_graph  =  _get_cip_graph(interface_nodes, core_nodes, graph, dist,radius)
 
     interface_graph = nx.subgraph(cip_graph, interface_nodes)
 

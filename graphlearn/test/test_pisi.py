@@ -15,13 +15,13 @@ def getgraphs():
 
 
 
-def test_loco():
+def test_pisi():
     g= getgraphs()
-    grammar = lsgg_loco.LOCO(  
+    grammar = lsgg_pisi.PiSi(  
             decomposition_args={"radius_list": [0,1], 
                                 "thickness": 1,  
-                                "loco_minsimilarity": .9, 
-                                "thickness_loco": 4},
+                                "pisi_minsimilarity": .9,  # doesnt exist anymore oO ?
+                                "thickness_pisi": 4},
             filter_args={"min_cip_count": 1,                               
                          "min_interface_count": 1}
             )
@@ -30,7 +30,7 @@ def test_loco():
     '''
     for k,v in grammar.productions.items():
         for kk, vv in v.items():
-            print(len(vv.loco_vectors),vv.count)
+            print(len(vv.pisi_vectors),vv.count)
     '''
     print("fitting done")
     neighs = list(grammar.neighbors(g[44]))
@@ -38,4 +38,4 @@ def test_loco():
     print ("numnei:", len(neighs))
 
 
-#test_loco()
+#test_pisi()
