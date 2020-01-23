@@ -12,7 +12,7 @@ from scipy.sparse import csr_matrix
 import logging
 logger = logging.getLogger(__name__)
 from graphlearn import lsgg_layered 
-from graphlearn import lsgg_loco
+from graphlearn import lsgg_pisi
 
 
 class lsgg_pisilayer(lsgg_pisi.PiSi, lsgg_layered.lsgg_layered):

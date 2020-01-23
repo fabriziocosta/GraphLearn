@@ -1,5 +1,5 @@
 #from graphlearn 
-import lsgg_loco
+import lsgg_pisi
 import json 
 import networkx as nx 
 import structout as so
