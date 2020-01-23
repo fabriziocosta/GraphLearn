@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 """We adjust lsgg_layered such that it works with EGO decomposition"""
 
 
-class lsgg_ego(lsgg.lsgg):
+class lsgg_ego(lsgg.lsgg_sample):
 
     def _roots(self, graph):
         codes, ego_decomp_fragments = self.decomposition_function(graph)

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 
-class lsgg_layered(lsgg.lsgg):
+class lsgg_layered(lsgg.lsgg_sample):
 
     def _core_substitution(self,graph,cip,cip_):
         return lsgg_cip.core_substitution(graph.graph['original'], cip, cip_)
