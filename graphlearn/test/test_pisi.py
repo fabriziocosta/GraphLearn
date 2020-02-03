@@ -9,7 +9,7 @@ def getgraphs():
           stuff = json.loads(handle.read())
           def js_to_graph(x):
               g= nx.readwrite.node_link_graph(x)
-              g.graph={}
+              g.cip_graph={}
               return g
           return  [js_to_graph(x) for x in stuff]
 

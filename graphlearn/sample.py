@@ -82,7 +82,7 @@ class sampler(object):
         proposal_objects = list(self.transformer.decode(proposal_graphs))
         
         if len(proposal_objects) <= 1: 
-            logger.log(10,f"reached a dead-end graph, attempting to backtrack at step {step}")
+            logger.log(10,"reached a dead-end graph, attempting to backtrack at step " % step)
             if len(self.history) < 2:
                 return None,0
             self.history.pop() # the problematic graph should be on top of the stack
@@ -103,7 +103,7 @@ class sampler(object):
         current = graph, startscore
         scorehist= [] 
         backupmgr = Backupmgr(15)
-        for g in self.grammar.neighbors_sample(graph,self.num_sample,shuffle_accurate=True):
+        for g in self.grammar.neighbors_sample(graph, self.num_sample, adjust_for_size=True):
             proposal_object = self.transformer._decode_single(g)
             score = self.scorer.decision_function([proposal_object])[0]
             scorehist.append(score)
@@ -114,7 +114,7 @@ class sampler(object):
         
         if startscore == current[1]:
             score,pobj = backupmgr.get() 
-            logger.log(10,f"reached a dead-end graph, choose probabilistically at step {step}")
+            logger.log(10,"reached a dead-end graph, choose probabilistically at step %d" % step)
             current = pobj,score
 
         self.history.append(current)

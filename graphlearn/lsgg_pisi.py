@@ -1,6 +1,6 @@
-from graphlearn import lsgg 
+from graphlearn import local_substitution_graph_grammar
 import structout as so
-from graphlearn import lsgg_cip
+from graphlearn import lsgg_core_interface_pair
 import networkx as nx
 import numpy as np
 import random
@@ -10,13 +10,13 @@ logger = logging.getLogger(__name__)
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-class PiSi(lsgg.lsgg_sample):
+class PiSi(local_substitution_graph_grammar.LocalSubstitutionGraphGrammarSample):
 
-    def _extract_cip(self, **kwargs):
+    def _make_cip(self, core=None, graph=None):
         return extract_cip(thickness_pisi=2*self.decomposition_args['thickness_pisi'],
                                           **kwargs)
     
-    def _congruent_cips(self, cip):
+    def _get_congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()
         if len(cips) == 0:
             logger.log(10,"no congruent cip in grammar")
@@ -31,14 +31,14 @@ class PiSi(lsgg.lsgg_sample):
                 cip_.pisisimilarity=di
                 yield cip_
     
-    def _neighbors_sample_order_proposals(self,subs): 
+    def _sample_size_adjusted(self, subs):
         sim = [c[1].pisisimilarity for c in subs ]
         logger.log(10, "pisi similarities: "+str(sim))
-        p_size = [a*b for a,b in zip (self.get_size_proba(subs),sim)]
-        return self.order_proba(subs, p_size)
+        p_size = [a * b for a,b in zip (self._make_size_adjusted_probabilities(subs), sim)]
+        return self._sample(subs, p_size)
 
 
-    def _add_cip(self, cip):
+    def _store_cip(self, cip):
                     
         grammarcip = self.productions[cip.interface_hash].setdefault(cip.core_hash, cip)
         grammarcip.count+=1
@@ -65,17 +65,17 @@ def extract_cip(root_node=None,
 			       thickness_pisi=2):
    
     # MAKE A NORMAL CIP AS IN LSGG_CIP
-    graph =  lsgg_cip._edge_to_vertex(graph)
-    lsgg_cip._add_hlabel(graph)
-    dist = {a:b for (a,b) in lsgg_cip.short_paths(graph,
-                                         root_node if isinstance(root_node,list) else [root_node],
-                                         radius+max(thickness_pisi,thickness))}
+    graph =  lsgg_core_interface_pair._edge_to_vertex(graph)
+    lsgg_core_interface_pair._add_hlabel(graph)
+    dist = {a:b for (a,b) in lsgg_core_interface_pair.short_paths(graph,
+                                                                  root_node if isinstance(root_node,list) else [root_node],
+                                                                  radius + max(thickness_pisi,thickness))}
 
     core_nodes = [id for id, dst in dist.items() if dst <= radius]
     interface_nodes = [id for id, dst in dist.items()
                        if radius < dst <= radius + thickness]
 
-    normal_cip =  lsgg_cip._finalize_cip(root_node,graph,radius,thickness,dist,core_nodes,interface_nodes)
+    normal_cip =  lsgg_core_interface_pair._finalize_cip(root_node, graph, radius, thickness, dist, core_nodes, interface_nodes)
 
 
     # NOW COMES THE pisi PART
@@ -87,9 +87,9 @@ def extract_cip(root_node=None,
     
     loosecontext = nx.Graph(pisi_graph)
     if loosecontext.number_of_nodes() > 2:
-        normal_cip.pisi_vectors = lsgg_cip.eg.vectorize([loosecontext])
-        lsgg_cip._add_hlabel(loosecontext)
-        normal_cip.pisi_hash = set([ lsgg_cip.graph_hash(loosecontext)] ) 
+        normal_cip.pisi_vectors = lsgg_core_interface_pair.eg.vectorize([loosecontext])
+        lsgg_core_interface_pair._add_hlabel(loosecontext)
+        normal_cip.pisi_hash = set([lsgg_core_interface_pair.graph_hash(loosecontext)])
         return normal_cip
     return None
 

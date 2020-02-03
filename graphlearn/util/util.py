@@ -1,7 +1,7 @@
 from collections import defaultdict
 import functools
 import networkx as nx
-from graphlearn import lsgg
+from graphlearn import local_substitution_graph_grammar
 
 def _extract_grammar_stats(grammar):
     count_corehashes = defaultdict(int)
@@ -30,14 +30,14 @@ def _edenize_for_testing(g):
 
 
 def test_get_grammar():
-    lsggg = lsgg.lsgg()
+    lsggg = local_substitution_graph_grammar.LocalSubstitutionGraphGrammar()
     g = _edenize_for_testing(nx.path_graph(4))
     lsggg.fit([g, g, g])
     return lsggg
 
 def test_dark_edges():
     ''''''
-    lsggg = lsgg.lsgg()
+    lsggg = local_substitution_graph_grammar.LocalSubstitutionGraphGrammar()
     g = _edenize_for_testing(nx.path_graph(3))
 
     g_dark = g.copy()
@@ -48,7 +48,7 @@ def test_dark_edges():
 
     # test fit
     lsggg.fit([g, g_dark])
-    assert 2 == len([g.graph  for v in lsggg.productions.values() for g in v.values()])
+    assert 2 == len([g.cip_graph for v in lsggg.productions.values() for g in v.values()])
 
     # test production
     res = lsggg.neighbors(g_dark)
@@ -86,7 +86,7 @@ def get_cyclegraphs():
 def valid_gl_graph(graph):
     """checks if a graph is a valid graphlearn-intermediary product"""
 
-    secondlayer = 'original' in graph.graph
+    secondlayer = 'original' in graph.cip_graph
 
     # are labels in the graph?
     def label_is_set(graph):
@@ -98,11 +98,11 @@ def valid_gl_graph(graph):
 
     assert label_is_set(graph)
     if secondlayer:
-        assert label_is_set(graph.graph['original']) == True
+        assert label_is_set(graph.cip_graph['original']) == True
 
     # second layer needs contracted attributes...
     if secondlayer:
-         assert set(graph.graph['original'].nodes()) == functools.reduce(lambda a,b: a|b , [ d['contracted'] for n,d in graph.nodes(data=True)] )
+         assert set(graph.cip_graph['original'].nodes()) == functools.reduce(lambda a, b: a | b, [d['contracted'] for n, d in graph.nodes(data=True)])
 
     return True
 
@@ -111,8 +111,8 @@ def valid_gl_graph(graph):
 def decorate_cip(cip):
     #print (cip.core_nodes)
     #print (cip.interface_nodes)
-    nx.set_node_attributes(cip.graph,{n:True for n in cip.core_nodes} ,'core')
-    nx.set_node_attributes( cip.graph,{n:True for n in cip.interface_nodes} ,'interface')
+    nx.set_node_attributes(cip.cip_graph, {n:True for n in cip.core_nodes}, 'core')
+    nx.set_node_attributes(cip.cip_graph, {n:True for n in cip.interface_nodes}, 'interface')
     print ('decoration not needed anymore,  pass nodecolorgrouplists to gprint')
 
 
@@ -145,7 +145,7 @@ def draw_grammar_term(grammarobject,
         # list(map(decorate_cip, cips)) see color argument
 
         most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True, key=lambda x:x[0])
-        graphs = [cip.graph for count, cip in most_frequent_cips]
+        graphs = [cip.cip_graph for count, cip in most_frequent_cips]
         color = [(cip.interface_nodes,cip.core_nodes) for count, cip in most_frequent_cips]
         # graphs =[cip.abstract_view for count, cip in most_frequent_cips]
 

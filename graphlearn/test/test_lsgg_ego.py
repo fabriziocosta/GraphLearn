@@ -45,8 +45,8 @@ def test_lsgg_ego_edgedecomp(out=False):
 
     class testego(lsgg_ego):  # visualises the substitution
 
-        def _core_substitution(self, graph, cip, cip_):
-            graphs = [cip.graph, cip_.graph]
+        def _substitute_core(self, graph, cip, cip_):
+            graphs = [cip.cip_graph, cip_.cip_graph]
             gprint(graphs, color=[[cip.core_nodes], [cip_.core_nodes]])
             return super()._core_substitution(graph, cip, cip_)
 

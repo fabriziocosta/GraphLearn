@@ -1,7 +1,7 @@
 
 
-from graphlearn import lsgg
-from graphlearn import lsgg_cip
+from graphlearn import local_substitution_graph_grammar
+from graphlearn import lsgg_core_interface_pair
 from graphlearn.test import transformutil
 import networkx as nx
 import copy
@@ -11,33 +11,33 @@ logger = logging.getLogger(__name__)
 
 
 
-class lsgg_layered(lsgg.lsgg_sample):
+class lsgg_layered(local_substitution_graph_grammar.LocalSubstitutionGraphGrammarSample):
 
-    def _core_substitution(self,graph,cip,cip_):
-        return lsgg_cip.core_substitution(graph.graph['original'], cip, cip_)
+    def _substitute_core(self, graph, cip, cip_):
+        return lsgg_core_interface_pair.substitute_core(graph.cip_graph['original'], cip, cip_)
     
  
-    def _extract_cip(self,root_node=None,graph=None,radius=None,thickness=None,hash_bitmask=None):
+    def _make_cip(self, core=None, graph=None):
 
         # get CIP
-        basecip = lsgg_cip.extract_cip(root_node=root_node,
-                                                 graph=graph,
-                                                 radius=radius,
-                                                 thickness=thickness)
+        basecip = lsgg_core_interface_pair.make_cip(root_node=core,
+                                                    graph=graph,
+                                                    radius=radius,
+                                                    thickness=thickness)
 
 
         base_thickness = 2*self.decomposition_args['base_thickness']
 
         # expand base graph
-        orig_graph = graph.graph['original']
-        expanded_orig_graph = lsgg_cip._edge_to_vertex(orig_graph)
+        orig_graph = graph.cip_graph['original']
+        expanded_orig_graph = lsgg_core_interface_pair._edge_to_vertex(orig_graph)
 
-        lsgg_cip._add_hlabel(expanded_orig_graph)
+        lsgg_core_interface_pair._add_hlabel(expanded_orig_graph)
 
         # make a copy, collapse core
         expanded_orig_graph_collapsed =  expanded_orig_graph.copy()
-        nodes_in_core = list ( functools.reduce(lambda x,y: x|y, [ basecip.graph.nodes[i]['contracted']
-                                for i in basecip.core_nodes if 'edge' not in basecip.graph.nodes[i] ] ))
+        nodes_in_core = list (functools.reduce(lambda x,y: x|y, [basecip.cip_graph.nodes[i]['contracted']
+                                                                 for i in basecip.core_nodes if 'edge' not in basecip.cip_graph.nodes[i]]))
 
         edges_in_core = [n for n,d in expanded_orig_graph_collapsed.nodes(data=True)
                              if 'edge' in d and all([z in nodes_in_core for z in expanded_orig_graph_collapsed.neighbors(n) ])]
@@ -60,13 +60,13 @@ class lsgg_layered(lsgg.lsgg_sample):
 
         interface_nodes = [id for id, dst in dist.items()
                    if 0 < dst <= base_thickness]
-        interface_hash = lsgg_cip.graph_hash(expanded_orig_graph_collapsed.subgraph(interface_nodes))
+        interface_hash = lsgg_core_interface_pair.graph_hash(expanded_orig_graph_collapsed.subgraph(interface_nodes))
         cip=basecip
         cip.interface_nodes=interface_nodes
         cip.interface_graph = expanded_orig_graph.subgraph(interface_nodes).copy()
         cip.core_nodes=nodes_in_core+edges_in_core
         cip.interface_hash =  hash((interface_hash,cip.interface_hash))
-        cip.graph= expanded_orig_graph.subgraph(interface_nodes+nodes_in_core+edges_in_core).copy()
+        cip.cip_graph= expanded_orig_graph.subgraph(interface_nodes + nodes_in_core + edges_in_core).copy()
 
 
         #print cip.interface_hash, cip.core_hash, root_node

@@ -2,7 +2,7 @@
 
 """Provides the graph grammar class."""
 
-from graphlearn import lsgg_cip
+from graphlearn import lsgg_core_interface_pair
 import logging
 from graphlearn.util import util
 import networkx as nx
@@ -20,7 +20,7 @@ def test_fit():
 def test_extract_cip():
     graph = nx.path_graph(4)
     util._edenize_for_testing(graph)
-    res = lsgg_cip.extract_cip(root_node=3, graph=graph, radius=1, thickness=1)
+    res = lsgg_core_interface_pair.make_cip(root_node=3, graph=graph, radius=1, thickness=1)
     # gprint(res.graph)
     assert ('cor' in str(res))
 

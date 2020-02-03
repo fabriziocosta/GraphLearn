@@ -17,7 +17,7 @@ This demonstrates the grammar which is the heart of graphlearn.
 Sampling as in the py2 example is demonstrated in graphlearn/sample.py.
 
 ```python
-from graphlearn.lsgg import lsgg
+from graphlearn.local_substitution_graph_grammar import LocalSubstitutionGraphGrammar
 from graphlearn.util import util
 import structout as so
 
@@ -25,7 +25,7 @@ import structout as so
 gr = util.get_cyclegraphs()
 
 #  induce a grammar, pick a graph, and apply all possible substitutions
-mylsgg = lsgg()
+mylsgg = LocalSubstitutionGraphGrammar()
 mylsgg.fit(gr)
 graphs =  list(mylsgg.neighbors(gr[0]))
 so.gprint(graphs)
