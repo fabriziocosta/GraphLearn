@@ -25,8 +25,18 @@ class lsgg_ego(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
     def root_neighbors(self, graph, roots, n_neighbors=1000):
         """root_neighbors."""
-        try:
+        cores = self._get_cores(graph)
+        for core in cores:
+            if any([n in roots for n in core.nodes()]): # intersection between potential cores and allowed roots
+                for neigh in self.neighbors_root(graph,core):
+                    if n_neighbors > 0:
+                        yield neigh
+                        n_neighbors = n_neighbors -1
+                    else:
+                        return
 
+        '''
+        try:
             for root in roots:
                 for root_graph in self._get_cores(graph):
                     if root not in list(root_graph.nodes()):
@@ -44,3 +54,4 @@ class lsgg_ego(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
                             raise StopIteration
         except StopIteration:
             return
+        '''
