@@ -2,11 +2,9 @@
 
 """Provides the graph grammar class."""
 
-import random
 from collections import defaultdict
 from graphlearn import lsgg_core_interface_pair
 import logging
-import numpy as np
 
 logger = logging.getLogger(__name__)
 from graphlearn.util.multi import mpmap
@@ -177,66 +175,3 @@ class LocalSubstitutionGraphGrammar(LocalSubstitutionGraphGrammarCore):
 
     def _make_cips_list(self, graph):
         return list(self._make_cips(graph))
-
-
-class LocalSubstitutionGraphGrammarSample(LocalSubstitutionGraphGrammar):
-
-    def _sample_size_adjusted(self, subs):
-        '''proposals are sampled, such that increasing or decreasing the graph has equal probability'''
-        probs= self._make_size_adjusted_probabilities(subs)
-        return self._sample(subs, probs)
-
-    def _make_size_adjusted_probabilities(self, subs):
-
-        # get size change for each  substitution
-        diffs = [ len(b.core_nodes)-len(a.core_nodes) for a,b in subs  ]
-
-        z = diffs.count(0)
-        s = sum(x<0 for x in diffs)
-        g = sum(x>0 for x in diffs)
-        logger.log(5,"assigned probabilities: same: %d, smaller %d, bigger %d" % (z,s,g))
-        z = 1/z if z !=0 else 1
-        s = 1/s if s !=0 else 1
-        g = 1/g if g !=0 else 1
-        def f(d):
-            if d ==0:
-                return z 
-            if d>0:
-                return g
-            return s
-        return [ f(d)  for d in diffs]
-    
-    def _sample(self, subs, probabilities):
-        if len(subs)==0: return []
-        suu = sum(probabilities)
-        p=[x/suu for x in probabilities]
-        samples = np.random.choice( list(range(len(subs))) ,
-                size=len(subs),
-                replace=False,
-                p=p)
-        return [subs[i] for i in samples[::-1]]
-
-    def neighbors_core(self, graph, core):
-        """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
-
-        graph_cip = self._make_cip(core, graph)
-        cip_substitutions = [(graph_cip, congruent_cip)
-                             for congruent_cip in self._get_congruent_cips(graph_cip)]
-
-        for cip, congruent_cip in  self._sample_size_adjusted(cip_substitutions):
-            graph_ = self._substitute_core(graph, cip, congruent_cip)
-            if graph_ is not None:
-                yield graph_
-
-    def neighbors_sample(self, graph, n_neighbors):
-        """neighbors_sample. might be a little bit faster by avoiding cip extractions,
-        chooses a node first and then picks form the subs evenly
-        """
-        cores = list(self._get_cores(graph))
-        random.shuffle(cores)
-        for core in cores:
-            for graph_ in self.neighbors_core(graph, core):
-                if n_neighbors > 0:
-                    yield graph_
-                    n_neighbors = n_neighbors - 1
-

@@ -1,3 +1,4 @@
+import graphlearn.sample
 from graphlearn import local_substitution_graph_grammar
 import structout as so
 from graphlearn import lsgg_core_interface_pair
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-class PiSi(local_substitution_graph_grammar.LocalSubstitutionGraphGrammarSample):
+class PiSi(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
     def _make_cip(self, core=None, graph=None):
         return extract_cip(thickness_pisi=2*self.decomposition_args['thickness_pisi'],

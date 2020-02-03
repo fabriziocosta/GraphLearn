@@ -1,5 +1,4 @@
-
-
+import graphlearn.sample
 from graphlearn import local_substitution_graph_grammar
 from graphlearn import lsgg_core_interface_pair
 from graphlearn.test import transformutil
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 
-class lsgg_layered(local_substitution_graph_grammar.LocalSubstitutionGraphGrammarSample):
+class lsgg_layered(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
     def _substitute_core(self, graph, cip, cip_):
         return lsgg_core_interface_pair.substitute_core(graph.cip_graph['original'], cip, cip_)
