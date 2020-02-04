@@ -1,7 +1,7 @@
 import graphlearn.sample
 from graphlearn import local_substitution_graph_grammar
 import structout as so
-from graphlearn import lsgg_core_interface_pair
+from graphlearn import lsgg_core_interface_pair as CIP
 import networkx as nx
 import numpy as np
 import random
@@ -11,11 +11,45 @@ logger = logging.getLogger(__name__)
 from sklearn.metrics.pairwise import cosine_similarity
 
 
+class CIP_PiSi(CIP.CoreInterfacePair):
+
+    def __init__(self, core, graph, thickness, thickness_pisi):
+
+        # preprocess, distances of core neighborhood, init counter
+        graph = CIP._edge_to_vertex(graph)
+        CIP._add_hlabel(graph)
+        CIP._add_hlabel(core)
+        dist = {a: b for (a, b) in CIP.short_paths(graph, core.nodes(), thickness_pisi)}
+        self.count=0
+
+        # core
+        self.core_hash = CIP.graph_hash(core)
+        self.core_nodes = core.nodes()
+
+        # interface
+        self.interface = graph.subgraph([id for id, dst in dist.items() if 0 < dst <= thickness])
+        get_node_label = lambda id, node: node['hlabel'] + dist[id]
+        self.interface_hash = CIP.graph_hash(self.interface, get_node_label=get_node_label)
+
+        # cip
+        self.graph = self._get_cip_graph(self.interface, core, graph, dist)
+
+        # PISI Stuff
+        loosecontext = graph.subgraph([i for i,d in dist.items() if 0 < d < thickness_pisi])
+        self.pisi_vectors = CIP.eg.vectorize([loosecontext])
+        self.pisi_hash = set([CIP.graph_hash(loosecontext)])
+
+
+
 class PiSi(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
+
+    def __init__(self,thickness_pisi, **kwargs):
+        super(PiSi,self).__init__(**kwargs)
+        self.thickness_pisi = thickness_pisi
+
     def _make_cip(self, core=None, graph=None):
-        return extract_cip(thickness_pisi=2*self.decomposition_args['thickness_pisi'],
-                                          **kwargs)
+        return CIP_PiSi(thickness_pisi=self.thickness_pisi, core=core, graph=graph)
     
     def _get_congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()
@@ -58,41 +92,6 @@ class PiSi(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
         txt += '#count sum: %5d   ' % sum([ cip.count for v in self.productions.values() for cip in v.values()   ])
         return txt
 
-
-def extract_cip(root_node=None,
-                               graph=None,
-                               radius=None,
-                               thickness=None,
-			       thickness_pisi=2):
-   
-    # MAKE A NORMAL CIP AS IN LSGG_CIP
-    graph =  lsgg_core_interface_pair._edge_to_vertex(graph)
-    lsgg_core_interface_pair._add_hlabel(graph)
-    dist = {a:b for (a,b) in lsgg_core_interface_pair.short_paths(graph,
-                                                                  root_node if isinstance(root_node,list) else [root_node],
-                                                                  radius + max(thickness_pisi,thickness))}
-
-    core_nodes = [id for id, dst in dist.items() if dst <= radius]
-    interface_nodes = [id for id, dst in dist.items()
-                       if radius < dst <= radius + thickness]
-
-    normal_cip =  lsgg_core_interface_pair._finalize_cip(root_node, graph, radius, thickness, dist, core_nodes, interface_nodes)
-
-
-    # NOW COMES THE pisi PART
-
-    pisi_nodes = [id for id, dst in dist.items()
-                       if radius+1 < dst <= (radius + thickness_pisi)]
-
-    pisi_graph = graph.subgraph(pisi_nodes) 
-    
-    loosecontext = nx.Graph(pisi_graph)
-    if loosecontext.number_of_nodes() > 2:
-        normal_cip.pisi_vectors = lsgg_core_interface_pair.eg.vectorize([loosecontext])
-        lsgg_core_interface_pair._add_hlabel(loosecontext)
-        normal_cip.pisi_hash = set([lsgg_core_interface_pair.graph_hash(loosecontext)])
-        return normal_cip
-    return None
 
 
 

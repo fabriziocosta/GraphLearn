@@ -14,18 +14,54 @@ class lsgg_layered(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
     def _substitute_core(self, graph, cip, cip_):
         return lsgg_core_interface_pair.substitute_core(graph.cip_graph['original'], cip, cip_)
-    
- 
+
+
+    def __init__(self,base_thickness=2,**kwargs):
+        if kwargs.get("double_radius_and_thickness",True):
+            self.base_thickness = base_thickness*2
+        else:
+            self.base_thickness =  base_thickness
+        super(lsgg_layered,self).init(**kwargs)
+
+
+    def _make_cip(self, core=None, graph=None):
+
+        """
+        whats happening here:
+        graph: abstracted
+        graph[orig] is the original
+
+        get 2 cips -> make the lower the cip, and hash the interface hashes together -> done
+        """
+
+        coarse_cip = lsgg_core_interface_pair.CoreInterfacePair(core=core,
+                                                             graph=graph,
+                                                             thickness=self.thickness)
+        base_cip= self._make_base_cip(graph, core)
+
+
+        base_cip.interface_hash = hash((base_cip.interface_hash,coarse_cip.interface_hash))
+        return base_cip
+
+    def _make_base_cip(self,graph,core):
+        exp_base_graph = lsgg_core_interface_pair._edge_to_vertex(graph.graph['original'])
+        base_core = exp_base_graph.subgraph([x for n in core.nodes() for x in core.nodes[n]['contracted']])
+        return  lsgg_core_interface_pair.CoreInterfacePair(core=base_core,
+                                                              graph=exp_base_graph,
+                                                              thickness=self.base_thickness)
+    '''
     def _make_cip(self, core=None, graph=None):
 
         # get CIP
-        basecip = lsgg_core_interface_pair.make_cip(root_node=core,
+        basecip = lsgg_core_interface_pair.CoreInterfacePair(core=core,
                                                     graph=graph,
-                                                    radius=radius,
-                                                    thickness=thickness)
+                                                    thickness=self.thickness)
 
 
-        base_thickness = 2*self.decomposition_args['base_thickness']
+
+        base_thickness = self.base_thickness
+
+
 
         # expand base graph
         orig_graph = graph.cip_graph['original']
@@ -71,6 +107,7 @@ class lsgg_layered(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
         #print cip.interface_hash, cip.core_hash, root_node
         return  cip
 
+    '''
 
 
 

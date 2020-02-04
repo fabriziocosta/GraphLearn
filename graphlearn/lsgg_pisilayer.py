@@ -17,6 +17,23 @@ from graphlearn import lsgg_pisi
 
 class lsgg_pisilayer(lsgg_pisi.PiSi, lsgg_layered.lsgg_layered):
 
+    def __init__(self,base_thickness=2,thickness_pisi=2, **kwargs):
+        if kwargs.get("double_radius_and_thickness",True):
+            self.base_thickness = base_thickness*2
+            self.thickness_pisi = thickness_pisi*2
+        else:
+            self.base_thickness =  base_thickness
+            self.thickness_pisi = thickness_pisi
+
+        super(lsgg_layered,self).init(**kwargs)
+
+
+    def _make_base_cip(self, graph, core):
+            exp_base_graph = lsgg_core_interface_pair._edge_to_vertex(graph.graph['original'])
+            base_core = exp_base_graph.subgraph([x for n in core.nodes() for x in core.nodes[n]['contracted']])
+            return lsgg_pisi.CIP_PiSi(core=base_core, graph=exp_base_graph,
+                                      thickness=self.base_thickness)
+    '''
     def _make_cip(self, core=None, graph=None):
 
         basecip = lsgg_core_interface_pair.make_cip(root_node=core,
@@ -79,5 +96,6 @@ class lsgg_pisilayer(lsgg_pisi.PiSi, lsgg_layered.lsgg_layered):
         basecip.pisi_vectors = lsgg_core_interface_pair.eg.vectorize([pisi_graph])
         return basecip
 
+    '''
 
 
