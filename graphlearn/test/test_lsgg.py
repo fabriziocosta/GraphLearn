@@ -2,7 +2,10 @@
 
 """Provides the graph grammar class."""
 
-from graphlearn import lsgg_core_interface_pair
+#from graphlearn import lsgg_core_interface_pair as lcip
+#from graphlearn import local_substitution_graph_grammar as lsgg
+
+
 import logging
 from graphlearn.util import util
 import networkx as nx
@@ -40,13 +43,19 @@ def test_neighbors():
 def test_some_neighbors():
     # make a grammar
     lsgg = util.test_get_grammar()
-    # make agraph
+    # make a graph
     g = nx.path_graph(4)
     g = util._edenize_for_testing(g)
-    g.nodes[3]['label'] = '5'
-    assert (1 == len(list(lsgg.neighbors_sample(g, 1))))
-    assert (2 == len(list(lsgg.neighbors_sample(g, 2))))
-    assert (3 == len(list(lsgg.neighbors_sample(g, 3))))
+
+    import structout as so
+    so.gprint(lsgg.neighbors(g).__next__())
+
+
+    #g.nodes[3]['label'] = '5'
+    #assert (1 == len(list(lsgg.neighbors_sample(g, 1))))
+    #assert (2 == len(list(lsgg.neighbors_sample(g, 2))))
+    #assert (3 == len(list(lsgg.neighbors_sample(g, 3))))
     # gprint(list( lsgg.some_neighbors(g,1) ))
     # gprint(list( lsgg.some_neighbors(g,2) ))
     # gprint(list( lsgg.some_neighbors(g,3) ))
+

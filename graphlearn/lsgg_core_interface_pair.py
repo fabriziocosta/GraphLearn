@@ -34,7 +34,7 @@ def graph_hash(graph, get_node_label=lambda id, node: node['hlabel']):
 
 def _graph_hash_neighborhood(graph, node, get_node_label=lambda id, node: node['hlabel']):
     d = nx.single_source_shortest_path_length(graph, node, 5)
-    l = [hash(get_node_label(nid, graph.nodes[nid]), dis) for nid, dis in d.items()]
+    l = [hash((get_node_label(nid, graph.nodes[nid]), dis)) for nid, dis in d.items()]
     l.sort()
     return hash(tuple(l))
 
@@ -59,6 +59,7 @@ class CoreInterfacePair:
             # preprocess, distances of core neighborhood, init counter
             graph = _edge_to_vertex(graph)
             _add_hlabel(graph)
+            _add_hlabel(core)
             dist = {a: b for (a, b) in short_paths(graph, core.nodes(), thickness)}
             self.count=0
 
@@ -77,7 +78,7 @@ class CoreInterfacePair:
 
 
     def _get_cip_graph(self,interface, core, graph, dist):
-        cip_graph = graph.subgraph(core.nodes() + interface.nodes())
+        cip_graph = graph.subgraph( list(core.nodes()) + list(interface.nodes()))
         ddl = 'distance_dependent_label'
         for no in interface.nodes():
             cip_graph.nodes[no][ddl] = cip_graph.nodes[no]['hlabel'] + dist[no]
@@ -104,7 +105,8 @@ def get_cores(graph, radii):
     exgraph = _edge_to_vertex(graph)
     edgeout =  max(radii) % 2 # is 1 if the outermost node is an edge
     for root in graph.nodes():
-        id_dst = short_paths(exgraph,[root], max(radii)+edgeout)
+        #id_dst = short_paths(exgraph,[root], max(radii)+edgeout)
+        id_dst = {a: b for (a, b) in short_paths(exgraph, [root], max(radii)+edgeout)}
         for r in radii:
             if r % 2 == 0:
                 yield exgraph.subgraph([id for id,dst in id_dst.items() if dst <= r])
@@ -139,7 +141,7 @@ return core_nodes, interface_nodes
 def find_all_isomorphisms(interface_graph, congruent_interface_graph):
     ddl = 'distance_dependent_label'
     label_matcher = lambda x, y: x[ddl] == y[ddl]  # and \ x.get('shard', 1) == y.get('shard', 1)
-    return iso.GraphMatcher(interface_graph, congruent_interface_graph, node_match=label_matcher)
+    return iso.GraphMatcher(interface_graph, congruent_interface_graph, node_match=label_matcher).match()
 
 def substitute_core(graph, cip, congruent_cip):
 
@@ -155,9 +157,9 @@ def substitute_core(graph, cip, congruent_cip):
         return None
     maxid = max(graph.nodes())
     interface_map.update({ c: i+maxid+1 for i,c in enumerate(congruent_cip.core_nodes()) })
-    congruent_cip.graph.relabel_nodes(interface_map,copy=True)
+    newcip = nx.relabel_nodes(congruent_cip.graph, interface_map,copy=True)
 
     # compose and undo edge expansion
-    graph= nx.compose(graph,congruent_cip)
+    graph= nx.compose(graph,newcip)
     return  eg._revert_edge_to_vertex_transform(graph)
 

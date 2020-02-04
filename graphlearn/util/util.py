@@ -30,7 +30,7 @@ def _edenize_for_testing(g):
 
 
 def test_get_grammar():
-    lsggg = local_substitution_graph_grammar.LocalSubstitutionGraphGrammar()
+    lsggg = local_substitution_graph_grammar.LocalSubstitutionGraphGrammar(filter_min_cip=1)
     g = _edenize_for_testing(nx.path_graph(4))
     lsggg.fit([g, g, g])
     return lsggg
