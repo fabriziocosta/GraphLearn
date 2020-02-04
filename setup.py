@@ -106,7 +106,10 @@ setup(
     install_requires=[
         "networkx == 2.2",
         "toolz",
-        "structout"
+        "structout",
+        "scipy",
+        'scikit-learn',
+        'eden-kernel'
     ],
     cmdclass={'sdist': sdist, 'install': install}
 )
