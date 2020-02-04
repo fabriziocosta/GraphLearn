@@ -104,7 +104,7 @@ setup(
     description='recombine network graphs',
     #long_description=open('README.md').read(),
     install_requires=[
-        "networkx == 2.2",
+        "networkx",
         "toolz",
         "structout",
         "scipy",
