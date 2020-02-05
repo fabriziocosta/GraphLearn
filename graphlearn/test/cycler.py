@@ -22,11 +22,11 @@ class Cycler():
         for i in cycle:
             if i in graph:
                 util.merge_edge(graph, idd, i)
-                graph.cip_graph['cycdic'][i]=idd
+                graph.graph['cycdic'][i]=idd
             else:
                 # node was already removed -> the node musst be in 2 cycles!
                 # since the node was removed before we know that its edges live on in the cycle representing node
-                abstr_of_i  = graph.cip_graph['cycdic'][i]
+                abstr_of_i  = graph.graph['cycdic'][i]
                 graph.add_edge(abstr_of_i,idd, label='interabstredge')
 
 
@@ -50,15 +50,15 @@ class Cycler():
         
         layer = nx.relabel.convert_node_labels_to_integers(layer)
         # result :)
-        layer.cip_graph['original']=graph
+        layer.graph['original']=graph
         return layer
 
     def decode(self,graphs):
         '''there is nothing to do because the output is already gl.valid_gl_graph :D'''
         return [self._decode_single(g) for g in graphs]
     def _decode_single(self,g):
-        if 'original' in g.cip_graph:
-            return g.cip_graph['original']
+        if 'original' in g.graph:
+            return g.graph['original']
         return g
 
 

@@ -36,8 +36,8 @@ class CIP_PiSi(CIP.CoreInterfacePair):
 
         # PISI Stuff
         loosecontext = graph.subgraph([i for i,d in dist.items() if 0 < d < thickness_pisi])
-        self.pisi_vectors = CIP.eg.vectorize([loosecontext])
         self.pisi_hash = set([CIP.graph_hash(loosecontext)])
+        self.pisi_vectors = CIP.eg.vectorize([loosecontext])
 
 
 
@@ -46,10 +46,10 @@ class PiSi(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
     def __init__(self,thickness_pisi, **kwargs):
         super(PiSi,self).__init__(**kwargs)
-        self.thickness_pisi = thickness_pisi
+        self.thickness_pisi = thickness_pisi*2
 
     def _make_cip(self, core=None, graph=None):
-        return CIP_PiSi(thickness_pisi=self.thickness_pisi, core=core, graph=graph)
+        return CIP_PiSi( core=core, graph=graph,thickness=self.thickness,  thickness_pisi=self.thickness_pisi)
     
     def _get_congruent_cips(self, cip):
         cips = self.productions.get(cip.interface_hash, {}).values()

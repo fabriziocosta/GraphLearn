@@ -25,13 +25,14 @@ class lsgg_pisilayer(lsgg_pisi.PiSi, lsgg_layered.lsgg_layered):
             self.base_thickness =  base_thickness
             self.thickness_pisi = thickness_pisi
 
-        super(lsgg_layered,self).init(**kwargs)
+        super(lsgg_layered.lsgg_layered,self).__init__(**kwargs)
 
 
-    def _make_base_cip(self, graph, core):
-            exp_base_graph = lsgg_core_interface_pair._edge_to_vertex(graph.graph['original'])
-            base_core = exp_base_graph.subgraph([x for n in core.nodes() for x in core.nodes[n]['contracted']])
-            return lsgg_pisi.CIP_PiSi(core=base_core, graph=exp_base_graph,
+ 
+    def _make_base_cip(self,graph,core):
+        exp_base_graph = lsgg_core_interface_pair._edge_to_vertex(graph.graph['original'])
+        base_core = self._make_base_core(exp_base_graph, core)
+        return lsgg_pisi.CIP_PiSi(core=base_core, graph=exp_base_graph,
                                       thickness=self.base_thickness)
     '''
     def _make_cip(self, core=None, graph=None):

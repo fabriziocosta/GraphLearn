@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class lsgg_layered(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
     def _substitute_core(self, graph, cip, cip_):
-        return lsgg_core_interface_pair.substitute_core(graph.cip_graph['original'], cip, cip_)
+        return lsgg_core_interface_pair.substitute_core(graph.graph['original'], cip, cip_)
 
 
     def __init__(self,base_thickness=2,**kwargs):
@@ -21,7 +21,7 @@ class lsgg_layered(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
             self.base_thickness = base_thickness*2
         else:
             self.base_thickness =  base_thickness
-        super(lsgg_layered,self).init(**kwargs)
+        super(lsgg_layered,self).__init__(**kwargs)
 
 
     def _make_cip(self, core=None, graph=None):
@@ -43,9 +43,17 @@ class lsgg_layered(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
         base_cip.interface_hash = hash((base_cip.interface_hash,coarse_cip.interface_hash))
         return base_cip
 
+
+    def _make_base_core(self,exp_base_graph, core):
+        nodes_in_core = [x for n in core.nodes() for x in core.nodes[n].get('contracted',[]) ]
+        edges_in_core = [n for n,d in exp_base_graph.nodes(data=True)
+                        if 'edge' in d and all([z in nodes_in_core for z in exp_base_graph.neighbors(n) ])]
+        base_core = exp_base_graph.subgraph(nodes_in_core+edges_in_core)
+        return base_core
+
     def _make_base_cip(self,graph,core):
         exp_base_graph = lsgg_core_interface_pair._edge_to_vertex(graph.graph['original'])
-        base_core = exp_base_graph.subgraph([x for n in core.nodes() for x in core.nodes[n]['contracted']])
+        base_core = self._make_base_core(exp_base_graph, core)
         return  lsgg_core_interface_pair.CoreInterfacePair(core=base_core,
                                                               graph=exp_base_graph,
                                                               thickness=self.base_thickness)
