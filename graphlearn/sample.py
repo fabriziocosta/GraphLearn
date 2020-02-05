@@ -106,14 +106,13 @@ class sampler(object):
         current = graph, startscore
         scorehist= [] 
         backupmgr = Backupmgr(15)
-        for g in self.grammar.neighbors_sample(graph, self.num_sample, adjust_for_size=True):
+        for g in self.grammar.neighbors_sample(graph, self.num_sample):
             proposal_object = self.transformer._decode_single(g)
             score = self.scorer.decision_function([proposal_object])[0]
             scorehist.append(score)
             backupmgr.push((score,proposal_object))
             if score > current[1]:
                 current = proposal_object,score
-            
         
         if startscore == current[1]:
             score,pobj = backupmgr.get() 

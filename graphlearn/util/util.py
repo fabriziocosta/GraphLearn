@@ -89,7 +89,7 @@ def get_cyclegraphs():
 def valid_gl_graph(graph):
     """checks if a graph is a valid graphlearn-intermediary product"""
 
-    secondlayer = 'original' in graph.cip_graph
+    secondlayer = 'original' in graph.graph
 
     # are labels in the graph?
     def label_is_set(graph):
@@ -101,11 +101,11 @@ def valid_gl_graph(graph):
 
     assert label_is_set(graph)
     if secondlayer:
-        assert label_is_set(graph.cip_graph['original']) == True
+        assert label_is_set(graph.graph['original']) == True
 
     # second layer needs contracted attributes...
     if secondlayer:
-         assert set(graph.cip_graph['original'].nodes()) == functools.reduce(lambda a, b: a | b, [d['contracted'] for n, d in graph.nodes(data=True)])
+         assert set(graph.graph['original'].nodes()) == functools.reduce(lambda a, b: a | b, [d['contracted'] for n, d in graph.nodes(data=True)])
 
     return True
 

@@ -1,4 +1,5 @@
 import eden.graph as eg
+import structout as so 
 from networkx.algorithms import isomorphism as iso
 import networkx as nx
 import logging
@@ -6,6 +7,7 @@ import logging
 # nx 2.2 has this:
 from networkx.algorithms.shortest_paths.unweighted import _single_shortest_path_length as short_paths
 logger = logging.getLogger(__name__)
+
 
 
 def _add_hlabel(graph):
@@ -65,7 +67,7 @@ class CoreInterfacePair:
 
             # core
             self.core_hash = graph_hash(core)
-            self.core_nodes = core.nodes()
+            self.core_nodes = list(core.nodes())
 
             # interface
             self.interface = graph.subgraph([id for id, dst in dist.items() if 0 < dst <= thickness])
@@ -85,7 +87,9 @@ class CoreInterfacePair:
         return cip_graph
 
 
-
+    def ascii(self): 
+        '''return colored cip'''
+        return so.graph.make_picture(self.graph, color=[ self.core_nodes , list(self.interface.nodes())  ])
 
     def __str__(self):
         return 'cip: int:%d, cor:%d, rad:%d, size:%d' % \
@@ -144,7 +148,7 @@ def find_all_isomorphisms(interface_graph, congruent_interface_graph):
     return iso.GraphMatcher(interface_graph, congruent_interface_graph, node_match=label_matcher).match()
 
 def substitute_core(graph, cip, congruent_cip):
-
+    
     # expand edges and remove old core
     graph = _edge_to_vertex(graph)
     graph.remove_nodes_from(cip.core_nodes)
@@ -156,10 +160,25 @@ def substitute_core(graph, cip, congruent_cip):
         logger.log(10, "isomorphism failed, likely due to hash collision")
         return None
     maxid = max(graph.nodes())
-    interface_map.update({ c: i+maxid+1 for i,c in enumerate(congruent_cip.core_nodes()) })
+    core_rename= { c: i+maxid+1 for i,c in enumerate(congruent_cip.core_nodes) }
+    interface_map.update(core_rename)
     newcip = nx.relabel_nodes(congruent_cip.graph, interface_map,copy=True)
+    
 
     # compose and undo edge expansion
-    graph= nx.compose(graph,newcip)
-    return  eg._revert_edge_to_vertex_transform(graph)
+    graph2= nx.compose(graph,newcip)
+    return  eg._revert_edge_to_vertex_transform(graph2)
+    '''
+    except Exception as e:
+        print(str(e))
+        print('imap:', interface_map)
+        print(newcip.nodes()) 
+        print(graph.nodes()) 
+        so.gprint(graph, size=30, nodelabel=None, color=[[v for v in interface_map.values() if v in graph.nodes()]])
+        so.gprint(newcip,nodelabel=None, color=[list(core_rename.values())])
+        so.gprint(graph2, size=30, nodelabel=None, color=[list(interface_map.values())])
+        so.graph.ginfo(graph2) 
+        so.gprint(graph_orig, size=30,nodelabel=None)
 
+    return ret
+    '''
