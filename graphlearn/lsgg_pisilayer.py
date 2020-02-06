@@ -15,9 +15,20 @@ from graphlearn import lsgg_layered
 from graphlearn import lsgg_pisi
 
 
-class lsgg_pisilayer(lsgg_pisi.PiSi, lsgg_layered.lsgg_layered):
+class lsgg_pisilayer( lsgg_layered.lsgg_layered ,lsgg_pisi.PiSi):
 
+
+
+
+
+    def __init__(self, **kwargs):
+        super(lsgg_pisilayer,self).__init__(**kwargs)
+
+    '''
     def __init__(self,base_thickness=2,thickness_pisi=2, **kwargs):
+    
+        # print (lsgg_pisilayer.mro()) pisilayer -> layered -> pisi
+
         if kwargs.get("double_radius_and_thickness",True):
             self.base_thickness = base_thickness*2
             self.thickness_pisi = thickness_pisi*2
@@ -25,15 +36,23 @@ class lsgg_pisilayer(lsgg_pisi.PiSi, lsgg_layered.lsgg_layered):
             self.base_thickness =  base_thickness
             self.thickness_pisi = thickness_pisi
 
-        super(lsgg_layered.lsgg_layered,self).__init__(**kwargs)
+        super(lsgg_pisilayer,self).__init__(**kwargs)
 
+    '''
 
  
     def _make_base_cip(self,graph,core):
         exp_base_graph = lsgg_core_interface_pair._edge_to_vertex(graph.graph['original'])
         base_core = self._make_base_core(exp_base_graph, core)
-        return lsgg_pisi.CIP_PiSi(core=base_core, graph=exp_base_graph,
+        try:
+            ret =  lsgg_pisi.CIP_PiSi(core=base_core, graph=exp_base_graph,
                                       thickness=self.base_thickness)
+        except:
+            import structout as so 
+            so.gprint(base_core)
+            so.gprint(graph, size=25)
+        
+        return ret
     '''
     def _make_cip(self, core=None, graph=None):
 

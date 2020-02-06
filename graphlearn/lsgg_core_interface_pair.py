@@ -167,6 +167,9 @@ def substitute_core(graph, cip, congruent_cip):
 
     # compose and undo edge expansion
     graph2= nx.compose(graph,newcip)
+
+    # if the reverserion fails, you use a wrong version of eden, where
+    # expansion requires that edges are indexed by (0..n-1)
     return  eg._revert_edge_to_vertex_transform(graph2)
     '''
     except Exception as e:
