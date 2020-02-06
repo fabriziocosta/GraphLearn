@@ -37,7 +37,9 @@ class lsgg_layered(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
         coarse_cip = lsgg_core_interface_pair.CoreInterfacePair(core=core,
                                                              graph=graph,
                                                              thickness=self.thickness)
-        base_cip= self._make_base_cip(graph, core)
+        base_cip = self._make_base_cip(graph, core)
+        if not base_cip:
+            return None
 
 
         base_cip.interface_hash = hash((base_cip.interface_hash,coarse_cip.interface_hash))

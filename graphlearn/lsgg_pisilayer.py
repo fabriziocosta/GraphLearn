@@ -44,15 +44,18 @@ class lsgg_pisilayer( lsgg_layered.lsgg_layered ,lsgg_pisi.PiSi):
     def _make_base_cip(self,graph,core):
         exp_base_graph = lsgg_core_interface_pair._edge_to_vertex(graph.graph['original'])
         base_core = self._make_base_core(exp_base_graph, core)
-        try:
-            ret =  lsgg_pisi.CIP_PiSi(core=base_core, graph=exp_base_graph,
-                                      thickness=self.base_thickness)
-        except:
-            import structout as so 
-            so.gprint(base_core)
-            so.gprint(graph, size=25)
+        if len(base_core) == len(exp_base_graph):
+            logger.log(10, 'core as big as graph -> no interface ->  return None')
+            return None
+        return  lsgg_pisi.CIP_PiSi(core=base_core, graph=exp_base_graph,
+                                      thickness=self.base_thickness,
+                                      thickness_pisi = self.thickness_pisi)
+        '''
+        import structout as so 
+        so.gprint(base_core, nodelabel=None, size=25)
+        so.gprint(graph.graph[ 'original' ], size=25, nodelabel=None)
+        '''
         
-        return ret
     '''
     def _make_cip(self, core=None, graph=None):
 
