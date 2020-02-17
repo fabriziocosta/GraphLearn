@@ -17,7 +17,7 @@ class lsgg_layered(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
 
     def __init__(self,base_thickness=2,**kwargs):
-        if kwargs.get("double_radius_and_thickness",True):
+        if kwargs.get("nodelevel_radius_and_thickness",True):
             self.base_thickness = base_thickness*2
         else:
             self.base_thickness =  base_thickness

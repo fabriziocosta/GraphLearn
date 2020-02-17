@@ -60,3 +60,23 @@ def test_some_neighbors():
     # gprint(list( lsgg.some_neighbors(g,2) ))
     # gprint(list( lsgg.some_neighbors(g,3) ))
 
+
+def test_pathgraphs_thin_interface():
+    from graphlearn import LSGG 
+    lsgg = LSGG(radii=[0], thickness = 1, nodelevel_radius_and_thickness = False)
+    g = nx.path_graph(4)
+    g = util._edenize_for_testing(g)
+    lsgg.fit([g,g,g])
+    # there are 2 interfaces and 4 cores
+    assert lsgg.size()[0] == 2 
+    assert lsgg.size()[1] == 4 
+
+    return lsgg,g 
+
+
+def visualize_test_pathgraphs_thin_interface():
+    lsgg,g = test_pathgraphs_thin_interface()
+    lsgg.structout()
+    import structout as so 
+    so.gprint(list(lsgg.neighbors(g)))
+

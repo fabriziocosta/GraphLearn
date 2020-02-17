@@ -16,7 +16,7 @@ class LocalSubstitutionGraphGrammarCore(object):
                  thickness = 1,
                  filter_min_cip = 2,
                  filter_min_interface =2,
-                 double_radius_and_thickness=True
+                 nodelevel_radius_and_thickness=True
                  ):
         """Parameters
         ----------
@@ -32,7 +32,7 @@ class LocalSubstitutionGraphGrammarCore(object):
         self.filter_min_interface = filter_min_interface
 
         self.productions = defaultdict(dict)
-        if  double_radius_and_thickness:
+        if  nodelevel_radius_and_thickness:
             self.double_radius_and_thickness()
 
     def double_radius_and_thickness(self):
@@ -151,6 +151,13 @@ class LocalSubstitutionGraphGrammar(LocalSubstitutionGraphGrammarCore):
                      for interface in self.productions)
 
         return n_interfaces, n_cores, n_cips, n_productions
+
+    def structout(self):
+        import structout as so 
+        for ciplist in self.productions.values():
+            so.gprint([c.graph for c in ciplist.values()])
+            print ("#"*80)
+
 
     def __repr__(self):
         """repr."""

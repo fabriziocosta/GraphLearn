@@ -1,0 +1,3 @@
+import graphlearn.local_substitution_graph_grammar as lsgg 
+from graphlearn.local_substitution_graph_grammar import LocalSubstitutionGraphGrammar as LSGG
+
