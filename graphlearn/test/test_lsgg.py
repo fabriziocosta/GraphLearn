@@ -76,7 +76,9 @@ def test_pathgraphs_thin_interface():
 
 def visualize_test_pathgraphs_thin_interface():
     lsgg,g = test_pathgraphs_thin_interface()
+    print("GRAMMAR:")
     lsgg.structout()
     import structout as so 
+    print("APPLYING ALL PRODUCTIONS:")
     so.gprint(list(lsgg.neighbors(g)))
 
