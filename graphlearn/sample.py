@@ -43,7 +43,10 @@ def sample_sizeconstraint(graph,penalty=0.01, **kwargs):
     kwargs['scorer'].sizepenalty = penalty
     return sample(graph,**kwargs)
 
-class sampler(object):
+
+
+
+class Sampler(object):
     def __init__(self,**sampleargs):
         self.faster=False
         self.num_sample = 1
@@ -133,12 +136,12 @@ class Backupmgr():
     def get(self):
         return random.choices(self.data,[ p for p,g in self.data ])[0]
 
+'''
 def fit():
     pass
 
 def optimize():
     pass
-
 
 
 
@@ -176,6 +179,7 @@ def multi_sample(graph, transformer=None, grammar=None, scorer=None, selector=No
     s=SelectMax()
     return s.select(graphs,scores)[0]
 
+'''
 
 class LocalSubstitutionGraphGrammarSample(LocalSubstitutionGraphGrammar):
 

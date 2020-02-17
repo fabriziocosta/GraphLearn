@@ -57,13 +57,16 @@ class CoreInterfacePair:
 
 
     def __init__(self,core,graph,thickness):
-
-            # preprocess, distances of core neighborhood, init counter
+            '''
             graph = _edge_to_vertex(graph)
             _add_hlabel(graph)
             _add_hlabel(core)
             dist = {a: b for (a, b) in short_paths(graph, core.nodes(), thickness)}
             self.count=0
+            '''
+            
+            # preprocess, distances of core neighborhood, init counter
+            graph, dist =  self.prepare_init(core,graph, thickness)
 
             # core
             self.core_hash = graph_hash(core)
@@ -77,7 +80,14 @@ class CoreInterfacePair:
             # cip
             self.graph = self._get_cip_graph(self.interface, core, graph, dist)
 
-
+    def prepare_init(self, core, graph, thickness): 
+        # preprocess, distances of core neighborhood, init counter
+        graph = _edge_to_vertex(graph)
+        _add_hlabel(graph)
+        _add_hlabel(core)
+        dist = {a: b for (a, b) in short_paths(graph, core.nodes(), thickness)}
+        self.count=0
+        return graph, dist 
 
     def _get_cip_graph(self,interface, core, graph, dist):
         cip_graph = graph.subgraph( list(core.nodes()) + list(interface.nodes()))
@@ -97,6 +107,25 @@ class CoreInterfacePair:
                        self.core_hash, 
                        self.radius, 
                        len(self.core_nodes))
+
+
+
+# VARIANT: 
+# 1. core structure stays the same (bonus: keep node-ids) 
+# 2. cores have vector attached to predict the impact on the vectorized graph 
+
+
+class StructurePreservingCIP(CoreInterfacePair): 
+    def __init__(self,core,graph,thickness, preserveid = False):
+        super(StructurePreservingCIP,self).__init__(core,graph, thickness)
+        # preserve structure:
+        getlabel =  lambda id, node: id if preserveid else '1337'
+        self.interface_hash = hash(self.interface_hash,
+                graph_hash(core, get_node_label=getlabel) )
+
+
+
+
 
 
 
