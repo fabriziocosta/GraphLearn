@@ -129,8 +129,6 @@ class StructurePreservingCIP(CoreInterfacePair):
 
 
 
-
-
 #########
 # CORES
 #########
