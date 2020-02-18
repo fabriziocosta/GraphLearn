@@ -3,23 +3,26 @@
 from graphlear.lsgg_core_interface_pair import * 
 from ego import real_vectorize as rv
 
-# todo https://github.com/fabriziocosta/EGO/blob/master/ego/real_vectorize.py 30:33
+
+class lsgg_extension:
+
+    def _get_cores(self, graph):
+        cores = [ core for core in lsgg_core_interface_pair.get_cores(graph, self.radii) if core]
+        self.attach_vectors(cores, graph)
+        return cores
 
 
+    def _make_cip(self, core=None, graph=None):
+        cip = super(lsgg_extension, self)._make_cip(core, graph) 
+        if cip:
+            cip.core_vec= core.core_vec 
+            return cip
+        
 
-class CoreVectorCIP(CoreInterfacePair):
-
-    def __init__(self,core,graph,thickness, node_vectors):
-               
-        graph, dist =  self.prepare_init(core,graph, thickness)
-        self.core_hash = graph_hash(core)
-        self.core_nodes = list(core.nodes())
-        self.interface = graph.subgraph([id for id, dst in dist.items() if 0 < dst <= thickness])
-        get_node_label = lambda id, node: node['hlabel'] + dist[id]
-        self.interface_hash = graph_hash(self.interface, get_node_label=get_node_label)
-        self.graph = self._get_cip_graph(self.interface, core, graph, dist)
-
-        self.core_vector = self.make_core_vector(core, graph, node_vectors) 
+    def attach_vectors(self, cores, graph):
+        matrix = vertex_vec(graph, self.decomposer) # should put decomposer in init...
+        for core in cores:
+            core.core_vec = self.make_core_vector(core, graph, node_vectors)
 
 
     def make_core_vector(self, core, graph, node_vectors): 
@@ -28,7 +31,7 @@ class CoreVectorCIP(CoreInterfacePair):
         return node_vectors[core_ids,:].sum(axis=0)
 
 
-
+    
 
 
 def vertex_vec(graph, decomposer, bitmask = 2**10-1): 
