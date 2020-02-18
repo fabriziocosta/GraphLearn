@@ -6,18 +6,22 @@ from ego import real_vectorize as rv
 
 class lsgg_extension:
 
+    '''  attaches a vector for each core, representing the nodes contained,,, 
+        i do this by attaching the vector to the cores when they are generated 
+        (so i only need to compute the node vectorisation once)
+        and transfer them to the CIPs when make_cip is called
+    '''
+
+    ##########
+    #  step one: cores get vectors attached
+    #########
+
     def _get_cores(self, graph):
         cores = [ core for core in lsgg_core_interface_pair.get_cores(graph, self.radii) if core]
         self.attach_vectors(cores, graph)
         return cores
 
 
-    def _make_cip(self, core=None, graph=None):
-        cip = super(lsgg_extension, self)._make_cip(core, graph) 
-        if cip:
-            cip.core_vec= core.core_vec 
-            return cip
-        
 
     def attach_vectors(self, cores, graph):
         matrix = vertex_vec(graph, self.decomposer) # should put decomposer in init...
@@ -31,7 +35,16 @@ class lsgg_extension:
         return node_vectors[core_ids,:].sum(axis=0)
 
 
+    ###
+    # step 2: vector gets transfered to cip
+    ######
     
+    def _make_cip(self, core=None, graph=None):
+        cip = super(lsgg_extension, self)._make_cip(core, graph) 
+        if cip:
+            cip.core_vec= core.core_vec 
+            return cip
+        
 
 
 def vertex_vec(graph, decomposer, bitmask = 2**10-1): 
