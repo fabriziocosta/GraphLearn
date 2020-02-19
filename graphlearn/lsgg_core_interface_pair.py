@@ -134,35 +134,23 @@ class StructurePreservingCIP(CoreInterfacePair):
 #########
 def get_cores(graph, radii):
     exgraph = _edge_to_vertex(graph)
-    edgeout =  max(radii) % 2 # is 1 if the outermost node is an edge
     for root in graph.nodes():
-        #id_dst = short_paths(exgraph,[root], max(radii)+edgeout)
-        id_dst = {a: b for (a, b) in short_paths(exgraph, [root], max(radii)+edgeout)}
+        id_dst = {node: dis for (node, dis) in short_paths(exgraph, [root], max(radii)+1)}
         for r in radii:
-            if r % 2 == 0:
-                yield exgraph.subgraph([id for id,dst in id_dst.items() if dst <= r])
-            else:
-                # use the
-                assert False, "not implemented, outermost node is an edge, we would like to put this in the core... "
+            nodeset = get_node_set(id_dst,r, exgraph)
+            yield  exgraph.subgraph(nodeset)
+            #print (root, id_dst)
+            #so.gprint(res)
 
+def get_node_set(id_dst, r, graph):
+    # a node is in the core when dist <= r or it is an edge and is twice connected to nodes in core
+    border = {node for node,dis in id_dst.items() if dis == r} 
+    return [id for id,dst in id_dst.items() if (dst <= r or edgetest(border,id, graph))]
 
-'''
+def edgetest(border, id,g):
+   res=  (2 == sum([ g.has_edge( id,b  ) for b in border]))# and "edge" in graph.nodes[id] 
+   return res
 
-# use this to implement the above assert error
-
-def get_cores_mv_to_core(interface_nodes, core_nodes, graph):
-    """
-     this is relevant when  1. edges are root  OR 2. interface sizes are non standard
-     the problem-case is this: an interface-edge-node is connected to cores, so using it for interface
-     isomorphismchecks is nonse.
-    """
-test = lambda idd: 2==sum([ neigh in core_nodes for neigh in graph.neighbors(idd) ])
-mv_to_core = {idd:0 for idd in interface_nodes if "edge" in graph.nodes[idd] and test(idd)}
-if mv_to_core:
-    core_nodes+= list(mv_to_core.keys())
-    interface_nodes = [i for i in interface_nodes if i not in mv_to_core ]
-return core_nodes, interface_nodes 
-'''
 
 
 ######
@@ -178,6 +166,8 @@ def substitute_core(graph, cip, congruent_cip):
     
     # expand edges and remove old core
     graph = _edge_to_vertex(graph)
+    
+
     graph.remove_nodes_from(cip.core_nodes)
 
     # relabel the nodes in the congruent cip such that the interface node-ids match with the graph and the
@@ -197,18 +187,25 @@ def substitute_core(graph, cip, congruent_cip):
 
     # if the reverserion fails, you use a wrong version of eden, where
     # expansion requires that edges are indexed by (0..n-1)
-    return  eg._revert_edge_to_vertex_transform(graph2)
+    return   eg._revert_edge_to_vertex_transform(graph2)
+
     '''
     except Exception as e:
         print(str(e))
         print('imap:', interface_map)
         print(newcip.nodes()) 
         print(graph.nodes()) 
-        so.gprint(graph, size=30, nodelabel=None, color=[[v for v in interface_map.values() if v in graph.nodes()]])
+
+        ZOOM2  = [a for (a, b) in short_paths(graph2, interface_map.values(), 5)]
+        print("substituted")
+        so.gprint(graph2.subgraph(ZOOM2), size=30, nodelabel=None, color=[list(interface_map.values())])
+        color = [v for v in interface_map.values() if v in graph.nodes()]
+        ZOOM  = [a for (a, b) in short_paths(graph, color,  5)]
+        print("orig, stuff removed")
+        so.gprint(graph.subgraph(ZOOM), size=30, nodelabel=None, color=[color])
+        print("cip (relabeled)")
         so.gprint(newcip,nodelabel=None, color=[list(core_rename.values())])
-        so.gprint(graph2, size=30, nodelabel=None, color=[list(interface_map.values())])
-        so.graph.ginfo(graph2) 
-        so.gprint(graph_orig, size=30,nodelabel=None)
+        so.graph.ginfo(graph2.subgraph(ZOOM2))
 
     return ret
     '''
