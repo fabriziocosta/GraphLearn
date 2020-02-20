@@ -5,6 +5,9 @@ from ego import real_vectorize as rv
 from graphlearn import LSGG
 
 
+# Todo, make_core_vector generates a matrix, maybe a vector is more usefull
+
+
 class LsggCoreVec(LSGG):
 
     '''  attaches a vector for each CIP, representing the nodes contained,,, 
