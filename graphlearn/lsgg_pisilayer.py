@@ -1,5 +1,4 @@
 
-import structout as so 
 
 from graphlearn.test import transformutil
 import copy

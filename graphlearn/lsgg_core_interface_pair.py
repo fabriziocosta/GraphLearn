@@ -1,5 +1,4 @@
 import eden.graph as eg
-import structout as so 
 from networkx.algorithms import isomorphism as iso
 import networkx as nx
 import logging
@@ -99,6 +98,7 @@ class CoreInterfacePair:
 
     def ascii(self): 
         '''return colored cip'''
+        import structout as so 
         return so.graph.make_picture(self.graph, color=[ self.core_nodes , list(self.interface.nodes())  ])
 
     def __str__(self):

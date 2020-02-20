@@ -1,6 +1,5 @@
 import graphlearn.sample
 from graphlearn import local_substitution_graph_grammar
-import structout as so
 from graphlearn import lsgg_core_interface_pair as CIP
 import networkx as nx
 import numpy as np
