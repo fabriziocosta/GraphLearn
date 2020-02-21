@@ -2,7 +2,7 @@
 """Provides scikit interface."""
 import graphlearn.sample
 from graphlearn import local_substitution_graph_grammar
-from graphlearn import lsgg_core_interface_pair
+from graphlearn import lsgg_core_interface_pair as cip
 import networkx as nx
 import logging
 from ego.encode import make_encoder
@@ -14,9 +14,17 @@ logger = logging.getLogger(__name__)
 
 class lsgg_ego(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
+
+
+    def _ego_node_fix(self,graph, core): 
+        graph= cip._edge_to_vertex(graph)
+        id_dist = { n: di for (n,di) in cip.short_paths(graph,core.nodes(),1)}
+        return graph.subgraph(cip.get_node_set(id_dist,0,graph))
+
     def _get_cores(self, graph):
         codes, ego_decomp_fragments = self.decomposition_function(graph)
-        return ego_decomp_fragments
+        
+        return [self._ego_node_fix(graph, core) for core in ego_decomp_fragments]
 
     def __init__(self, decomposition_function, **kwargs):
         self.decomposition_function = make_encoder(decomposition_function, bitmask=2**20 - 1)

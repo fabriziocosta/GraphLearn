@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # 3
 #  TESTS
 ###########################
-
+'''
 def test_lsgg_ego_nodedecomp(out=False):
     # node decompo is a decomposer that returns sets of nodes
     from graphlearn.util import util as util_top
@@ -64,3 +64,35 @@ def test_lsgg_ego_edgedecomp(out=False):
     if out:
         gprint(stuff)
     assert len(stuff) == 8
+'''
+
+
+
+
+
+
+
+from graphlearn.util import util
+from ego.decomposition.paired_neighborhoods import decompose_neighborhood
+import networkx as nx
+
+import logging
+logger = logging.getLogger(__name__)
+
+def test_ego():
+
+    lsgg = lsgg_ego(decompose_neighborhood, thickness=1,nodelevel_radius_and_thickness=False)
+    g = nx.path_graph(5)
+    g.add_edge(2,4)
+    g = util._edenize_for_testing(g)
+
+    cores = lsgg._get_cores(g)
+    cip = lsgg._make_cip(cores[0], g)
+
+    lsgg.fit([g,g,g])
+    s = list(lsgg.neighbors(g))
+    import structout as so
+    so.gprint(s)
+
+
+
