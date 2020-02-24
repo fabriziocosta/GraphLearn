@@ -108,7 +108,7 @@ class CoreInterfacePair:
         for no in interface.nodes():
             cip_graph.nodes[no][ddl] = cip_graph.nodes[no]['hlabel'] + dist[no] 
             if dist[no] == 1 and 'edge' in cip_graph.nodes[no] and edgetest(core.nodes(),no,graph):
-                cip_graph.nodes[no][ddl] += 1337
+                cip_graph.nodes[no][ddl] += 1331
                 ambiguous_edges += 1 
         return cip_graph, ambiguous_edges
 
@@ -119,10 +119,9 @@ class CoreInterfacePair:
         return so.graph.make_picture(self.graph, color=[ self.core_nodes , list(self.interface.nodes())  ])
 
     def __str__(self):
-        return 'cip: int:%d, cor:%d, rad:%d, size:%d' % \
+        return 'cip: int:%d, cor:%d, size:%d' % \
                (self.interface_hash, 
                        self.core_hash, 
-                       self.radius, 
                        len(self.core_nodes))
 
 #########

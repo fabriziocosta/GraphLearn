@@ -10,6 +10,8 @@ import logging
 from graphlearn.util import util
 import networkx as nx
 
+import sys
+logging.basicConfig(stream=sys.stdout, level=5) 
 logger = logging.getLogger(__name__)
 
 

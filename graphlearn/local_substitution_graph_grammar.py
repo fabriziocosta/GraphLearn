@@ -151,7 +151,8 @@ class LocalSubstitutionGraphGrammar(LocalSubstitutionGraphGrammarCore):
     def structout(self):
         import structout as so
         for ciplist in self.productions.values():
-            so.gprint([c.graph for c in ciplist.values()])
+            colors = [[x.core_nodes] for x in ciplist.values() ]
+            so.gprint([c.graph for c in ciplist.values()], color = colors )
             print("#" * 80)
 
     def __repr__(self):
