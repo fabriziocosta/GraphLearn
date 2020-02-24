@@ -52,46 +52,65 @@ class CoreInterfacePair:
     """
     this is referred to throughout the code as cip
     it contains the cip-graph and several pieces of information about it.
+
+    
+    PARAMS:
+    core: an 'expanded' subgraph of graph
+    graph: an unexpanded graph
+    thickness: absolute thickness on expanded Graph
+
+
+    ATTRIBUTES:
+    graph: expanded CIP-graph
+    core_hash: hash of the core, used for filtering duplicates
+    core_nodes: list of node-ids in the core
+    interface: interface graph, augmented with a distance_dependant_label
+        this label ensures that the correct isomorphism is found when 
+        substituting
+    interface_hash: finding congruent cips
+    count: when this cip is placed in a grammar, we will count the number of
+        occurences
+    
     """
 
 
     def __init__(self,core,graph,thickness):
                      
             # preprocess, distances of core neighborhood, init counter
-            graph, dist =  self.prepare_init(core,graph, thickness)
+            exgraph, dist =  self.initialize_params(core,graph, thickness)
 
             # core
             self.core_hash = graph_hash(core)
             self.core_nodes = list(core.nodes())
 
             # interface
-            self.interface = graph.subgraph([id for id, dst in dist.items() if 0 < dst <= thickness])
+            self.interface = exgraph.subgraph([id for id, dst in dist.items() if 0 < dst <= thickness])
+
+            # interface hash 
+            self.graph,ambiguous_edges = self._get_cip_graph(self.interface, core, exgraph, dist)
             get_node_label = lambda id, node: node['hlabel'] + dist[id]
-            self.interface_hash = hash((graph_hash(self.interface, get_node_label=get_node_label),self.problematic_edges))
+            self.interface_hash = hash((graph_hash(self.interface, get_node_label=get_node_label),ambiguous_edges))
 
-            # cip
-            self.graph = self._get_cip_graph(self.interface, core, graph, dist)
 
-    def prepare_init(self, core, graph, thickness): 
+    def initialize_params(self, core, graph, thickness): 
         # preprocess, distances of core neighborhood, init counter
-        graph = _edge_to_vertex(graph)
-        _add_hlabel(graph)
+        exgraph = _edge_to_vertex(graph)
+        _add_hlabel(exgraph)
         _add_hlabel(core)
-        dist = {a: b for (a, b) in short_paths(graph, core.nodes(), thickness)}
+        dist = {a: b for (a, b) in short_paths(exgraph, core.nodes(), thickness)}
         self.count=0
-        self.problematic_edges=0
-        return graph, dist 
+        return exgraph, dist 
 
     def _get_cip_graph(self,interface, core, graph, dist):
         cip_graph = graph.subgraph( list(core.nodes()) + list(interface.nodes()))
         ddl = 'distance_dependent_label'
+        ambiguous_edges = 0
         for no in interface.nodes():
             cip_graph.nodes[no][ddl] = cip_graph.nodes[no]['hlabel'] + dist[no] 
             if dist[no] == 1 and 'edge' in cip_graph.nodes[no] and edgetest(core.nodes(),no,graph):
                 cip_graph.nodes[no][ddl] += 1337
-                self.problematic_edges += 1 
-
-        return cip_graph
+                ambiguous_edges += 1 
+        return cip_graph, ambiguous_edges
 
 
     def ascii(self): 
