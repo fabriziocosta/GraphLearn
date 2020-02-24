@@ -56,14 +56,7 @@ class CoreInterfacePair:
 
 
     def __init__(self,core,graph,thickness):
-            '''
-            graph = _edge_to_vertex(graph)
-            _add_hlabel(graph)
-            _add_hlabel(core)
-            dist = {a: b for (a, b) in short_paths(graph, core.nodes(), thickness)}
-            self.count=0
-            '''
-            
+                     
             # preprocess, distances of core neighborhood, init counter
             graph, dist =  self.prepare_init(core,graph, thickness)
 
@@ -74,7 +67,7 @@ class CoreInterfacePair:
             # interface
             self.interface = graph.subgraph([id for id, dst in dist.items() if 0 < dst <= thickness])
             get_node_label = lambda id, node: node['hlabel'] + dist[id]
-            self.interface_hash = graph_hash(self.interface, get_node_label=get_node_label)
+            self.interface_hash = hash((graph_hash(self.interface, get_node_label=get_node_label),self.problematic_edges))
 
             # cip
             self.graph = self._get_cip_graph(self.interface, core, graph, dist)
@@ -86,13 +79,18 @@ class CoreInterfacePair:
         _add_hlabel(core)
         dist = {a: b for (a, b) in short_paths(graph, core.nodes(), thickness)}
         self.count=0
+        self.problematic_edges=0
         return graph, dist 
 
     def _get_cip_graph(self,interface, core, graph, dist):
         cip_graph = graph.subgraph( list(core.nodes()) + list(interface.nodes()))
         ddl = 'distance_dependent_label'
         for no in interface.nodes():
-            cip_graph.nodes[no][ddl] = cip_graph.nodes[no]['hlabel'] + dist[no]
+            cip_graph.nodes[no][ddl] = cip_graph.nodes[no]['hlabel'] + dist[no] 
+            if dist[no] == 1 and 'edge' in cip_graph.nodes[no] and edgetest(core.nodes(),no,graph):
+                cip_graph.nodes[no][ddl] += 1337
+                self.problematic_edges += 1 
+
         return cip_graph
 
 
@@ -108,27 +106,6 @@ class CoreInterfacePair:
                        self.radius, 
                        len(self.core_nodes))
 
-
-
-# VARIANT: 
-# 1. core structure stays the same (bonus: keep node-ids) 
-# 2. cores have vector attached to predict the impact on the vectorized graph 
-
-
-class StructurePreservingCIP(CoreInterfacePair): 
-    def __init__(self,core,graph,thickness, preserveid = False):
-        super(StructurePreservingCIP,self).__init__(core,graph, thickness)
-        # preserve structure:
-        getlabel =  lambda id, node: id if preserveid else '1337'
-        self.interface_hash = hash(self.interface_hash,
-                graph_hash(core, get_node_label=getlabel) )
-
-
-
-
-
-
-
 #########
 # CORES
 #########
@@ -137,20 +114,50 @@ def get_cores(graph, radii):
     for root in graph.nodes():
         id_dst = {node: dis for (node, dis) in short_paths(exgraph, [root], max(radii)+1)}
         for r in radii:
-            nodeset = get_node_set(id_dst,r, exgraph)
-            yield  exgraph.subgraph(nodeset)
+            #nodeset = get_node_set(id_dst,r, exgraph)
+            yield  exgraph.subgraph([id for id,dst in id_dst.items() if dst <= r ])
             #print (root, id_dst)
             #so.gprint(res)
 
+'''
 def get_node_set(id_dst, r, graph):
     # a node is in the core when dist <= r or it is an edge and is twice connected to nodes in core
     border = {node for node,dis in id_dst.items() if dis == r} 
     return [id for id,dst in id_dst.items() if (dst <= r or edgetest(border,id, graph))]
 
+'''
 def edgetest(border, id,g):
    res=  (2 == sum([ g.has_edge( id,b  ) for b in border]))# and "edge" in graph.nodes[id] 
    return res
 
+
+
+
+# VARIANT: 
+#  core structure stays the same
+
+class StructurePreservingCIP(CoreInterfacePair): 
+  
+    def __init__(self,core,graph,thickness, preserve_ids=False):
+            '''core structure does not change '''
+            
+            # do some of the basic init:
+            graph, dist =  self.prepare_init(core,graph, thickness)
+            self.core_hash = graph_hash(core)
+            self.core_nodes = list(core.nodes())
+            self.interface = graph.subgraph([id for id, dst in dist.items() if 0 < dst <= thickness])
+
+
+            # interface and core hashes need  special attention:
+            
+            # interface_hash might want to preserve the ids
+            get_node_label = lambda id, node: id if preserve_ids else node['hlabel'] + dist[id]
+            self.interface_hash = graph_hash(self.interface, get_node_label=get_node_label)
+            self.graph = self._get_cip_graph(self.interface, core, graph, dist)
+
+            # in the core we calculate a structure hash that is appended to the interfacehash
+            structhash = graph_hash(core, get_node_label= lambda i,n: i if preserve_ids else 0)
+            self.interface_hash= hash(self.interface_hash,structhash) 
 
 
 ######
