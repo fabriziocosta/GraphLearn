@@ -11,11 +11,12 @@ from graphlearn.util.multi import mpmap
 
 
 class LocalSubstitutionGraphGrammarCore(object):
+
     def __init__(self,
-                 radii=[0,1],
-                 thickness = 1,
-                 filter_min_cip = 2,
-                 filter_min_interface =2,
+                 radii=[0, 1],
+                 thickness=1,
+                 filter_min_cip=2,
+                 filter_min_interface=2,
                  nodelevel_radius_and_thickness=True
                  ):
         """Parameters
@@ -23,23 +24,24 @@ class LocalSubstitutionGraphGrammarCore(object):
         decomposition_args:
         filter_args
         cip_root_all : include edges as possible roots
-        double_decomp_args: interpret options for radius and thickness 
+        double_decomp_args: interpret options for radius and thickness
                 as half step (default is full step)
         """
         self.radii = radii
-        self.thickness= thickness
+        self.thickness = thickness
         self.filter_min_cip = filter_min_cip
         self.filter_min_interface = filter_min_interface
 
         self.productions = defaultdict(dict)
-        if  nodelevel_radius_and_thickness:
+        if nodelevel_radius_and_thickness:
             self.double_radius_and_thickness()
 
     def double_radius_and_thickness(self):
-            self.radii = [i*2 for i in self.radii]
-            self.thickness = 2 * self.thickness
+        self.radii = [i * 2 for i in self.radii]
+        self.thickness = 2 * self.thickness
 
-
+    def get(self):
+        return [[(self.productions[interface][core].interface, self.productions[interface][core].graph) for core in self.productions[interface]] for interface in self.productions]
 
     ###########
     # FITTING
@@ -48,7 +50,6 @@ class LocalSubstitutionGraphGrammarCore(object):
         self._store_graphs(graphs)
         self._filter_cips()
         return self
-    
 
     def _store_graphs(self, graphs):
         for graph in graphs:
@@ -56,29 +57,26 @@ class LocalSubstitutionGraphGrammarCore(object):
 
     def _store_graph(self, graph):
         for cip in self._make_cips(graph):
-                self._store_cip(cip)
-
+            self._store_cip(cip)
 
     def _make_cips(self, graph):
         for root in self._get_cores(graph):
-                x = self._make_cip(core=root, graph=graph)
-                if x:
-                    yield x
-
+            x = self._make_cip(core=root, graph=graph)
+            if x:
+                yield x
 
     def _make_cip(self, core=None, graph=None):
         return lsgg_core_interface_pair.CoreInterfacePair(
-                                   core=core,
-                                   graph=graph,
-                                   thickness=self.thickness)
-
+            core=core,
+            graph=graph,
+            thickness=self.thickness)
 
     def _store_cip(self, cip):
         # setdefault is a fun function
         self.productions[cip.interface_hash].setdefault(cip.core_hash, cip).count += 1
 
     def _filter_cips(self):
-        logger.log(10,"grammar bevore freq filter: %s" % str(self))
+        logger.log(10, "grammar bevore freq filter: %s" % str(self))
         """Remove infrequent cores and interfaces. see fit"""
         for interface in list(self.productions.keys()):
             for core in list(self.productions[interface].keys()):
@@ -110,27 +108,25 @@ class LocalSubstitutionGraphGrammarCore(object):
                     yield graph_
 
     def _get_cores(self, graph):
-        return [ core for core in lsgg_core_interface_pair.get_cores(graph, self.radii) if core]
+        return [core for core in lsgg_core_interface_pair.get_cores(graph, self.radii) if core]
 
-  
     def __repr__(self):
         return "interfaces %d cores: %d " % \
-               ( len(self.productions), len(set([i.core_hash for v in self.productions.values() for i in v])))
-    
+               (len(self.productions), len(set([i.core_hash for v in self.productions.values() for i in v])))
 
 
 class LocalSubstitutionGraphGrammar(LocalSubstitutionGraphGrammarCore):
 
     def neighbors_root(self, graph, root):
         """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
-        cip= self._make_cip(root, graph)
+        cip = self._make_cip(root, graph)
         for congruent_cip in self._get_congruent_cips(cip):
             graph_ = self._substitute_core(graph, cip, congruent_cip)
             if graph_ is not None:
                 yield graph_
 
     def is_fit(self):
-        return len(self.productions) > 0 
+        return len(self.productions) > 0
 
     ########
     # print
@@ -153,11 +149,10 @@ class LocalSubstitutionGraphGrammar(LocalSubstitutionGraphGrammarCore):
         return n_interfaces, n_cores, n_cips, n_productions
 
     def structout(self):
-        import structout as so 
+        import structout as so
         for ciplist in self.productions.values():
             so.gprint([c.graph for c in ciplist.values()])
-            print ("#"*80)
-
+            print("#" * 80)
 
     def __repr__(self):
         """repr."""
@@ -169,8 +164,8 @@ class LocalSubstitutionGraphGrammar(LocalSubstitutionGraphGrammarCore):
         return txt
 
     def fit(self, graphs, n_jobs=1):
-        if n_jobs==1:
-            return super( LocalSubstitutionGraphGrammar, self ).fit(graphs)
+        if n_jobs == 1:
+            return super(LocalSubstitutionGraphGrammar, self).fit(graphs)
 
         # this provides parallelism
         for ciplist in mpmap(self._make_cips_list, graphs, poolsize=n_jobs):
