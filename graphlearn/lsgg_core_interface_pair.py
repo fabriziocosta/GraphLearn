@@ -77,44 +77,48 @@ class CoreInterfacePair:
     def __init__(self,core,graph,thickness):
                      
             # preprocess, distances of core neighborhood, init counter
-            exgraph, dist =  self.initialize_params(core,graph, thickness)
+            exgraph, dist = self.initialize_params(core,graph, thickness)
 
-            # core
+            # core and graph, no surprises there
             self.core_hash = graph_hash(core)
             self.core_nodes = list(core.nodes())
-
-            # interface
-            self.interface = exgraph.subgraph([id for id, dst in dist.items() if 0 < dst <= thickness])
-
-            # interface hash 
-            self.graph,ambiguous_edges = self._get_cip_graph(self.interface, core, exgraph, dist)
-            get_node_label = lambda id, node: node['hlabel'] + dist[id]
-            self.interface_hash = hash((graph_hash(self.interface, get_node_label=get_node_label),ambiguous_edges))
+            self.graph = exgraph.subgraph([id for id, dst in dist.items() if dst <= thickness])
+            # interface and hash are more tricky...
+            self.interface,  self.interface_hash  = self.make_interface(exgraph, dist)
 
 
-    def initialize_params(self, core, graph, thickness): 
+    def make_interface(self, exgraph, dist):
+        # generate graph
+        interface = exgraph.subgraph([n for n,dst in dist.items() if dst > 0])
+
+        # adjust node-labels for matching and hashing...
+        for no in interface.nodes():
+            interface.nodes[no]['ilabel'] = interface.nodes[no]['hlabel'] + dist[no]
+            if dist[no] == 1 and 'edge' in interface.nodes[no] and \
+                    any([interface.has_edge(i,no) for i in interface.nodes()]):
+                interface.nodes[no]['ilabel'] += 1331
+
+        return interface, self.interface_hash(interface)
+
+    def interface_hash(self,interface):
+        get_node_label = lambda id, node: node['ilabel']
+        interface_hash = graph_hash(interface, get_node_label=get_node_label)
+        return interface_hash
+
+
+    def initialize_params(self, core, graph, thickness):
         # preprocess, distances of core neighborhood, init counter
         exgraph = _edge_to_vertex(graph)
         _add_hlabel(exgraph)
         _add_hlabel(core)
         dist = {a: b for (a, b) in short_paths(exgraph, core.nodes(), thickness)}
         self.count=0
-        return exgraph, dist 
+        return exgraph, dist
 
-    def _get_cip_graph(self,interface, core, graph, dist):
-        cip_graph = graph.subgraph( list(core.nodes()) + list(interface.nodes()))
-        ddl = 'distance_dependent_label'
-        ambiguous_edges = 0
-        for no in interface.nodes():
-            cip_graph.nodes[no][ddl] = cip_graph.nodes[no]['hlabel'] + dist[no] 
-            if dist[no] == 1 and 'edge' in cip_graph.nodes[no] and edgetest(core.nodes(),no,graph):
-                cip_graph.nodes[no][ddl] += 1331
-                ambiguous_edges += 1 
-        return cip_graph, ambiguous_edges
 
 
     def ascii(self): 
-        '''return colored cip'''
+        '''return colored cip-graph'''
         import structout as so 
         return so.graph.make_picture(self.graph, color=[ self.core_nodes , list(self.interface.nodes())  ])
 
@@ -156,16 +160,13 @@ def edgetest(border, id,g):
 ######
 
 def find_all_isomorphisms(interface_graph, congruent_interface_graph):
-    ddl = 'distance_dependent_label'
-    label_matcher = lambda x, y: x[ddl] == y[ddl]  # and \ x.get('shard', 1) == y.get('shard', 1)
+    label_matcher = lambda x, y: x['ilabel'] == y['ilabel']  # and \ x.get('shard', 1) == y.get('shard', 1)
     return iso.GraphMatcher(interface_graph, congruent_interface_graph, node_match=label_matcher).match()
 
 def substitute_core(graph, cip, congruent_cip):
     
     # expand edges and remove old core
     graph = _edge_to_vertex(graph)
-    
-
     graph.remove_nodes_from(cip.core_nodes)
 
     # relabel the nodes in the congruent cip such that the interface node-ids match with the graph and the

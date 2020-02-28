@@ -13,7 +13,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 class CIP_PiSi(CIP.CoreInterfacePair):
 
     def __init__(self, core, graph, thickness, thickness_pisi):
-
+        '''
         # preprocess, distances of core neighborhood, init counter
         graph = CIP._edge_to_vertex(graph)
         CIP._add_hlabel(graph)
@@ -27,15 +27,23 @@ class CIP_PiSi(CIP.CoreInterfacePair):
 
         # interface
         self.interface = graph.subgraph([id for id, dst in dist.items() if 0 < dst <= thickness])
-        get_node_label = lambda id, node: node['hlabel'] + dist[id]
+        get_node_label = lambda id, node: node[self.ddl]
         self.interface_hash = CIP.graph_hash(self.interface, get_node_label=get_node_label)
 
         # cip
         self.graph = self._get_cip_graph(self.interface, core, graph, dist)
+        '''
+
+        # normal init
+        exgraph, dist = self.initialize_params(core, graph, thickness_pisi)
+        self.core_hash = CIP.graph_hash(core)
+        self.core_nodes = list(core.nodes())
+        self.graph = exgraph.subgraph([id for id, dst in dist.items() if dst <= thickness])
+        self.interface, self.interface_hash = self.make_interface(exgraph, dist)
 
         # PISI Stuff
-        loosecontext = graph.subgraph([i for i,d in dist.items() if 0 < d < thickness_pisi])
-        self.pisi_hash = set([CIP.graph_hash(loosecontext)])
+        loosecontext = exgraph.subgraph([i for i,d in dist.items() if 0 < d < thickness_pisi])
+        self.pisi_hash = {CIP.graph_hash(loosecontext)}
         self.pisi_vectors = CIP.eg.vectorize([loosecontext])
 
 
