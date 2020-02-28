@@ -84,10 +84,10 @@ class CoreInterfacePair:
             self.core_nodes = list(core.nodes())
             self.graph = exgraph.subgraph([id for id, dst in dist.items() if dst <= thickness])
             # interface and hash are more tricky...
-            self.interface,  self.interface_hash  = self.make_interface(exgraph, dist)
+            self.interface,  self.interface_hash  = self.make_interface(exgraph, dist, self.core_nodes,self.graph)
 
 
-    def make_interface(self, exgraph, dist):
+    def make_interface(self, exgraph, dist, core_nodes, cipgraph):
         # generate graph
         interface = exgraph.subgraph([n for n,dst in dist.items() if dst > 0])
 
@@ -95,8 +95,9 @@ class CoreInterfacePair:
         for no in interface.nodes():
             interface.nodes[no]['ilabel'] = interface.nodes[no]['hlabel'] + dist[no]
             if dist[no] == 1 and 'edge' in interface.nodes[no] and \
-                    any([interface.has_edge(i,no) for i in interface.nodes()]):
-                interface.nodes[no]['ilabel'] += 1331
+                    2==sum([cipgraph.has_edge(i,no) for i in core_nodes]):
+
+                interface.nodes[no]['ilabel'] += 1337
 
         return interface, self.interface_hash(interface)
 
