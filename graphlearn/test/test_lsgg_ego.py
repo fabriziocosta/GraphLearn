@@ -3,7 +3,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-"""We adjust lsgg_layered such that it works with EGO decomposition"""
+#"""We adjust lsgg_layered such that it works with EGO decomposition"""
 
 
 # 3
@@ -77,22 +77,33 @@ from ego.decomposition.paired_neighborhoods import decompose_neighborhood
 import networkx as nx
 
 import logging
+import sys
 logger = logging.getLogger(__name__)
+logging.basicConfig(stream=sys.stdout, level=5)
 
 def test_ego():
-
-    lsgg = lsgg_ego(decompose_neighborhood, thickness=1,nodelevel_radius_and_thickness=False)
+    
+    # init grpah and grammar 
     g = nx.path_graph(5)
-    g.add_edge(2,4)
+    #g.add_edge(2,4)
     g = util._edenize_for_testing(g)
+    lsgg = lsgg_ego(decompose_neighborhood, thickness=1,nodelevel_radius_and_thickness=False)
 
+    # make a cip
     cores = lsgg._get_cores(g)
     cip = lsgg._make_cip(cores[0], g)
-
+    print(cip.ascii())
+    
+    # train a grammar
     lsgg.fit([g,g,g])
+    lsgg.structout()
+
+
+    # generate neighs
     s = list(lsgg.neighbors(g))
     import structout as so
     so.gprint(s)
+    print("done")
 
 
 

@@ -12,14 +12,16 @@ logger = logging.getLogger(__name__)
 
 class lsgg_ego(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
 
+    '''
     def _ego_node_fix(self, graph, core):
         id_dist = {n: di for (n, di) in cip.short_paths(graph, core.nodes(), 1)}
         return graph.subgraph(cip.get_node_set(id_dist, 0, graph))
+    '''
 
     def _get_cores(self, graph):
         codes, ego_decomp_fragments = self.encoder(graph)
-        graph = cip._edge_to_vertex(graph)
-        return [self._ego_node_fix(graph, core) for core in ego_decomp_fragments]
+        #graph = cip._edge_to_vertex(graph)
+        return  ego_decomp_fragments
 
     def set_decomposition(self, decomposition):
         self.encoder = make_encoder(decomposition, bitmask=2**20 - 1)
@@ -29,7 +31,7 @@ class lsgg_ego(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
         super(lsgg_ego, self).__init__(**kwargs)
 
     def root_neighbors(self, graph, roots, n_neighbors=1000):
-        """root_neighbors."""
+        """root_neighbors. roots are some nodes from graph, a core musst intersect with root"""
         cores = self._get_cores(graph)
         for core in cores:
             if any([n in roots for n in core.nodes()]):  # intersection between potential cores and allowed roots
