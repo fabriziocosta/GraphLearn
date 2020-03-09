@@ -3,12 +3,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-#"""We adjust lsgg_layered such that it works with EGO decomposition"""
 
 
-# 3
-#  TESTS
-###########################
 '''
 def test_lsgg_ego_nodedecomp(out=False):
     # node decompo is a decomposer that returns sets of nodes
