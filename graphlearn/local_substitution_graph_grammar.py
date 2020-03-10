@@ -34,9 +34,9 @@ class LocalSubstitutionGraphGrammarCore(object):
 
         self.productions = defaultdict(dict)
         if nodelevel_radius_and_thickness:
-            self.double_radius_and_thickness()
+            self._double_radius_and_thickness()
 
-    def double_radius_and_thickness(self):
+    def _double_radius_and_thickness(self):
         self.radii = [i * 2 for i in self.radii]
         self.thickness = 2 * self.thickness
 
@@ -56,16 +56,16 @@ class LocalSubstitutionGraphGrammarCore(object):
             self._store_graph(graph)
 
     def _store_graph(self, graph):
-        for cip in self._make_cips(graph):
+        for cip in self._get_cips(graph):
             self._store_cip(cip)
 
-    def _make_cips(self, graph):
+    def _get_cips(self, graph):
         for root in self._get_cores(graph):
-            x = self._make_cip(core=root, graph=graph)
+            x = self._get_cip(core=root, graph=graph)
             if x:
                 yield x
 
-    def _make_cip(self, core=None, graph=None):
+    def _get_cip(self, core=None, graph=None):
         return lsgg_core_interface_pair.CoreInterfacePair(
             core=core,
             graph=graph,
@@ -101,7 +101,7 @@ class LocalSubstitutionGraphGrammarCore(object):
 
     def neighbors(self, graph):
         """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
-        for cip in self._make_cips(graph):
+        for cip in self._get_cips(graph):
             for congruent_cip in self._get_congruent_cips(cip):
                 graph_ = self._substitute_core(graph, cip, congruent_cip)
                 if graph_ is not None:
@@ -117,9 +117,9 @@ class LocalSubstitutionGraphGrammarCore(object):
 
 class LocalSubstitutionGraphGrammar(LocalSubstitutionGraphGrammarCore):
 
-    def neighbors_root(self, graph, root):
+    def neighbors_core(self, graph, core):
         """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
-        cip = self._make_cip(root, graph)
+        cip = self._get_cip(core, graph)
         for congruent_cip in self._get_congruent_cips(cip):
             graph_ = self._substitute_core(graph, cip, congruent_cip)
             if graph_ is not None:
@@ -177,4 +177,4 @@ class LocalSubstitutionGraphGrammar(LocalSubstitutionGraphGrammarCore):
         return self
 
     def _make_cips_list(self, graph):
-        return list(self._make_cips(graph))
+        return list(self._get_cips(graph))

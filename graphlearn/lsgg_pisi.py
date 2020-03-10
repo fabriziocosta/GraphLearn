@@ -55,7 +55,7 @@ class PiSi(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
         super(PiSi,self).__init__(**kwargs)
         self.thickness_pisi = thickness_pisi*2
 
-    def _make_cip(self, core=None, graph=None):
+    def _get_cip(self, core=None, graph=None):
         return CIP_PiSi( core=core, graph=graph,thickness=self.thickness,  thickness_pisi=self.thickness_pisi)
     
     def _get_congruent_cips(self, cip):

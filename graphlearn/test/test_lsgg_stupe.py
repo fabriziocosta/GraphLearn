@@ -20,7 +20,7 @@ def test_supe():
 
     # make a cip
     cores = lsgg._get_cores(g)
-    cip = lsgg._make_cip(cores[0], g)
+    cip = lsgg._get_cip(cores[0], g)
     print(cip.ascii())
     
     # train a grammar

@@ -17,21 +17,11 @@ class StructurePreservingCIP(cip.CoreInterfacePair):
         self.interface_hash= hash((self.interface_hash,structhash)) 
 
 
-        '''
-        this would also hash node-ids into the interface, but i think this is implied in the structhash already
-        def interface_hash(self,interface):
-            get_node_label = lambda id, node: id if self.preserve_ids else node['ilabel'] + dist[id]
-            interface_hash = cip.graph_hash(self.interface, get_node_label=get_node_label)
-            return interface_hash
-        '''
-
-
-
 class StructurePreservingGrammar(lsgg):
     def __init__(self,preserve_ids, **kwargs):
         super(StructurePreservingGrammar,self).__init__(**kwargs)
         self.preserve_ids= preserve_ids
 
-    def _make_cip(self, core=None, graph=None): 
+    def _get_cip(self, core=None, graph=None):
         return StructurePreservingCIP(core=core, graph=graph, thickness=self.thickness, 
                 preserve_ids=self.preserve_ids)

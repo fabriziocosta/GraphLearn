@@ -142,13 +142,7 @@ def get_cores(graph, radii):
             #print (root, id_dst)
             #so.gprint(res)
 
-'''
-def get_node_set(id_dst, r, graph):
-    # a node is in the core when dist <= r or it is an edge and is twice connected to nodes in core
-    border = {node for node,dis in id_dst.items() if dis == r} 
-    return [id for id,dst in id_dst.items() if (dst <= r or edgetest(border,id, graph))]
 
-'''
 def edgetest(border, id,g):
    res=  (2 == sum([ g.has_edge( id,b  ) for b in border]))# and "edge" in graph.nodes[id] 
    return res

@@ -47,7 +47,7 @@ class LsggCoreVec(LSGG):
     ######
     
     def _make_cip(self, core=None, graph=None):
-        cip = super(LsggCoreVec, self)._make_cip(core, graph) 
+        cip = super(LsggCoreVec, self)._get_cip(core, graph)
         if cip:
             cip.core_vec= core.core_vec 
             return cip

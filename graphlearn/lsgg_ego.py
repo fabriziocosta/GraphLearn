@@ -35,7 +35,7 @@ class lsgg_ego(graphlearn.sample.LocalSubstitutionGraphGrammarSample):
         cores = self._get_cores(graph)
         for core in cores:
             if any([n in roots for n in core.nodes()]):  # intersection between potential cores and allowed roots
-                for neigh in self.neighbors_root(graph, core):
+                for neigh in self.neighbors_core(graph, core):
                     if n_neighbors > 0:
                         yield neigh
                         n_neighbors = n_neighbors - 1
