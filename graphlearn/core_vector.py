@@ -46,15 +46,31 @@ class LsggCoreVec(LSGG):
     # step 2: vector gets transfered to cip
     ######
     
-    def _make_cip(self, core=None, graph=None):
+    def _get_cip(self, core=None, graph=None):
         cip = super(LsggCoreVec, self)._get_cip(core, graph)
         if cip:
             cip.core_vec= core.core_vec 
             return cip
     #####
     # step 3: one should probably overwrite get_congruent cips to actually use the new vectors
-    ###########
+    # TODO
+    # neighbors takes 2 more args 
+    # these are passed to new unctions that i got in init
+    # one should filter cores in get_cips (depending on the prev mentioned arg)
+    # one should filter congruent cips (the other arg)
+    ######
 
+    def _get_congruent_cips(self, cip):
+        """all cips in the grammar that are congruent to cip in random order.
+        congruent means they have the same interface-hash-value"""
+        cips = self.productions.get(cip.interface_hash, {}).values()
+        cips_ = [cip_ for cip_ in cips if cip_.core_hash != cip.core_hash]
+
+        # quick and dirty hack because i am too lazy to implement step 3:
+        self.filtercips(cips_,cip) 
+        return cips_
+
+    
 
 def vertex_vec(graph, decomposer, bitmask = 2**10-1): 
     '''
