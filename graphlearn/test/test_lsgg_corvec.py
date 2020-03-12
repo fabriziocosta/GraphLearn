@@ -57,7 +57,11 @@ def get_esti():
     return svm(kernel='linear').fit(vectors)
 
 
-def selectbest(cips_, cip, esti, n=2):
+
+
+
+
+def selectbest_TOOOLD(cips_, cip, esti, n=2):
     if len(cips_) < n: 
         return cips_
     cvec = np.vstack ([c.core_vec for c in cips_ ])
@@ -65,12 +69,23 @@ def selectbest(cips_, cip, esti, n=2):
     ranks =  np.argsort(esti.decision_function(cvec)) 
     return [cips_[x] for x in ranks[-n:]]
 
+
+
+def selectbest(my_other, esti, n=2):
+
+    if len(my_other) < n: 
+        return my_other
+    cvec = np.vstack ([other.core_vec - my.core_vec for my,other in my_other ])
+    print("cvec:", cvec.shape)
+    ranks =  np.argsort(esti.decision_function(cvec)) 
+    return [my_other[x] for x in ranks[-n:]]
+
     
 
-def makechipfilter():
+def makecipfilter():
     est= get_esti()
     # partial!
-    return lambda cips_,cip: selectbest( cips_,cip,est,n=2)
+    return lambda pairlist: selectbest( pairlist ,est,n=2)
 
 def test_corvec(): 
     
@@ -80,9 +95,8 @@ def test_corvec():
     graphs = getgraphs()
     lsgg.fit(graphs[:100])
 
-
     # ok we should be able to do this now....
-    so.gprint(list(lsgg.neighbors(graphs[3])))
+    so.gprint(list(lsgg.neighbors(graphs[3], makecipfilter())))
 
 
 
