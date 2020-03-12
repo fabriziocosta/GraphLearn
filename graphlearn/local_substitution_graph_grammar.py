@@ -88,6 +88,7 @@ class LocalSubstitutionGraphGrammarCore(object):
 
     ##############
     #  APPLYING A PRODUCTION
+    # 
     #############
     def _get_congruent_cips(self, cip):
         """all cips in the grammar that are congruent to cip in random order.
