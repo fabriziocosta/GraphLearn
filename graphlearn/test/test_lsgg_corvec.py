@@ -91,7 +91,7 @@ def test_corvec():
     
     # ok so wefit a grammar 
     lsgg = ccv.LsggCoreVec(decomp)
-    lsgg.filtercips= makechipfilter()
+    lsgg.filtercips= makecipfilter()
     graphs = getgraphs()
     lsgg.fit(graphs[:100])
 
