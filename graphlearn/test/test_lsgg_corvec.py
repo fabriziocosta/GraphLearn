@@ -78,36 +78,20 @@ def selectbest(my_other, esti, n=2):
     cvec = np.vstack ([other.core_vec - my.core_vec for my,other in my_other ])
     print("cvec:", cvec.shape)
     ranks =  np.argsort(esti.decision_function(cvec)) 
-    return [my_other[x] for x in ranks[-n:]]
+    best=  [my_other[x] for x in ranks[-n:]]
+    so.gprint([c.graph for c in best[0]])
+    so.gprint([c.graph for c in best[1]])
+    return best
 
     
-
-def makecipfilter():
-    est= get_esti()
-    # partial!
-    return lambda pairlist: selectbest( pairlist ,est,n=2)
 
 def test_corvec(): 
     
     # ok so wefit a grammar 
-    lsgg = ccv.LsggCoreVec(decomp)
-    lsgg.filtercips= makecipfilter()
+    lsgg = ccv.LsggCoreVec(decomp, selectbest)
     graphs = getgraphs()
     lsgg.fit(graphs[:100])
-
+    esti = get_esti()
     # ok we should be able to do this now....
-    so.gprint(list(lsgg.neighbors(graphs[3], makecipfilter())))
-
-
-
-    
-
-
-
-
-
-
-
-
-# sample some neighs
+    so.gprint(list(lsgg.neighbors(graphs[3], [esti,2])))
 
