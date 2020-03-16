@@ -5,8 +5,15 @@ from ego import real_vectorize as rv
 from graphlearn import LSGG
 
 
-# Todo, make_core_vector generates a matrix, maybe a vector is more usefull
+# changes tothe base grammar: 
+# __init__: 
+#     core_vec_decomposer 
+#     cipselector 
+# neighbors:
+#     selectordata
 
+
+    
 
 class LsggCoreVec(LSGG):
 
@@ -16,8 +23,10 @@ class LsggCoreVec(LSGG):
         and transfer them to the CIPs when make_cip is called
     '''
 
-    def __init__(self,decomposer=None, **kwargs):
-        self.decomposer = decomposer
+    def __init__(self,core_vec_decomposer=None,cipselector=[lambda x:x], **kwargs):
+        self.core_vec_decomposer = core_vec_decomposer
+        self.cipselector = cipselector
+
         super(LsggCoreVec,self).__init__(**kwargs)
 
 
@@ -32,7 +41,7 @@ class LsggCoreVec(LSGG):
 
 
     def attach_vectors(self, cores, graph):
-        matrix = vertex_vec(graph, self.decomposer) # should put decomposer in init...
+        matrix = vertex_vec(graph, self.core_vec_decomposer) # should put decomposer in init...
         for core in cores:
             core.core_vec = self.make_core_vector(core, graph, matrix)
 
@@ -60,19 +69,30 @@ class LsggCoreVec(LSGG):
     # one should filter congruent cips (the other arg)
     ######
 
+    '''
     def _get_congruent_cips(self, cip):
         """all cips in the grammar that are congruent to cip in random order.
         congruent means they have the same interface-hash-value"""
         cips = self.productions.get(cip.interface_hash, {}).values()
         cips_ = [cip_ for cip_ in cips if cip_.core_hash != cip.core_hash]
-
         # quick and dirty hack because i am too lazy to implement step 3:
         self.filtercips(cips_,cip) 
         return cips_
+    '''
 
     
+    def neighbors(self, graph, selectordata):
+        """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
+        mycips = self._get_cips(graph)
+        mycips_congrus = [(mycip,concip) for mycip in mycips for concip in self._get_congruent_cips(mycip)   ]
+        filtered_my_other = self.cipselector(mycips_congrus,*selectordata)
+        for mycip, congru in filtered_my_other:
+            graph_ = self._substitute_core(graph, mycip, congru)
+            if graph_ is not None:
+                yield graph_
 
-def vertex_vec(graph, decomposer, bitmask = 2**10-1): 
+
+def vertex_vec(graph, decomposer, bitmask = 2**14-1): 
     '''
         this will generate vectors for all nodes. 
         call this for the whole graph before making a cip
