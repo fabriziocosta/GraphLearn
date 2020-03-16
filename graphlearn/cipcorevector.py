@@ -1,6 +1,7 @@
 
 
 from graphlearn.lsgg_core_interface_pair import * 
+import graphlearn.lsgg_core_interface_pair as cip 
 from ego import real_vectorize as rv
 from graphlearn import LSGG
 
@@ -40,40 +41,22 @@ class LsggCoreVec(LSGG):
         return node_vectors[core_ids,:].sum(axis=0)
 
     def _get_cips(self, graph, filter = lambda x:x):
-        exgraph = _edge_to_vertex(graph)
+        exgraph = cip._edge_to_vertex(graph)
         matrix = vertex_vec(exgraph, self.core_vec_decomposer) 
         for core in self._get_cores(graph):
             x = self._get_cip(core=core, graph=graph)
             if x and filter(x.graph):
                 x.core_vec  = self.make_core_vector(x.graph, exgraph, matrix)
                 yield x
-    #####
-    # step 2: one should probably overwrite get_congruent cips to actually use the new vectors
-    # TODO
-    # neighbors takes 2 more args 
-    # these are passed to new unctions that i got in init
-    # one should filter cores in get_cips (depending on the prev mentioned arg)
-    # one should filter congruent cips (the other arg)
-    ######
-
-    '''
-    def _get_congruent_cips(self, cip):
-        """all cips in the grammar that are congruent to cip in random order.
-        congruent means they have the same interface-hash-value"""
-        cips = self.productions.get(cip.interface_hash, {}).values()
-        cips_ = [cip_ for cip_ in cips if cip_.core_hash != cip.core_hash]
-        # quick and dirty hack because i am too lazy to implement step 3:
-        self.filtercips(cips_,cip) 
-        return cips_
-    '''
-
     
-    def neighbors(self, graph, selectordata, filter = lambda x:x):
+    def neighbors(self, graph, selectordata, filter = lambda x:True):
         """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
+        print("GRAPHNOIDESL:::::", graph.nodes())
         current_cips = self._get_cips(graph,filter)
-        current_cips_congrus = [(current_cip,concip) for current_cip in current_cips for concip in self._get_congruent_cips(current_cip)   ]
-        filtered_current__other = self.cipselector(current_cips_congrus,*selectordata)
-        for current_cip, congru in filtered_current__other:
+        current_cips_congrus = [(current_cip,concip) for current_cip in current_cips 
+                for concip in self._get_congruent_cips(current_cip)   ]
+        filtered_current_other = self.cipselector(current_cips_congrus,*selectordata)
+        for current_cip, congru in filtered_current_other:
             graph_ = self._substitute_core(graph, current_cip, congru)
             if graph_ is not None:
                 yield graph_
