@@ -60,8 +60,8 @@ class LocalSubstitutionGraphGrammarCore(object):
             self._store_cip(cip)
 
     def _get_cips(self, graph):
-        for root in self._get_cores(graph):
-            x = self._get_cip(core=root, graph=graph)
+        for core in self._get_cores(graph):
+            x = self._get_cip(core=core, graph=graph)
             if x:
                 yield x
 
