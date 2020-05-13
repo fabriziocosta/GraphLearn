@@ -93,10 +93,8 @@ class LocalSubstitutionGraphGrammarCore(object):
                     self.productions[interface].pop(core)
 
     def _filter_cips_by_rank(self):
-        print('filter_max_num_substitutions %d'%self.filter_max_num_substitutions)
         for interface in list(self.productions.keys()):
             cores = list(self.productions[interface].keys())
-            print('Before %d' % len(cores))
             if self.filter_max_num_substitutions < len(cores):
                 counts = [self.productions[interface][core].count for core in cores]
                 sorted_counts = sorted(counts, reverse=True)
@@ -105,7 +103,6 @@ class LocalSubstitutionGraphGrammarCore(object):
                     if self.productions[interface][core].count < count_threshold:
                         self.productions[interface].pop(core)
             cores = list(self.productions[interface].keys())
-            print('after %d' % len(cores))
 
     ##############
     #  APPLYING A PRODUCTION
