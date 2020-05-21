@@ -158,11 +158,14 @@ def find_all_isomorphisms(interface_graph, congruent_interface_graph):
     label_matcher = lambda x, y: x['ilabel'] == y['ilabel']  # and \ x.get('shard', 1) == y.get('shard', 1)
     return iso.GraphMatcher(interface_graph, congruent_interface_graph, node_match=label_matcher).match()
 
+
 def substitute_core(graph, cip, congruent_cip):
     
+
     # expand edges and remove old core
     graph = _edge_to_vertex(graph)
     graph.remove_nodes_from(cip.core_nodes)
+
 
     # relabel the nodes in the congruent cip such that the interface node-ids match with the graph and the
     # core ids dont overlap
@@ -170,7 +173,8 @@ def substitute_core(graph, cip, congruent_cip):
     if len(interface_map) != len(cip.interface):
         logger.log(10, "isomorphism failed, likely due to hash collision")
         return None
-    maxid = max(graph.nodes())
+
+    maxid = max(graph.nodes()) # if we die here, likely the cip covers the whole graph 
     core_rename= { c: i+maxid+1 for i,c in enumerate(congruent_cip.core_nodes) }
     interface_map.update(core_rename)
     newcip = nx.relabel_nodes(congruent_cip.graph, interface_map,copy=True)

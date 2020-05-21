@@ -51,7 +51,6 @@ class LsggCoreVec(LSGG):
     
     def neighbors(self, graph, selectordata, filter = lambda x:True):
         """iterator over all neighbors of graph (that are conceiveable by the grammar)"""
-        print("GRAPHNOIDESL:::::", graph.nodes())
         current_cips = self._get_cips(graph,filter)
         current_cips_congrus = [(current_cip,concip) for current_cip in current_cips 
                 for concip in self._get_congruent_cips(current_cip)   ]
