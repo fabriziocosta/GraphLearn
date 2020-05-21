@@ -17,6 +17,7 @@ class LocalSubstitutionGraphGrammarCore(object):
                  thickness=1,
                  filter_min_cip=2,
                  filter_min_interface=2,
+                 filter_max_num_substitutions=None,
                  nodelevel_radius_and_thickness=True
                  ):
         """Parameters
@@ -31,6 +32,7 @@ class LocalSubstitutionGraphGrammarCore(object):
         self.thickness = thickness
         self.filter_min_cip = filter_min_cip
         self.filter_min_interface = filter_min_interface
+        self.filter_max_num_substitutions = filter_max_num_substitutions
 
         self.productions = defaultdict(dict)
         if nodelevel_radius_and_thickness:
@@ -76,19 +78,35 @@ class LocalSubstitutionGraphGrammarCore(object):
         self.productions[cip.interface_hash].setdefault(cip.core_hash, cip).count += 1
 
     def _filter_cips(self):
-        logger.log(10, "grammar bevore freq filter: %s" % str(self))
-        """Remove infrequent cores and interfaces. see fit"""
+        self._filter_cips_by_counts()
+        if self.filter_max_num_substitutions is not None:
+            self._filter_cips_by_rank()
+        # remove interfaces with few substitutions
+        for interface in list(self.productions.keys()):
+            if len(self.productions[interface]) < self.filter_min_interface:
+                self.productions.pop(interface)
+
+    def _filter_cips_by_counts(self):
         for interface in list(self.productions.keys()):
             for core in list(self.productions[interface].keys()):
                 if self.productions[interface][core].count < self.filter_min_cip:
                     self.productions[interface].pop(core)
-            if len(self.productions[interface]) < self.filter_min_interface:
-                self.productions.pop(interface)
-        logger.log(10, self)
+
+    def _filter_cips_by_rank(self):
+        for interface in list(self.productions.keys()):
+            cores = list(self.productions[interface].keys())
+            if self.filter_max_num_substitutions < len(cores):
+                counts = [self.productions[interface][core].count for core in cores]
+                sorted_counts = sorted(counts, reverse=True)
+                count_threshold = sorted_counts[self.filter_max_num_substitutions - 1]
+                for core in list(self.productions[interface].keys()):
+                    if self.productions[interface][core].count < count_threshold:
+                        self.productions[interface].pop(core)
+            cores = list(self.productions[interface].keys())
 
     ##############
     #  APPLYING A PRODUCTION
-    # 
+    #
     #############
     def _get_congruent_cips(self, cip):
         """all cips in the grammar that are congruent to cip in random order.
@@ -152,8 +170,8 @@ class LocalSubstitutionGraphGrammar(LocalSubstitutionGraphGrammarCore):
     def structout(self):
         import structout as so
         for ciplist in self.productions.values():
-            colors = [[x.core_nodes] for x in ciplist.values() ]
-            so.gprint([c.graph for c in ciplist.values()], color = colors )
+            colors = [[x.core_nodes] for x in ciplist.values()]
+            so.gprint([c.graph for c in ciplist.values()], color=colors)
             print("#" * 80)
 
     def __repr__(self):
