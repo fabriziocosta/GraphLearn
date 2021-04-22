@@ -70,7 +70,7 @@ def vertex_vec(graph, decomposer, bitmask = 2**14-1):
         rv.get_subgraphs_from_graph_component, decomposer, rv.convert),
         bitmask=bitmask)
 
-    data_matrix = rv.to_sparse_matrix(encoding, node_ids, bitmask+2)
+    data_matrix = rv._to_sparse_matrix(encoding, node_ids, bitmask+2)
 
     return data_matrix
 
