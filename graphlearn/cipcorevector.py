@@ -61,7 +61,7 @@ class LsggCoreVec(LSGG):
                 yield graph_
 
 
-def vertex_vec(graph, decomposer, bitmask = 2**14-1): 
+def vertex_vec(graph, decomposer, bitmask = 2**16-1): 
     '''
         this will generate vectors for all nodes. 
         call this for the whole graph before making a cip
