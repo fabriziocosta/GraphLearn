@@ -3,7 +3,6 @@ from networkx.algorithms import isomorphism as iso
 import networkx as nx
 import logging
 
-# nx 2.2 has this:
 from networkx.algorithms.shortest_paths.unweighted import _single_shortest_path_length as short_paths
 logger = logging.getLogger(__name__)
 
@@ -137,11 +136,16 @@ def get_cores(graph, radii):
     for root in graph.nodes():
         id_dst = {node: dis for (node, dis) in short_paths(exgraph, [root], max(radii)+1)}
         for r in radii:
-            #nodeset = get_node_set(id_dst,r, exgraph)
-            yield  exgraph.subgraph([id for id,dst in id_dst.items() if dst <= r ])
+            nodeset = get_node_set(id_dst,r, exgraph)
+            yield  exgraph.subgraph(nodeset)
+            #yield  exgraph.subgraph([id for id,dst in id_dst.items() if dst <= r ])
             #print (root, id_dst)
             #so.gprint(res)
 
+def get_node_set(id_dst, r, graph):
+    # a node is in the core when dist <= r or it is an edge and is twice connected to nodes in core
+    border = {node for node,dis in id_dst.items() if dis == r} 
+    return [id for id,dst in id_dst.items() if (dst <= r or edgetest(border,id, graph))]
 
 def edgetest(border, id,g):
    res=  (2 == sum([ g.has_edge( id,b  ) for b in border]))# and "edge" in graph.nodes[id] 
