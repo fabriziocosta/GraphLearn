@@ -137,7 +137,8 @@ def get_cores(graph, radii):
         id_dst = {node: dis for (node, dis) in short_paths(exgraph, [root], max(radii)+1)}
         for r in radii:
             nodeset = get_node_set(id_dst,r, exgraph)
-            yield  exgraph.subgraph(nodeset)
+            if len(nodeset) < len(exgraph):
+                yield  exgraph.subgraph(nodeset)
             #yield  exgraph.subgraph([id for id,dst in id_dst.items() if dst <= r ])
             #print (root, id_dst)
             #so.gprint(res)
@@ -165,7 +166,6 @@ def find_all_isomorphisms(interface_graph, congruent_interface_graph):
 
 def substitute_core(graph, cip, congruent_cip):
     
-
     # expand edges and remove old core
     graph = _edge_to_vertex(graph)
     graph.remove_nodes_from(cip.core_nodes)
@@ -177,7 +177,7 @@ def substitute_core(graph, cip, congruent_cip):
     if len(interface_map) != len(cip.interface):
         logger.log(10, "isomorphism failed, likely due to hash collision")
         return None
-
+    
     maxid = max(graph.nodes()) # if we die here, likely the cip covers the whole graph 
     core_rename= { c: i+maxid+1 for i,c in enumerate(congruent_cip.core_nodes) }
     interface_map.update(core_rename)
