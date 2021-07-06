@@ -135,13 +135,18 @@ def get_cores(graph, radii):
     exgraph = _edge_to_vertex(graph)
     for root in graph.nodes():
         id_dst = {node: dis for (node, dis) in short_paths(exgraph, [root], max(radii)+1)}
-        for r in radii:
-            nodeset = get_node_set(id_dst,r, exgraph)
-            if len(nodeset) < len(exgraph):
-                yield  exgraph.subgraph(nodeset)
-            #yield  exgraph.subgraph([id for id,dst in id_dst.items() if dst <= r ])
-            #print (root, id_dst)
-            #so.gprint(res)
+        for e in loopradii_makesubgraphs(exgraph, id_dst, radii):
+            yield e 
+
+
+def loopradii_makesubgraphs(exgraph, id_dst, radii):
+    for r in radii:
+        nodeset = get_node_set(id_dst,r, exgraph)
+        if len(nodeset) < len(exgraph):
+            yield  exgraph.subgraph(nodeset)
+        #yield  exgraph.subgraph([id for id,dst in id_dst.items() if dst <= r ])
+        #print (root, id_dst)
+        #so.gprint(res)
 
 def get_node_set(id_dst, r, graph):
     # a node is in the core when dist <= r or it is an edge and is twice connected to nodes in core
@@ -152,6 +157,19 @@ def edgetest(border, id,g):
    res=  (2 == sum([ g.has_edge( id,b  ) for b in border]))# and "edge" in graph.nodes[id] 
    return res
 
+
+def get_cores_closeloop(graph, radii):
+    '''same as get_cores, but pairs of nodes with degree 1 are considered. this should allow the grammar to close cycles in graphs'''
+    for e in get_cores(graph,radii):
+        yield e
+    deadends  =  [node for  node, deg in graph.degree() if deg == 1]
+    if len(deadends) > 1: 
+        exgraph = _edge_to_vertex(graph)
+        for i, nid in enumerate(deadends):
+            for j, njd in enumerate(deadends[i:]):
+                id_dst = {node: dis for (node, dis) in short_paths(exgraph, [nid,jid], max(radii)+1)}
+                for e in loopradii_makesubgraphs(exgraph, id_dst, radii):
+                    yield e
 
 
 
